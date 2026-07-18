@@ -1,35 +1,48 @@
 import { create } from 'zustand';
+import { createJSONStorage, persist } from 'zustand/middleware';
+
+import { gameStorage } from '@/store/game-storage';
 
 import {
   createChapterOneTopology,
   createPC,
   createRouter,
   createSwitch,
+  getNextDeviceName,
   type CableEdge,
+  type ConnectionSelectionResult,
   type DeviceNode,
   type DeviceType,
   type NetworkTopology,
   type Position,
 } from '@/core/network/models';
 
-interface GameState {
+export interface GameState {
   topology: NetworkTopology;
+  topologyCanvasWidth: number;
   selectedConnectionStartId?: string;
+  selectedDeviceForRemovalId?: string;
   completedLessonIds: string[];
-  quizScore?: number;
-  flashcardsReviewed: boolean;
-  labComplete: boolean;
+  quizScores: Record<string, number>;
+  reviewedFlashcardChapterIds: string[];
+  flashcardPositions: Record<string, number>;
+  completedLabIds: string[];
   addDevice: (type: DeviceType, position: Position) => void;
   moveDevice: (deviceId: string, position: Position) => void;
   removeDevice: (deviceId: string) => void;
-  selectDeviceForConnection: (deviceId: string) => void;
+  selectDeviceForRemoval: (deviceId: string) => void;
+  clearDeviceForRemoval: () => void;
+  selectDeviceForConnection: (deviceId: string) => ConnectionSelectionResult;
   removeCable: (cableId: string) => void;
   cancelConnection: () => void;
+  resizeTopologyCanvas: (width: number, deviceSize: number) => void;
   resetLab: () => void;
   completeLesson: (lessonId: string) => void;
-  saveQuizScore: (score: number) => void;
-  markFlashcardsReviewed: () => void;
-  completeLab: () => void;
+  saveQuizScore: (chapterId: string, score: number) => void;
+  markFlashcardsReviewed: (chapterId: string) => void;
+  saveFlashcardPosition: (chapterId: string, index: number) => void;
+  clearFlashcardPosition: (chapterId: string) => void;
+  completeLab: (labId: string) => void;
 }
 
 function buildDevice(type: DeviceType, name: string, position: Position): DeviceNode {
@@ -46,20 +59,21 @@ function cableExists(cables: CableEdge[], firstId: string, secondId: string) {
   );
 }
 
-export const useGameStore = create<GameState>((set) => ({
+export const useGameStore = create<GameState>()(persist((set, get) => ({
   topology: createChapterOneTopology(),
+  topologyCanvasWidth: 272,
   completedLessonIds: [],
-  flashcardsReviewed: false,
-  labComplete: false,
+  quizScores: {},
+  reviewedFlashcardChapterIds: [],
+  flashcardPositions: {},
+  completedLabIds: [],
 
   addDevice: (type, position) =>
     set((state) => {
-      const count = state.topology.devices.filter((device) => device.type === type).length + 1;
-      const label = type === 'pc' ? 'PC' : type === 'switch' ? 'Switch' : 'Router';
       return {
         topology: {
           ...state.topology,
-          devices: [...state.topology.devices, buildDevice(type, `${label} ${count}`, position)],
+          devices: [...state.topology.devices, buildDevice(type, getNextDeviceName(state.topology, type), position)],
         },
       };
     }),
@@ -79,6 +93,9 @@ export const useGameStore = create<GameState>((set) => ({
       selectedConnectionStartId: state.selectedConnectionStartId === deviceId
         ? undefined
         : state.selectedConnectionStartId,
+      selectedDeviceForRemovalId: state.selectedDeviceForRemovalId === deviceId
+        ? undefined
+        : state.selectedDeviceForRemovalId,
       topology: {
         devices: state.topology.devices.filter((device) => device.id !== deviceId),
         cables: state.topology.cables.filter(
@@ -87,25 +104,45 @@ export const useGameStore = create<GameState>((set) => ({
       },
     })),
 
-  selectDeviceForConnection: (deviceId) =>
-    set((state) => {
-      const startId = state.selectedConnectionStartId;
-      if (!startId) return { selectedConnectionStartId: deviceId };
-      if (startId === deviceId) return { selectedConnectionStartId: undefined };
-      if (cableExists(state.topology.cables, startId, deviceId)) {
-        return { selectedConnectionStartId: undefined };
-      }
+  selectDeviceForRemoval: (deviceId) =>
+    set((state) => ({
+      selectedConnectionStartId: undefined,
+      selectedDeviceForRemovalId: state.selectedDeviceForRemovalId === deviceId
+        ? undefined
+        : deviceId,
+    })),
+  clearDeviceForRemoval: () => set({ selectedDeviceForRemovalId: undefined }),
 
-      const cable: CableEdge = {
-        id: `cable-${startId}-${deviceId}`,
-        fromDeviceId: startId,
-        toDeviceId: deviceId,
-      };
-      return {
-        selectedConnectionStartId: undefined,
-        topology: { ...state.topology, cables: [...state.topology.cables, cable] },
-      };
-    }),
+  selectDeviceForConnection: (deviceId) => {
+    const state = get();
+    if (!state.topology.devices.some((device) => device.id === deviceId)) return 'device-missing';
+
+    const startId = state.selectedConnectionStartId;
+    if (!startId) {
+      set({ selectedConnectionStartId: deviceId, selectedDeviceForRemovalId: undefined });
+      return 'start-selected';
+    }
+    if (startId === deviceId) {
+      set({ selectedConnectionStartId: undefined, selectedDeviceForRemovalId: undefined });
+      return 'cancelled';
+    }
+    if (cableExists(state.topology.cables, startId, deviceId)) {
+      set({ selectedConnectionStartId: undefined, selectedDeviceForRemovalId: undefined });
+      return 'duplicate';
+    }
+
+    const cable: CableEdge = {
+      id: `cable-${startId}-${deviceId}`,
+      fromDeviceId: startId,
+      toDeviceId: deviceId,
+    };
+    set({
+      selectedConnectionStartId: undefined,
+      selectedDeviceForRemovalId: undefined,
+      topology: { ...state.topology, cables: [...state.topology.cables, cable] },
+    });
+    return 'connected';
+  },
 
   removeCable: (cableId) =>
     set((state) => ({
@@ -115,14 +152,92 @@ export const useGameStore = create<GameState>((set) => ({
       },
     })),
   cancelConnection: () => set({ selectedConnectionStartId: undefined }),
-  resetLab: () => set({ topology: createChapterOneTopology(), selectedConnectionStartId: undefined, labComplete: false }),
+  resizeTopologyCanvas: (width, deviceSize) =>
+    set((state) => {
+      if (width === state.topologyCanvasWidth) return state;
+      const centerShift = (width - state.topologyCanvasWidth) / 2;
+      return {
+        topologyCanvasWidth: width,
+        topology: {
+          ...state.topology,
+          devices: state.topology.devices.map((device) => ({
+            ...device,
+            position: {
+              ...device.position,
+              x: Math.max(0, Math.min(width - deviceSize, device.position.x + centerShift)),
+            },
+          })),
+        },
+      };
+    }),
+  resetLab: () =>
+    set((state) => ({
+      topology: createChapterOneTopology(state.topologyCanvasWidth),
+      selectedConnectionStartId: undefined,
+      selectedDeviceForRemovalId: undefined,
+    })),
   completeLesson: (lessonId) =>
     set((state) => ({
       completedLessonIds: state.completedLessonIds.includes(lessonId)
         ? state.completedLessonIds
         : [...state.completedLessonIds, lessonId],
     })),
-  saveQuizScore: (quizScore) => set({ quizScore }),
-  markFlashcardsReviewed: () => set({ flashcardsReviewed: true }),
-  completeLab: () => set({ labComplete: true }),
+  saveQuizScore: (chapterId, score) => set((state) => ({
+    quizScores: {
+      ...state.quizScores,
+      [chapterId]: Math.max(state.quizScores[chapterId] ?? 0, score),
+    },
+  })),
+  markFlashcardsReviewed: (chapterId) => set((state) => ({
+    reviewedFlashcardChapterIds: state.reviewedFlashcardChapterIds.includes(chapterId)
+      ? state.reviewedFlashcardChapterIds
+      : [...state.reviewedFlashcardChapterIds, chapterId],
+  })),
+  saveFlashcardPosition: (chapterId, index) => set((state) => ({
+    flashcardPositions: { ...state.flashcardPositions, [chapterId]: Math.max(0, index) },
+  })),
+  clearFlashcardPosition: (chapterId) => set((state) => {
+    const flashcardPositions = { ...state.flashcardPositions };
+    delete flashcardPositions[chapterId];
+    return { flashcardPositions };
+  }),
+  completeLab: (labId) => set((state) => ({
+    completedLabIds: state.completedLabIds.includes(labId)
+      ? state.completedLabIds
+      : [...state.completedLabIds, labId],
+  })),
+}), {
+  name: 'netbite-game-state-v1',
+  storage: createJSONStorage(() => gameStorage),
+  version: 3,
+  skipHydration: true,
+  partialize: (state) => ({
+    topology: state.topology,
+    topologyCanvasWidth: state.topologyCanvasWidth,
+    completedLessonIds: state.completedLessonIds,
+    quizScores: state.quizScores,
+    reviewedFlashcardChapterIds: state.reviewedFlashcardChapterIds,
+    flashcardPositions: state.flashcardPositions,
+    completedLabIds: state.completedLabIds,
+  }),
+  migrate: (persistedState, version) => {
+    const legacyState = persistedState as Partial<GameState> & {
+      quizScore?: number;
+      flashcardsReviewed?: boolean;
+      labComplete?: boolean;
+    };
+    const migratedState = version >= 2
+      ? legacyState
+      : {
+          ...legacyState,
+          quizScores: legacyState.quizScore === undefined ? {} : { 1: legacyState.quizScore },
+          reviewedFlashcardChapterIds: legacyState.flashcardsReviewed ? ['1'] : [],
+          completedLabIds: legacyState.labComplete ? ['first-network'] : [],
+        };
+
+    return {
+      ...migratedState,
+      flashcardPositions: migratedState.flashcardPositions ?? {},
+    } as GameState;
+  },
 }));

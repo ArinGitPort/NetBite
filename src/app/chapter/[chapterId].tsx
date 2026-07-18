@@ -1,8 +1,11 @@
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { chapterOneLessons } from '@/content/chapter-one';
+import { getChapter } from '@/content/chapters';
+import { getChapterProgress, getQuizMasteryScore, isQuizMastered } from '@/content/progress';
+import { ChapterRecap } from '@/features/chapters/components/chapter-recap';
 import { AppIcon } from '@/shared/components/app-icon';
+import { ContentNotFound } from '@/shared/components/content-not-found';
 import { Text } from '@/shared/components/console-text';
 import { IconButton } from '@/shared/components/icon-button';
 import { ProgressBar } from '@/shared/components/progress-bar';
@@ -27,12 +30,12 @@ function ActivityRow({ index, type, title, detail, complete, onPress }: Activity
       onPress={onPress}
       style={({ pressed }) => [styles.activity, pressed && styles.pressed]}>
       <View style={[styles.activityNumber, complete && styles.activityComplete]}>
-        {complete ? <AppIcon name="check" size={24} /> : <Text style={styles.activityNumberText}>{index}</Text>}
+        {complete ? <AppIcon name="check" size={24} /> : <Text variant="label" style={styles.activityNumberText}>{index}</Text>}
       </View>
       <View style={styles.activityCopy}>
-        <Text style={styles.activityType}>{type}</Text>
-        <Text style={styles.activityTitle}>{title}</Text>
-        <Text style={styles.activityDetail}>{detail}</Text>
+        <Text variant="label" style={styles.activityType}>{type}</Text>
+        <Text variant="sectionHeading" style={styles.activityTitle}>{title}</Text>
+        <Text variant="bodySmall" style={styles.activityDetail}>{detail}</Text>
       </View>
       <AppIcon name="arrow-right" size={20} />
     </Pressable>
@@ -40,12 +43,26 @@ function ActivityRow({ index, type, title, detail, complete, onPress }: Activity
 }
 
 export default function ChapterScreen() {
+  const { chapterId } = useLocalSearchParams<{ chapterId: string }>();
   const completedLessonIds = useGameStore((state) => state.completedLessonIds);
-  const labComplete = useGameStore((state) => state.labComplete);
-  const quizScore = useGameStore((state) => state.quizScore);
-  const flashcardsReviewed = useGameStore((state) => state.flashcardsReviewed);
-  const completed = completedLessonIds.length + Number(labComplete) + Number(quizScore !== undefined) + Number(flashcardsReviewed);
-  const total = chapterOneLessons.length + 3;
+  const completedLabIds = useGameStore((state) => state.completedLabIds);
+  const quizScores = useGameStore((state) => state.quizScores);
+  const reviewedFlashcardChapterIds = useGameStore((state) => state.reviewedFlashcardChapterIds);
+  const chapter = getChapter(chapterId);
+  const progress = { completedLessonIds, completedLabIds, quizScores, reviewedFlashcardChapterIds };
+
+  if (!chapter) return <ContentNotFound label="Chapter" />;
+  const { completed, total } = getChapterProgress(chapter, progress);
+  const labComplete = completedLabIds.includes(chapter.lab.id);
+  const quizScore = quizScores[chapter.id];
+  const quizMastered = isQuizMastered(chapter, quizScore);
+  const quizDetail = quizScore === undefined
+    ? `${chapter.quiz.length} beginner questions`
+    : quizMastered
+      ? `Mastered • ${quizScore}/${chapter.quiz.length}`
+      : `Attempted • ${quizScore}/${chapter.quiz.length} • Reach ${getQuizMasteryScore(chapter)}/${chapter.quiz.length}`;
+  const flashcardsReviewed = reviewedFlashcardChapterIds.includes(chapter.id);
+  const chapterComplete = completed === total;
 
   return (
     <Screen>
@@ -53,15 +70,17 @@ export default function ChapterScreen() {
         <IconButton accessibilityLabel="Back to home" icon="arrow-left" label="BACK / HOME" onPress={() => router.dismissTo('/')} />
       </View>
       <View style={styles.hero}>
-        <Text style={styles.chapterLabel}>CHAPTER 01</Text>
-        <Text style={styles.title}>INTRODUCTION TO NETWORKS</Text>
-        <Text style={styles.subtitle}>Discover what networks are, meet the devices, then build your first connection.</Text>
+        <Text variant="label" style={styles.chapterLabel}>CHAPTER {chapter.numberLabel}</Text>
+        <Text variant="screenTitle" style={styles.title}>{chapter.title}</Text>
+        <Text variant="body" style={styles.subtitle}>{chapter.summary}</Text>
         <ProgressBar progress={completed / total} />
-        <Text style={styles.progressText}>{completed} OF {total} ACTIVITIES COMPLETE</Text>
+        <Text variant="label" style={styles.progressText}>{completed} OF {total} ACTIVITIES COMPLETE</Text>
       </View>
 
-      <Text style={styles.sectionTitle}>LESSONS</Text>
-      {chapterOneLessons.map((lesson, index) => (
+      {chapterComplete ? <ChapterRecap recap={chapter.recap} /> : null}
+
+      <Text variant="sectionHeading" style={styles.sectionTitle}>LESSONS</Text>
+      {chapter.lessons.map((lesson, index) => (
         <ActivityRow
           key={lesson.id}
           index={index + 1}
@@ -73,10 +92,10 @@ export default function ChapterScreen() {
         />
       ))}
 
-      <Text style={styles.sectionTitle}>PRACTICE</Text>
-      <ActivityRow index={5} type="MINI LAB" title="Build your first network" detail="Connect two PCs to a switch" complete={labComplete} onPress={() => router.push('/lab/first-network')} />
-      <ActivityRow index={6} type="QUIZ" title="Check your understanding" detail="5 beginner questions" complete={quizScore !== undefined} onPress={() => router.push('/quiz/1')} />
-      <ActivityRow index={7} type="FLASHCARDS" title="Review the key terms" detail="5 cards" complete={flashcardsReviewed} onPress={() => router.push('/flashcards/1')} />
+      <Text variant="sectionHeading" style={styles.sectionTitle}>PRACTICE</Text>
+      <ActivityRow index={chapter.lessons.length + 1} type="MINI LAB" title={chapter.lab.title} detail={chapter.lab.detail} complete={labComplete} onPress={() => router.push({ pathname: '/lab/[labId]', params: { labId: chapter.lab.id } })} />
+      <ActivityRow index={chapter.lessons.length + 2} type="QUIZ" title="Check your understanding" detail={quizDetail} complete={quizMastered} onPress={() => router.push({ pathname: '/quiz/[chapterId]', params: { chapterId: chapter.id } })} />
+      <ActivityRow index={chapter.lessons.length + 3} type="FLASHCARDS" title="Review the key terms" detail={`${chapter.flashcards.length} cards`} complete={flashcardsReviewed} onPress={() => router.push({ pathname: '/flashcards/[chapterId]', params: { chapterId: chapter.id } })} />
     </Screen>
   );
 }
@@ -84,18 +103,18 @@ export default function ChapterScreen() {
 const styles = StyleSheet.create({
   back: { alignSelf: 'flex-start' },
   hero: { backgroundColor: Palette.surfaceRaised, padding: Space.xl, borderRadius: Radius.lg, borderWidth: 1, borderColor: Palette.accent, marginVertical: Space.lg, gap: Space.md },
-  chapterLabel: { color: Palette.accentBright, fontFamily: Fonts.medium, fontSize: 11, letterSpacing: 1.5 },
-  title: { color: Palette.white, fontFamily: Fonts.semibold, fontSize: 16, lineHeight: 24, letterSpacing: 1.5 },
-  subtitle: { color: Palette.textMuted, fontSize: 12, lineHeight: 20, marginBottom: Space.sm },
-  progressText: { color: Palette.textMuted, fontFamily: Fonts.regular, fontSize: 11, letterSpacing: 1.5 },
-  sectionTitle: { color: Palette.text, fontFamily: Fonts.semibold, fontSize: 13, letterSpacing: 1.5, marginTop: Space.xl, marginBottom: Space.md },
+  chapterLabel: { color: Palette.accentBright, fontFamily: Fonts.medium },
+  title: { color: Palette.white, fontFamily: Fonts.semibold, textTransform: 'uppercase' },
+  subtitle: { color: Palette.textMuted, marginBottom: Space.sm },
+  progressText: { color: Palette.textMuted, fontFamily: Fonts.regular },
+  sectionTitle: { color: Palette.text, fontFamily: Fonts.semibold, marginTop: Space.xl, marginBottom: Space.md },
   activity: { flexDirection: 'row', alignItems: 'center', backgroundColor: Palette.surface, borderWidth: 1, borderColor: Palette.border, borderRadius: Radius.md, padding: Space.lg, marginBottom: Space.md },
   pressed: { opacity: 0.7 },
   activityNumber: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: Radius.sm, backgroundColor: Palette.accentSoft },
   activityComplete: { backgroundColor: Palette.mint },
-  activityNumberText: { color: Palette.accentBright, fontFamily: Fonts.medium, fontSize: 11, letterSpacing: 1.5 },
+  activityNumberText: { color: Palette.accentBright, fontFamily: Fonts.medium },
   activityCopy: { flex: 1, marginLeft: Space.md },
-  activityType: { color: Palette.accentBright, fontFamily: Fonts.medium, fontSize: 11, letterSpacing: 1.5 },
-  activityTitle: { color: Palette.text, fontFamily: Fonts.medium, fontSize: 12, lineHeight: 18, marginVertical: Space.xs, textTransform: 'uppercase', letterSpacing: 1.5 },
-  activityDetail: { color: Palette.textMuted, fontSize: 11, letterSpacing: 1.5, textTransform: 'uppercase' },
+  activityType: { color: Palette.accentBright, fontFamily: Fonts.medium },
+  activityTitle: { color: Palette.text, fontFamily: Fonts.medium, marginVertical: Space.xs, textTransform: 'uppercase' },
+  activityDetail: { color: Palette.textMuted, textTransform: 'uppercase' },
 });

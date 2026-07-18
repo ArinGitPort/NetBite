@@ -35,11 +35,19 @@ export interface PacketDemoPath {
   destination: DeviceNode;
 }
 
+export type ConnectionSelectionResult =
+  | 'start-selected'
+  | 'connected'
+  | 'cancelled'
+  | 'duplicate'
+  | 'device-missing';
+
 let nextDeviceId = 0;
+const deviceIdSession = Date.now().toString(36);
 
 function createDevice(type: DeviceType, name: string, position: Position): DeviceNode {
   nextDeviceId += 1;
-  return { id: `${type}-${nextDeviceId}`, type, name, position };
+  return { id: `${type}-${deviceIdSession}-${nextDeviceId}`, type, name, position };
 }
 
 export function createPC(name: string, position: Position): DeviceNode {
@@ -54,12 +62,35 @@ export function createRouter(name: string, position: Position): DeviceNode {
   return createDevice('router', name, position);
 }
 
-export function createChapterOneTopology(): NetworkTopology {
+export function getNextDeviceName(topology: NetworkTopology, type: DeviceType): string {
+  const label = type === 'pc' ? 'PC' : type === 'switch' ? 'Switch' : 'Router';
+  const usedNumbers = new Set(
+    topology.devices
+      .filter((device) => device.type === type)
+      .map((device) => Number(device.name.match(/(\d+)$/)?.[1]))
+      .filter((number) => Number.isInteger(number) && number > 0),
+  );
+
+  let nextNumber = 1;
+  while (usedNumbers.has(nextNumber)) nextNumber += 1;
+  return `${label} ${nextNumber}`;
+}
+
+const DEFAULT_CANVAS_WIDTH = 272;
+const DEFAULT_DEVICE_SIZE = 88;
+
+export function createChapterOneTopology(
+  canvasWidth = DEFAULT_CANVAS_WIDTH,
+  deviceSize = DEFAULT_DEVICE_SIZE,
+): NetworkTopology {
+  const centeredX = Math.max(0, (canvasWidth - deviceSize) / 2);
+  const horizontalSpread = Math.min(88, Math.max(0, centeredX - 8));
+
   return {
     devices: [
-      createPC('PC 1', { x: 8, y: 56 }),
-      createSwitch('Switch 1', { x: 96, y: 176 }),
-      createPC('PC 2', { x: 176, y: 56 }),
+      createPC('PC 1', { x: centeredX - horizontalSpread, y: 56 }),
+      createSwitch('Switch 1', { x: centeredX, y: 176 }),
+      createPC('PC 2', { x: centeredX + horizontalSpread, y: 56 }),
     ],
     cables: [],
   };
@@ -75,20 +106,27 @@ function connectedDeviceIds(topology: NetworkTopology, deviceId: string) {
   );
 }
 
-/** Returns one simple PC -> switch -> PC path for the Chapter 1 visual demo. */
-export function findPacketDemoPath(topology: NetworkTopology): PacketDemoPath | undefined {
+/** Returns a PC -> switch -> PC path, optionally constrained to chosen endpoints. */
+export function findPacketDemoPath(
+  topology: NetworkTopology,
+  sourceId?: string,
+  destinationId?: string,
+): PacketDemoPath | undefined {
   const pcs = topology.devices.filter((device) => device.type === 'pc');
+  const sources = sourceId ? pcs.filter((pc) => pc.id === sourceId) : pcs;
   const switches = topology.devices.filter((device) => device.type === 'switch');
 
   for (const networkSwitch of switches) {
     const connections = connectedDeviceIds(topology, networkSwitch.id);
     const connectedPCs = pcs.filter((pc) => connections.has(pc.id));
-    if (connectedPCs.length >= 2) {
-      return {
-        source: connectedPCs[0],
-        intermediary: networkSwitch,
-        destination: connectedPCs[1],
-      };
+
+    for (const source of sources) {
+      if (!connections.has(source.id)) continue;
+      const destination = destinationId
+        ? connectedPCs.find((pc) => pc.id === destinationId && pc.id !== source.id)
+        : connectedPCs.find((pc) => pc.id !== source.id);
+
+      if (destination) return { source, intermediary: networkSwitch, destination };
     }
   }
 

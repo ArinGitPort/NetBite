@@ -5,7 +5,7 @@ import { Palette } from '@/shared/theme';
 
 export function GridBackground() {
   return (
-    <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+    <View style={[StyleSheet.absoluteFill, styles.noPointerEvents]}>
       <Svg width="100%" height="100%">
         <Defs>
           <Pattern id="netbite-grid" patternUnits="userSpaceOnUse" width={24} height={24}>
@@ -17,3 +17,7 @@ export function GridBackground() {
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  noPointerEvents: { pointerEvents: 'none' },
+});

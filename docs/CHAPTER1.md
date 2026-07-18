@@ -6,6 +6,8 @@ Do NOT build future chapters.
 
 Do NOT implement IP addressing, subnetting, routing, CLI configuration, packet simulation, or validation logic beyond what is required for this chapter.
 
+A protocol-neutral message-path animation may illustrate that connected devices have a path between them. It must be labeled conceptual and must not claim to simulate packets, Ethernet frames, addressing, or switch forwarding.
+
 Stay strictly within the scope below.
 
 ---
@@ -18,6 +20,7 @@ Teach absolute beginners:
 - The purpose of connecting devices
 - Basic networking devices
 - Basic topology interaction
+- What a local area network (LAN) is
 
 The objective is for the player to successfully connect devices together and understand their purpose.
 
@@ -35,6 +38,7 @@ By the end of Chapter 1, the player should understand:
 - What a Switch is
 - What a Router is
 - The difference between connected and disconnected devices
+- That a home, classroom, or office network is a LAN
 
 Do NOT teach:
 

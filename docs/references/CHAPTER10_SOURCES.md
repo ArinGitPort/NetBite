@@ -1,0 +1,10 @@
+# Chapter 10 Technical Sources
+
+## Primary references
+
+- [IEEE 802.1Q Working Group](https://1.ieee802.org/tsn/802-1q/) — bridges and bridged networks with VLAN support.
+- [Cisco: Configure VLANs and Trunks](https://www.cisco.com/c/en/us/td/docs/switches/lan/catalyst2960/software/release/15-0_2_se/configuration/guide/scg2960/swvlan.html) — access VLAN and 802.1Q trunk behavior.
+
+## Content boundaries
+
+The chapter covers access-port membership, logical broadcast separation, allowed VLANs on a two-switch trunk, and the need for Layer 3 routing between VLANs. Native VLANs, DTP, VTP, STP, and routing configuration are deferred.

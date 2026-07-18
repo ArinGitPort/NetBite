@@ -14,15 +14,18 @@ Fira Code is the application typeface across Android, iOS, and web. Font files a
 
 | Role | Size | Line height |
 | --- | --- | --- |
-| Screen title | 16 px | 24 px |
-| Section heading | 13 px | 20 px |
-| Body | 12–13 px | 20–21 px |
-| Label, button, status | 11 px | 16 px |
+| Screen title | 18 px | 26 px |
+| Section heading | 15 px | 22 px |
+| Body | 14 px | 22 px |
+| Secondary body | 13 px | 20 px |
+| Label, button, status | 12 px | 18 px |
+| Technical annotation | 11 px | 17 px |
 
-- No text may exceed 16 px. Icon glyphs also remain at or below 16 px.
-- UI labels, button text, technical headings, and system statuses are uppercase with `letterSpacing: 1.5`.
+- Active application text must use a shared typography role. Eleven pixels is the absolute minimum and is reserved for short technical annotations.
+- UI labels, button text, technical headings, and system statuses are uppercase. Use approximately `letterSpacing: 1.2` for labels and `0.7` for dense technical strings.
 - Educational paragraphs and answer explanations remain sentence case for readability.
 - Weight comes from bundled Fira Code variants, not oversized text.
+- Preserve operating-system font scaling. Containers grow, wrap, or scroll instead of shrinking text to fit.
 
 ## Layout Grid
 
@@ -66,7 +69,7 @@ Saturated color communicates state. It is not general decoration.
 - Dark background matching the console
 - 1 px control-red border for the primary action
 - Minimum 44 px touch target
-- 11 px centered uppercase label with 1.5 tracking
+- 12 px centered uppercase label with 1.2 tracking
 - No fill animation, shadow, or scale animation
 
 ### Learning path circuit
@@ -81,6 +84,7 @@ Saturated color communicates state. It is not general decoration.
 
 - Standard panels use one neutral border and no shadow.
 - Control red indicates navigation, progress, or selection.
+- Red is a signal color, not a reading surface. Do not use red or red-tinted fills across flashcards, lesson bodies, explanations, or other text-heavy panels; use a neutral surface with a red border, rule, label, or small state marker instead.
 - Orange indicates connection mode or attention.
 - Muted sage indicates confirmed success.
 - Red indicates an incorrect answer or error.

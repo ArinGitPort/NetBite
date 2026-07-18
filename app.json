@@ -20,7 +20,6 @@
       "predictiveBackGestureEnabled": false
     },
     "web": {
-      "output": "static",
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
@@ -29,10 +28,12 @@
         "expo-splash-screen",
         {
           "backgroundColor": "#151216",
-          "image": "./assets/images/splash-icon.png",
-          "imageWidth": 76
+          "image": "./assets/images/branding/netbite-splash.png",
+          "imageWidth": 320,
+          "resizeMode": "contain"
         }
-      ]
+      ],
+      "expo-sqlite"
     ],
     "experiments": {
       "typedRoutes": true,

@@ -1,47 +1,131 @@
-import { router } from 'expo-router';
-import { useState } from 'react';
+import { router, useLocalSearchParams } from 'expo-router';
+import { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
+import Animated, {
+  cancelAnimation,
+  Easing,
+  interpolate,
+  useAnimatedStyle,
+  useReducedMotion,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
 
-import { chapterOneFlashcards } from '@/content/chapter-one';
+import { getChapter } from '@/content/chapters';
 import { AppButton } from '@/shared/components/app-button';
 import { AppIcon } from '@/shared/components/app-icon';
+import { ContentNotFound } from '@/shared/components/content-not-found';
 import { Text } from '@/shared/components/console-text';
 import { IconButton } from '@/shared/components/icon-button';
 import { ProgressBar } from '@/shared/components/progress-bar';
 import { Screen } from '@/shared/components/screen';
+import { selectionHaptic, successHaptic } from '@/shared/haptics';
 import { Fonts, Palette, Radius, Space } from '@/shared/theme';
 import { useGameStore } from '@/store/use-game-store';
 
 type FlashcardFront = 'term' | 'definition';
 
+const FLIP_DURATION_MS = 420;
+
 export default function FlashcardsScreen() {
+  const { chapterId } = useLocalSearchParams<{ chapterId: string }>();
+  const chapter = getChapter(chapterId);
   const markReviewed = useGameStore((state) => state.markFlashcardsReviewed);
-  const [index, setIndex] = useState(0);
+  const savedPosition = useGameStore((state) => state.flashcardPositions[chapterId ?? '']);
+  const saveFlashcardPosition = useGameStore((state) => state.saveFlashcardPosition);
+  const clearFlashcardPosition = useGameStore((state) => state.clearFlashcardPosition);
+  const initialIndex = Math.min(savedPosition ?? 0, Math.max(0, (chapter?.flashcards.length ?? 1) - 1));
+  const [index, setIndex] = useState(initialIndex);
   const [revealed, setRevealed] = useState(false);
   const [finished, setFinished] = useState(false);
   const [frontSide, setFrontSide] = useState<FlashcardFront>('term');
-  const card = chapterOneFlashcards[index];
+  const [isFlipping, setIsFlipping] = useState(false);
+  const flipProgress = useSharedValue(0);
+  const reducedMotion = useReducedMotion();
+  const flipTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const card = chapter?.flashcards[index];
   const showingTerm = frontSide === 'term' ? !revealed : revealed;
+  const frontShowsTerm = frontSide === 'term';
+
+  const frontAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(flipProgress.value, [0, 0.499, 0.5, 1], [1, 1, 0, 0]),
+    transform: [
+      { perspective: 1000 },
+      { rotateY: `${interpolate(flipProgress.value, [0, 1], [0, 180])}deg` },
+    ],
+  }));
+
+  const backAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(flipProgress.value, [0, 0.499, 0.5, 1], [0, 0, 1, 1]),
+    transform: [
+      { perspective: 1000 },
+      { rotateY: `${interpolate(flipProgress.value, [0, 1], [180, 360])}deg` },
+    ],
+  }));
+
+  useEffect(() => () => {
+    if (flipTimer.current) clearTimeout(flipTimer.current);
+  }, []);
+
+  if (!chapter || !card) return <ContentNotFound label="Flashcards" />;
+
+  const resetFlip = () => {
+    if (flipTimer.current) {
+      clearTimeout(flipTimer.current);
+      flipTimer.current = null;
+    }
+    cancelAnimation(flipProgress);
+    flipProgress.set(0);
+    setIsFlipping(false);
+    setRevealed(false);
+  };
+
+  const flipCard = () => {
+    if (isFlipping) return;
+
+    const nextRevealed = !revealed;
+    const duration = reducedMotion ? 0 : FLIP_DURATION_MS;
+    setRevealed(nextRevealed);
+    selectionHaptic();
+    flipProgress.set(withTiming(nextRevealed ? 1 : 0, {
+      duration,
+      easing: Easing.inOut(Easing.cubic),
+    }));
+
+    if (duration === 0) return;
+    setIsFlipping(true);
+    flipTimer.current = setTimeout(() => {
+      flipTimer.current = null;
+      setIsFlipping(false);
+    }, duration);
+  };
 
   const chooseFrontSide = (side: FlashcardFront) => {
+    if (side === frontSide) return;
     setFrontSide(side);
-    setRevealed(false);
+    resetFlip();
   };
 
   const previous = () => {
     if (index === 0) return;
-    setIndex((current) => current - 1);
-    setRevealed(false);
+    const nextIndex = index - 1;
+    setIndex(nextIndex);
+    saveFlashcardPosition(chapter.id, nextIndex);
+    resetFlip();
   };
 
   const next = () => {
-    if (index === chapterOneFlashcards.length - 1) {
-      markReviewed();
+    if (index === chapter.flashcards.length - 1) {
+      markReviewed(chapter.id);
+      clearFlashcardPosition(chapter.id);
+      successHaptic();
       setFinished(true);
       return;
     }
-    setIndex((current) => current + 1);
-    setRevealed(false);
+    const nextIndex = index + 1;
+    setIndex(nextIndex);
+    saveFlashcardPosition(chapter.id, nextIndex);
+    resetFlip();
   };
 
   if (finished) {
@@ -49,11 +133,11 @@ export default function FlashcardsScreen() {
       <Screen>
         <View style={styles.finished}>
           <AppIcon name="check" size={32} />
-          <Text style={styles.eyebrow}>REVIEW COMPLETE</Text>
-          <Text style={styles.finishedTitle}>Five new network terms</Text>
-          <Text style={styles.finishedCopy}>You can return to these cards whenever you want a quick refresher.</Text>
+          <Text variant="label" style={styles.eyebrow}>REVIEW COMPLETE</Text>
+          <Text variant="screenTitle" style={styles.finishedTitle}>{chapter.flashcards.length} key terms reviewed</Text>
+          <Text variant="body" style={styles.finishedCopy}>You can return to these cards whenever you want a quick refresher.</Text>
         </View>
-        <AppButton label="Back to chapter" leadingIcon="arrow-left" onPress={() => router.replace('/chapter/1')} />
+        <AppButton label="Back to chapter" leadingIcon="arrow-left" onPress={() => router.replace({ pathname: '/chapter/[chapterId]', params: { chapterId: chapter.id } })} />
       </Screen>
     );
   }
@@ -61,11 +145,11 @@ export default function FlashcardsScreen() {
   return (
     <Screen>
       <View style={styles.header}>
-        <IconButton accessibilityLabel="Close flashcards" icon="close" onPress={() => router.dismissTo('/chapter/1')} />
-        <View style={styles.progress}><ProgressBar progress={(index + 1) / chapterOneFlashcards.length} /></View>
-        <Text style={styles.count}>{index + 1}/{chapterOneFlashcards.length}</Text>
+        <IconButton accessibilityLabel="Close flashcards" icon="close" onPress={() => router.dismissTo({ pathname: '/chapter/[chapterId]', params: { chapterId: chapter.id } })} />
+        <View style={styles.progress}><ProgressBar progress={(index + 1) / chapter.flashcards.length} /></View>
+        <Text variant="label" style={styles.count}>{index + 1}/{chapter.flashcards.length}</Text>
       </View>
-      <Text style={styles.modeLabel}>SHOW FIRST</Text>
+      <Text variant="label" style={styles.modeLabel}>SHOW FIRST</Text>
       <View style={styles.modeSelector}>
         <Pressable
           accessibilityLabel="Show the term first"
@@ -73,7 +157,7 @@ export default function FlashcardsScreen() {
           accessibilityState={{ checked: frontSide === 'term' }}
           onPress={() => chooseFrontSide('term')}
           style={({ pressed }) => [styles.modeOption, frontSide === 'term' && styles.modeOptionSelected, pressed && styles.pressed]}>
-          <Text style={[styles.modeOptionText, frontSide === 'term' && styles.modeOptionTextSelected]}>TERM FIRST</Text>
+          <Text variant="label" style={[styles.modeOptionText, frontSide === 'term' && styles.modeOptionTextSelected]}>TERM FIRST</Text>
         </Pressable>
         <Pressable
           accessibilityLabel="Show the definition first"
@@ -81,27 +165,42 @@ export default function FlashcardsScreen() {
           accessibilityState={{ checked: frontSide === 'definition' }}
           onPress={() => chooseFrontSide('definition')}
           style={({ pressed }) => [styles.modeOption, frontSide === 'definition' && styles.modeOptionSelected, pressed && styles.pressed]}>
-          <Text style={[styles.modeOptionText, frontSide === 'definition' && styles.modeOptionTextSelected]}>DEFINITION FIRST</Text>
+          <Text variant="label" style={[styles.modeOptionText, frontSide === 'definition' && styles.modeOptionTextSelected]}>DEFINITION FIRST</Text>
         </Pressable>
       </View>
-      <Text style={styles.eyebrow}>TAP THE CARD TO REVEAL</Text>
+      <Text variant="label" style={styles.eyebrow}>TAP THE CARD TO REVEAL</Text>
       <Pressable
         accessibilityRole="button"
+        accessibilityState={{ disabled: isFlipping }}
         accessibilityLabel={showingTerm
           ? `${card.term}. Tap to ${revealed ? 'show the definition' : 'reveal the definition'}.`
           : `${card.definition}. Tap to ${revealed ? 'show the term' : 'reveal the term'}.`}
-        onPress={() => setRevealed((current) => !current)}
-        style={({ pressed }) => [styles.card, revealed && styles.cardRevealed, pressed && styles.pressed]}>
-        <Text style={styles.cardLabel}>{showingTerm ? 'NETWORK TERM' : 'DEFINITION'}</Text>
-        <Text style={showingTerm ? styles.term : styles.definition}>{showingTerm ? card.term : card.definition}</Text>
-        {revealed ? (
+        disabled={isFlipping}
+        onPress={flipCard}
+        style={({ pressed }) => [styles.cardPressable, pressed && styles.pressed]}>
+        <View style={styles.cardScene}>
+          <Animated.View
+            accessible={false}
+            style={[styles.cardFace, styles.cardFront, styles.noPointerEvents, frontAnimatedStyle]}>
+            <Text variant="label" style={styles.cardLabel}>{frontShowsTerm ? 'NETWORK TERM' : 'DEFINITION'}</Text>
+            <Text variant={frontShowsTerm ? 'screenTitle' : 'body'} style={frontShowsTerm ? styles.term : styles.definition}>
+              {frontShowsTerm ? card.term : card.definition}
+            </Text>
+            <Text variant="label" style={styles.tapHint}>Tap to flip</Text>
+          </Animated.View>
+          <Animated.View
+            accessible={false}
+            style={[styles.cardFace, styles.cardBack, styles.noPointerEvents, backAnimatedStyle]}>
+            <Text variant="label" style={styles.cardLabel}>{frontShowsTerm ? 'DEFINITION' : 'NETWORK TERM'}</Text>
+            <Text variant={frontShowsTerm ? 'body' : 'screenTitle'} style={frontShowsTerm ? styles.definition : styles.term}>
+              {frontShowsTerm ? card.definition : card.term}
+            </Text>
           <View style={styles.example}>
-            <Text style={styles.exampleLabel}>EXAMPLE</Text>
-            <Text style={styles.exampleText}>{card.example}</Text>
+            <Text variant="label" style={styles.exampleLabel}>EXAMPLE</Text>
+            <Text variant="body" style={styles.exampleText}>{card.example}</Text>
           </View>
-        ) : (
-          <Text style={styles.tapHint}>Tap to flip</Text>
-        )}
+          </Animated.View>
+        </View>
       </Pressable>
       <View style={styles.spacer} />
       <View style={styles.navigationActions}>
@@ -113,8 +212,8 @@ export default function FlashcardsScreen() {
           onPress={previous}
         />
         <AppButton
-          label={index === chapterOneFlashcards.length - 1 ? 'Finish review' : 'Next card'}
-          trailingIcon={index === chapterOneFlashcards.length - 1 ? 'check' : 'arrow-right'}
+          label={index === chapter.flashcards.length - 1 ? 'Finish review' : 'Next card'}
+          trailingIcon={index === chapter.flashcards.length - 1 ? 'check' : 'arrow-right'}
           onPress={next}
         />
       </View>
@@ -125,27 +224,31 @@ export default function FlashcardsScreen() {
 const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', marginBottom: Space.xxl },
   progress: { flex: 1 },
-  count: { width: 48, textAlign: 'right', color: Palette.textMuted, fontSize: 11, letterSpacing: 1.5 },
-  modeLabel: { color: Palette.textMuted, fontFamily: Fonts.medium, fontSize: 11, letterSpacing: 1.5, marginBottom: Space.sm },
+  count: { width: 56, textAlign: 'right', color: Palette.textMuted },
+  modeLabel: { color: Palette.textMuted, fontFamily: Fonts.medium, marginBottom: Space.sm },
   modeSelector: { flexDirection: 'row', marginBottom: Space.lg },
   modeOption: { flex: 1, minHeight: 44, alignItems: 'center', justifyContent: 'center', paddingHorizontal: Space.sm, borderWidth: 1, borderColor: Palette.border, backgroundColor: Palette.surface },
-  modeOptionSelected: { borderColor: Palette.accent, backgroundColor: Palette.accentSoft },
-  modeOptionText: { color: Palette.textMuted, fontFamily: Fonts.medium, fontSize: 11, letterSpacing: 1.2, textAlign: 'center' },
+  modeOptionSelected: { borderColor: Palette.accent, backgroundColor: Palette.surfaceRaised },
+  modeOptionText: { color: Palette.textMuted, fontFamily: Fonts.medium, textAlign: 'center' },
   modeOptionTextSelected: { color: Palette.accentBright },
-  eyebrow: { color: Palette.accentBright, fontFamily: Fonts.medium, textAlign: 'center', fontSize: 11, letterSpacing: 1.5, marginBottom: Space.lg },
-  card: { minHeight: 390, borderRadius: Radius.lg, borderWidth: 1, borderColor: Palette.accent, padding: Space.xl, alignItems: 'center', justifyContent: 'center', backgroundColor: Palette.surfaceRaised },
-  cardRevealed: { backgroundColor: Palette.accentSoft },
-  cardLabel: { color: Palette.accentBright, fontFamily: Fonts.medium, fontSize: 11, letterSpacing: 1.5 },
-  term: { color: Palette.white, textAlign: 'center', fontFamily: Fonts.semibold, fontSize: 16, lineHeight: 24, letterSpacing: 1.5, textTransform: 'uppercase', marginTop: Space.lg },
-  definition: { color: Palette.white, textAlign: 'center', fontSize: 13, lineHeight: 21, marginTop: Space.lg },
-  tapHint: { position: 'absolute', bottom: Space.xl, color: Palette.textMuted, fontFamily: Fonts.regular, fontSize: 11, letterSpacing: 1.5, textTransform: 'uppercase' },
-  example: { alignSelf: 'stretch', backgroundColor: Palette.surface, borderWidth: 1, borderColor: Palette.border, padding: Space.lg, borderRadius: Radius.md, marginTop: Space.xxl },
-  exampleLabel: { color: Palette.accentBright, fontFamily: Fonts.medium, fontSize: 11, letterSpacing: 1.5 },
-  exampleText: { color: Palette.white, fontSize: 12, lineHeight: 20, marginTop: Space.xs },
+  eyebrow: { color: Palette.accentBright, fontFamily: Fonts.medium, textAlign: 'center', marginBottom: Space.lg },
+  cardPressable: { minHeight: 400 },
+  cardScene: { flex: 1, minHeight: 400 },
+  cardFace: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, minHeight: 400, borderRadius: Radius.lg, borderWidth: 1, borderColor: Palette.border, padding: Space.lg, alignItems: 'center', justifyContent: 'center', backfaceVisibility: 'hidden' },
+  cardFront: { backgroundColor: Palette.surfaceRaised, borderTopColor: Palette.accent, borderTopWidth: 2 },
+  cardBack: { backgroundColor: Palette.surfaceRaised, borderTopColor: Palette.orange, borderTopWidth: 2 },
+  noPointerEvents: { pointerEvents: 'none' },
+  cardLabel: { color: Palette.accentBright, fontFamily: Fonts.medium },
+  term: { color: Palette.white, textAlign: 'center', fontFamily: Fonts.semibold, textTransform: 'uppercase', marginTop: Space.lg },
+  definition: { color: Palette.white, textAlign: 'center', marginTop: Space.lg },
+  tapHint: { position: 'absolute', bottom: Space.xl, color: Palette.textMuted, fontFamily: Fonts.regular, textTransform: 'uppercase' },
+  example: { alignSelf: 'stretch', minWidth: 0, backgroundColor: Palette.surface, borderWidth: 1, borderColor: Palette.border, padding: Space.lg, borderRadius: Radius.md, marginTop: Space.xxl },
+  exampleLabel: { color: Palette.accentBright, fontFamily: Fonts.medium },
+  exampleText: { color: Palette.white, marginTop: Space.xs },
   pressed: { opacity: 0.85 },
   spacer: { flex: 1, minHeight: Space.xl },
   navigationActions: { gap: Space.md },
   finished: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 72 },
-  finishedTitle: { color: Palette.text, fontFamily: Fonts.semibold, fontSize: 16, lineHeight: 24, letterSpacing: 1.5, textTransform: 'uppercase', textAlign: 'center' },
-  finishedCopy: { color: Palette.textMuted, fontSize: 12, lineHeight: 20, textAlign: 'center', marginTop: Space.md, maxWidth: 380 },
+  finishedTitle: { color: Palette.text, fontFamily: Fonts.semibold, textTransform: 'uppercase', textAlign: 'center' },
+  finishedCopy: { color: Palette.textMuted, textAlign: 'center', marginTop: Space.md, maxWidth: 380 },
 });

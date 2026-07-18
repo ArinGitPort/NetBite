@@ -3,9 +3,15 @@ import { StyleSheet, View } from 'react-native';
 import { Palette } from '@/shared/theme';
 
 export function ProgressBar({ progress }: { progress: number }) {
-  const width = `${Math.max(0, Math.min(1, progress)) * 100}%` as `${number}%`;
+  const clampedProgress = Math.max(0, Math.min(1, progress));
+  const percentage = Math.round(clampedProgress * 100);
+  const width = `${clampedProgress * 100}%` as `${number}%`;
   return (
-    <View style={styles.track} accessibilityRole="progressbar">
+    <View
+      accessibilityLabel="Progress"
+      accessibilityRole="progressbar"
+      accessibilityValue={{ min: 0, max: 100, now: percentage, text: `${percentage} percent` }}
+      style={styles.track}>
       <View style={[styles.fill, { width }]} />
     </View>
   );

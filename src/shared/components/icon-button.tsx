@@ -7,19 +7,20 @@ import { Fonts, Palette, Space } from '@/shared/theme';
 interface IconButtonProps {
   accessibilityLabel: string;
   icon: AppIconName;
+  iconSize?: number;
   label?: string;
   onPress: () => void;
 }
 
-export function IconButton({ accessibilityLabel, icon, label, onPress }: IconButtonProps) {
+export function IconButton({ accessibilityLabel, icon, iconSize, label, onPress }: IconButtonProps) {
   return (
     <Pressable
       accessibilityLabel={accessibilityLabel}
       accessibilityRole="button"
       onPress={onPress}
       style={({ pressed }) => [styles.base, pressed && styles.pressed]}>
-      <AppIcon name={icon} />
-      {label ? <Text style={styles.label}>{label}</Text> : null}
+      <AppIcon name={icon} size={iconSize} />
+      {label ? <Text variant="label" style={styles.label}>{label}</Text> : null}
     </Pressable>
   );
 }
@@ -36,8 +37,6 @@ const styles = StyleSheet.create({
   label: {
     color: Palette.accentBright,
     fontFamily: Fonts.medium,
-    fontSize: 11,
-    letterSpacing: 1.5,
   },
   pressed: { opacity: 0.7 },
 });

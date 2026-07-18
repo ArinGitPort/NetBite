@@ -32,5 +32,5 @@ const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: Palette.background },
   fixed: { flex: 1 },
   scrollContent: { flexGrow: 1, alignItems: 'center' },
-  content: { width: '100%', maxWidth: 720, flexGrow: 1, padding: Space.xl },
+  content: { width: '100%', maxWidth: 720, minWidth: 0, flexGrow: 1, padding: Space.xl },
 });

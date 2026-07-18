@@ -17,6 +17,7 @@ export function AppButton({ label, onPress, variant = 'primary', leadingIcon, tr
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityState={{ disabled: Boolean(disabled) }}
       disabled={disabled}
       onPress={onPress}
       style={({ pressed }) => [
@@ -26,7 +27,7 @@ export function AppButton({ label, onPress, variant = 'primary', leadingIcon, tr
         disabled && styles.disabled,
       ]}>
       {leadingIcon ? <AppIcon name={leadingIcon} size={20} /> : null}
-      <Text style={[styles.label, variant !== 'primary' && styles.secondaryLabel]}>{label}</Text>
+      <Text variant="label" style={[styles.label, variant !== 'primary' && styles.secondaryLabel]}>{label}</Text>
       {trailingIcon ? <AppIcon name={trailingIcon} size={20} /> : null}
     </Pressable>
   );
@@ -45,7 +46,7 @@ const styles = StyleSheet.create({
   primary: { backgroundColor: Palette.background, borderWidth: 1, borderColor: Palette.accent },
   secondary: { backgroundColor: Palette.surface, borderWidth: 1, borderColor: Palette.border },
   quiet: { backgroundColor: Palette.accentSoft },
-  label: { color: Palette.accent, fontFamily: Fonts.medium, fontSize: 11, lineHeight: 16, letterSpacing: 1.5, textTransform: 'uppercase' },
+  label: { color: Palette.accentBright, fontFamily: Fonts.medium, textTransform: 'uppercase' },
   secondaryLabel: { color: Palette.text },
   pressed: { backgroundColor: Palette.accentSoft },
   disabled: { opacity: 0.45 },

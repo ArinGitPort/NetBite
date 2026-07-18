@@ -4,9 +4,9 @@ import { StyleSheet, View } from 'react-native';
 import type { DeviceType } from '@/core/network/models';
 
 const deviceImages: Record<DeviceType, number> = {
-  pc: require('@/assets/images/devices/device-pc.png'),
-  switch: require('@/assets/images/devices/device-switch.png'),
-  router: require('@/assets/images/devices/device-router.png'),
+  pc: require('@/assets/images/devices/device-pc-mobile.png'),
+  switch: require('@/assets/images/devices/device-switch-mobile.png'),
+  router: require('@/assets/images/devices/device-router-mobile.png'),
 };
 
 /**
@@ -16,7 +16,7 @@ const deviceImages: Record<DeviceType, number> = {
 export const DEVICE_IMAGE_SCALE: Record<DeviceType, number> = {
   pc: 1.65,
   switch: 1.1,
-  router: 1.2,
+  router: 1.5,
 };
 
 interface DeviceGlyphProps {
@@ -31,7 +31,7 @@ export function DeviceGlyph({ type, size = 64, imageScale }: DeviceGlyphProps) {
   const scale = imageScale ?? DEVICE_IMAGE_SCALE[type];
 
   return (
-    <View pointerEvents="none" style={{ width: size, height: size }}>
+    <View style={{ width: size, height: size, pointerEvents: 'none' }}>
       <Image
         accessibilityIgnoresInvertColors
         contentFit="contain"
