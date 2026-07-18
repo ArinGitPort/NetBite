@@ -21,6 +21,7 @@ interface GameState {
   labComplete: boolean;
   addDevice: (type: DeviceType, position: Position) => void;
   moveDevice: (deviceId: string, position: Position) => void;
+  removeDevice: (deviceId: string) => void;
   selectDeviceForConnection: (deviceId: string) => void;
   removeCable: (cableId: string) => void;
   cancelConnection: () => void;
@@ -69,6 +70,19 @@ export const useGameStore = create<GameState>((set) => ({
         ...state.topology,
         devices: state.topology.devices.map((device) =>
           device.id === deviceId ? { ...device, position } : device,
+        ),
+      },
+    })),
+
+  removeDevice: (deviceId) =>
+    set((state) => ({
+      selectedConnectionStartId: state.selectedConnectionStartId === deviceId
+        ? undefined
+        : state.selectedConnectionStartId,
+      topology: {
+        devices: state.topology.devices.filter((device) => device.id !== deviceId),
+        cables: state.topology.cables.filter(
+          (cable) => cable.fromDeviceId !== deviceId && cable.toDeviceId !== deviceId,
         ),
       },
     })),

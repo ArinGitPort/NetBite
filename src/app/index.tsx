@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { chapterOneLessons } from '@/content/chapter-one';
 import { AppButton } from '@/shared/components/app-button';
+import { AppIcon } from '@/shared/components/app-icon';
 import { Text } from '@/shared/components/console-text';
 import { ProgressBar } from '@/shared/components/progress-bar';
 import { Screen } from '@/shared/components/screen';
@@ -43,7 +44,7 @@ export default function HomeScreen() {
           <Text style={styles.muted}>{completedSteps} OF {totalSteps} ACTIVITIES</Text>
           <Text style={styles.progressPercent}>{Math.round(progress * 100)}%</Text>
         </View>
-        <AppButton label={progress > 0 ? 'Continue chapter' : 'Start chapter'} onPress={() => router.push('/chapter/1')} />
+        <AppButton label={progress > 0 ? 'Continue chapter' : 'Start chapter'} trailingIcon="arrow-right" onPress={() => router.push('/chapter/1')} />
       </View>
 
       <Text style={styles.sectionTitle}>LEARNING PATH</Text>
@@ -64,6 +65,7 @@ export default function HomeScreen() {
             <Text style={styles.pathTitle}>ETHERNET</Text>
             <Text style={styles.muted}>COMPLETE CH.01 TO UNLOCK</Text>
           </View>
+          <AppIcon name="lock" size={24} />
         </View>
       </View>
     </Screen>

@@ -29,6 +29,12 @@ export interface LabValidationResult {
   learningTip?: string;
 }
 
+export interface PacketDemoPath {
+  source: DeviceNode;
+  intermediary: DeviceNode;
+  destination: DeviceNode;
+}
+
 let nextDeviceId = 0;
 
 function createDevice(type: DeviceType, name: string, position: Position): DeviceNode {
@@ -59,6 +65,36 @@ export function createChapterOneTopology(): NetworkTopology {
   };
 }
 
+function connectedDeviceIds(topology: NetworkTopology, deviceId: string) {
+  return new Set(
+    topology.cables.flatMap((cable) => {
+      if (cable.fromDeviceId === deviceId) return [cable.toDeviceId];
+      if (cable.toDeviceId === deviceId) return [cable.fromDeviceId];
+      return [];
+    }),
+  );
+}
+
+/** Returns one simple PC -> switch -> PC path for the Chapter 1 visual demo. */
+export function findPacketDemoPath(topology: NetworkTopology): PacketDemoPath | undefined {
+  const pcs = topology.devices.filter((device) => device.type === 'pc');
+  const switches = topology.devices.filter((device) => device.type === 'switch');
+
+  for (const networkSwitch of switches) {
+    const connections = connectedDeviceIds(topology, networkSwitch.id);
+    const connectedPCs = pcs.filter((pc) => connections.has(pc.id));
+    if (connectedPCs.length >= 2) {
+      return {
+        source: connectedPCs[0],
+        intermediary: networkSwitch,
+        destination: connectedPCs[1],
+      };
+    }
+  }
+
+  return undefined;
+}
+
 /** Validates only the physical connection concept taught in Chapter 1. */
 export function validateTwoPCsToSameSwitch(topology: NetworkTopology): LabValidationResult {
   const pcs = topology.devices.filter((device) => device.type === 'pc');
@@ -80,17 +116,8 @@ export function validateTwoPCsToSameSwitch(topology: NetworkTopology): LabValida
     };
   }
 
-  const connectedDeviceIds = (switchId: string) =>
-    new Set(
-      topology.cables.flatMap((cable) => {
-        if (cable.fromDeviceId === switchId) return [cable.toDeviceId];
-        if (cable.toDeviceId === switchId) return [cable.fromDeviceId];
-        return [];
-      }),
-    );
-
   const successfulSwitch = switches.find((networkSwitch) => {
-    const connections = connectedDeviceIds(networkSwitch.id);
+    const connections = connectedDeviceIds(topology, networkSwitch.id);
     return pcs.filter((pc) => connections.has(pc.id)).length >= 2;
   });
 

@@ -6,6 +6,8 @@ import { validateTwoPCsToSameSwitch, type LabValidationResult } from '@/core/net
 import { TopologyCanvas } from '@/features/topology/components/topology-canvas';
 import { AppButton } from '@/shared/components/app-button';
 import { Text } from '@/shared/components/console-text';
+import { FeedbackModal } from '@/shared/components/feedback-modal';
+import { IconButton } from '@/shared/components/icon-button';
 import { Screen } from '@/shared/components/screen';
 import { Fonts, Palette, Radius, Space } from '@/shared/theme';
 import { useGameStore } from '@/store/use-game-store';
@@ -18,6 +20,7 @@ export default function LabScreen() {
   const completeLab = useGameStore((state) => state.completeLab);
   const [connectionMode, setConnectionMode] = useState(false);
   const [result, setResult] = useState<LabValidationResult>();
+  const [resetConfirmationVisible, setResetConfirmationVisible] = useState(false);
 
   const toggleConnectionMode = () => {
     if (connectionMode) cancelConnection();
@@ -35,13 +38,14 @@ export default function LabScreen() {
     resetLab();
     setConnectionMode(false);
     setResult(undefined);
+    setResetConfirmationVisible(false);
   };
 
   return (
     <Screen>
       <View style={styles.headerRow}>
-        <Pressable onPress={() => router.back()}><Text style={styles.back}>[ BACK / CHAPTER ]</Text></Pressable>
-        <Pressable onPress={reset}><Text style={styles.reset}>[ RESET ]</Text></Pressable>
+        <IconButton accessibilityLabel="Back to chapter" icon="arrow-left" label="BACK / CHAPTER" onPress={() => router.dismissTo('/chapter/1')} />
+        <IconButton accessibilityLabel="Reset lab" icon="reset" label="RESET" onPress={() => setResetConfirmationVisible(true)} />
       </View>
       <Text style={styles.eyebrow}>MINI LAB</Text>
       <Text style={styles.title}>BUILD YOUR FIRST NETWORK</Text>
@@ -60,28 +64,44 @@ export default function LabScreen() {
       </View>
 
       <TopologyCanvas connectionMode={connectionMode} />
-      <Text style={styles.cableHint}>Tip: Tap an existing cable to remove it.</Text>
-
-      {result ? (
-        <View style={[styles.feedback, result.success ? styles.success : styles.tryAgain]}>
-          <Text style={styles.feedbackTitle}>{result.success ? 'Network complete!' : 'Not quite yet'}</Text>
-          <Text style={styles.feedbackText}>{result.reason}</Text>
-          {result.learningTip ? <Text style={styles.tip}>{result.learningTip}</Text> : null}
-        </View>
-      ) : null}
 
       <View style={styles.actions}>
-        <AppButton label="Check my network" onPress={check} />
-        {result?.success ? <AppButton label="Back to chapter" variant="secondary" onPress={() => router.replace('/chapter/1')} /> : null}
+        <AppButton label="Check my network" leadingIcon="check" onPress={check} />
       </View>
+
+      <FeedbackModal
+        visible={resetConfirmationVisible}
+        tone="warning"
+        eyebrow="CONFIRM ACTION"
+        title="Reset this lab?"
+        message="This restores the original three devices and removes every cable and device you added."
+        detail="This action cannot be undone."
+        icon="reset"
+        onRequestClose={() => setResetConfirmationVisible(false)}
+        secondaryAction={{ label: 'Keep my network', onPress: () => setResetConfirmationVisible(false), variant: 'secondary' }}
+        primaryAction={{ label: 'Reset lab', leadingIcon: 'reset', onPress: reset }}
+      />
+
+      <FeedbackModal
+        visible={result !== undefined}
+        tone={result?.success ? 'success' : 'warning'}
+        eyebrow={result?.success ? 'OBJECTIVE COMPLETE' : 'NETWORK CHECK'}
+        title={result?.success ? 'Network complete' : 'Not quite yet'}
+        message={result?.reason ?? ''}
+        detail={result?.learningTip}
+        icon={result?.success ? 'check' : undefined}
+        onRequestClose={() => setResult(undefined)}
+        secondaryAction={result?.success ? { label: 'View topology', onPress: () => setResult(undefined), variant: 'secondary' } : undefined}
+        primaryAction={result?.success
+          ? { label: 'Back to chapter', leadingIcon: 'arrow-left', onPress: () => router.dismissTo('/chapter/1') }
+          : { label: 'Keep building', onPress: () => setResult(undefined) }}
+      />
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', minHeight: 44, alignItems: 'center' },
-  back: { color: Palette.accentBright, fontFamily: Fonts.medium, fontSize: 11, letterSpacing: 1.5 },
-  reset: { color: Palette.textMuted, fontFamily: Fonts.medium, fontSize: 11, letterSpacing: 1.5 },
   eyebrow: { color: Palette.green, fontFamily: Fonts.medium, fontSize: 11, letterSpacing: 1.5, marginTop: Space.md },
   title: { color: Palette.text, fontFamily: Fonts.semibold, fontSize: 16, lineHeight: 24, letterSpacing: 1.5, marginTop: Space.sm, marginBottom: Space.lg },
   objective: { backgroundColor: Palette.greenSoft, borderRadius: Radius.md, borderWidth: 1, borderColor: Palette.green, padding: Space.lg, marginBottom: Space.lg },
@@ -93,12 +113,5 @@ const styles = StyleSheet.create({
   connectButtonActive: { backgroundColor: Palette.orangeSoft, borderColor: Palette.orange },
   connectText: { color: Palette.accentBright, fontFamily: Fonts.medium, fontSize: 11, letterSpacing: 1.5, textTransform: 'uppercase' },
   connectTextActive: { color: Palette.orange },
-  cableHint: { color: Palette.textMuted, fontSize: 11, letterSpacing: 1.5, textTransform: 'uppercase', marginTop: Space.sm },
-  feedback: { marginTop: Space.lg, padding: Space.lg, borderRadius: Radius.md, borderWidth: 1 },
-  success: { backgroundColor: Palette.greenSoft, borderColor: Palette.green },
-  tryAgain: { backgroundColor: Palette.orangeSoft, borderColor: Palette.orange },
-  feedbackTitle: { color: Palette.text, fontFamily: Fonts.medium, fontSize: 13, letterSpacing: 1.5, textTransform: 'uppercase' },
-  feedbackText: { color: Palette.text, fontSize: 12, lineHeight: 20, marginTop: Space.xs },
-  tip: { color: Palette.inkMuted, fontSize: 13, lineHeight: 19, marginTop: Space.sm },
   actions: { gap: Space.md, marginTop: Space.xl },
 });

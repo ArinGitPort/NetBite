@@ -4,7 +4,9 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { chapterOneQuiz } from '@/content/chapter-one';
 import { AppButton } from '@/shared/components/app-button';
+import { AppIcon } from '@/shared/components/app-icon';
 import { Text } from '@/shared/components/console-text';
+import { IconButton } from '@/shared/components/icon-button';
 import { ProgressBar } from '@/shared/components/progress-bar';
 import { Screen } from '@/shared/components/screen';
 import { Fonts, Palette, Radius, Space } from '@/shared/theme';
@@ -39,14 +41,14 @@ export default function QuizScreen() {
     return (
       <Screen>
         <View style={styles.resultHero}>
-          <View style={styles.statusBlock}><Text style={styles.statusCode}>[OK]</Text></View>
+          <View style={styles.statusBlock}><AppIcon name="check" size={28} /></View>
           <Text style={styles.resultEyebrow}>QUIZ COMPLETE</Text>
           <Text style={styles.resultTitle}>{score} / {chapterOneQuiz.length}</Text>
           <Text style={styles.resultCopy}>{score >= 4 ? 'You have the foundations down.' : 'Good start. Review the lessons and try again anytime.'}</Text>
         </View>
         <View style={styles.resultActions}>
-          <AppButton label="Back to chapter" onPress={() => router.replace('/chapter/1')} />
-          <AppButton label="Review flashcards" variant="secondary" onPress={() => router.replace('/flashcards/1')} />
+          <AppButton label="Back to chapter" leadingIcon="arrow-left" onPress={() => router.replace('/chapter/1')} />
+          <AppButton label="Review flashcards" trailingIcon="arrow-right" variant="secondary" onPress={() => router.replace('/flashcards/1')} />
         </View>
       </Screen>
     );
@@ -55,7 +57,7 @@ export default function QuizScreen() {
   return (
     <Screen>
       <View style={styles.header}>
-        <Text onPress={() => router.back()} style={styles.close}>[X]</Text>
+        <IconButton accessibilityLabel="Close quiz" icon="close" onPress={() => router.dismissTo('/chapter/1')} />
         <View style={styles.progress}><ProgressBar progress={(questionIndex + 1) / chapterOneQuiz.length} /></View>
         <Text style={styles.count}>{questionIndex + 1}/{chapterOneQuiz.length}</Text>
       </View>
@@ -89,14 +91,18 @@ export default function QuizScreen() {
         </View>
       ) : null}
       <View style={styles.spacer} />
-      <AppButton label={questionIndex === chapterOneQuiz.length - 1 ? 'See my score' : 'Next question'} disabled={!answered} onPress={next} />
+      <AppButton
+        label={questionIndex === chapterOneQuiz.length - 1 ? 'See my score' : 'Next question'}
+        trailingIcon={questionIndex === chapterOneQuiz.length - 1 ? 'check' : 'arrow-right'}
+        disabled={!answered}
+        onPress={next}
+      />
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', marginBottom: Space.xxl },
-  close: { width: 44, color: Palette.text, fontFamily: Fonts.medium, fontSize: 11, letterSpacing: 1.5 },
   progress: { flex: 1 },
   count: { width: 48, textAlign: 'right', color: Palette.textMuted, fontSize: 11, letterSpacing: 1.5 },
   eyebrow: { color: Palette.accentBright, fontFamily: Fonts.medium, fontSize: 11, letterSpacing: 1.5 },
@@ -119,7 +125,6 @@ const styles = StyleSheet.create({
   spacer: { flex: 1, minHeight: Space.xl },
   resultHero: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 64 },
   statusBlock: { width: 48, height: 32, borderWidth: 1, borderColor: Palette.green, alignItems: 'center', justifyContent: 'center' },
-  statusCode: { color: Palette.green, fontSize: 11, letterSpacing: 1.5 },
   resultEyebrow: { color: Palette.green, fontFamily: Fonts.medium, fontSize: 11, letterSpacing: 1.5, marginTop: Space.xl },
   resultTitle: { color: Palette.text, fontFamily: Fonts.semibold, fontSize: 16, letterSpacing: 1.5, marginTop: Space.sm },
   resultCopy: { color: Palette.textMuted, fontSize: 12, lineHeight: 20, textAlign: 'center', marginTop: Space.md, maxWidth: 360 },

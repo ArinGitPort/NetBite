@@ -2,7 +2,9 @@ import { router } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { chapterOneLessons } from '@/content/chapter-one';
+import { AppIcon } from '@/shared/components/app-icon';
 import { Text } from '@/shared/components/console-text';
+import { IconButton } from '@/shared/components/icon-button';
 import { ProgressBar } from '@/shared/components/progress-bar';
 import { Screen } from '@/shared/components/screen';
 import { Fonts, Palette, Radius, Space } from '@/shared/theme';
@@ -19,16 +21,20 @@ interface ActivityRowProps {
 
 function ActivityRow({ index, type, title, detail, complete, onPress }: ActivityRowProps) {
   return (
-    <Pressable onPress={onPress} style={({ pressed }) => [styles.activity, pressed && styles.pressed]}>
+    <Pressable
+      accessibilityLabel={`${type}: ${title}${complete ? ', complete' : ''}`}
+      accessibilityRole="button"
+      onPress={onPress}
+      style={({ pressed }) => [styles.activity, pressed && styles.pressed]}>
       <View style={[styles.activityNumber, complete && styles.activityComplete]}>
-        <Text style={[styles.activityNumberText, complete && styles.activityCompleteText]}>{complete ? 'OK' : index}</Text>
+        {complete ? <AppIcon name="check" size={24} /> : <Text style={styles.activityNumberText}>{index}</Text>}
       </View>
       <View style={styles.activityCopy}>
         <Text style={styles.activityType}>{type}</Text>
         <Text style={styles.activityTitle}>{title}</Text>
         <Text style={styles.activityDetail}>{detail}</Text>
       </View>
-      <Text style={styles.arrow}>›</Text>
+      <AppIcon name="arrow-right" size={20} />
     </Pressable>
   );
 }
@@ -43,7 +49,9 @@ export default function ChapterScreen() {
 
   return (
     <Screen>
-      <Pressable accessibilityRole="button" onPress={() => router.back()} style={styles.back}><Text style={styles.backText}>[ BACK / HOME ]</Text></Pressable>
+      <View style={styles.back}>
+        <IconButton accessibilityLabel="Back to home" icon="arrow-left" label="BACK / HOME" onPress={() => router.dismissTo('/')} />
+      </View>
       <View style={styles.hero}>
         <Text style={styles.chapterLabel}>CHAPTER 01</Text>
         <Text style={styles.title}>INTRODUCTION TO NETWORKS</Text>
@@ -74,8 +82,7 @@ export default function ChapterScreen() {
 }
 
 const styles = StyleSheet.create({
-  back: { alignSelf: 'flex-start', minHeight: 44, justifyContent: 'center' },
-  backText: { color: Palette.accentBright, fontFamily: Fonts.medium, fontSize: 11, letterSpacing: 1.5 },
+  back: { alignSelf: 'flex-start' },
   hero: { backgroundColor: Palette.surfaceRaised, padding: Space.xl, borderRadius: Radius.lg, borderWidth: 1, borderColor: Palette.accent, marginVertical: Space.lg, gap: Space.md },
   chapterLabel: { color: Palette.accentBright, fontFamily: Fonts.medium, fontSize: 11, letterSpacing: 1.5 },
   title: { color: Palette.white, fontFamily: Fonts.semibold, fontSize: 16, lineHeight: 24, letterSpacing: 1.5 },
@@ -87,10 +94,8 @@ const styles = StyleSheet.create({
   activityNumber: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: Radius.sm, backgroundColor: Palette.accentSoft },
   activityComplete: { backgroundColor: Palette.mint },
   activityNumberText: { color: Palette.accentBright, fontFamily: Fonts.medium, fontSize: 11, letterSpacing: 1.5 },
-  activityCompleteText: { color: Palette.green },
   activityCopy: { flex: 1, marginLeft: Space.md },
   activityType: { color: Palette.accentBright, fontFamily: Fonts.medium, fontSize: 11, letterSpacing: 1.5 },
   activityTitle: { color: Palette.text, fontFamily: Fonts.medium, fontSize: 12, lineHeight: 18, marginVertical: Space.xs, textTransform: 'uppercase', letterSpacing: 1.5 },
   activityDetail: { color: Palette.textMuted, fontSize: 11, letterSpacing: 1.5, textTransform: 'uppercase' },
-  arrow: { color: Palette.textMuted, fontSize: 16 },
 });

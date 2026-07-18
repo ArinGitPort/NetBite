@@ -1,10 +1,13 @@
 import { router, useLocalSearchParams } from 'expo-router';
+import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { chapterOneLessons } from '@/content/chapter-one';
 import { LessonIllustration } from '@/features/lessons/components/lesson-illustration';
 import { AppButton } from '@/shared/components/app-button';
 import { Text } from '@/shared/components/console-text';
+import { FeedbackModal } from '@/shared/components/feedback-modal';
+import { IconButton } from '@/shared/components/icon-button';
 import { ProgressBar } from '@/shared/components/progress-bar';
 import { Screen } from '@/shared/components/screen';
 import { Fonts, Palette, Radius, Space } from '@/shared/theme';
@@ -15,6 +18,8 @@ export default function LessonScreen() {
   const completeLesson = useGameStore((state) => state.completeLesson);
   const index = chapterOneLessons.findIndex((item) => item.id === lessonId);
   const lesson = chapterOneLessons[index];
+  const previousLesson = chapterOneLessons[index - 1];
+  const [completionVisible, setCompletionVisible] = useState(false);
 
   if (!lesson) {
     return <Screen><Text>Lesson not found.</Text><AppButton label="Back to chapter" onPress={() => router.replace('/chapter/1')} /></Screen>;
@@ -26,14 +31,19 @@ export default function LessonScreen() {
     if (nextLesson) {
       router.replace({ pathname: '/lesson/[lessonId]', params: { lessonId: nextLesson.id } });
     } else {
-      router.replace('/chapter/1');
+      setCompletionVisible(true);
     }
+  };
+
+  const goToPreviousLesson = () => {
+    if (!previousLesson) return;
+    router.replace({ pathname: '/lesson/[lessonId]', params: { lessonId: previousLesson.id } });
   };
 
   return (
     <Screen>
       <View style={styles.headerRow}>
-        <Text onPress={() => router.back()} style={styles.close}>[X]</Text>
+        <IconButton accessibilityLabel="Close lessons and return to chapter" icon="close" onPress={() => router.dismissTo('/chapter/1')} />
         <View style={styles.progress}><ProgressBar progress={(index + 1) / chapterOneLessons.length} /></View>
         <Text style={styles.count}>{index + 1}/{chapterOneLessons.length}</Text>
       </View>
@@ -46,14 +56,38 @@ export default function LessonScreen() {
         <Text style={styles.takeawayText}>{lesson.takeaway}</Text>
       </View>
       <View style={styles.spacer} />
-      <AppButton label={index === chapterOneLessons.length - 1 ? 'Finish lessons' : 'Next lesson'} onPress={finish} />
+      <View style={styles.navigationActions}>
+        <AppButton
+          label="Previous lesson"
+          leadingIcon="arrow-left"
+          disabled={!previousLesson}
+          variant="secondary"
+          onPress={goToPreviousLesson}
+        />
+        <AppButton
+          label={index === chapterOneLessons.length - 1 ? 'Finish lessons' : 'Next lesson'}
+          trailingIcon={index === chapterOneLessons.length - 1 ? 'check' : 'arrow-right'}
+          onPress={finish}
+        />
+      </View>
+      <FeedbackModal
+        visible={completionVisible}
+        tone="success"
+        eyebrow="LESSONS COMPLETE"
+        title="Ready for the test?"
+        message="You completed all four Chapter 1 lessons. Test what you learned with five short questions."
+        detail="You can also return to the chapter and start the quiz later."
+        icon="check"
+        onRequestClose={() => setCompletionVisible(false)}
+        secondaryAction={{ label: 'Back to chapter', leadingIcon: 'arrow-left', variant: 'secondary', onPress: () => router.dismissTo('/chapter/1') }}
+        primaryAction={{ label: 'Start quiz', trailingIcon: 'arrow-right', onPress: () => router.replace('/quiz/1') }}
+      />
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
   headerRow: { flexDirection: 'row', alignItems: 'center', marginBottom: Space.xxl },
-  close: { width: 44, color: Palette.text, fontFamily: Fonts.medium, fontSize: 11, letterSpacing: 1.5 },
   progress: { flex: 1 },
   count: { width: 48, textAlign: 'right', color: Palette.textMuted, fontSize: 11, letterSpacing: 1.5 },
   eyebrow: { color: Palette.accentBright, fontFamily: Fonts.medium, fontSize: 11, letterSpacing: 1.5, marginBottom: Space.sm },
@@ -63,4 +97,5 @@ const styles = StyleSheet.create({
   takeawayLabel: { color: Palette.green, fontFamily: Fonts.medium, fontSize: 11, letterSpacing: 1.5, marginBottom: Space.xs },
   takeawayText: { color: Palette.text, fontSize: 12, lineHeight: 20 },
   spacer: { flex: 1, minHeight: Space.xl },
+  navigationActions: { gap: Space.md },
 });
