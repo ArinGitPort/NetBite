@@ -19,7 +19,9 @@ describe('game store rules', () => {
       selectedDeviceForRemovalId: undefined,
       completedLessonIds: [],
       quizScores: {},
+      quizContentVersions: {},
       reviewedFlashcardChapterIds: [],
+      flashcardContentVersions: {},
       flashcardPositions: {},
       completedLabIds: [],
     });
@@ -36,10 +38,11 @@ describe('game store rules', () => {
   });
 
   test('keeps the best quiz score', () => {
-    useGameStore.getState().saveQuizScore('2', 4);
-    useGameStore.getState().saveQuizScore('2', 2);
+    useGameStore.getState().saveQuizScore('2', 4, 2);
+    useGameStore.getState().saveQuizScore('2', 2, 2);
 
     expect(useGameStore.getState().quizScores['2']).toBe(4);
+    expect(useGameStore.getState().quizContentVersions['2']).toBe(2);
   });
 
   test('resetting the workspace preserves earned lab completion', () => {
@@ -68,9 +71,18 @@ describe('game store rules', () => {
 
     expect(migrated).toMatchObject({
       quizScores: { 1: 4 },
+      quizContentVersions: { 1: 1 },
       reviewedFlashcardChapterIds: ['1'],
+      flashcardContentVersions: { 1: 1 },
       completedLabIds: ['first-network'],
       flashcardPositions: {},
     });
+  });
+
+  test('starts a new best score when curriculum content changes', () => {
+    useGameStore.getState().saveQuizScore('4', 5, 1);
+    useGameStore.getState().saveQuizScore('4', 3, 2);
+    expect(useGameStore.getState().quizScores['4']).toBe(3);
+    expect(useGameStore.getState().quizContentVersions['4']).toBe(2);
   });
 });

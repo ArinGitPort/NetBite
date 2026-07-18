@@ -22,7 +22,7 @@ describe('ChapterRecap', () => {
     const screen = await render(<ChapterRecap recap={chapterThree.recap} />);
 
     expect(screen.getByText('A learned MAC address table')).toBeTruthy();
-    expect(screen.getByText('Source learning, forwarding, flooding, and broadcasts')).toBeTruthy();
-    expect(screen.getByText('How IPv4 gives hosts logical network identities')).toBeTruthy();
+    expect(screen.getByText('MAC roles, source learning, known forwarding, unknown flooding, and broadcasts')).toBeTruthy();
+    expect(screen.getByText('How IPv4 gives interfaces logical network identities')).toBeTruthy();
   });
 });

@@ -144,7 +144,7 @@ export function EthernetCableLab() {
 }
 
 const styles = StyleSheet.create({
-  headerRow: { minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  headerRow: { minHeight: 44, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: Space.sm },
   eyebrow: { color: Palette.orange, fontFamily: Fonts.medium, marginTop: Space.md },
   title: { color: Palette.text, fontFamily: Fonts.semibold, marginTop: Space.sm, marginBottom: Space.lg },
   objective: { padding: Space.lg, backgroundColor: Palette.surface, borderWidth: 1, borderColor: Palette.green },
@@ -161,8 +161,8 @@ const styles = StyleSheet.create({
   endpointLabel: { color: Palette.text, fontFamily: Fonts.medium, textAlign: 'center', textTransform: 'uppercase' },
   cableLine: { flex: 1, height: 2, backgroundColor: Palette.border },
   cableLineSelected: { backgroundColor: Palette.accent },
-  cableChoices: { flexDirection: 'row', gap: Space.sm },
-  cableChoice: { flex: 1, minHeight: 52, alignItems: 'center', justifyContent: 'center', paddingHorizontal: Space.xs, backgroundColor: Palette.background, borderWidth: 1, borderColor: Palette.border },
+  cableChoices: { flexDirection: 'row', flexWrap: 'wrap', gap: Space.sm },
+  cableChoice: { minWidth: 136, flexGrow: 1, flexBasis: '46%', minHeight: 52, alignItems: 'center', justifyContent: 'center', paddingHorizontal: Space.xs, paddingVertical: Space.sm, backgroundColor: Palette.background, borderWidth: 1, borderColor: Palette.border },
   cableChoiceSelected: { backgroundColor: Palette.surfaceRaised, borderColor: Palette.accent },
   cableChoiceText: { color: Palette.textMuted, fontFamily: Fonts.medium, textAlign: 'center' },
   cableChoiceTextSelected: { color: Palette.accentBright },

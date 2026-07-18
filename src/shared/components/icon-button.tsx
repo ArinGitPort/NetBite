@@ -32,11 +32,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 1,
     gap: Space.xs,
   },
   label: {
+    minWidth: 0,
+    flexShrink: 1,
     color: Palette.accentBright,
     fontFamily: Fonts.medium,
+    textAlign: 'center',
   },
   pressed: { opacity: 0.7 },
 });

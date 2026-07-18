@@ -16,8 +16,10 @@ export default function HomeScreen() {
   const completedLessonIds = useGameStore((state) => state.completedLessonIds);
   const completedLabIds = useGameStore((state) => state.completedLabIds);
   const quizScores = useGameStore((state) => state.quizScores);
+  const quizContentVersions = useGameStore((state) => state.quizContentVersions);
   const reviewedFlashcardChapterIds = useGameStore((state) => state.reviewedFlashcardChapterIds);
-  const learningProgress = { completedLessonIds, completedLabIds, quizScores, reviewedFlashcardChapterIds };
+  const flashcardContentVersions = useGameStore((state) => state.flashcardContentVersions);
+  const learningProgress = { completedLessonIds, completedLabIds, quizScores, quizContentVersions, reviewedFlashcardChapterIds, flashcardContentVersions };
   const currentChapter = chapters.find((chapter) => !isChapterComplete(chapter, learningProgress)) ?? chapters[chapters.length - 1];
   const { completed: completedSteps, total: totalSteps } = getChapterProgress(currentChapter, learningProgress);
   const progress = completedSteps / totalSteps;
@@ -106,10 +108,10 @@ const styles = StyleSheet.create({
   cardTop: { flexDirection: 'row', alignItems: 'center' },
   chapterBadge: { width: 48, height: 48, borderRadius: Radius.md, backgroundColor: Palette.greenSoft, borderWidth: 1, borderColor: Palette.green, alignItems: 'center', justifyContent: 'center' },
   chapterBadgeText: { color: Palette.green, fontFamily: Fonts.semibold },
-  cardTitleGroup: { flex: 1, marginLeft: Space.md },
+  cardTitleGroup: { flex: 1, minWidth: 0, marginLeft: Space.md },
   cardEyebrow: { color: Palette.textMuted, fontFamily: Fonts.medium },
   cardTitle: { color: Palette.text, fontFamily: Fonts.semibold, marginTop: Space.xs, textTransform: 'uppercase' },
-  progressRow: { flexDirection: 'row', justifyContent: 'space-between' },
+  progressRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: Space.xs },
   muted: { color: Palette.textMuted },
   progressPercent: { color: Palette.accentBright },
   sectionTitle: { color: Palette.text, fontFamily: Fonts.semibold, marginTop: Space.xxl, marginBottom: Space.lg },
@@ -120,7 +122,7 @@ const styles = StyleSheet.create({
   lastPathRow: { borderBottomWidth: 0 },
   circuitNode: { width: 12, height: 12, zIndex: 1 },
   activeNode: { backgroundColor: Palette.active },
-  pathCopy: { flex: 1, marginLeft: Space.lg },
+  pathCopy: { flex: 1, minWidth: 0, marginLeft: Space.lg },
   pathLabel: { color: Palette.accentBright, fontFamily: Fonts.medium },
   pathTitle: { color: Palette.text, fontFamily: Fonts.medium, marginVertical: Space.xs, textTransform: 'uppercase' },
 });

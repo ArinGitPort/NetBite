@@ -1,6 +1,6 @@
 import { chapters } from '@/content/chapters';
 import { getNextChapterActivity } from '@/content/next-activity';
-import { isChapterComplete, type LearningProgress } from '@/content/progress';
+import { getQuizMasteryScore, isChapterComplete, type LearningProgress } from '@/content/progress';
 
 describe('next chapter activity', () => {
   const chapter = chapters[0];
@@ -8,20 +8,24 @@ describe('next chapter activity', () => {
     completedLessonIds: chapter.lessons.map((lesson) => lesson.id),
     completedLabIds: [chapter.lab.id],
     quizScores: {},
+    quizContentVersions: {},
     reviewedFlashcardChapterIds: [],
+    flashcardContentVersions: {},
   };
 
   test('returns to a quiz that was attempted below mastery', () => {
     expect(getNextChapterActivity(chapter, {
       ...baseProgress,
       quizScores: { [chapter.id]: 3 },
+      quizContentVersions: { [chapter.id]: chapter.contentVersion },
     })).toEqual({ type: 'quiz', id: chapter.id });
   });
 
   test('continues to flashcards after quiz mastery', () => {
     expect(getNextChapterActivity(chapter, {
       ...baseProgress,
-      quizScores: { [chapter.id]: 4 },
+      quizScores: { [chapter.id]: getQuizMasteryScore(chapter) },
+      quizContentVersions: { [chapter.id]: chapter.contentVersion },
     })).toEqual({ type: 'flashcards', id: chapter.id });
   });
 
@@ -30,8 +34,10 @@ describe('next chapter activity', () => {
     const progress: LearningProgress = {
       completedLessonIds: firstTwoChapters.flatMap((item) => item.lessons.map((lesson) => lesson.id)),
       completedLabIds: firstTwoChapters.map((item) => item.lab.id),
-      quizScores: Object.fromEntries(firstTwoChapters.map((item) => [item.id, 5])),
+      quizScores: Object.fromEntries(firstTwoChapters.map((item) => [item.id, getQuizMasteryScore(item)])),
+      quizContentVersions: Object.fromEntries(firstTwoChapters.map((item) => [item.id, item.contentVersion])),
       reviewedFlashcardChapterIds: firstTwoChapters.map((item) => item.id),
+      flashcardContentVersions: Object.fromEntries(firstTwoChapters.map((item) => [item.id, item.contentVersion])),
     };
     const currentChapter = chapters.find((item) => !isChapterComplete(item, progress));
 
@@ -48,8 +54,10 @@ describe('next chapter activity', () => {
     const complete = (selected: typeof chapters): LearningProgress => ({
       completedLessonIds: selected.flatMap(({ lessons }) => lessons.map(({ id }) => id)),
       completedLabIds: selected.map(({ lab }) => lab.id),
-      quizScores: Object.fromEntries(selected.map(({ id }) => [id, 5])),
+      quizScores: Object.fromEntries(selected.map((item) => [item.id, getQuizMasteryScore(item)])),
+      quizContentVersions: Object.fromEntries(selected.map(({ id, contentVersion }) => [id, contentVersion])),
       reviewedFlashcardChapterIds: selected.map(({ id }) => id),
+      flashcardContentVersions: Object.fromEntries(selected.map(({ id, contentVersion }) => [id, contentVersion])),
     });
     const chapterFour = chapters.find((item) => !isChapterComplete(item, complete(firstThree)));
     expect(chapterFour?.id).toBe('4');

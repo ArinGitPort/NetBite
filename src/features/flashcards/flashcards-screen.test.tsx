@@ -52,10 +52,10 @@ describe('FlashcardsScreen', () => {
 
     const termCard = screen.getByLabelText(/Ethernet\. Tap to reveal the definition/i);
     await fireEvent.press(termCard);
-    expect(screen.getByLabelText(/family of technologies used for wired local network communication/i)).toBeTruthy();
+    expect(screen.getByLabelText(/family of technologies for wired local-link communication/i)).toBeTruthy();
 
     await fireEvent.press(screen.getByLabelText('Show the definition first'));
-    expect(screen.getByLabelText(/family of technologies used for wired local network communication/i)).toBeTruthy();
+    expect(screen.getByLabelText(/family of technologies for wired local-link communication/i)).toBeTruthy();
 
     await fireEvent.press(screen.getByText(/next card/i));
     expect(useGameStore.getState().flashcardPositions['2']).toBe(1);

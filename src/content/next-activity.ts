@@ -1,4 +1,4 @@
-import { isQuizMastered, type LearningProgress } from '@/content/progress';
+import { isFlashcardsReviewed, isQuizMastered, type LearningProgress } from '@/content/progress';
 import type { ChapterDefinition } from '@/content/types';
 
 export type NextChapterActivity =
@@ -15,7 +15,7 @@ export function getNextChapterActivity(
   const nextLesson = chapter.lessons.find((lesson) => !progress.completedLessonIds.includes(lesson.id));
   if (nextLesson) return { type: 'lesson', id: nextLesson.id };
   if (!progress.completedLabIds.includes(chapter.lab.id)) return { type: 'lab', id: chapter.lab.id };
-  if (!isQuizMastered(chapter, progress.quizScores[chapter.id])) return { type: 'quiz', id: chapter.id };
-  if (!progress.reviewedFlashcardChapterIds.includes(chapter.id)) return { type: 'flashcards', id: chapter.id };
+  if (!isQuizMastered(chapter, progress.quizScores[chapter.id], progress.quizContentVersions?.[chapter.id] ?? 1)) return { type: 'quiz', id: chapter.id };
+  if (!isFlashcardsReviewed(chapter, progress)) return { type: 'flashcards', id: chapter.id };
   return { type: 'chapter', id: chapter.id };
 }

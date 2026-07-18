@@ -237,7 +237,7 @@ export function SwitchDecisionLab() {
 }
 
 const styles = StyleSheet.create({
-  headerRow: { minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  headerRow: { minHeight: 44, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: Space.sm },
   eyebrow: { color: Palette.orange, fontFamily: Fonts.medium, marginTop: Space.md },
   title: { color: Palette.text, fontFamily: Fonts.semibold, marginTop: Space.sm, marginBottom: Space.lg },
   objective: { padding: Space.lg, backgroundColor: Palette.surface, borderWidth: 1, borderColor: Palette.green },
@@ -270,11 +270,11 @@ const styles = StyleSheet.create({
   tableHeaderText: { color: Palette.textMuted, fontFamily: Fonts.medium },
   emptyTable: { color: Palette.textMuted, paddingVertical: Space.sm, textAlign: 'center' },
   tableRow: { minHeight: 32, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderBottomWidth: 1, borderBottomColor: Palette.grid },
-  tableMac: { color: Palette.text },
+  tableMac: { minWidth: 0, flexShrink: 1, color: Palette.text },
   tablePort: { color: Palette.green, fontFamily: Fonts.semibold },
   prompt: { color: Palette.text, fontFamily: Fonts.medium, marginTop: Space.lg, marginBottom: Space.sm },
   predictions: { flexDirection: 'row', flexWrap: 'wrap', gap: Space.sm },
-  prediction: { width: '48%', minHeight: 56, alignItems: 'center', justifyContent: 'center', padding: Space.xs, backgroundColor: Palette.surface, borderWidth: 1, borderColor: Palette.border },
+  prediction: { minWidth: 136, flexGrow: 1, flexBasis: '46%', minHeight: 56, alignItems: 'center', justifyContent: 'center', padding: Space.xs, backgroundColor: Palette.surface, borderWidth: 1, borderColor: Palette.border },
   predictionSelected: { backgroundColor: Palette.surfaceRaised, borderColor: Palette.accent },
   predictionText: { color: Palette.textMuted, fontFamily: Fonts.medium, textAlign: 'center' },
   predictionTextSelected: { color: Palette.accentBright },

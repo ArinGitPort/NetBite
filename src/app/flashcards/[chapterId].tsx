@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
 import Animated, {
   cancelAnimation,
   Easing,
@@ -20,6 +20,7 @@ import { IconButton } from '@/shared/components/icon-button';
 import { ProgressBar } from '@/shared/components/progress-bar';
 import { Screen } from '@/shared/components/screen';
 import { selectionHaptic, successHaptic } from '@/shared/haptics';
+import { getEffectiveWidth, getResponsiveMode } from '@/shared/responsive-layout';
 import { Fonts, Palette, Radius, Space } from '@/shared/theme';
 import { useGameStore } from '@/store/use-game-store';
 
@@ -32,9 +33,11 @@ export default function FlashcardsScreen() {
   const chapter = getChapter(chapterId);
   const markReviewed = useGameStore((state) => state.markFlashcardsReviewed);
   const savedPosition = useGameStore((state) => state.flashcardPositions[chapterId ?? '']);
+  const savedContentVersion = useGameStore((state) => state.flashcardContentVersions[chapterId ?? '']);
   const saveFlashcardPosition = useGameStore((state) => state.saveFlashcardPosition);
   const clearFlashcardPosition = useGameStore((state) => state.clearFlashcardPosition);
-  const initialIndex = Math.min(savedPosition ?? 0, Math.max(0, (chapter?.flashcards.length ?? 1) - 1));
+  const currentSavedPosition = chapter && savedContentVersion === chapter.contentVersion ? savedPosition : 0;
+  const initialIndex = Math.min(currentSavedPosition ?? 0, Math.max(0, (chapter?.flashcards.length ?? 1) - 1));
   const [index, setIndex] = useState(initialIndex);
   const [revealed, setRevealed] = useState(false);
   const [finished, setFinished] = useState(false);
@@ -42,6 +45,9 @@ export default function FlashcardsScreen() {
   const [isFlipping, setIsFlipping] = useState(false);
   const flipProgress = useSharedValue(0);
   const reducedMotion = useReducedMotion();
+  const { width, fontScale } = useWindowDimensions();
+  const compactLayout = getResponsiveMode(getEffectiveWidth(width, fontScale)) === 'compact';
+  const cardMinHeight = 400 * Math.max(fontScale, 1);
   const flipTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const card = chapter?.flashcards[index];
   const showingTerm = frontSide === 'term' ? !revealed : revealed;
@@ -116,7 +122,7 @@ export default function FlashcardsScreen() {
 
   const next = () => {
     if (index === chapter.flashcards.length - 1) {
-      markReviewed(chapter.id);
+    markReviewed(chapter.id, chapter.contentVersion);
       clearFlashcardPosition(chapter.id);
       successHaptic();
       setFinished(true);
@@ -150,7 +156,7 @@ export default function FlashcardsScreen() {
         <Text variant="label" style={styles.count}>{index + 1}/{chapter.flashcards.length}</Text>
       </View>
       <Text variant="label" style={styles.modeLabel}>SHOW FIRST</Text>
-      <View style={styles.modeSelector}>
+      <View style={[styles.modeSelector, compactLayout && styles.modeSelectorCompact]}>
         <Pressable
           accessibilityLabel="Show the term first"
           accessibilityRole="radio"
@@ -177,7 +183,7 @@ export default function FlashcardsScreen() {
           : `${card.definition}. Tap to ${revealed ? 'show the term' : 'reveal the term'}.`}
         disabled={isFlipping}
         onPress={flipCard}
-        style={({ pressed }) => [styles.cardPressable, pressed && styles.pressed]}>
+        style={({ pressed }) => [styles.cardPressable, { minHeight: cardMinHeight }, pressed && styles.pressed]}>
         <View style={styles.cardScene}>
           <Animated.View
             accessible={false}
@@ -227,6 +233,7 @@ const styles = StyleSheet.create({
   count: { width: 56, textAlign: 'right', color: Palette.textMuted },
   modeLabel: { color: Palette.textMuted, fontFamily: Fonts.medium, marginBottom: Space.sm },
   modeSelector: { flexDirection: 'row', marginBottom: Space.lg },
+  modeSelectorCompact: { flexDirection: 'column' },
   modeOption: { flex: 1, minHeight: 44, alignItems: 'center', justifyContent: 'center', paddingHorizontal: Space.sm, borderWidth: 1, borderColor: Palette.border, backgroundColor: Palette.surface },
   modeOptionSelected: { borderColor: Palette.accent, backgroundColor: Palette.surfaceRaised },
   modeOptionText: { color: Palette.textMuted, fontFamily: Fonts.medium, textAlign: 'center' },

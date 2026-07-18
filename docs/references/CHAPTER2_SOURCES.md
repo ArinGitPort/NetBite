@@ -25,3 +25,5 @@ The Chapter 2 lab is explicitly marked `LEGACY MODE` so learners understand why 
 - Ethernet frame content is simplified to destination, source, data, and error-checking concepts. Exact field sizes are intentionally deferred.
 - Fiber is introduced as optical media, while the lab focuses only on traditional copper wiring choices.
 - Manual cabling graphics show conceptual transmit and receive paths. They are explicitly not RJ-45 pinouts or a representation of conductor count.
+- Ethernet scope, frame structure, media choice, manual pair orientation, auto-MDIX, and link-state evidence are taught as separate concepts.
+- Worked examples distinguish payload, Ethernet frame, NIC action, and physical signal instead of treating them as one object.

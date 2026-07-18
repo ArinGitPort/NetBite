@@ -24,7 +24,9 @@ export interface GameState {
   selectedDeviceForRemovalId?: string;
   completedLessonIds: string[];
   quizScores: Record<string, number>;
+  quizContentVersions: Record<string, number>;
   reviewedFlashcardChapterIds: string[];
+  flashcardContentVersions: Record<string, number>;
   flashcardPositions: Record<string, number>;
   completedLabIds: string[];
   addDevice: (type: DeviceType, position: Position) => void;
@@ -38,8 +40,8 @@ export interface GameState {
   resizeTopologyCanvas: (width: number, deviceSize: number) => void;
   resetLab: () => void;
   completeLesson: (lessonId: string) => void;
-  saveQuizScore: (chapterId: string, score: number) => void;
-  markFlashcardsReviewed: (chapterId: string) => void;
+  saveQuizScore: (chapterId: string, score: number, contentVersion: number) => void;
+  markFlashcardsReviewed: (chapterId: string, contentVersion: number) => void;
   saveFlashcardPosition: (chapterId: string, index: number) => void;
   clearFlashcardPosition: (chapterId: string) => void;
   completeLab: (labId: string) => void;
@@ -64,7 +66,9 @@ export const useGameStore = create<GameState>()(persist((set, get) => ({
   topologyCanvasWidth: 272,
   completedLessonIds: [],
   quizScores: {},
+  quizContentVersions: {},
   reviewedFlashcardChapterIds: [],
+  flashcardContentVersions: {},
   flashcardPositions: {},
   completedLabIds: [],
 
@@ -182,16 +186,20 @@ export const useGameStore = create<GameState>()(persist((set, get) => ({
         ? state.completedLessonIds
         : [...state.completedLessonIds, lessonId],
     })),
-  saveQuizScore: (chapterId, score) => set((state) => ({
+  saveQuizScore: (chapterId, score, contentVersion) => set((state) => ({
     quizScores: {
       ...state.quizScores,
-      [chapterId]: Math.max(state.quizScores[chapterId] ?? 0, score),
+      [chapterId]: state.quizContentVersions[chapterId] === contentVersion
+        ? Math.max(state.quizScores[chapterId] ?? 0, score)
+        : score,
     },
+    quizContentVersions: { ...state.quizContentVersions, [chapterId]: contentVersion },
   })),
-  markFlashcardsReviewed: (chapterId) => set((state) => ({
+  markFlashcardsReviewed: (chapterId, contentVersion) => set((state) => ({
     reviewedFlashcardChapterIds: state.reviewedFlashcardChapterIds.includes(chapterId)
       ? state.reviewedFlashcardChapterIds
       : [...state.reviewedFlashcardChapterIds, chapterId],
+    flashcardContentVersions: { ...state.flashcardContentVersions, [chapterId]: contentVersion },
   })),
   saveFlashcardPosition: (chapterId, index) => set((state) => ({
     flashcardPositions: { ...state.flashcardPositions, [chapterId]: Math.max(0, index) },
@@ -209,14 +217,16 @@ export const useGameStore = create<GameState>()(persist((set, get) => ({
 }), {
   name: 'netbite-game-state-v1',
   storage: createJSONStorage(() => gameStorage),
-  version: 3,
+  version: 4,
   skipHydration: true,
   partialize: (state) => ({
     topology: state.topology,
     topologyCanvasWidth: state.topologyCanvasWidth,
     completedLessonIds: state.completedLessonIds,
     quizScores: state.quizScores,
+    quizContentVersions: state.quizContentVersions,
     reviewedFlashcardChapterIds: state.reviewedFlashcardChapterIds,
+    flashcardContentVersions: state.flashcardContentVersions,
     flashcardPositions: state.flashcardPositions,
     completedLabIds: state.completedLabIds,
   }),
@@ -235,9 +245,14 @@ export const useGameStore = create<GameState>()(persist((set, get) => ({
           completedLabIds: legacyState.labComplete ? ['first-network'] : [],
         };
 
+    const legacyQuizVersions = Object.fromEntries(Object.keys(migratedState.quizScores ?? {}).map((chapterId) => [chapterId, 1]));
+    const legacyFlashcardVersions = Object.fromEntries((migratedState.reviewedFlashcardChapterIds ?? []).map((chapterId) => [chapterId, 1]));
+
     return {
       ...migratedState,
       flashcardPositions: migratedState.flashcardPositions ?? {},
+      quizContentVersions: migratedState.quizContentVersions ?? legacyQuizVersions,
+      flashcardContentVersions: migratedState.flashcardContentVersions ?? legacyFlashcardVersions,
     } as GameState;
   },
 }));

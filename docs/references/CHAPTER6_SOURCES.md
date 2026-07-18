@@ -9,3 +9,9 @@
 ## Content boundaries
 
 The practice models local-prefix comparison and next-hop choice across two LANs. It does not model packet queues, frame timing, TTL processing, fragmentation, or router internals.
+
+## Expanded lesson claims
+
+Local-versus-remote comparison, direct next hop, default gateway, local gateway reachability, and link-layer frame replacement are taught separately. “Direct” refers to the IP next hop and can still include a Layer 2 switch.
+
+Worked examples derive both network identities before choosing a next hop and distinguish changing Ethernet frames from stable IPv4 endpoints.

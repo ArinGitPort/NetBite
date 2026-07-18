@@ -25,6 +25,15 @@ Fira Code is the application typeface across Android, iOS, and web. Font files a
 - UI labels, button text, technical headings, and system statuses are uppercase. Use approximately `letterSpacing: 1.2` for labels and `0.7` for dense technical strings.
 - Educational paragraphs and answer explanations remain sentence case for readability.
 - Weight comes from bundled Fira Code variants, not oversized text.
+
+## Responsive layout
+
+- Measure the component's available width; do not assume the full device width is available. Account for the operating-system font scale when choosing a layout.
+- Effective widths below 480 points are compact, 480–639 are regular, and 640 or more are wide. Larger system text must trigger reflow earlier.
+- Screen gutters are 16px through 430px-wide windows and 24px above that. Main content remains capped at 720px.
+- Dense rows recompose vertically when their complete text cannot fit. Normal vertical scrolling is preferred over horizontal lesson scrolling.
+- Never solve overflow with ellipsis, hidden text, fixed-height copy containers, `adjustsFontSizeToFit`, or text below the 11px technical minimum.
+- Buttons, answers, status panels, tables, and cards may grow vertically. Use `minWidth: 0`, wrapping, and content-aware minimum widths inside flex rows.
 - Preserve operating-system font scaling. Containers grow, wrap, or scroll instead of shrinking text to fit.
 
 ## Layout Grid

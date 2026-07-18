@@ -3,7 +3,9 @@ import type { ChapterDefinition } from '@/content/types';
 export interface LearningProgress {
   completedLessonIds: string[];
   quizScores: Record<string, number>;
+  quizContentVersions?: Record<string, number>;
   reviewedFlashcardChapterIds: string[];
+  flashcardContentVersions?: Record<string, number>;
   completedLabIds: string[];
 }
 
@@ -13,8 +15,13 @@ export function getQuizMasteryScore(chapter: ChapterDefinition) {
   return Math.ceil(chapter.quiz.length * QUIZ_MASTERY_RATIO);
 }
 
-export function isQuizMastered(chapter: ChapterDefinition, score: number | undefined) {
-  return score !== undefined && score >= getQuizMasteryScore(chapter);
+export function isQuizMastered(chapter: ChapterDefinition, score: number | undefined, contentVersion = chapter.contentVersion) {
+  return contentVersion === chapter.contentVersion && score !== undefined && score >= getQuizMasteryScore(chapter);
+}
+
+export function isFlashcardsReviewed(chapter: ChapterDefinition, progress: LearningProgress) {
+  return progress.reviewedFlashcardChapterIds.includes(chapter.id)
+    && (progress.flashcardContentVersions?.[chapter.id] ?? 1) === chapter.contentVersion;
 }
 
 export function getChapterProgress(chapter: ChapterDefinition, progress: LearningProgress) {
@@ -23,8 +30,8 @@ export function getChapterProgress(chapter: ChapterDefinition, progress: Learnin
   ).length;
   const completed = completedLessons
     + Number(progress.completedLabIds.includes(chapter.lab.id))
-    + Number(isQuizMastered(chapter, progress.quizScores[chapter.id]))
-    + Number(progress.reviewedFlashcardChapterIds.includes(chapter.id));
+    + Number(isQuizMastered(chapter, progress.quizScores[chapter.id], progress.quizContentVersions?.[chapter.id] ?? 1))
+    + Number(isFlashcardsReviewed(chapter, progress));
 
   return { completed, total: chapter.lessons.length + 3 };
 }

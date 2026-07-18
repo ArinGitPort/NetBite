@@ -19,6 +19,7 @@ export function GuidedPracticeLab({ config }: { config: PracticeConfig }) {
   const [selected, setSelected] = useState<string>();
   const [resolved, setResolved] = useState(false);
   const [feedback, setFeedback] = useState<string>();
+  const [hintCount, setHintCount] = useState(0);
   const [resetVisible, setResetVisible] = useState(false);
   const [completionVisible, setCompletionVisible] = useState(false);
   const current = config.stages[stageIndex];
@@ -27,7 +28,7 @@ export function GuidedPracticeLab({ config }: { config: PracticeConfig }) {
   const check = () => {
     if (selected === undefined || resolved) return;
     if (selected !== current.correctChoiceId) {
-      setFeedback(current.explanation);
+      setFeedback(current.choices.find((choice) => choice.id === selected)?.feedback ?? current.explanation);
       warningHaptic();
       return;
     }
@@ -47,11 +48,12 @@ export function GuidedPracticeLab({ config }: { config: PracticeConfig }) {
     setSelected(undefined);
     setFeedback(undefined);
     setResolved(false);
+    setHintCount(0);
     selectionHaptic();
   };
 
   const reset = () => {
-    setStageIndex(0); setSelected(undefined); setResolved(false); setFeedback(undefined); setResetVisible(false);
+    setStageIndex(0); setSelected(undefined); setResolved(false); setFeedback(undefined); setHintCount(0); setResetVisible(false);
   };
 
   return (
@@ -95,6 +97,17 @@ export function GuidedPracticeLab({ config }: { config: PracticeConfig }) {
             <Text variant="bodySmall" style={styles.feedbackText}>{feedback}</Text>
           </View>
         ) : null}
+        {current.hints?.slice(0, hintCount).map((hint, index) => (
+          <View key={`${current.id}-hint-${index}`} accessibilityLiveRegion="polite" style={styles.hintPanel}>
+            <Text variant="label" style={styles.hintLabel}>HINT {index + 1}</Text>
+            <Text variant="bodySmall" style={styles.hintText}>{hint}</Text>
+          </View>
+        ))}
+        {current.hints && hintCount < current.hints.length && !resolved ? (
+          <Pressable accessibilityRole="button" onPress={() => setHintCount((count) => count + 1)} style={styles.hintButton}>
+            <Text variant="label" style={styles.hintButtonText}>{hintCount === 0 ? 'SHOW A HINT' : 'SHOW NEXT HINT'}</Text>
+          </Pressable>
+        ) : null}
       </View>
       {resolved
         ? <AppButton label={isFinal ? 'Complete practice' : 'Continue'} trailingIcon="arrow-right" onPress={advance} />
@@ -107,7 +120,7 @@ export function GuidedPracticeLab({ config }: { config: PracticeConfig }) {
 }
 
 const styles = StyleSheet.create({
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', minHeight: 44 },
+  header: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: Space.sm, minHeight: 44 },
   eyebrow: { color: Palette.orange, fontFamily: Fonts.medium, marginTop: Space.md },
   title: { color: Palette.text, fontFamily: Fonts.semibold, marginTop: Space.sm },
   objective: { marginTop: Space.lg, borderWidth: 1, borderColor: Palette.green, borderRadius: Radius.md, padding: Space.lg, backgroundColor: Palette.greenSoft },
@@ -128,4 +141,9 @@ const styles = StyleSheet.create({
   feedbackWarning: { borderColor: Palette.orange, backgroundColor: Palette.orangeSoft },
   successText: { color: Palette.green }, warningText: { color: Palette.orange },
   feedbackText: { color: Palette.text, marginTop: Space.xs },
+  hintPanel: { marginTop: Space.md, padding: Space.md, borderWidth: 1, borderColor: Palette.border, backgroundColor: Palette.background },
+  hintLabel: { color: Palette.orange, fontFamily: Fonts.medium, marginBottom: Space.xs },
+  hintText: { color: Palette.text },
+  hintButton: { minHeight: 48, alignItems: 'center', justifyContent: 'center', marginTop: Space.md, borderWidth: 1, borderColor: Palette.border },
+  hintButtonText: { color: Palette.textMuted, fontFamily: Fonts.medium },
 });

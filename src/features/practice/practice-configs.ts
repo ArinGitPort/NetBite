@@ -1,14 +1,18 @@
-export interface PracticeChoice { id: string; label: string }
+export interface PracticeChoice { id: string; label: string; feedback: string }
 export interface PracticeStage {
-  id: string; context: string; prompt: string; choices: PracticeChoice[]; correctChoiceId: string; explanation: string; result: string;
+  id: string; context: string; prompt: string; choices: PracticeChoice[]; correctChoiceId: string; explanation: string; result: string; hints?: string[];
 }
 export interface PracticeConfig {
   id: string; chapterId: string; eyebrow: string; title: string; objective: string; scopeNote: string; stages: PracticeStage[]; completion: string;
 }
 
-const choices = (...labels: string[]): PracticeChoice[] => labels.map((label, index) => ({ id: String(index), label }));
-const stage = (id: string, context: string, prompt: string, labels: string[], correct: number, explanation: string, result: string): PracticeStage => ({
-  id, context, prompt, choices: choices(...labels), correctChoiceId: String(correct), explanation, result,
+const stage = (id: string, context: string, prompt: string, labels: string[], correct: number, explanation: string, result: string, hints?: string[]): PracticeStage => ({
+  id, context, prompt,
+  choices: labels.map((label, index) => ({
+    id: String(index), label,
+    feedback: index === correct ? `${label} matches the scenario. ${explanation}` : `${label} does not fit this scenario. ${explanation}`,
+  })),
+  correctChoiceId: String(correct), explanation, result, hints,
 });
 
 export const practiceConfigs: Record<string, PracticeConfig> = {
@@ -18,18 +22,18 @@ export const practiceConfigs: Record<string, PracticeConfig> = {
     stages: [
       stage('valid', 'PC A / 192.168.10.25 /24 / GATEWAY 192.168.10.1', 'Is this configuration valid?', ['VALID', 'INVALID OCTET', 'WRONG NETWORK'], 0, 'The address and gateway are usable members of the same /24.', 'PC A CONFIGURED'),
       stage('octet', 'PC B / 192.168.10.300 /24', 'Why must this be rejected?', ['DUPLICATE', 'OCTET ABOVE 255', 'NETWORK ADDRESS'], 1, 'Every IPv4 octet must be from 0 through 255.', 'INVALID OCTET REJECTED'),
-      stage('duplicate', 'PC B / 192.168.10.25 /24 / PC A ALREADY USES .25', 'Why must this be rejected?', ['DUPLICATE ADDRESS', 'PUBLIC ADDRESS', 'PREFIX TOO LONG'], 0, 'Interfaces on the same network need unique IPv4 addresses.', 'DUPLICATE REJECTED'),
+      stage('duplicate', 'PC B / 192.168.10.25 /24 / PC A ALREADY USES 192.168.10.25', 'Why must this be rejected?', ['DUPLICATE ADDRESS', 'PUBLIC ADDRESS', 'PREFIX TOO LONG'], 0, 'Interfaces on the same network need unique IPv4 addresses.', 'DUPLICATE REJECTED'),
       stage('network', 'PC B / 192.168.20.25 /24 / REQUIRED LAN 192.168.10.0/24', 'What is wrong?', ['WRONG NETWORK', 'INVALID DECIMAL', 'BROADCAST MAC'], 0, 'The configured address belongs to 192.168.20.0/24, not the required LAN.', 'OFF-NETWORK SETTING REJECTED'),
     ], completion: 'You validated a usable, unique IPv4 host configuration.',
   },
   'subnet-range-desk': {
     id: 'subnet-range-desk', chapterId: '5', eyebrow: 'GUIDED PRACTICE / SUBNET DESK', title: 'CALCULATE SUBNET RANGES',
-    objective: 'Find the network and broadcast boundary containing each host.', scopeNote: 'PRACTICAL /24–/27 BLOCKS / NO VLSM',
+    objective: 'Find the complete network, usable, and broadcast range containing each host.', scopeNote: 'PRACTICAL /24–/27 BLOCKS / FULL IPv4 ADDRESSES / NO VLSM',
     stages: [
-      stage('24', 'HOST 192.168.10.42/24', 'Choose its subnet range.', ['.0 NETWORK / .255 BROADCAST', '.0 / .127', '.32 / .63'], 0, '/24 uses one 256-address block.', 'USABLE HOSTS .1–.254'),
-      stage('25', 'HOST 192.168.10.130/25', 'Choose its subnet range.', ['.0 / .127', '.128 / .255', '.128 / .191'], 1, '/25 advances by 128; .130 is in the second block.', 'USABLE HOSTS .129–.254'),
-      stage('26', 'HOST 192.168.10.70/26', 'Choose its subnet range.', ['.64 / .127', '.0 / .63', '.64 / .95'], 0, '/26 advances by 64; .70 falls in the .64 block.', 'USABLE HOSTS .65–.126'),
-      stage('27', 'HOST 192.168.10.190/27', 'Choose its subnet range.', ['.128 / .159', '.160 / .191', '.192 / .223'], 1, '/27 advances by 32; .190 falls in .160 through .191.', 'USABLE HOSTS .161–.190'),
+      stage('24', 'HOST 192.168.10.42/24', 'Choose its complete subnet range.', ['NETWORK 192.168.10.0 / BROADCAST 192.168.10.255', 'NETWORK 192.168.10.0 / BROADCAST 192.168.10.127', 'NETWORK 192.168.10.32 / BROADCAST 192.168.10.63'], 0, '/24 leaves eight host bits and uses one 256-address block.', 'NETWORK 192.168.10.0 / USABLE 192.168.10.1–192.168.10.254 / BROADCAST 192.168.10.255', ['A /24 leaves eight host bits, so 2^8 gives a block size of 256.', 'The one block runs from full address 192.168.10.0 through 192.168.10.255.']),
+      stage('25', 'HOST 192.168.10.130/25', 'Choose its complete subnet range.', ['NETWORK 192.168.10.0 / BROADCAST 192.168.10.127', 'NETWORK 192.168.10.128 / BROADCAST 192.168.10.255', 'NETWORK 192.168.10.128 / BROADCAST 192.168.10.191'], 1, '/25 advances by 128, and 192.168.10.130 belongs to the second block.', 'NETWORK 192.168.10.128 / USABLE 192.168.10.129–192.168.10.254 / BROADCAST 192.168.10.255', ['A /25 leaves seven host bits, so its block size is 128.', 'The full network starts are 192.168.10.0 and 192.168.10.128. Find which start comes before host 192.168.10.130.']),
+      stage('26', 'HOST 192.168.10.70/26', 'Choose its complete subnet range.', ['NETWORK 192.168.10.64 / BROADCAST 192.168.10.127', 'NETWORK 192.168.10.0 / BROADCAST 192.168.10.63', 'NETWORK 192.168.10.64 / BROADCAST 192.168.10.95'], 0, '/26 advances by 64, and 192.168.10.70 belongs to the 192.168.10.64–192.168.10.127 block.', 'NETWORK 192.168.10.64 / USABLE 192.168.10.65–192.168.10.126 / BROADCAST 192.168.10.127', ['A /26 leaves six host bits, so its block size is 64.', 'The full network starts are 192.168.10.0, 192.168.10.64, 192.168.10.128, and 192.168.10.192.']),
+      stage('27', 'HOST 192.168.10.190/27', 'Choose its complete subnet range.', ['NETWORK 192.168.10.128 / BROADCAST 192.168.10.159', 'NETWORK 192.168.10.160 / BROADCAST 192.168.10.191', 'NETWORK 192.168.10.192 / BROADCAST 192.168.10.223'], 1, '/27 advances by 32, and 192.168.10.190 belongs to the 192.168.10.160–192.168.10.191 block.', 'NETWORK 192.168.10.160 / USABLE 192.168.10.161–192.168.10.190 / BROADCAST 192.168.10.191', ['A /27 leaves five host bits, so its block size is 32.', 'Nearby full network starts are 192.168.10.128, 192.168.10.160, and 192.168.10.192.']),
     ], completion: 'You found all four network, broadcast, and usable ranges.',
   },
   'gateway-forwarding-desk': {
@@ -48,7 +52,7 @@ export const practiceConfigs: Record<string, PracticeConfig> = {
     stages: [
       stage('local', 'A SENDS TO LOCAL B / CACHE EMPTY', 'What should A do?', ['BROADCAST ARP FOR B', 'ARP FOR GATEWAY', 'SEND WITHOUT A MAC'], 0, 'For a local destination, B itself is the next hop.', 'REQUEST: WHO HAS B?'),
       stage('reply', 'B OWNS THE REQUESTED IPv4 ADDRESS', 'What follows?', ['B REPLIES / A CACHES MAPPING', 'EVERY HOST REPLIES', 'ROUTER CHANGES B ADDRESS'], 0, 'The owner replies and A records the IPv4-to-MAC mapping.', 'B MAPPING CACHED'),
-      stage('remote', 'A SENDS TO REMOTE C / GATEWAY .1 / CACHE EMPTY', 'Which address should A resolve?', ['REMOTE C', 'LOCAL GATEWAY .1', 'A ITSELF'], 1, 'ARP resolves the local next hop, which is the gateway for a remote destination.', 'REQUEST: WHO HAS GATEWAY .1?'),
+      stage('remote', 'A SENDS TO REMOTE C / GATEWAY 192.168.10.1 / CACHE EMPTY', 'Which address should A resolve?', ['REMOTE C', 'LOCAL GATEWAY 192.168.10.1', 'A ITSELF'], 1, 'ARP resolves the local next hop, which is the gateway for a remote destination.', 'REQUEST: WHO HAS 192.168.10.1?'),
       stage('cache', 'A SENDS REMOTELY AGAIN / GATEWAY MAPPING CACHED', 'What should A do?', ['USE CACHED GATEWAY MAC', 'BROADCAST ARP AGAIN NOW', 'ARP FOR REMOTE C'], 0, 'A current cache entry supplies the gateway MAC immediately.', 'CACHE HIT'),
     ], completion: 'You resolved local hosts and remote gateway next hops.',
   },

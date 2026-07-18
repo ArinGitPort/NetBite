@@ -152,7 +152,7 @@ export default function LabScreen() {
 }
 
 const styles = StyleSheet.create({
-  headerRow: { flexDirection: 'row', justifyContent: 'space-between', minHeight: 44, alignItems: 'center' },
+  headerRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: Space.sm, minHeight: 44, alignItems: 'center' },
   eyebrow: { color: Palette.green, fontFamily: Fonts.medium, marginTop: Space.md },
   title: { color: Palette.text, fontFamily: Fonts.semibold, marginTop: Space.sm, marginBottom: Space.lg },
   objective: { backgroundColor: Palette.surface, borderRadius: Radius.md, borderWidth: 1, borderColor: Palette.green, padding: Space.lg, marginBottom: Space.lg },

@@ -9,3 +9,7 @@
 ## Content boundaries
 
 The fixed topology teaches connected, static, and default routes plus return paths. Dynamic protocols, metrics, administrative distance, recursive edge cases, and route redistribution are excluded.
+
+## Expanded lesson claims
+
+Route-table purpose, connected-route origin, entry fields, reachable static next hops, return routes, prefix-range matching, longest-prefix selection, and default fallback are taught independently. Learners first form the usable matching candidate set; longest-prefix selection operates only on that set.

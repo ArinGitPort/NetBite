@@ -5,6 +5,9 @@ import { StyleSheet, View } from 'react-native';
 import { getLesson } from '@/content/chapters';
 import { LessonFieldNote } from '@/features/lessons/components/lesson-field-note';
 import { LessonIllustration } from '@/features/lessons/components/lesson-illustration';
+import { LessonCheckpoint } from '@/features/lessons/components/lesson-checkpoint';
+import { LessonWorkedExample } from '@/features/lessons/components/lesson-worked-example';
+import { isLessonCheckpointBlocking } from '@/features/lessons/checkpoint-rules';
 import { AppButton } from '@/shared/components/app-button';
 import { Text } from '@/shared/components/console-text';
 import { FeedbackModal } from '@/shared/components/feedback-modal';
@@ -18,13 +21,19 @@ import { useGameStore } from '@/store/use-game-store';
 export default function LessonScreen() {
   const { lessonId } = useLocalSearchParams<{ lessonId: string }>();
   const completeLesson = useGameStore((state) => state.completeLesson);
+  const completedLessonIds = useGameStore((state) => state.completedLessonIds);
   const lessonResult = getLesson(lessonId);
   const [completionVisible, setCompletionVisible] = useState(false);
+  const [checkpointResult, setCheckpointResult] = useState<{ lessonId: string; passed: boolean }>({ lessonId: '', passed: false });
 
   if (!lessonResult) {
     return <Screen><Text variant="body">Lesson not found.</Text><AppButton label="Back to home" onPress={() => router.replace('/')} /></Screen>;
   }
   const { chapter, lesson, index } = lessonResult;
+  const checkpointPassed = checkpointResult.lessonId === lesson.id && checkpointResult.passed;
+  const lessonWasCompleted = completedLessonIds.includes(lesson.id);
+  const checkpointRequired = Boolean(lesson.checkpoint) && !lessonWasCompleted;
+  const checkpointBlocking = isLessonCheckpointBlocking(lesson, completedLessonIds, checkpointPassed);
   const previousLesson = chapter.lessons[index - 1];
 
   const finish = () => {
@@ -56,6 +65,13 @@ export default function LessonScreen() {
       <Text variant="screenTitle" style={styles.title}>{lesson.title}</Text>
       <LessonIllustration type={lesson.illustration} />
       <Text variant="body" style={styles.body}>{lesson.body}</Text>
+      {lesson.sections?.map((section) => (
+        <View key={section.heading} style={styles.section}>
+          <Text variant="sectionHeading" style={styles.sectionHeading}>{section.heading}</Text>
+          <Text variant="body" style={styles.sectionBody}>{section.body}</Text>
+        </View>
+      ))}
+      {lesson.example ? <LessonWorkedExample example={lesson.example} /> : null}
       {lesson.fieldNote ? <LessonFieldNote note={lesson.fieldNote} /> : null}
       {lesson.termNote ? (
         <View style={styles.termNote}>
@@ -67,6 +83,9 @@ export default function LessonScreen() {
         <Text variant="label" style={styles.takeawayLabel}>KEY IDEA</Text>
         <Text variant="body" style={styles.takeawayText}>{lesson.takeaway}</Text>
       </View>
+      {lesson.checkpoint && checkpointRequired ? (
+        <LessonCheckpoint checkpoint={lesson.checkpoint} onCorrect={() => setCheckpointResult({ lessonId: lesson.id, passed: true })} />
+      ) : null}
       <View style={styles.spacer} />
       <View style={styles.navigationActions}>
         <AppButton
@@ -78,6 +97,7 @@ export default function LessonScreen() {
         />
         <AppButton
           label={index === chapter.lessons.length - 1 ? 'Finish lessons' : 'Next lesson'}
+          disabled={checkpointBlocking}
           trailingIcon={index === chapter.lessons.length - 1 ? 'check' : 'arrow-right'}
           onPress={finish}
         />
@@ -105,6 +125,9 @@ const styles = StyleSheet.create({
   eyebrow: { color: Palette.accentBright, fontFamily: Fonts.medium, marginBottom: Space.sm },
   title: { color: Palette.text, fontFamily: Fonts.semibold, textTransform: 'uppercase', marginBottom: Space.xl },
   body: { color: Palette.text, marginTop: Space.xl },
+  section: { marginTop: Space.lg },
+  sectionHeading: { color: Palette.orange, fontFamily: Fonts.semibold, textTransform: 'uppercase', marginBottom: Space.xs },
+  sectionBody: { color: Palette.text },
   termNote: { backgroundColor: Palette.surfaceRaised, borderWidth: 1, borderColor: Palette.border, padding: Space.lg, marginTop: Space.md },
   termNoteLabel: { color: Palette.accentBright, fontFamily: Fonts.medium, marginBottom: Space.xs },
   termNoteText: { color: Palette.text },

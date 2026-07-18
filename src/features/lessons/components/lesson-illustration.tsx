@@ -1,22 +1,19 @@
 import { Image } from 'expo-image';
-import { useState } from 'react';
-import { StyleSheet, View, type LayoutChangeEvent } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import type { LessonIllustration as LessonIllustrationType } from '@/content/types';
 import { DEVICE_IMAGE_SCALE, DeviceGlyph } from '@/features/devices/components/device-glyph';
 import { SwitchingLessonIllustration } from '@/features/switching/components/switching-lesson-illustration';
-import { AdvancedLessonIllustration, isAdvancedIllustration } from '@/features/lessons/components/advanced-lesson-illustration';
+import { EducationalLessonIllustration } from '@/features/lessons/components/educational-lesson-illustration';
+import { educationalIllustrations, isEducationalIllustration } from '@/features/lessons/educational-illustration-registry';
 import { Text } from '@/shared/components/console-text';
+import { useMeasuredResponsiveLayout } from '@/shared/responsive-layout';
 import { Palette, Radius, Space } from '@/shared/theme';
 
 export function LessonIllustration({ type }: { type: LessonIllustrationType }) {
-  const [cardWidth, setCardWidth] = useState(0);
-  const contentWidth = Math.max(0, cardWidth - Space.xl * 2);
-
-  const onCardLayout = (event: LayoutChangeEvent) => {
-    const nextWidth = event.nativeEvent.layout.width;
-    setCardWidth((currentWidth) => currentWidth === nextWidth ? currentWidth : nextWidth);
-  };
+  const accessibilityLabel = educationalIllustrations[type].accessibilityLabel;
+  const responsive = useMeasuredResponsiveLayout();
+  const contentWidth = Math.max(0, responsive.width - Space.xl * 2);
 
   const fitScale = (naturalArtworkWidth: number) => {
     if (contentWidth === 0) return 0.5;
@@ -24,7 +21,7 @@ export function LessonIllustration({ type }: { type: LessonIllustrationType }) {
     return Math.max(0.3, Math.min(1, usableWidth / naturalArtworkWidth));
   };
 
-  if (isAdvancedIllustration(type)) return <AdvancedLessonIllustration type={type} />;
+  if (isEducationalIllustration(type)) return <EducationalLessonIllustration type={type} />;
 
   if (type === 'mac-address' || type === 'mac-learning' || type === 'switch-forwarding' || type === 'broadcast') {
     return <SwitchingLessonIllustration type={type} />;
@@ -32,12 +29,12 @@ export function LessonIllustration({ type }: { type: LessonIllustrationType }) {
 
   if (type === 'frame') {
     return (
-      <View style={styles.card}>
-        <View style={styles.frameDiagram}>
-          <View style={[styles.frameField, styles.frameAddress]}><Text variant="technical" style={styles.frameFieldLabel}>DEST</Text></View>
-          <View style={[styles.frameField, styles.frameAddress]}><Text variant="technical" style={styles.frameFieldLabel}>SOURCE</Text></View>
-          <View style={[styles.frameField, styles.frameData]}><Text variant="technical" style={styles.frameFieldLabel}>DATA</Text></View>
-          <View style={[styles.frameField, styles.frameCheck]}><Text variant="technical" style={styles.frameFieldLabel}>CHECK</Text></View>
+      <View accessible accessibilityLabel={accessibilityLabel} onLayout={responsive.onLayout} style={styles.card}>
+        <View style={[styles.frameDiagram, responsive.mode === 'compact' && styles.frameDiagramCompact]}>
+          <View style={[styles.frameField, styles.frameAddress, responsive.mode === 'compact' && styles.frameFieldCompact]}><Text variant="technical" style={styles.frameFieldLabel}>DEST</Text></View>
+          <View style={[styles.frameField, styles.frameAddress, responsive.mode === 'compact' && styles.frameFieldCompact]}><Text variant="technical" style={styles.frameFieldLabel}>SOURCE</Text></View>
+          <View style={[styles.frameField, styles.frameData, responsive.mode === 'compact' && styles.frameFieldCompact]}><Text variant="technical" style={styles.frameFieldLabel}>DATA</Text></View>
+          <View style={[styles.frameField, styles.frameCheck, responsive.mode === 'compact' && styles.frameFieldCompact]}><Text variant="technical" style={styles.frameFieldLabel}>CHECK</Text></View>
         </View>
         <Text variant="technical" style={styles.diagramCaption}>ETHERNET FRAME</Text>
       </View>
@@ -46,7 +43,7 @@ export function LessonIllustration({ type }: { type: LessonIllustrationType }) {
 
   if (type === 'nic') {
     return (
-      <View style={styles.card}>
+      <View accessible accessibilityLabel={accessibilityLabel} style={styles.card}>
         <Image
           accessible
           accessibilityLabel="An Ethernet network interface controller with an RJ45 port"
@@ -61,8 +58,8 @@ export function LessonIllustration({ type }: { type: LessonIllustrationType }) {
 
   if (type === 'cables') {
     return (
-      <View style={styles.card}>
-        <View style={styles.mediaRow}>
+      <View accessible accessibilityLabel={accessibilityLabel} style={styles.card}>
+        <View style={[styles.mediaRow, responsive.mode === 'compact' && styles.mediaRowCompact]}>
           <View style={styles.mediaItem}>
             <Image
               accessible
@@ -92,7 +89,7 @@ export function LessonIllustration({ type }: { type: LessonIllustrationType }) {
 
   if (type === 'ports') {
     return (
-      <View style={styles.card}>
+      <View accessible accessibilityLabel={accessibilityLabel} style={styles.card}>
         <Image
           accessible
           accessibilityLabel="A four-port Ethernet module with link and activity indicators"
@@ -112,7 +109,7 @@ export function LessonIllustration({ type }: { type: LessonIllustrationType }) {
     );
     const comparisonSize = comparisonBaseSize * fitScale(comparisonNaturalWidth);
     return (
-      <View onLayout={onCardLayout} style={styles.card}>
+      <View accessible accessibilityLabel={accessibilityLabel} onLayout={responsive.onLayout} style={styles.card}>
         <View style={styles.deviceRow}>
           {(['pc', 'switch', 'router'] as const).map((device) => (
             <View key={device} style={styles.deviceItem}>
@@ -136,7 +133,7 @@ export function LessonIllustration({ type }: { type: LessonIllustrationType }) {
   const middleSize = middleBaseSize * diagramScale;
 
   return (
-    <View onLayout={onCardLayout} style={styles.card}>
+    <View accessible accessibilityLabel={accessibilityLabel} onLayout={responsive.onLayout} style={styles.card}>
       <View style={styles.networkDiagram}>
         <View
           style={[
@@ -171,7 +168,7 @@ export function LessonIllustration({ type }: { type: LessonIllustrationType }) {
 }
 
 const styles = StyleSheet.create({
-  card: { minHeight: 160, borderRadius: Radius.lg, borderWidth: 1, borderColor: Palette.border, padding: Space.xl, backgroundColor: Palette.surface, justifyContent: 'center', gap: Space.xl },
+  card: { minWidth: 0, minHeight: 160, borderRadius: Radius.lg, borderWidth: 1, borderColor: Palette.border, padding: Space.xl, backgroundColor: Palette.surface, justifyContent: 'center', gap: Space.xl },
   networkDiagram: { position: 'relative', flexDirection: 'row', alignItems: 'flex-start' },
   cable: { position: 'absolute', height: 2, backgroundColor: Palette.accent },
   networkDevice: { flex: 1, zIndex: 1, alignItems: 'center' },
@@ -181,13 +178,16 @@ const styles = StyleSheet.create({
   deviceLabel: { color: Palette.text, textTransform: 'uppercase', textAlign: 'center' },
   diagramCaption: { color: Palette.textMuted, textAlign: 'center' },
   frameDiagram: { minHeight: 72, flexDirection: 'row', alignItems: 'stretch' },
-  frameField: { justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: Palette.border },
+  frameDiagramCompact: { flexWrap: 'wrap' },
+  frameField: { minWidth: 0, justifyContent: 'center', alignItems: 'center', padding: Space.xs, borderWidth: 1, borderColor: Palette.border },
+  frameFieldCompact: { flexGrow: 1, flexBasis: '45%', minHeight: 56 },
   frameAddress: { flex: 2, backgroundColor: Palette.accentSoft },
   frameData: { flex: 4, backgroundColor: Palette.surfaceRaised },
   frameCheck: { flex: 1.5, backgroundColor: Palette.orangeSoft },
   frameFieldLabel: { color: Palette.text, textAlign: 'center' },
   ethernetAsset: { width: '100%', height: 150 },
   mediaRow: { flexDirection: 'row', gap: Space.xl },
+  mediaRowCompact: { flexDirection: 'column' },
   mediaItem: { flex: 1, alignItems: 'center', gap: Space.md },
   mediaImage: { width: '100%', height: 104 },
   mediaSignal: { color: Palette.textMuted, textAlign: 'center' },

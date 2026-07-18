@@ -35,12 +35,22 @@ describe('GuidedPracticeLab', () => {
 
   test('reset returns to stage one', async () => {
     const screen = await render(<GuidedPracticeLab config={practiceConfigs['subnet-range-desk']} />);
-    await fireEvent.press(screen.getByText('.0 NETWORK / .255 BROADCAST'));
+    await fireEvent.press(screen.getByText('NETWORK 192.168.10.0 / BROADCAST 192.168.10.255'));
     await fireEvent.press(screen.getByText(/check prediction/i));
     await fireEvent.press(screen.getByText(/continue/i));
     expect(screen.getByText('STAGE 2 OF 4')).toBeTruthy();
     await fireEvent.press(screen.getByLabelText('Reset practice'));
     await fireEvent.press(screen.getByText(/reset practice/i));
     expect(screen.getByText('STAGE 1 OF 4')).toBeTruthy();
+  });
+
+  test('reveals subnet hints without selecting or advancing', async () => {
+    const screen = await render(<GuidedPracticeLab config={practiceConfigs['subnet-range-desk']} />);
+    await fireEvent.press(screen.getByText('SHOW A HINT'));
+    expect(screen.getByText(/2\^8 gives a block size of 256/i)).toBeTruthy();
+    expect(screen.getByText('STAGE 1 OF 4')).toBeTruthy();
+    expect(screen.getByRole('button', { name: /check prediction/i }).props.accessibilityState.disabled).toBe(true);
+    await fireEvent.press(screen.getByText('SHOW NEXT HINT'));
+    expect(screen.getByText(/192\.168\.10\.0 through 192\.168\.10\.255/i)).toBeTruthy();
   });
 });

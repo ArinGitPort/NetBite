@@ -8,3 +8,9 @@
 ## Content boundaries
 
 NetBite models one local IPv4 link and current cache entries. Aging timers, gratuitous and proxy ARP, duplicate detection, security attacks, IPv6 Neighbor Discovery, and packet timing are excluded.
+
+## Expanded lesson claims
+
+The host chooses the IP next hop before ARP. A local destination resolves the destination host; a remote destination resolves the local gateway. Cache reuse is explained without claiming one universal timer.
+
+Worked sequences name the selected next hop, ARP target, learned mapping, and resulting Ethernet destination separately.

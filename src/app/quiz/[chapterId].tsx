@@ -53,7 +53,7 @@ export default function QuizScreen() {
 
   const next = () => {
     if (questionIndex === chapter.quiz.length - 1) {
-      saveQuizScore(chapter.id, score);
+      saveQuizScore(chapter.id, score, chapter.contentVersion);
       setFinished(true);
       return;
     }
@@ -147,7 +147,7 @@ const styles = StyleSheet.create({
   answer: { minHeight: 56, flexDirection: 'row', alignItems: 'center', padding: Space.md, borderRadius: Radius.md, backgroundColor: Palette.surface, borderWidth: 1, borderColor: Palette.border },
   answerLetter: { width: 32, height: 32, borderRadius: Radius.sm, backgroundColor: Palette.accentSoft, alignItems: 'center', justifyContent: 'center' },
   answerLetterText: { color: Palette.text },
-  answerText: { flex: 1, marginLeft: Space.md, color: Palette.text },
+  answerText: { flex: 1, minWidth: 0, marginLeft: Space.md, color: Palette.text },
   correctAnswer: { borderColor: Palette.green, backgroundColor: Palette.surface },
   wrongAnswer: { borderColor: Palette.danger, backgroundColor: Palette.surface },
   correctLetter: { backgroundColor: Palette.greenSoft },

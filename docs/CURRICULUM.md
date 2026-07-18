@@ -1,158 +1,146 @@
 # NetBite Curriculum
 
-This is the canonical source for NetBite's chapter order and learning scope. NetBite introduces concrete interactions before abstract models. Each chapter adds one small mechanic and reuses concepts from earlier chapters.
+This is the canonical source for chapter order, lesson scope, practice alignment, quizzes, and flashcards. NetBite introduces concrete interactions before abstract models and teaches prerequisites before using their terminology.
 
-## Learning Sequence
-
-1. Networks and Connections - what a network is and why devices connect.
-2. Ethernet - frames, NICs, media, ports, and physical link status.
-3. Switching and MAC Addresses - MAC learning, forwarding, broadcasts, and unknown unicasts.
-4. IPv4 Addressing - host and network identities.
-5. Subnetting - deciding which addresses share a network.
-6. Routers and Default Gateways - moving traffic between networks.
-7. ARP - resolving a local IPv4 next hop to a MAC address.
-8. ICMP and Ping - testing and explaining connectivity.
-9. Static Routing - choosing paths across several networks.
-10. VLANs - creating separate logical LANs on switches.
-11. OSI and TCP/IP Models - organizing concepts the learner has already used.
-
-Future expansion may cover DHCP, DNS, NAT, ACLs, and STP after the core sequence is proven.
+The current sequence contains 77 focused lessons across 11 chapters.
 
 ## Shared Quality Rules
 
-- Terms must be introduced in a lesson before they are assessed or reviewed.
-- Practice must name the lesson skill it reinforces.
-- A quiz score of at least 80 percent represents mastery. Lower scores remain recorded as attempts and do not lock content.
-- Simplified animations and diagrams must identify their limitations.
-- Technical sources and content decisions are recorded in `docs/references/`.
+- A lesson teaches one main idea in roughly 1–2 minutes using an opening explanation, one or two titled details, a concrete example, and one key idea.
+- Multi-stage decisions use three to five numbered worked steps. Missing prerequisites receive another short lesson instead of being hidden in a dense example.
+- Full IPv4 addresses are shown until any abbreviated notation has been explicitly explained.
+- Optional hints reveal one reasoning step at a time without selecting an answer, changing state, or applying a penalty.
+- Difficult distinctions may include a retry-until-correct checkpoint. Checkpoints record no score or penalty.
+- Terms are defined before they appear in assessment or review.
+- Practice must reinforce an identified lesson skill rather than exist for decoration.
+- Quizzes use scenario questions and 80 percent mastery. A lower result remains an attempt and never locks later content.
+- Simplified diagrams identify their limits and never claim to be live packet, timing, queue, or protocol simulations.
+- Technical claims and scope boundaries are recorded in `docs/references/`.
 
-## Chapter 1 - Introduction to Networks
+## Learning Sequence
 
-Goal: understand why devices form networks, recognize the basic roles of PCs, switches, and routers, and build a small LAN.
+1. Networks and Connections
+2. Ethernet
+3. Switching and MAC Addresses
+4. IPv4 Addressing
+5. Subnetting
+6. Routers and Default Gateways
+7. ARP
+8. ICMP and Ping
+9. Static Routing
+10. VLANs
+11. OSI and TCP/IP Models
 
-Lessons:
+Future expansion may cover DHCP, DNS, NAT, ACLs, STP, and IPv6 after the core sequence is proven.
 
-- What Is a Network?
-- Why Networks Exist
-- Meet the Devices
-- Connecting Devices and LANs
+## Chapter 1 — Introduction to Networks
 
-Practice: connect two PCs to the same switch. The optional message-path animation is conceptual only; it does not model packets, frames, addressing, or switch forwarding.
+Goal: recognize network purpose, endpoint and intermediary roles, and the physical shape of a small LAN.
 
-Quiz: five questions with an 80 percent mastery target.
+Lessons: What Is a Computer Network?; Why Networks Exist; End and Intermediary Devices; PC, Switch, and Router Roles; Physical Links and Local Networks.
 
-Flashcards: Computer Network, PC, Switch, Router, LAN.
+Practice: connect two PCs to the same switch. The optional message path is conceptual and does not model frames, addresses, or switching logic.
 
-Technical sources and claim notes: `docs/references/CHAPTER1_SOURCES.md`.
+Assessment: six quiz questions, mastery 5/6. Flashcards cover Network, End Device, Intermediary Device, PC, Switch, Router, and LAN.
 
-## Chapter 2 - Ethernet
+Scope: no addressing, routing logic, protocol simulation, or configuration. Sources: `references/CHAPTER1_SOURCES.md`.
 
-Goal: understand how a physical Ethernet link carries structured data between network interfaces.
+## Chapter 2 — Ethernet
 
-Lessons:
+Goal: understand how interfaces, frames, media, cabling roles, ports, and link state create a local Ethernet link.
 
-- Data Travels in Frames
-- The Network Interface
-- Choosing Ethernet Cables
-- Ports and Link Status
+Lessons: Ethernet Works Across Local Links; Data Travels in Frames; The Network Interface; Copper and Fiber Carry Signals; Straight-Through, Crossover, and Auto-MDIX; Ports, Link, and Activity.
 
-Lesson 3 explicitly teaches the manual rule: PC/router-to-switch uses straight-through wiring, while switch-to-switch uses crossover wiring when auto-MDIX is unavailable. Its diagrams are conceptual transmit/receive paths, not connector pinouts.
+Practice: apply the legacy/manual straight-through and crossover rule. Modern auto-MDIX is explained before practice, and diagrams are relationships rather than connector pinouts.
 
-Focused Lesson 3 practice: apply that same rule to PC-to-switch, router-to-switch, and switch-to-switch copper links in explicit legacy/manual mode. It is not presented as practice for every concept in the chapter.
+Assessment: seven quiz questions, mastery 6/7. Scope excludes detailed frame sizes, MAC switching logic, IP addressing, and real signal simulation. Sources: `references/CHAPTER2_SOURCES.md`.
 
-Modern accuracy note: auto-MDIX commonly detects the required copper wiring automatically. The practice teaches the underlying manual rule without suggesting it is required on all current equipment.
+## Chapter 3 — Switching and MAC Addresses
 
-Quiz: five questions with an 80 percent mastery target.
+Goal: distinguish source and destination MAC roles, then predict source learning and forwarding behavior.
 
-Flashcards: Ethernet, Ethernet Frame, NIC, Ethernet Port, Twisted-Pair Copper, Fiber-Optic, Auto-MDIX.
+Lessons: MAC Addresses Identify Interfaces; Source and Destination Have Different Jobs; How a Switch Learns; Known Unicast Uses One Learned Port; Unknown Unicast Must Be Flooded; Broadcast Frames Intentionally Reach the LAN.
 
-Scope boundary: Chapter 2 names source and destination addresses as frame fields, but detailed MAC addressing and switch forwarding belong to Chapter 3. It does not introduce IP addressing, subnetting, routing, or protocol simulation.
+Practice: predict four deterministic decisions on a fixed three-port switch desk. Incorrect predictions never mutate the table.
 
-Technical sources and claim notes: `docs/references/CHAPTER2_SOURCES.md`.
+Assessment: seven quiz questions, mastery 6/7. Scope excludes multicast, aging timers, loops, STP, spoofing, and packet timing. Sources: `references/CHAPTER3_SOURCES.md`.
 
-## Chapter 3 - Switching and MAC Addresses
+## Chapter 4 — IPv4 Addressing
 
-Goal: understand how a switch learns source MAC addresses and uses its table to forward or flood Ethernet frames.
+Goal: understand bits and octets before using prefixes to identify a network and configure a valid host.
 
-Lessons:
+Lessons: IPv4 and MAC Identities Have Different Scope; Read Four Dotted-Decimal Octets; Bits Build an Octet; Every Address Has Network and Host Portions; A Prefix Counts Leading Network Bits; Private IPv4 Has Three Defined Ranges; A Valid Host Setting Needs a Usable Identity.
 
-- MAC Addresses Identify Interfaces
-- How a Switch Learns
-- Known and Unknown Unicast
-- Broadcast Frames
+Practice: configure a fixed `/24` host and reject invalid, duplicate, reserved, and off-network settings.
 
-Focused practice: operate a fixed three-port switch desk. Predict four forwarding decisions while the MAC table learns PC A, PC B, and PC C. Incorrect predictions do not alter the table.
+Assessment: eight quiz questions, mastery 7/8. Scope excludes IPv6, DHCP, NAT, public allocation policy, and complex binary conversion. Sources: `references/CHAPTER4_SOURCES.md`.
 
-Quiz: five scenario-based questions with an 80 percent mastery target.
+## Chapter 5 — Subnetting
 
-Flashcards: MAC Address, MAC Address Table, Source Learning, Known Unicast, Unknown Unicast, Broadcast, Flooding.
+Goal: calculate practical `/24–/27` ranges with one repeatable method.
 
-Scope boundary: Chapter 3 does not teach IP addressing, ARP, VLANs, multicast, MAC aging, loops, STP, security attacks, or protocol timing.
+Lessons: Why Networks Are Subnetted; Masks and Prefixes Describe One Boundary; Borrowed Bits Create Smaller Blocks; Host Bits Determine Address Count; Block Size Separates Network Starts; Build a Complete Subnet Map; Find Which Subnet Contains a Host; Mark Network, Usable, and Broadcast Addresses; Use One Repeatable Subnet Method.
 
-Technical sources and claim notes: `docs/references/CHAPTER3_SOURCES.md`.
+Practice: solve ordered `/24`, `/25`, `/26`, and `/27` ranges using full IPv4 addresses and optional progressive hints.
 
-## Chapter 4 - IPv4 Addressing
+Assessment: eight quiz questions, mastery 7/8. Scope excludes VLSM, summarization, `/31`, and `/32` semantics. Sources: `references/CHAPTER5_SOURCES.md`.
 
-Lessons: IPv4 Identifies Interfaces; Reading Dotted Decimal; Prefixes Mark the Network; Private Addresses and Valid Hosts.
+## Chapter 6 — Routers and Default Gateways
 
-Focused practice: configure a PC on a fixed `/24` and reject an invalid octet, duplicate address, and address from the wrong network.
+Goal: compare network identities, choose direct or gateway delivery, and understand link-layer replacement across a router.
 
-Quiz: five scenario questions. Flashcards: IPv4 Address, Octet, Dotted Decimal, Prefix Length, Network Portion, Host Portion, Private IPv4.
+Lessons: Routers Join Separately Addressed Networks; Compare Prefixes Before Choosing a Path; Local Destinations Are Delivered Directly; Remote Destinations Use the Default Gateway; A Gateway Must Be Locally Reachable; Routers Replace Link-Layer Frames.
 
-Scope: static host configuration only; address assignment services, NAT, and IPv6 are deferred. Sources: `docs/references/CHAPTER4_SOURCES.md`.
+Practice: decide direct, gateway, return, and invalid-gateway cases across two fixed LANs.
 
-## Chapter 5 - Subnetting
+Assessment: seven quiz questions, mastery 6/7. Scope is deterministic next-hop reasoning rather than real packet processing. Sources: `references/CHAPTER6_SOURCES.md`.
 
-Lessons: Why Networks Are Subnetted; Masks and Prefix Lengths; Finding Subnet Boundaries; Network, Broadcast, and Usable Hosts.
+## Chapter 7 — ARP
 
-Focused practice: calculate ordered `/24`, `/25`, `/26`, and `/27` ranges. Quiz: five scenario questions. Flashcards cover subnet, mask, block size, boundaries, ranges, and prefix size.
+Goal: resolve the selected local IPv4 next hop into an Ethernet destination MAC.
 
-Scope: practical fixed-length subnet calculations only; VLSM, route summarization, `/31`, and `/32` host semantics are deferred. Sources: `docs/references/CHAPTER5_SOURCES.md`.
+Lessons: Why IPv4 Needs a Local MAC Mapping; An ARP Request Asks the Broadcast Domain; The Owner Returns an ARP Reply; The ARP Cache Avoids Repeated Discovery; Resolve a Local Destination Itself; Resolve the Gateway for Remote Traffic.
 
-## Chapter 6 - Routers and Default Gateways
+Practice: process local resolution, cache reuse, gateway resolution, and gateway cache reuse.
 
-Lessons: Routers Join IP Networks; Local or Remote?; The Default Gateway; Forwarding Across a Router.
+Assessment: seven quiz questions, mastery 6/7. Scope is IPv4 ARP on one local link; timers, gratuitous ARP, duplicate detection, and attacks are deferred. Sources: `references/CHAPTER7_SOURCES.md`.
 
-Focused practice: choose direct or gateway delivery across two fixed LANs and identify an off-subnet gateway. Quiz: five scenario questions. Flashcards cover router interfaces, delivery, gateway, next hop, and forwarding.
+## Chapter 8 — ICMP and Ping
 
-Scope: deterministic next-hop decisions, not packet timing or router implementation. Sources: `docs/references/CHAPTER6_SOURCES.md`.
+Goal: interpret Echo evidence without turning one outcome into an unsupported diagnosis.
 
-## Chapter 7 - ARP
+Lessons: ICMP Carries IP Control Information; Echo Uses a Request and Reply; Read a Result Before Explaining It; A Successful Ping Proves Something Limited; A Failed Ping Does Not Name One Cause; Check Dependencies from Near to Far.
 
-Lessons: Why ARP Is Needed; ARP Requests Ask the LAN; ARP Replies Build the Cache; Resolve the Next Hop.
+Practice: identify the first known failed link, address, gateway, or successful end-to-end checkpoint.
 
-Focused practice: resolve a local host, store and reuse its mapping, resolve a gateway for a remote destination, and reuse the gateway cache entry. Quiz: five scenario questions. Flashcards cover ARP requests, replies, cache, and next hops.
+Assessment: seven quiz questions, mastery 6/7. Scope excludes live latency, loss simulation, and detailed ICMP message coverage. Sources: `references/CHAPTER8_SOURCES.md`.
 
-Scope: IPv4 ARP on one local link; timers, gratuitous ARP, duplicate detection, and attacks are deferred. Sources: `docs/references/CHAPTER7_SOURCES.md`.
+## Chapter 9 — Static Routing
 
-## Chapter 8 - ICMP and Ping
+Goal: read route instructions and select connected, static, most-specific, and default paths in both directions.
 
-Lessons: ICMP Reports IP Conditions; Echo Request and Echo Reply; What Ping Proves; Check One Layer at a Time.
+Lessons: A Route Table Answers Where to Send IP Traffic; Active Interfaces Create Connected Routes; Read a Route Entry as One Instruction; A Static Route Names an Administrator-Chosen Path; Communication Needs Forward and Return Routes; First Decide Which Routes Match; The Longest Matching Prefix Wins; A Default Route Is the Least-Specific Fallback.
 
-Focused practice: diagnose known link, address, gateway, and success cases in dependency order. Quiz: five scenario questions. Flashcards cover ICMP, Echo, ping, round trips, checkpoints, and filtering.
+Practice: complete four forward and return routes across three fixed routers.
 
-Scope: diagnostic reasoning only; no live traffic, latency, loss, or claim that every ping failure has one cause. Sources: `docs/references/CHAPTER8_SOURCES.md`.
+Assessment: eight quiz questions, mastery 7/8. Scope excludes dynamic routing protocols, metrics, administrative distance, and convergence. Sources: `references/CHAPTER9_SOURCES.md`.
 
-## Chapter 9 - Static Routing
+## Chapter 10 — VLANs
 
-Lessons: Connected and Remote Routes; Reading a Route Entry; Adding Static Routes; Longest Prefix and Default Route.
+Goal: understand logical broadcast separation, endpoint membership, 802.1Q identity, and allowed trunk paths.
 
-Focused practice: add four forward and return routes across a fixed three-router topology. Quiz: five scenario questions. Flashcards cover route sources, fields, longest match, and default routes.
+Lessons: VLANs Create Logical Local Networks; Each VLAN Is a Broadcast Domain; An Access Port Joins One Endpoint VLAN; Same-VLAN Traffic Can Stay at Layer 2; Different VLANs Require Layer 3 Forwarding; An 802.1Q Tag Identifies VLAN Traffic; A Trunk Carries Allowed VLANs Between Switches.
 
-Scope: static IPv4 routing; dynamic protocols, administrative distance, metrics, and route redistribution are deferred. Sources: `docs/references/CHAPTER9_SOURCES.md`.
+Practice: assign access ports, allow VLAN 10 and 20 on a two-switch trunk, and predict reachability.
 
-## Chapter 10 - VLANs
+Assessment: eight quiz questions, mastery 7/8. Scope excludes native-VLAN details, DTP, VTP, STP, and inter-VLAN router configuration. Sources: `references/CHAPTER10_SOURCES.md`.
 
-Lessons: One Switch, Separate VLANs; Access Ports Join One VLAN; Same VLAN or Different VLAN?; Trunks Carry Multiple VLANs.
+## Chapter 11 — OSI and TCP/IP Models
 
-Focused practice: assign VLAN 10 access ports, configure a trunk carrying VLAN 10 and 20, and predict inter-VLAN reachability. Quiz: five scenario questions. Flashcards cover VLANs, access ports, trunks, 802.1Q, and routing boundaries.
+Goal: understand every OSI layer’s responsibility and map familiar concepts into the four-layer TCP/IP view.
 
-Scope: access and trunk fundamentals; native VLANs, DTP, VTP, STP, and inter-VLAN router configuration are deferred. Sources: `docs/references/CHAPTER10_SOURCES.md`.
+Lessons: Why Layered Models Exist; Read the Seven-Layer OSI Stack; Layer 1 Physical; Layer 2 Data Link; Layer 3 Network; Layer 4 Transport; Layer 5 Session; Layer 6 Presentation; Layer 7 Application; TCP/IP Groups Responsibilities into Four Layers; Map Responsibilities, Not Just Layer Numbers.
 
-## Chapter 11 - OSI and TCP/IP Models
+Practice: classify media, Ethernet/MAC, IPv4/ICMP/routing, TCP/UDP, and application concepts.
 
-Lessons: Why Layered Models Exist; The Seven OSI Layers; The Four TCP/IP Layers; Map NetBite Concepts to Layers.
-
-Focused practice: sort cables, Ethernet/MAC, IPv4/ICMP/routing, TCP/UDP, and application concepts. Quiz: five scenario questions. Flashcards include both models and every OSI layer name.
-
-Scope: conceptual responsibility mapping, not a literal packet-processing animation. Sources: `docs/references/CHAPTER11_SOURCES.md`.
+Assessment: eight quiz questions, mastery 7/8. The models classify responsibilities and do not represent a literal implementation sequence. Sources: `references/CHAPTER11_SOURCES.md`.

@@ -8,3 +8,9 @@
 ## Content boundaries
 
 The chapter covers access-port membership, logical broadcast separation, allowed VLANs on a two-switch trunk, and the need for Layer 3 routing between VLANs. Native VLANs, DTP, VTP, STP, and routing configuration are deferred.
+
+## Expanded lesson claims
+
+VLAN purpose, broadcast-domain behavior, endpoint access membership, same-VLAN switching, the inter-VLAN routing boundary, 802.1Q identity, and allowed trunk paths are separate lessons.
+
+Worked paths preserve VLAN identity across ingress access classification, trunk allowance, and egress membership.

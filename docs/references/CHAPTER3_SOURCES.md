@@ -19,3 +19,5 @@ Jeremy's IT Lab remains a sequencing reference for beginner-friendly CCNA instru
 - The guided desk processes one frame at a time as a deterministic teaching model. It does not simulate timing, queues, frame contents, collisions, or real traffic.
 - MAC aging, multicast, VLAN boundaries, loops and STP, spoofing, security controls, ARP, and IPv4 are intentionally deferred or out of scope.
 - Flooding always excludes the ingress port in the simplified single-switch topology.
+- Source and destination MAC roles, known unicast, unknown unicast, and broadcast are separated so similar-looking forwarding outcomes are not treated as identical reasons.
+- Switching examples always show source learning before destination lookup and explicitly exclude the ingress port from flooding.

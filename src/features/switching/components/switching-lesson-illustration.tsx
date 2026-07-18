@@ -2,6 +2,7 @@ import { StyleSheet, View } from 'react-native';
 
 import type { LessonIllustration } from '@/content/types';
 import { DeviceGlyph } from '@/features/devices/components/device-glyph';
+import { educationalIllustrations } from '@/features/lessons/educational-illustration-registry';
 import { Text } from '@/shared/components/console-text';
 import { Fonts, Palette, Space } from '@/shared/theme';
 
@@ -117,7 +118,7 @@ function BroadcastGraphic() {
 
 export function SwitchingLessonIllustration({ type }: { type: SwitchingIllustration }) {
   return (
-    <View style={styles.card}>
+    <View accessible accessibilityLabel={educationalIllustrations[type].accessibilityLabel} style={styles.card}>
       {type === 'mac-address' ? <MacAddressGraphic /> : null}
       {type === 'mac-learning' ? <LearningGraphic /> : null}
       {type === 'switch-forwarding' ? <ForwardingGraphic /> : null}

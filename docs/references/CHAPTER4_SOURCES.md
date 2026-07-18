@@ -9,3 +9,10 @@
 ## Content boundaries
 
 NetBite validates static beginner host settings. DHCP, IPv6, NAT, address exhaustion, and public allocation policy are out of scope. Examples use documentation-only private networks.
+
+## Expanded lesson claims
+
+- RFC 791 supports the 32-bit, four-octet address structure and the 0–255 octet range.
+- Prefixes are introduced only after eight-bit place values and network-versus-host identity.
+- RFC 1918’s three private blocks are taught explicitly; private allocation is not described as a security control.
+- Numeric examples show complete IPv4 addresses and expose intermediate octet or network-identity calculations before the result.

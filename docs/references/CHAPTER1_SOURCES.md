@@ -14,3 +14,5 @@ Chapter 1 uses deliberately simple language for absolute beginners. Its device r
 - Chapter 1 uses `message` as a protocol-neutral term. Ethernet frames begin in Chapter 2; IP packets are reserved for the later IP curriculum.
 - The topology interaction demonstrates physical connectivity only. It does not model frame forwarding, addressing, timing, loss, or other protocol behavior.
 - LAN is introduced in Lesson 4 before it appears in flashcards or completion feedback.
+- The expanded sequence distinguishes end devices from intermediary devices before comparing PC, switch, and router roles.
+- The device-path example labels the requester, intermediary path, and service endpoint as separate reasoning steps.
