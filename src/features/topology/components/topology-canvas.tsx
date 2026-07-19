@@ -5,7 +5,6 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   cancelAnimation,
   useAnimatedStyle,
-  useReducedMotion,
   useSharedValue,
   withDelay,
   withSequence,
@@ -20,6 +19,7 @@ import { Text } from '@/shared/components/console-text';
 import { FeedbackModal } from '@/shared/components/feedback-modal';
 import { GridBackground } from '@/shared/components/grid-background';
 import { selectionHaptic, successHaptic, warningHaptic } from '@/shared/haptics';
+import { useAppReducedMotion } from '@/shared/use-app-reduced-motion';
 import { Fonts, Palette, Radius, Space } from '@/shared/theme';
 import { useGameStore } from '@/store/use-game-store';
 
@@ -139,7 +139,7 @@ export function TopologyCanvas({ connectionMode }: TopologyCanvasProps) {
   const [removeDeviceConfirmationVisible, setRemoveDeviceConfirmationVisible] = useState(false);
   const [selectedCableId, setSelectedCableId] = useState<string>();
   const packetTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
-  const reducedMotion = useReducedMotion();
+  const reducedMotion = useAppReducedMotion();
   const packetX = useSharedValue(0);
   const packetY = useSharedValue(0);
   const packetOpacity = useSharedValue(0);

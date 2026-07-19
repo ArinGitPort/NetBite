@@ -20,6 +20,7 @@ $assets = @(
   @{ Source = 'assets/images/icons/icon-close.png'; Output = 'assets/images/icons/icon-close-mobile.png'; Width = 128; Height = 128 },
   @{ Source = 'assets/images/icons/icon-lock.png'; Output = 'assets/images/icons/icon-lock-mobile.png'; Width = 128; Height = 128 },
   @{ Source = 'assets/images/icons/icon-reset.png'; Output = 'assets/images/icons/icon-reset-mobile.png'; Width = 128; Height = 128 },
+  @{ Source = 'assets/images/branding/source/netbite-menu-logo.png'; Output = 'assets/images/branding/netbite-menu-logo-mobile.png'; Width = 256; Height = 256; Pixelated = $true },
   @{ Source = 'assets/images/education/source/server-terminal.png'; Output = 'assets/images/education/server-terminal-mobile.png'; Width = 256; Height = 256; Pixelated = $true },
   @{ Source = 'assets/images/education/source/ethernet-frame.png'; Output = 'assets/images/education/ethernet-frame-mobile.png'; Width = 256; Height = 256; Pixelated = $true },
   @{ Source = 'assets/images/education/source/ipv4-datagram.png'; Output = 'assets/images/education/ipv4-datagram-mobile.png'; Width = 256; Height = 256; Pixelated = $true },

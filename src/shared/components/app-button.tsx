@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet } from 'react-native';
+import { Pressable, StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
 
 import { AppIcon, type AppIconName } from '@/shared/components/app-icon';
 import { Text } from '@/shared/components/console-text';
@@ -11,9 +11,10 @@ interface AppButtonProps {
   leadingIcon?: AppIconName;
   trailingIcon?: AppIconName;
   disabled?: boolean;
+  style?: StyleProp<ViewStyle>;
 }
 
-export function AppButton({ label, onPress, variant = 'primary', leadingIcon, trailingIcon, disabled }: AppButtonProps) {
+export function AppButton({ label, onPress, variant = 'primary', leadingIcon, trailingIcon, disabled, style }: AppButtonProps) {
   return (
     <Pressable
       accessibilityRole="button"
@@ -25,9 +26,10 @@ export function AppButton({ label, onPress, variant = 'primary', leadingIcon, tr
         styles[variant],
         pressed && styles.pressed,
         disabled && styles.disabled,
+        style,
       ]}>
       {leadingIcon ? <AppIcon name={leadingIcon} size={20} /> : null}
-      <Text variant="label" style={[styles.label, variant !== 'primary' && styles.secondaryLabel]}>{label}</Text>
+      <Text variant="label" style={[styles.label, variant !== 'primary' && styles.secondaryLabel, disabled && styles.disabledLabel]}>{label}</Text>
       {trailingIcon ? <AppIcon name={trailingIcon} size={20} /> : null}
     </Pressable>
   );
@@ -50,5 +52,6 @@ const styles = StyleSheet.create({
   label: { minWidth: 0, flexShrink: 1, color: Palette.accentBright, fontFamily: Fonts.medium, textAlign: 'center', textTransform: 'uppercase' },
   secondaryLabel: { color: Palette.text },
   pressed: { backgroundColor: Palette.accentSoft },
-  disabled: { opacity: 0.45 },
+  disabled: { opacity: 1, backgroundColor: Palette.surface, borderWidth: 1, borderColor: Palette.border },
+  disabledLabel: { color: Palette.textMuted },
 });

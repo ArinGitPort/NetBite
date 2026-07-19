@@ -76,7 +76,7 @@ export default function ChapterScreen() {
   return (
     <Screen>
       <View style={styles.back}>
-        <IconButton accessibilityLabel="Back to home" icon="arrow-left" label="BACK / HOME" onPress={() => router.dismissTo('/')} />
+        <IconButton accessibilityLabel="Back to learning path" icon="arrow-left" label="BACK / LEARN" onPress={() => router.dismissTo('/learn')} />
       </View>
       <View style={styles.hero}>
         <Text variant="label" style={styles.chapterLabel}>CHAPTER {chapter.numberLabel}</Text>

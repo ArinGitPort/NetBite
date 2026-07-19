@@ -6,7 +6,6 @@ import Animated, {
   Easing,
   interpolate,
   useAnimatedStyle,
-  useReducedMotion,
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated';
@@ -21,6 +20,7 @@ import { ProgressBar } from '@/shared/components/progress-bar';
 import { Screen } from '@/shared/components/screen';
 import { selectionHaptic, successHaptic } from '@/shared/haptics';
 import { getEffectiveWidth, getResponsiveMode } from '@/shared/responsive-layout';
+import { useAppReducedMotion } from '@/shared/use-app-reduced-motion';
 import { Fonts, Palette, Radius, Space } from '@/shared/theme';
 import { useGameStore } from '@/store/use-game-store';
 
@@ -44,7 +44,7 @@ export default function FlashcardsScreen() {
   const [frontSide, setFrontSide] = useState<FlashcardFront>('term');
   const [isFlipping, setIsFlipping] = useState(false);
   const flipProgress = useSharedValue(0);
-  const reducedMotion = useReducedMotion();
+  const reducedMotion = useAppReducedMotion();
   const { width, fontScale } = useWindowDimensions();
   const compactLayout = getResponsiveMode(getEffectiveWidth(width, fontScale)) === 'compact';
   const cardMinHeight = 400 * Math.max(fontScale, 1);

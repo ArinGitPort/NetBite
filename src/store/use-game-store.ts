@@ -29,6 +29,9 @@ export interface GameState {
   flashcardContentVersions: Record<string, number>;
   flashcardPositions: Record<string, number>;
   completedLabIds: string[];
+  cliGuideSeen: boolean;
+  hapticsEnabled: boolean;
+  motionPreference: 'system' | 'reduced';
   addDevice: (type: DeviceType, position: Position) => void;
   moveDevice: (deviceId: string, position: Position) => void;
   removeDevice: (deviceId: string) => void;
@@ -45,6 +48,10 @@ export interface GameState {
   saveFlashcardPosition: (chapterId: string, index: number) => void;
   clearFlashcardPosition: (chapterId: string) => void;
   completeLab: (labId: string) => void;
+  markCliGuideSeen: () => void;
+  setHapticsEnabled: (enabled: boolean) => void;
+  setMotionPreference: (preference: 'system' | 'reduced') => void;
+  resetLearningProgress: () => void;
 }
 
 function buildDevice(type: DeviceType, name: string, position: Position): DeviceNode {
@@ -71,6 +78,9 @@ export const useGameStore = create<GameState>()(persist((set, get) => ({
   flashcardContentVersions: {},
   flashcardPositions: {},
   completedLabIds: [],
+  cliGuideSeen: false,
+  hapticsEnabled: true,
+  motionPreference: 'system',
 
   addDevice: (type, position) =>
     set((state) => {
@@ -214,10 +224,22 @@ export const useGameStore = create<GameState>()(persist((set, get) => ({
       ? state.completedLabIds
       : [...state.completedLabIds, labId],
   })),
+  markCliGuideSeen: () => set({ cliGuideSeen: true }),
+  setHapticsEnabled: (hapticsEnabled) => set({ hapticsEnabled }),
+  setMotionPreference: (motionPreference) => set({ motionPreference }),
+  resetLearningProgress: () => set({
+    completedLessonIds: [],
+    quizScores: {},
+    quizContentVersions: {},
+    reviewedFlashcardChapterIds: [],
+    flashcardContentVersions: {},
+    flashcardPositions: {},
+    completedLabIds: [],
+  }),
 }), {
   name: 'netbite-game-state-v1',
   storage: createJSONStorage(() => gameStorage),
-  version: 4,
+  version: 6,
   skipHydration: true,
   partialize: (state) => ({
     topology: state.topology,
@@ -229,6 +251,9 @@ export const useGameStore = create<GameState>()(persist((set, get) => ({
     flashcardContentVersions: state.flashcardContentVersions,
     flashcardPositions: state.flashcardPositions,
     completedLabIds: state.completedLabIds,
+    cliGuideSeen: state.cliGuideSeen,
+    hapticsEnabled: state.hapticsEnabled,
+    motionPreference: state.motionPreference,
   }),
   migrate: (persistedState, version) => {
     const legacyState = persistedState as Partial<GameState> & {
@@ -253,6 +278,9 @@ export const useGameStore = create<GameState>()(persist((set, get) => ({
       flashcardPositions: migratedState.flashcardPositions ?? {},
       quizContentVersions: migratedState.quizContentVersions ?? legacyQuizVersions,
       flashcardContentVersions: migratedState.flashcardContentVersions ?? legacyFlashcardVersions,
+      cliGuideSeen: migratedState.cliGuideSeen ?? false,
+      hapticsEnabled: migratedState.hapticsEnabled ?? true,
+      motionPreference: migratedState.motionPreference ?? 'system',
     } as GameState;
   },
 }));

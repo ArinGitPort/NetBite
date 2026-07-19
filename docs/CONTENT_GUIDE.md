@@ -17,6 +17,8 @@ This file records the content rules that apply across the curriculum:
 - Do not use final-octet shorthand such as `.64` until the complete IPv4 address is visible and the abbreviation has been explained.
 - Optional hints reveal the next intermediate value or comparison, never the final selected answer. Hints carry no score or penalty.
 - Every incorrect choice explains its misconception and leaves learned or configured state unchanged.
+- In configuration labs, distinguish invalid input from valid but incorrect state. Invalid or wrong-mode commands do not mutate state; accepted configuration remains until the learner corrects it with the supported inverse command, Undo, or Reset.
+- Simulated diagnostic output must state only what deterministic state proves. Never invent latency, packet loss, timing, vendor behavior, or one universal cause for a failed ping.
 - Add practice only when it directly reinforces an identified lesson skill.
 - Label simplified visualizations so learners do not mistake them for protocol-accurate simulations or physical pinouts.
 - Use plausible quiz alternatives that test understanding rather than obvious joke answers.

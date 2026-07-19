@@ -27,7 +27,7 @@ export default function LessonScreen() {
   const [checkpointResult, setCheckpointResult] = useState<{ lessonId: string; passed: boolean }>({ lessonId: '', passed: false });
 
   if (!lessonResult) {
-    return <Screen><Text variant="body">Lesson not found.</Text><AppButton label="Back to home" onPress={() => router.replace('/')} /></Screen>;
+    return <Screen><Text variant="body">Lesson not found.</Text><AppButton label="Back to learning path" onPress={() => router.replace('/learn')} /></Screen>;
   }
   const { chapter, lesson, index } = lessonResult;
   const checkpointPassed = checkpointResult.lessonId === lesson.id && checkpointResult.passed;

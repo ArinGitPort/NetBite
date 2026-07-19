@@ -98,6 +98,6 @@ export const chapterEight = createAdvancedChapter({
     ['Round Trip', 'Delivery to a destination and back.', 'Request out, reply back.'], ['Timeout', 'The expected response was not observed in time.', 'A symptom requiring more checks.'],
     ['Checkpoint', 'One verified dependency along a path.', 'Check link before gateway.'], ['Filtering', 'Policy that permits or blocks selected traffic.', 'ICMP may be blocked while web traffic works.'],
   ],
-  lab: ['ping-diagnostic-desk', 'Diagnose the ping path', 'Check link, addressing, gateway, and end-to-end evidence'],
+  lab: ['ping-diagnostic-desk', 'Read CLI evidence', 'Run diagnostic commands, then state only what their output proves'],
   recap: ['A checkpoint-based diagnosis', 'ICMP Echo, result boundaries, and troubleshooting order', 'How routers select connected, static, specific, and default routes'],
 });

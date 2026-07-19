@@ -56,36 +56,6 @@ export const practiceConfigs: Record<string, PracticeConfig> = {
       stage('cache', 'A SENDS REMOTELY AGAIN / GATEWAY MAPPING CACHED', 'What should A do?', ['USE CACHED GATEWAY MAC', 'BROADCAST ARP AGAIN NOW', 'ARP FOR REMOTE C'], 0, 'A current cache entry supplies the gateway MAC immediately.', 'CACHE HIT'),
     ], completion: 'You resolved local hosts and remote gateway next hops.',
   },
-  'ping-diagnostic-desk': {
-    id: 'ping-diagnostic-desk', chapterId: '8', eyebrow: 'GUIDED PRACTICE / DIAGNOSTICS', title: 'DIAGNOSE THE PING PATH',
-    objective: 'Identify the first known failed checkpoint without inventing a single universal cause.', scopeNote: 'KNOWN CONDITIONS / NO TIMING OR LIVE PACKETS',
-    stages: [
-      stage('link', 'LINK INDICATOR OFF', 'What should be checked first?', ['LOCAL LINK', 'REMOTE ROUTE', 'APPLICATION'], 0, 'IP tests depend on a working local link.', 'FIRST FAILURE / LINK'),
-      stage('address', 'LINK UP / HOST SET TO 192.168.10.300', 'What should be corrected?', ['HOST IPv4 ADDRESS', 'REMOTE SWITCH NAME', 'ECHO REPLY SIZE'], 0, 'The host address contains an invalid octet.', 'FIRST FAILURE / ADDRESS'),
-      stage('gateway', 'LOCAL PING WORKS / REMOTE FAILS / GATEWAY OFF-SUBNET', 'What should be corrected?', ['DEFAULT GATEWAY', 'LOCAL CABLE CATEGORY', 'DESTINATION MAC CACHE ONLY'], 0, 'Remote traffic needs a gateway reachable on the local subnet.', 'FIRST FAILURE / GATEWAY'),
-      stage('success', 'LINK, ADDRESS, GATEWAY, PATH GOOD / ECHO REPLY RECEIVED', 'What is proven?', ['THIS ROUND TRIP SUCCEEDED', 'EVERY APPLICATION WORKS', 'THE NETWORK CAN NEVER FAIL'], 0, 'A reply demonstrates round-trip IP reachability for this test.', 'END-TO-END CHECK PASSED'),
-    ], completion: 'You diagnosed ping evidence in dependency order.',
-  },
-  'static-route-board': {
-    id: 'static-route-board', chapterId: '9', eyebrow: 'GUIDED PRACTICE / ROUTE BOARD', title: 'COMPLETE THE ROUTED PATH',
-    objective: 'Choose four missing routes so LAN A and LAN C have forward and return paths.', scopeNote: 'FIXED THREE-ROUTER TOPOLOGY / STATIC ROUTES',
-    stages: [
-      stage('r1', 'R1 NEEDS LAN C 192.168.30.0/24 / R2 NEXT HOP 10.0.12.2', 'Add which route?', ['192.168.30.0/24 VIA 10.0.12.2', '192.168.10.0/24 VIA ITSELF', '0.0.0.0/24 VIA LAN A'], 0, 'R1 sends the remote LAN C prefix toward R2.', 'R1 FORWARD ROUTE ADDED'),
-      stage('r2-forward', 'R2 NEEDS LAN C / R3 NEXT HOP 10.0.23.2', 'Add which route?', ['192.168.30.0/24 VIA 10.0.23.2', '10.0.12.0/24 VIA R3', '192.168.20.0/24 VIA LAN C'], 0, 'R2 forwards LAN C traffic to R3.', 'R2 FORWARD ROUTE ADDED'),
-      stage('r3-return', 'R3 NEEDS LAN A 192.168.10.0/24 / R2 NEXT HOP 10.0.23.1', 'Add which return route?', ['192.168.10.0/24 VIA 10.0.23.1', '192.168.30.0/24 VIA R2', '0.0.0.0/32 VIA LAN C'], 0, 'R3 needs a return path toward R2 for LAN A.', 'R3 RETURN ROUTE ADDED'),
-      stage('r2-return', 'R2 NEEDS LAN A / R1 NEXT HOP 10.0.12.1', 'Complete the return path.', ['192.168.10.0/24 VIA 10.0.12.1', '192.168.30.0/24 VIA R1', '10.0.23.0/24 VIA LAN A'], 0, 'R2 forwards returning LAN A traffic toward R1.', 'BIDIRECTIONAL PATH COMPLETE'),
-    ], completion: 'You completed forward and return static routes across three routers.',
-  },
-  'vlan-port-desk': {
-    id: 'vlan-port-desk', chapterId: '10', eyebrow: 'GUIDED PRACTICE / VLAN DESK', title: 'CONFIGURE VLAN PATHS',
-    objective: 'Assign access VLANs, carry them on a trunk, and predict which endpoints can communicate.', scopeNote: 'VLAN 10 + 20 / NO STP OR INTER-VLAN CONFIG',
-    stages: [
-      stage('access', 'PC A / SWITCH A PORT 1 / USERS VLAN 10', 'Configure the endpoint port.', ['ACCESS VLAN 10', 'TRUNK ONLY VLAN 20', 'ACCESS VLAN 20'], 0, 'An endpoint access port joins its one assigned VLAN.', 'PORT 1 / ACCESS VLAN 10'),
-      stage('second', 'PC B / SWITCH B PORT 2 / USERS VLAN 10', 'Configure the endpoint port.', ['ACCESS VLAN 20', 'ACCESS VLAN 10', 'ROUTED PORT'], 1, 'PC B must share VLAN 10 with PC A.', 'PORT 2 / ACCESS VLAN 10'),
-      stage('trunk', 'SWITCH A ↔ SWITCH B / VLAN 10 + VLAN 20 REQUIRED', 'Configure the inter-switch link.', ['TRUNK ALLOW 10,20', 'ACCESS VLAN 10', 'TRUNK ALLOW 20 ONLY'], 0, 'The trunk must carry both required VLANs.', '802.1Q PATH READY'),
-      stage('reach', 'PC A VLAN 10 → PC C VLAN 20 / NO ROUTER', 'Can they communicate?', ['YES / SAME SWITCHES', 'NO / ROUTING REQUIRED', 'YES / TRUNK MERGES VLANS'], 1, 'A trunk carries VLANs but does not merge their broadcast domains.', 'INTER-VLAN PATH BLOCKED WITHOUT ROUTING'),
-    ], completion: 'You built a two-switch VLAN path and preserved separation.',
-  },
   'layer-sorting-desk': {
     id: 'layer-sorting-desk', chapterId: '11', eyebrow: 'GUIDED PRACTICE / MODEL DESK', title: 'SORT THE NETWORK STACK',
     objective: 'Classify familiar concepts by responsibility in OSI and TCP/IP.', scopeNote: 'CONCEPT MAP / NOT A PROCESSING SIMULATOR',

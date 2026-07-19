@@ -10,6 +10,8 @@
 
 Known-condition scenarios teach dependency order. A failed ping is never presented as proof of one specific fault; filtering, destination behavior, and remote paths may also affect results. No latency or loss simulation is provided.
 
+The chapter practice uses the bounded NetBite CLI described in `CLI_SIMULATION_SOURCES.md`. Its `show` and `ping` output is derived from fixed scenario state and is original NetBite wording, not reproduced device output.
+
 ## Expanded lesson claims
 
 Echo exchange, observable tool outcomes, success boundaries, failure ambiguity, and dependency-based troubleshooting are separate lessons. Operating-system-specific output wording is not treated as protocol behavior.

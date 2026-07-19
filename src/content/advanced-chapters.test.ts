@@ -2,6 +2,7 @@ import { advancedChapters } from '@/content/advanced-chapters';
 import { chapters } from '@/content/chapters';
 import { educationalIllustrations } from '@/features/lessons/educational-illustration-registry';
 import { practiceConfigs } from '@/features/practice/practice-configs';
+import { cliLabDefinitions } from '@/features/cli/cli-lab-definitions';
 
 describe('complete curriculum', () => {
   const expectedLessonCounts: Record<string, number> = { 4: 7, 5: 9, 6: 6, 7: 6, 8: 6, 9: 8, 10: 7, 11: 11 };
@@ -15,7 +16,7 @@ describe('complete curriculum', () => {
     expect(chapter.lessons).toHaveLength(expectedLessonCounts[chapter.id]);
     expect(chapter.quiz).toHaveLength(expectedQuizCounts[chapter.id]);
     expect(chapter.flashcards.length).toBeGreaterThanOrEqual(7);
-    expect(practiceConfigs[chapter.lab.id]?.chapterId).toBe(chapter.id);
+    expect(practiceConfigs[chapter.lab.id]?.chapterId ?? cliLabDefinitions[chapter.lab.id]?.chapterId).toBe(chapter.id);
     const lessonIds = new Set(chapter.lessons.map(({ id }) => id));
     chapter.quiz.forEach(({ lessonId, answers, correctAnswerIndex }) => {
       expect(lessonIds.has(lessonId)).toBe(true);
@@ -49,6 +50,10 @@ describe('complete curriculum', () => {
         stage.choices.forEach(({ feedback }) => expect(feedback.length).toBeGreaterThan(20));
       });
     });
+  });
+
+  test('registers the three command-driven practices under their stable IDs', () => {
+    expect(Object.keys(cliLabDefinitions).sort()).toEqual(['ping-diagnostic-desk', 'static-route-board', 'vlan-port-desk']);
   });
 
 });

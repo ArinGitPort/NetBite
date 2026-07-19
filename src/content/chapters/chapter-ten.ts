@@ -106,6 +106,6 @@ export const chapterTen = createAdvancedChapter({
     ['Trunk', 'A link carrying multiple allowed VLANs.', 'Switch A to Switch B.'], ['Allowed VLAN', 'A VLAN permitted across a trunk.', 'Allow VLANs 10 and 20.'],
     ['VLAN Path', 'The access and trunk segments carrying one VLAN end to end.', 'VLAN 10 across two switches.'],
   ],
-  lab: ['vlan-port-desk', 'Configure VLAN paths', 'Assign access ports, allow VLANs on a trunk, and predict reachability'],
+  lab: ['vlan-port-desk', 'Configure VLAN paths', 'Use the NetBite CLI to assign access ports, build a trunk, and verify separation'],
   recap: ['Two separated VLANs across two switches', 'Broadcast boundaries, access membership, tags, routing boundaries, and trunk allowances', 'How layered models organize all previously learned responsibilities'],
 });

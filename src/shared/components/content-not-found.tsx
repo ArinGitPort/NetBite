@@ -14,7 +14,7 @@ export function ContentNotFound({ label = 'Content' }: { label?: string }) {
         <Text variant="screenTitle" style={styles.title}>{label} not found</Text>
         <Text variant="body" style={styles.copy}>This activity is unavailable or the link is no longer valid.</Text>
       </View>
-      <AppButton label="Back to home" onPress={() => router.replace('/')} />
+      <AppButton label="Back to learning path" onPress={() => router.replace('/learn')} />
     </Screen>
   );
 }

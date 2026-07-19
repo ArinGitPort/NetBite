@@ -24,6 +24,7 @@ describe('game store rules', () => {
       flashcardContentVersions: {},
       flashcardPositions: {},
       completedLabIds: [],
+      cliGuideSeen: false,
     });
   });
 
@@ -84,5 +85,23 @@ describe('game store rules', () => {
     useGameStore.getState().saveQuizScore('4', 3, 2);
     expect(useGameStore.getState().quizScores['4']).toBe(3);
     expect(useGameStore.getState().quizContentVersions['4']).toBe(2);
+  });
+
+  test('persists CLI guide acknowledgement independently of lab completion', () => {
+    useGameStore.getState().markCliGuideSeen();
+    expect(useGameStore.getState().cliGuideSeen).toBe(true);
+    expect(useGameStore.getState().completedLabIds).toEqual([]);
+  });
+
+  test('adds the CLI guide flag when migrating pre-CLI progress', async () => {
+    const migrate = useGameStore.persist.getOptions().migrate;
+    const migrated = await migrate?.({ completedLabIds: ['ping-diagnostic-desk'] }, 4) as GameState | undefined;
+    expect(migrated).toMatchObject({ completedLabIds: ['ping-diagnostic-desk'], cliGuideSeen: false });
+  });
+
+  test('adds accessible app preferences without changing historical progress', async () => {
+    const migrate = useGameStore.persist.getOptions().migrate;
+    const migrated = await migrate?.({ completedLessonIds: ['network-definition'] }, 5) as GameState | undefined;
+    expect(migrated).toMatchObject({ completedLessonIds: ['network-definition'], hapticsEnabled: true, motionPreference: 'system' });
   });
 });

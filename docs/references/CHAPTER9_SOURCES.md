@@ -13,3 +13,5 @@ The fixed topology teaches connected, static, and default routes plus return pat
 ## Expanded lesson claims
 
 Route-table purpose, connected-route origin, entry fields, reachable static next hops, return routes, prefix-range matching, longest-prefix selection, and default fallback are taught independently. Learners first form the usable matching candidate set; longest-prefix selection operates only on that set.
+
+The chapter practice uses the bounded command and state model in `CLI_SIMULATION_SOURCES.md`. Connected routes are derived from active configured interfaces; completion validates exact static state plus modeled forward and return paths, without claiming router convergence or live packet forwarding.

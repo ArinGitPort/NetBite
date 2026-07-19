@@ -1,6 +1,7 @@
 import { FiraCode_400Regular } from '@expo-google-fonts/fira-code/400Regular';
 import { FiraCode_500Medium } from '@expo-google-fonts/fira-code/500Medium';
 import { FiraCode_600SemiBold } from '@expo-google-fonts/fira-code/600SemiBold';
+import { isRunningInExpoGo } from 'expo';
 import { useFonts } from 'expo-font';
 import { router, Stack, type ErrorBoundaryProps } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
@@ -12,9 +13,10 @@ import { AppButton } from '@/shared/components/app-button';
 import { Text } from '@/shared/components/console-text';
 import { Screen } from '@/shared/components/screen';
 import { useGameStore } from '@/store/use-game-store';
+import { useSandboxStore } from '@/store/use-sandbox-store';
 
 SplashScreen.preventAutoHideAsync();
-SplashScreen.setOptions({ duration: 450, fade: true });
+if (!isRunningInExpoGo()) SplashScreen.setOptions({ duration: 450, fade: true });
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
@@ -28,7 +30,7 @@ export default function RootLayout() {
     let active = true;
     const hydrate = async () => {
       try {
-        await useGameStore.persist.rehydrate();
+        await Promise.all([useGameStore.persist.rehydrate(), useSandboxStore.persist.rehydrate()]);
       } catch {
         // Continue with the initial local state if storage is temporarily unavailable.
       } finally {
@@ -58,7 +60,7 @@ export function ErrorBoundary({ retry }: ErrorBoundaryProps) {
     <Screen>
       <Text variant="body">Something interrupted this screen.</Text>
       <AppButton label="Try again" onPress={() => void retry()} />
-      <AppButton label="Back to home" variant="secondary" onPress={() => router.replace('/')} />
+      <AppButton label="Back to main menu" variant="secondary" onPress={() => router.replace('/')} />
     </Screen>
   );
 }

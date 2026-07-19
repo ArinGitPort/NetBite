@@ -8,6 +8,8 @@ Its goal is to teach networking through interactive lessons, visual labs, quizze
 
 NetBite is **not** a replacement for Cisco Packet Tracer. It prioritizes conceptual understanding and visual learning over protocol-level accuracy.
 
+The standalone Network Sandbox follows the same rule. It provides bounded, port-aware free play through deterministic state and structured explanations; it does not broaden the project into a live protocol emulator.
+
 ---
 
 # Core Philosophy

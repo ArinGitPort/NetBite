@@ -128,6 +128,6 @@ export const chapterNine = createAdvancedChapter({
     ['Return Route', 'A route back toward the source network.', 'R3 route to LAN A.'], ['Route Match', 'A route whose prefix-defined range contains the destination.', '192.168.0.0/16 matches 192.168.20.25.'], ['Longest Prefix', 'The most-specific matching route.', '/24 wins over /16.'],
     ['Default Route', 'The /0 fallback for otherwise unmatched destinations.', '0.0.0.0/0.'],
   ],
-  lab: ['static-route-board', 'Complete the route board', 'Add four forward and return routes across three routers'],
+  lab: ['static-route-board', 'Configure static routes', 'Use the NetBite CLI to build and verify both directions across three routers'],
   recap: ['A bidirectional three-router path', 'Route fields, next hops, return paths, longest match, and default fallback', 'How VLANs separate logical LANs on switches'],
 });

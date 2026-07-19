@@ -52,17 +52,16 @@ Unlock Next Chapter
 
 ## Navigation
 
-Home
+Native Splash
 
-Continue Learning
+Main Menu
 
-Chapters
+- Start or Continue Learning
+- Browse Chapters
+- Network Sandbox
+- Settings
 
-Labs
-
-Flashcards
-
-Profile
+The sandbox is optional free play. It never changes curriculum completion and does not gate chapter access.
 
 ---
 
@@ -127,7 +126,7 @@ Completing chapters unlocks:
 
 Daily Practice
 
-Sandbox
+Additional sandbox templates and named save slots
 
 Achievements
 

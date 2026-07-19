@@ -111,7 +111,7 @@ Goal: interpret Echo evidence without turning one outcome into an unsupported di
 
 Lessons: ICMP Carries IP Control Information; Echo Uses a Request and Reply; Read a Result Before Explaining It; A Successful Ping Proves Something Limited; A Failed Ping Does Not Name One Cause; Check Dependencies from Near to Far.
 
-Practice: identify the first known failed link, address, gateway, or successful end-to-end checkpoint.
+Practice: use the NetBite CLI to run required evidence commands across four isolated scenarios, then identify the first known failed link, wrong network, missing route, or limited meaning of a successful Echo round trip.
 
 Assessment: seven quiz questions, mastery 6/7. Scope excludes live latency, loss simulation, and detailed ICMP message coverage. Sources: `references/CHAPTER8_SOURCES.md`.
 
@@ -121,7 +121,7 @@ Goal: read route instructions and select connected, static, most-specific, and d
 
 Lessons: A Route Table Answers Where to Send IP Traffic; Active Interfaces Create Connected Routes; Read a Route Entry as One Instruction; A Static Route Names an Administrator-Chosen Path; Communication Needs Forward and Return Routes; First Decide Which Routes Match; The Longest Matching Prefix Wins; A Default Route Is the Least-Specific Fallback.
 
-Practice: complete four forward and return routes across three fixed routers.
+Practice: configure exactly four forward and return static routes through the NetBite CLI, inspect derived route/path state, and verify both PC-A-to-PC-C directions.
 
 Assessment: eight quiz questions, mastery 7/8. Scope excludes dynamic routing protocols, metrics, administrative distance, and convergence. Sources: `references/CHAPTER9_SOURCES.md`.
 
@@ -131,7 +131,7 @@ Goal: understand logical broadcast separation, endpoint membership, 802.1Q ident
 
 Lessons: VLANs Create Logical Local Networks; Each VLAN Is a Broadcast Domain; An Access Port Joins One Endpoint VLAN; Same-VLAN Traffic Can Stay at Layer 2; Different VLANs Require Layer 3 Forwarding; An 802.1Q Tag Identifies VLAN Traffic; A Trunk Carries Allowed VLANs Between Switches.
 
-Practice: assign access ports, allow VLAN 10 and 20 on a two-switch trunk, and predict reachability.
+Practice: create VLAN 10 and 20 through the NetBite CLI, assign access ports, allow both VLANs on both trunk endpoints, inspect derived port state, and predict reachability.
 
 Assessment: eight quiz questions, mastery 7/8. Scope excludes native-VLAN details, DTP, VTP, STP, and inter-VLAN router configuration. Sources: `references/CHAPTER10_SOURCES.md`.
 

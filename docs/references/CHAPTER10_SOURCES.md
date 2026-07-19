@@ -14,3 +14,5 @@ The chapter covers access-port membership, logical broadcast separation, allowed
 VLAN purpose, broadcast-domain behavior, endpoint access membership, same-VLAN switching, the inter-VLAN routing boundary, 802.1Q identity, and allowed trunk paths are separate lessons.
 
 Worked paths preserve VLAN identity across ingress access classification, trunk allowance, and egress membership.
+
+The chapter practice uses the bounded command and state model in `CLI_SIMULATION_SOURCES.md`. Reachability is derived from access membership and matching allowed-VLAN state on both trunk endpoints; it does not model STP, negotiation, frame timing, or inter-VLAN routing.
