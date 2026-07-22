@@ -4,12 +4,15 @@ import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native
 
 import {
   addSandboxDevice,
+  applyBeginnerLanSetup,
   clearSandboxLearnedState,
   configureSandboxDevice,
   connectSandboxInterfaces,
   createGuidedSandboxWorkspace,
   createReadyRoutedSandboxWorkspace,
   moveSandboxDevice,
+  getSandboxPingReadiness,
+  previewBeginnerLanSetup,
   processSandboxFrame,
   removeSandboxDevice,
   removeSandboxLink,
@@ -31,7 +34,7 @@ import { selectionHaptic, successHaptic, warningHaptic } from '@/shared/haptics'
 import { Fonts, Palette, Space, Typography } from '@/shared/theme';
 import { useSandboxStore } from '@/store/use-sandbox-store';
 
-type Confirmation = 'new' | 'clear' | 'preset' | 'remove-device' | 'remove-link';
+type Confirmation = 'new' | 'clear' | 'preset' | 'beginner-lan' | 'remove-device' | 'remove-link';
 type SandboxTool = 'add' | 'connect' | 'configure' | 'test' | 'workspace';
 
 function Option({ label, selected, onPress }: { label: string; selected?: boolean; onPress: () => void }) {
@@ -85,8 +88,25 @@ export function SandboxScreen() {
   const selectedLink = workspace.links.find((link) => link.id === selectedLinkId);
   const issues = useMemo(() => validateSandboxTopology(workspace), [workspace]);
   const endpoints = workspace.devices.filter((device) => device.type !== 'switch');
+  const configuredPingTargets = endpoints.flatMap((device) => device.interfaces
+    .filter((item) => item.adminUp && item.ipv4 && item.prefix !== undefined)
+    .map((item) => ({ deviceId: device.id, deviceName: device.name, interfaceId: item.id, address: item.ipv4! })));
+  const pingReadiness = useMemo(() => getSandboxPingReadiness(workspace, sourceId, pingTarget), [workspace, sourceId, pingTarget]);
+  const beginnerLanSetup = useMemo(() => previewBeginnerLanSetup(workspace), [workspace]);
+  const unconfiguredPcs = workspace.devices.filter((device) => device.type === 'pc' && !device.interfaces.some((item) => item.adminUp && item.ipv4 && item.prefix !== undefined));
   const guideConnections = guideActive ? workspace.links.filter((link) => link.a.deviceId === 'switch-1' || link.b.deviceId === 'switch-1').length : 0;
   const activeTraceEvent = trace?.events[traceIndex];
+  const selectedSource = workspace.devices.find((device) => device.id === sourceId);
+  const sourceReadinessIssue = pingReadiness.issues.find((issue) => issue.code.startsWith('source'));
+  const destinationReadinessIssue = pingReadiness.issues.find((issue) => issue.code.startsWith('destination'));
+  const selectedSourceInterface = selectedSource?.interfaces.find((item) => item.id === pingReadiness.sourceInterfaceId);
+  const availablePingTargets = configuredPingTargets.filter((item) => item.deviceId !== sourceId);
+
+  const commitWorkspaceChange = (nextWorkspace: typeof workspace) => {
+    commitWorkspace(nextWorkspace);
+    setTrace(undefined);
+    setTraceIndex(0);
+  };
 
   useEffect(() => {
     const shouldRevealPanel = activeTool === 'add'
@@ -134,7 +154,7 @@ export function SandboxScreen() {
       const result = connectSandboxInterfaces(workspace, connectionStartId, deviceId);
       setConnectionStartId(undefined);
       if (!result.ok) { setNotice(result.message); warningHaptic(); return; }
-      commitWorkspace(result.state);
+      commitWorkspaceChange(result.state);
       setSelectedDeviceId(deviceId);
       setSelectedLinkId(undefined);
       setActiveTool(undefined);
@@ -151,7 +171,7 @@ export function SandboxScreen() {
     const index = workspace.devices.length;
     const result = addSandboxDevice(workspace, type, { x: 40 + (index % 4) * 160, y: 55 + Math.floor(index / 4) * 120 });
     if (!result.ok) { setNotice(result.message); warningHaptic(); return; }
-    commitWorkspace(result.state);
+    commitWorkspaceChange(result.state);
     setSelectedDeviceId(result.device.id);
     setSelectedLinkId(undefined);
     setNotice(`${result.device.name} added. Connect it or open Configure to edit it.`);
@@ -161,7 +181,7 @@ export function SandboxScreen() {
   const configure = (patch: SandboxDevicePatch) => {
     if (!selectedDevice) return { ok: false, message: 'Select a device.' };
     const result = configureSandboxDevice(workspace, selectedDevice.id, patch);
-    if (result.ok) { commitWorkspace(result.state); selectionHaptic(); return { ok: true }; }
+    if (result.ok) { commitWorkspaceChange(result.state); selectionHaptic(); return { ok: true }; }
     warningHaptic();
     return { ok: false, message: result.message };
   };
@@ -179,13 +199,60 @@ export function SandboxScreen() {
   };
 
   const runPing = () => {
-    if (!sourceId) { setNotice('Choose a source device first.'); return; }
-    const result = simulateSandboxPing(workspace, sourceId, pingTarget);
+    if (!pingReadiness.ready || !pingReadiness.sourceDeviceId || !pingReadiness.destinationIp) {
+      setTrace(undefined);
+      setNotice(pingReadiness.issues[0]?.message ?? 'Complete the ping setup first.');
+      warningHaptic();
+      return;
+    }
+    const result = simulateSandboxPing(workspace, pingReadiness.sourceDeviceId, pingReadiness.destinationIp);
     commitWorkspace(result.state);
     setTrace(result);
     setTraceIndex(0);
     setNotice(result.reason);
     if (result.success) successHaptic(); else warningHaptic();
+  };
+
+  const choosePingTest = () => {
+    const currentSource = endpoints.find((device) => device.id === sourceId && device.interfaces.some((item) => item.adminUp && item.ipv4));
+    const preferredSource = currentSource
+      ?? endpoints.find((device) => device.id === 'pc-1' && device.interfaces.some((item) => item.adminUp && item.ipv4))
+      ?? endpoints.find((device) => device.type === 'pc' && device.interfaces.some((item) => item.adminUp && item.ipv4))
+      ?? endpoints.find((device) => device.interfaces.some((item) => item.adminUp && item.ipv4))
+      ?? endpoints.find((device) => device.id === 'pc-1')
+      ?? endpoints.find((device) => device.type === 'pc')
+      ?? endpoints[0];
+    const preferredDestination = configuredPingTargets.find((item) => item.deviceId === 'pc-2' && item.deviceId !== preferredSource?.id)
+      ?? configuredPingTargets.find((item) => item.deviceId !== preferredSource?.id && workspace.devices.find((device) => device.id === item.deviceId)?.type === 'pc')
+      ?? configuredPingTargets.find((item) => item.deviceId !== preferredSource?.id);
+    setTestType('ping');
+    setTrace(undefined);
+    if (preferredSource) setSourceId(preferredSource.id);
+    if (!pingTarget && preferredDestination) setPingTarget(preferredDestination.address);
+  };
+
+  const choosePingSource = (deviceId: string) => {
+    setSourceId(deviceId);
+    setTrace(undefined);
+    const targetBelongsToSource = configuredPingTargets.some((item) => item.deviceId === deviceId && item.address === pingTarget);
+    if (!pingTarget || targetBelongsToSource) {
+      const preferred = configuredPingTargets.find((item) => item.deviceId !== deviceId && workspace.devices.find((device) => device.id === item.deviceId)?.type === 'pc')
+        ?? configuredPingTargets.find((item) => item.deviceId !== deviceId);
+      setPingTarget(preferred?.address ?? '');
+    }
+  };
+
+  const choosePingTarget = (address: string) => {
+    setPingTarget(address);
+    setTrace(undefined);
+  };
+
+  const configureDeviceFromTest = (deviceId: string) => {
+    setSelectedDeviceId(deviceId);
+    setSelectedLinkId(undefined);
+    setTrace(undefined);
+    setActiveTool('configure');
+    setNotice(`Configure ${workspace.devices.find((device) => device.id === deviceId)?.name}, then save its addressing.`);
   };
 
   const loadReadyNetwork = (keepUndo: boolean) => {
@@ -211,8 +278,26 @@ export function SandboxScreen() {
     if (confirmation === 'new') { newNetwork(); setSelectedDeviceId(undefined); setSelectedLinkId(undefined); setTrace(undefined); setNotice('New empty network created.'); }
     if (confirmation === 'clear') { commitWorkspace(clearSandboxLearnedState(workspace)); setTrace(undefined); setNotice('MAC and ARP tables cleared.'); }
     if (confirmation === 'preset') loadReadyNetwork(true);
-    if (confirmation === 'remove-device' && selectedDevice) { commitWorkspace(removeSandboxDevice(workspace, selectedDevice.id)); setSelectedDeviceId(undefined); setActiveTool(undefined); setNotice(`${selectedDevice.name} removed.`); }
-    if (confirmation === 'remove-link' && selectedLink) { commitWorkspace(removeSandboxLink(workspace, selectedLink.id)); setSelectedLinkId(undefined); setNotice('Link removed.'); }
+    if (confirmation === 'beginner-lan') {
+      const result = applyBeginnerLanSetup(workspace);
+      if (result.ok) {
+        commitWorkspace(result.state);
+        setSourceId(result.preview.pcIds[0]);
+        setDestinationId(result.preview.pcIds[1]);
+        setPingTarget('192.168.10.20');
+        setTestType('ping');
+        setTrace(undefined);
+        setTraceIndex(0);
+        setActiveTool('test');
+        setNotice('Beginner LAN ready. Both PCs are in 192.168.10.0/24, so no gateway is needed.');
+        successHaptic();
+      } else {
+        setNotice(result.message);
+        warningHaptic();
+      }
+    }
+    if (confirmation === 'remove-device' && selectedDevice) { commitWorkspaceChange(removeSandboxDevice(workspace, selectedDevice.id)); setSelectedDeviceId(undefined); setActiveTool(undefined); setNotice(`${selectedDevice.name} removed.`); }
+    if (confirmation === 'remove-link' && selectedLink) { commitWorkspaceChange(removeSandboxLink(workspace, selectedLink.id)); setSelectedLinkId(undefined); setNotice('Link removed.'); }
     setConfirmation(undefined);
   };
 
@@ -270,7 +355,7 @@ export function SandboxScreen() {
         zoom={zoom}
         onSelectDevice={selectDevice}
         onSelectLink={(linkId) => { setSelectedLinkId(linkId); setSelectedDeviceId(undefined); setConnectionStartId(undefined); setActiveTool(undefined); }}
-        onMoveDevice={(deviceId, position) => commitWorkspace(moveSandboxDevice(workspace, deviceId, position))}
+        onMoveDevice={(deviceId, position) => commitWorkspaceChange(moveSandboxDevice(workspace, deviceId, position))}
       />
 
       <Text accessibilityLiveRegion="polite" variant="bodySmall" style={styles.notice}>{notice}</Text>
@@ -305,8 +390,8 @@ export function SandboxScreen() {
           <Text variant="sectionHeading" style={styles.testTitle}>DETERMINISTIC TRACE</Text>
           <Text variant="bodySmall" style={styles.testDetail}>Choose one test. The sandbox will ask only for the information that test needs.</Text>
           <Text variant="technical" style={styles.pickerLabel}>TEST TYPE</Text>
-          <View style={styles.optionRow}><Option label="ETHERNET FRAME" selected={testType === 'frame'} onPress={() => { setTestType('frame'); setTrace(undefined); }} /><Option label="PING" selected={testType === 'ping'} onPress={() => { setTestType('ping'); setTrace(undefined); }} /></View>
-          {testType ? <><Text variant="technical" style={styles.pickerLabel}>SOURCE</Text><View style={styles.optionRow}>{endpoints.map((device) => <Option key={device.id} label={device.name} selected={sourceId === device.id} onPress={() => { setSourceId(device.id); if (!pingTarget) setPingTarget(endpoints.find((candidate) => candidate.id !== device.id)?.interfaces.find((item) => item.ipv4)?.ipv4 ?? ''); }} />)}</View></> : null}
+          <View style={styles.optionRow}><Option label="ETHERNET FRAME" selected={testType === 'frame'} onPress={() => { setTestType('frame'); setTrace(undefined); }} /><Option label="PING" selected={testType === 'ping'} onPress={choosePingTest} /></View>
+          {testType ? <><Text variant="technical" style={styles.pickerLabel}>SOURCE</Text><View style={styles.optionRow}>{endpoints.map((device) => <Option key={device.id} label={device.name} selected={sourceId === device.id} onPress={() => testType === 'ping' ? choosePingSource(device.id) : setSourceId(device.id)} />)}</View></> : null}
           {testType === 'frame' ? <View style={styles.testChoice}>
             <Text variant="label" style={styles.testChoiceTitle}>ETHERNET FRAME</Text>
             <Text variant="bodySmall" style={styles.testDetail}>Choose a destination or send a broadcast.</Text>
@@ -315,8 +400,22 @@ export function SandboxScreen() {
           </View> : null}
           {testType === 'ping' ? <View style={styles.testChoice}>
             <Text variant="label" style={styles.testChoiceTitle}>PING</Text>
-            <TextInput accessibilityLabel="Ping destination IPv4 address" autoCapitalize="none" autoCorrect={false} onChangeText={setPingTarget} placeholder="DESTINATION / 192.168.1.20" placeholderTextColor={Palette.textMuted} selectionColor={Palette.orange} style={styles.pingInput} value={pingTarget} />
-            <AppButton label="Run ping" onPress={runPing} />
+            <Text variant="bodySmall" style={styles.testDetail}>Choose a configured address or enter another IPv4 destination.</Text>
+            {beginnerLanSetup?.requiresChanges ? <View style={styles.setupPanel}>
+              <Text variant="label" style={styles.setupTitle}>BEGINNER LAN AVAILABLE</Text>
+              <Text variant="bodySmall" style={styles.setupCopy}>This two-PC switched network can be prepared with a working local example. You will review the changes before they are applied.</Text>
+              {beginnerLanSetup.changes.map((change) => <Text key={change.deviceId} variant="technical" style={styles.setupChange}>{change.deviceName} / {change.after}</Text>)}
+              <AppButton label="Set up beginner LAN" variant="secondary" onPress={() => setConfirmation('beginner-lan')} />
+            </View> : null}
+            <View accessibilityLiveRegion="polite" style={styles.readinessPanel}>
+              <Text variant="label" style={styles.readinessTitle}>PING READINESS</Text>
+              <Text variant="bodySmall" style={sourceReadinessIssue ? styles.readinessMissing : styles.readinessReady}>{sourceReadinessIssue ? '[ ]' : '[X]'} SOURCE / {sourceReadinessIssue?.message ?? `${selectedSource?.name}${selectedSourceInterface ? ` ${selectedSourceInterface.id}` : ''} / ${pingReadiness.sourceAddress}${selectedSourceInterface?.prefix !== undefined ? `/${selectedSourceInterface.prefix}` : ''}`}</Text>
+              <Text variant="bodySmall" style={destinationReadinessIssue ? styles.readinessMissing : styles.readinessReady}>{destinationReadinessIssue ? '[ ]' : '[X]'} DESTINATION / {destinationReadinessIssue?.message ?? pingTarget.trim()}</Text>
+              {unconfiguredPcs.map((device) => <AppButton key={device.id} label={`Configure ${device.name}`} variant="secondary" onPress={() => configureDeviceFromTest(device.id)} />)}
+            </View>
+            {availablePingTargets.length ? <View style={styles.optionRow}>{availablePingTargets.map((item) => <Option key={`${item.deviceId}-${item.interfaceId}`} label={`${item.deviceName} / ${item.address}`} selected={pingTarget === item.address} onPress={() => choosePingTarget(item.address)} />)}</View> : <Text variant="bodySmall" style={styles.noTarget}>No other configured device address is available yet. Configure another PC or enter a valid address manually.</Text>}
+            <TextInput accessibilityLabel="Ping destination IPv4 address" autoCapitalize="none" autoCorrect={false} onChangeText={choosePingTarget} placeholder="EXAMPLE / 192.168.1.20" placeholderTextColor={Palette.textMuted} selectionColor={Palette.orange} style={[styles.pingInput, destinationReadinessIssue?.code === 'destination-invalid' && styles.pingInputInvalid]} value={pingTarget} />
+            <AppButton label="Run ping" disabled={!pingReadiness.ready} onPress={runPing} />
           </View> : null}
           {trace ? <View accessibilityLiveRegion="polite" style={[styles.tracePanel, trace.success ? styles.traceSuccess : styles.traceWarning]}><Text variant="label" style={trace.success ? styles.traceSuccessText : styles.traceWarningText}>{trace.success ? 'TRACE COMPLETE' : 'TRACE STOPPED'} / STEP {traceIndex + 1} OF {trace.events.length}</Text><Text variant="sectionHeading" style={styles.traceTitle}>{activeTraceEvent?.title}</Text><Text variant="body" style={styles.traceDetail}>{activeTraceEvent?.detail}</Text><Text variant="bodySmall" style={styles.traceConclusion}>{trace.conclusion}</Text>{trace.suggestion ? <Text variant="bodySmall" style={styles.traceSuggestion}>NEXT CHECK / {trace.suggestion}</Text> : null}<View style={styles.traceActions}><AppButton label="Previous step" variant="secondary" disabled={traceIndex === 0} onPress={() => setTraceIndex((value) => Math.max(0, value - 1))} /><AppButton label="Next step" disabled={traceIndex >= trace.events.length - 1} onPress={() => setTraceIndex((value) => Math.min(trace.events.length - 1, value + 1))} /></View></View> : null}
         </View>
@@ -326,15 +425,15 @@ export function SandboxScreen() {
         <View style={styles.actionPanel}>
           <Text variant="label" style={styles.actionEyebrow}>WORKSPACE TOOLS</Text>
           <Text variant="bodySmall" style={styles.actionCopy}>These controls affect the canvas or autosaved workspace, not an individual device.</Text>
-          <View style={styles.controlGrid}><AppButton label="Load routed preset" variant="secondary" onPress={() => workspace.devices.length ? setConfirmation('preset') : loadReadyNetwork(true)} /><AppButton label="Undo" variant="secondary" disabled={pastCount === 0} onPress={undo} /><AppButton label="Redo" variant="secondary" disabled={futureCount === 0} onPress={redo} /><AppButton label="Zoom out" variant="secondary" disabled={zoom <= 0.75} onPress={() => setZoom((value) => Math.max(0.75, value - 0.15))} /><AppButton label="Zoom in" variant="secondary" disabled={zoom >= 1.2} onPress={() => setZoom((value) => Math.min(1.2, value + 0.15))} /><AppButton label="Reset view" variant="secondary" onPress={() => setZoom(0.9)} /><AppButton label="Clear learned state" variant="secondary" onPress={() => setConfirmation('clear')} /><AppButton label="New network" variant="secondary" onPress={() => setConfirmation('new')} /></View>
+          <View style={styles.controlGrid}><AppButton label="Load routed preset" variant="secondary" onPress={() => workspace.devices.length ? setConfirmation('preset') : loadReadyNetwork(true)} /><AppButton label="Undo" variant="secondary" disabled={pastCount === 0} onPress={() => { undo(); setTrace(undefined); setTraceIndex(0); }} /><AppButton label="Redo" variant="secondary" disabled={futureCount === 0} onPress={() => { redo(); setTrace(undefined); setTraceIndex(0); }} /><AppButton label="Zoom out" variant="secondary" disabled={zoom <= 0.75} onPress={() => setZoom((value) => Math.max(0.75, value - 0.15))} /><AppButton label="Zoom in" variant="secondary" disabled={zoom >= 1.2} onPress={() => setZoom((value) => Math.min(1.2, value + 0.15))} /><AppButton label="Reset view" variant="secondary" onPress={() => setZoom(0.9)} /><AppButton label="Clear learned state" variant="secondary" onPress={() => setConfirmation('clear')} /><AppButton label="New network" variant="secondary" onPress={() => setConfirmation('new')} /></View>
           <Text variant="technical" style={styles.footer}>SUPPORTED / ETHERNET, MAC LEARNING, ARP, IPV4, STATIC ROUTES, VLAN ACCESS + TRUNKS, ICMP ECHO</Text>
           <Text variant="technical" style={styles.footer}>NOT MODELED / STP, DYNAMIC ROUTING, DHCP, DNS, NAT, ACLS, TIMING, LOSS, OR LIVE PACKETS</Text>
         </View>
       ) : null}
 
-      <SandboxCli visible={Boolean(cliDeviceId)} workspace={workspace} initialDeviceId={cliDeviceId ?? ''} onClose={() => setCliDeviceId(undefined)} onCommit={commitWorkspace} />
+      <SandboxCli visible={Boolean(cliDeviceId)} workspace={workspace} initialDeviceId={cliDeviceId ?? ''} onClose={() => setCliDeviceId(undefined)} onCommit={commitWorkspaceChange} />
       <FeedbackModal visible={guideVisible} eyebrow="FIRST SANDBOX SESSION" title="How do you want to begin?" message="Explore a complete routed network, or build a smaller switched LAN yourself." detail="The routed preset includes valid addresses, gateways, two switches, one router, a working ping, and CLI experiments." primaryAction={{ label: 'Explore routed network', onPress: () => { setGuideVisible(false); loadReadyNetwork(false); } }} secondaryAction={{ label: 'Build it myself', variant: 'secondary', onPress: () => { replaceWorkspace(createGuidedSandboxWorkspace()); setGuideVisible(false); setGuideActive(true); } }} onRequestClose={() => { markGuideSeen(); setGuideVisible(false); }} />
-      <FeedbackModal visible={Boolean(confirmation)} tone="warning" eyebrow="CONFIRM SANDBOX ACTION" title={confirmation === 'new' ? 'Create a new network?' : confirmation === 'clear' ? 'Clear learned state?' : confirmation === 'preset' ? 'Load the routed preset?' : confirmation === 'remove-device' ? 'Remove this device?' : 'Remove this link?'} message={confirmation === 'new' ? 'All devices, links, and configuration in the autosaved workspace will be erased.' : confirmation === 'clear' ? 'MAC and ARP tables plus the current trace will be cleared. Topology and configuration remain.' : confirmation === 'preset' ? 'The current workspace will be replaced by a five-device, two-LAN routed example. You can undo this afterward.' : confirmation === 'remove-device' ? 'Connected links will also be removed.' : 'The two endpoint interfaces will become available.'} primaryAction={{ label: confirmation === 'preset' ? 'Load routed preset' : 'Confirm action', onPress: confirmAction }} secondaryAction={{ label: 'Keep working', variant: 'secondary', onPress: () => setConfirmation(undefined) }} onRequestClose={() => setConfirmation(undefined)} />
+      <FeedbackModal visible={Boolean(confirmation)} tone="warning" eyebrow="CONFIRM SANDBOX ACTION" title={confirmation === 'new' ? 'Create a new network?' : confirmation === 'clear' ? 'Clear learned state?' : confirmation === 'preset' ? 'Load the routed preset?' : confirmation === 'beginner-lan' ? 'Apply beginner addresses?' : confirmation === 'remove-device' ? 'Remove this device?' : 'Remove this link?'} message={confirmation === 'new' ? 'All devices, links, and configuration in the autosaved workspace will be erased.' : confirmation === 'clear' ? 'MAC and ARP tables plus the current trace will be cleared. Topology and configuration remain.' : confirmation === 'preset' ? 'The current workspace will be replaced by a five-device, two-LAN routed example. You can undo this afterward.' : confirmation === 'beginner-lan' ? beginnerLanSetup?.changes.map((change) => `${change.deviceName}: ${change.before} → ${change.after}`).join('\n') ?? 'The beginner setup is no longer available.' : confirmation === 'remove-device' ? 'Connected links will also be removed.' : 'The two endpoint interfaces will become available.'} detail={confirmation === 'beginner-lan' ? `${beginnerLanSetup?.overwritesExistingConfiguration ? 'Existing addressing or switchport settings shown above will be replaced. ' : ''}Both PCs will use VLAN 1 and require no default gateway.` : undefined} primaryAction={{ label: confirmation === 'preset' ? 'Load routed preset' : confirmation === 'beginner-lan' ? 'Apply setup' : 'Confirm action', onPress: confirmAction }} secondaryAction={{ label: 'Keep working', variant: 'secondary', onPress: () => setConfirmation(undefined) }} onRequestClose={() => setConfirmation(undefined)} />
     </Screen>
   );
 }
@@ -374,13 +473,23 @@ const styles = StyleSheet.create({
   testDetail: { color: Palette.textMuted },
   testChoice: { borderTopWidth: 1, borderTopColor: Palette.border, paddingTop: Space.md, gap: Space.md },
   testChoiceTitle: { color: Palette.green },
+  setupPanel: { borderWidth: 1, borderColor: Palette.green, backgroundColor: Palette.greenSoft, padding: Space.md, gap: Space.sm },
+  setupTitle: { color: Palette.green },
+  setupCopy: { color: Palette.text },
+  setupChange: { color: Palette.text },
+  readinessPanel: { borderWidth: 1, borderColor: Palette.border, backgroundColor: Palette.background, padding: Space.md, gap: Space.sm },
+  readinessTitle: { color: Palette.textMuted },
+  readinessReady: { color: Palette.green },
+  readinessMissing: { color: Palette.orange },
+  noTarget: { color: Palette.orange },
   pickerLabel: { color: Palette.textMuted },
   optionRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Space.sm },
   option: { minWidth: 100, minHeight: 44, flexGrow: 1, borderWidth: 1, borderColor: Palette.border, alignItems: 'center', justifyContent: 'center', padding: Space.sm },
   optionActive: { borderColor: Palette.orange, backgroundColor: Palette.orangeSoft },
   optionText: { color: Palette.textMuted },
   optionTextActive: { color: Palette.orange },
-  pingInput: { minHeight: 48, borderWidth: 1, borderColor: Palette.border, backgroundColor: Palette.background, color: Palette.text, paddingHorizontal: Space.md, fontFamily: Fonts.mono, ...Typography.bodySmall },
+  pingInput: { minHeight: 48, borderWidth: 1, borderColor: Palette.border, backgroundColor: Palette.background, color: Palette.white, paddingHorizontal: Space.md, fontFamily: Fonts.mono, ...Typography.bodySmall },
+  pingInputInvalid: { borderColor: Palette.orange },
   tracePanel: { borderWidth: 1, padding: Space.lg, gap: Space.sm },
   traceSuccess: { borderColor: Palette.green, backgroundColor: Palette.greenSoft },
   traceWarning: { borderColor: Palette.orange, backgroundColor: Palette.orangeSoft },

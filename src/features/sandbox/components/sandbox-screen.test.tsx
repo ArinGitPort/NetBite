@@ -1,7 +1,9 @@
 import { fireEvent, render } from '@testing-library/react-native';
+import { StyleSheet } from 'react-native';
 
-import { createEmptySandboxWorkspace } from '@/core/network/sandbox';
+import { connectSandboxInterfaces, createEmptySandboxWorkspace, createGuidedSandboxWorkspace, createReadyRoutedSandboxWorkspace } from '@/core/network/sandbox';
 import { SandboxScreen } from '@/features/sandbox/components/sandbox-screen';
+import { Palette } from '@/shared/theme';
 import { useSandboxStore } from '@/store/use-sandbox-store';
 
 jest.mock('expo-router', () => ({ router: { dismissTo: jest.fn() } }));
@@ -54,6 +56,77 @@ describe('sandbox screen', () => {
     expect(screen.getByLabelText('Ping destination IPv4 address').props.value).toBe('192.168.20.20');
     await fireEvent.press(screen.getByRole('button', { name: /run ping/i }));
     expect(screen.getByText(/TRACE COMPLETE/)).toBeTruthy();
+  });
+
+  test('restores useful ping defaults when an autosaved routed preset is reopened', async () => {
+    useSandboxStore.setState({ workspace: createReadyRoutedSandboxWorkspace(), guideSeen: true });
+    const screen = await render(<SandboxScreen />);
+    await fireEvent.press(screen.getByRole('button', { name: /^test$/i }));
+    await fireEvent.press(screen.getByRole('button', { name: /^ping$/i }));
+    const destination = screen.getByLabelText('Ping destination IPv4 address');
+    expect(destination.props.value).toBe('192.168.20.20');
+    expect(destination.props.placeholder).toBe('EXAMPLE / 192.168.1.20');
+    expect(destination.props.placeholderTextColor).toBe(Palette.textMuted);
+    expect(StyleSheet.flatten(destination.props.style).color).toBe(Palette.white);
+    expect(screen.getByRole('button', { name: 'PC-2 / 192.168.20.20' })).toBeTruthy();
+  });
+
+  test('blocks incomplete ping input and can explicitly prepare a beginner LAN', async () => {
+    let workspace = createGuidedSandboxWorkspace();
+    const first = connectSandboxInterfaces(workspace, 'pc-1', 'switch-1'); if (first.ok) workspace = first.state;
+    const second = connectSandboxInterfaces(workspace, 'pc-2', 'switch-1'); if (second.ok) workspace = second.state;
+    useSandboxStore.setState({ workspace, guideSeen: true });
+    const screen = await render(<SandboxScreen />);
+
+    await fireEvent.press(screen.getByRole('button', { name: /^test$/i }));
+    await fireEvent.press(screen.getByRole('button', { name: /^ping$/i }));
+    expect(screen.getByText('BEGINNER LAN AVAILABLE')).toBeTruthy();
+    expect(screen.getByText(/PC-1 does not have a saved IPv4 address and prefix/i)).toBeTruthy();
+    expect(screen.getByRole('button', { name: /run ping/i }).props.accessibilityState.disabled).toBe(true);
+    expect(screen.queryByText(/TRACE STOPPED/)).toBeNull();
+
+    await fireEvent.press(screen.getByRole('button', { name: /set up beginner lan/i }));
+    expect(screen.getByText(/PC-1: NOT CONFIGURED.*192\.168\.10\.10\/24/s)).toBeTruthy();
+    await fireEvent.press(screen.getByRole('button', { name: /apply setup/i }));
+    expect(useSandboxStore.getState().workspace.devices.find((device) => device.id === 'pc-1')?.interfaces[0]).toMatchObject({ ipv4: '192.168.10.10', prefix: 24 });
+    expect(screen.getByLabelText('Ping destination IPv4 address').props.value).toBe('192.168.10.20');
+    expect(screen.getByRole('button', { name: /run ping/i }).props.accessibilityState.disabled).toBe(false);
+    await fireEvent.press(screen.getByRole('button', { name: /run ping/i }));
+    expect(screen.getByText(/TRACE COMPLETE/)).toBeTruthy();
+  });
+
+  test('treats malformed destinations as form validation rather than a stopped trace', async () => {
+    useSandboxStore.setState({ workspace: createReadyRoutedSandboxWorkspace(), guideSeen: true });
+    const screen = await render(<SandboxScreen />);
+    await fireEvent.press(screen.getByRole('button', { name: /^test$/i }));
+    await fireEvent.press(screen.getByRole('button', { name: /^ping$/i }));
+    await fireEvent.changeText(screen.getByLabelText('Ping destination IPv4 address'), '192.168.bad');
+    expect(screen.getByText(/Enter a valid destination such as 192\.168\.10\.20/i)).toBeTruthy();
+    expect(screen.getByRole('button', { name: /run ping/i }).props.accessibilityState.disabled).toBe(true);
+    expect(screen.queryByText(/TRACE STOPPED/)).toBeNull();
+  });
+
+  test('shows the router interface selected for the destination route', async () => {
+    useSandboxStore.setState({ workspace: createReadyRoutedSandboxWorkspace(), guideSeen: true });
+    const screen = await render(<SandboxScreen />);
+    await fireEvent.press(screen.getByRole('button', { name: /^test$/i }));
+    await fireEvent.press(screen.getByRole('button', { name: /^ping$/i }));
+    await fireEvent.press(screen.getByRole('button', { name: /^R-1$/i }));
+    expect(screen.getByText(/\[X\] SOURCE \/ R-1 G0\/1 \/ 192\.168\.20\.1\/24/i)).toBeTruthy();
+  });
+
+  test('clears an old trace when the workspace topology changes', async () => {
+    useSandboxStore.setState({ workspace: createReadyRoutedSandboxWorkspace(), guideSeen: true });
+    const screen = await render(<SandboxScreen />);
+    await fireEvent.press(screen.getByRole('button', { name: /^test$/i }));
+    await fireEvent.press(screen.getByRole('button', { name: /^ping$/i }));
+    await fireEvent.press(screen.getByRole('button', { name: /run ping/i }));
+    expect(screen.getByText(/TRACE COMPLETE/)).toBeTruthy();
+    await fireEvent.press(screen.getByRole('button', { name: /^add$/i }));
+    await fireEvent.press(screen.getByRole('button', { name: /^router$/i }));
+    await fireEvent.press(screen.getByRole('button', { name: /^test$/i }));
+    expect(screen.queryByText(/TRACE COMPLETE/)).toBeNull();
+    expect(screen.queryByText(/TRACE STOPPED/)).toBeNull();
   });
 
   test('adds an autosaved device and exposes a readable inspector', async () => {

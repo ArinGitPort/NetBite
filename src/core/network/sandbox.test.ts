@@ -1,12 +1,17 @@
 import {
   addSandboxDevice,
+  applyBeginnerLanSetup,
   clearSandboxLearnedState,
   configureSandboxDevice,
   connectSandboxInterfaces,
   createEmptySandboxWorkspace,
+  createGuidedSandboxWorkspace,
   createReadyRoutedSandboxWorkspace,
   createSandboxCliState,
   executeSandboxCliCommand,
+  getSandboxPingReadiness,
+  isSandboxWorkspace,
+  previewBeginnerLanSetup,
   processSandboxFrame,
   simulateSandboxPing,
   validateSandboxTopology,
@@ -27,6 +32,71 @@ function switchedLan() {
 }
 
 describe('sandbox domain', () => {
+  test('separates ping form readiness from simulated network failures', () => {
+    const unconfigured = createGuidedSandboxWorkspace();
+    expect(getSandboxPingReadiness(unconfigured, undefined, '')).toMatchObject({
+      ready: false,
+      issues: expect.arrayContaining([
+        expect.objectContaining({ code: 'source-required' }),
+        expect.objectContaining({ code: 'destination-required' }),
+      ]),
+    });
+    expect(getSandboxPingReadiness(unconfigured, 'pc-1', 'not-an-address')).toMatchObject({
+      ready: false,
+      issues: expect.arrayContaining([
+        expect.objectContaining({ code: 'source-unconfigured' }),
+        expect.objectContaining({ code: 'destination-invalid' }),
+      ]),
+    });
+
+    let addressed = configureSandboxDevice(unconfigured, 'pc-1', { interfaceId: 'E0', interface: { ipv4: '192.168.10.10', prefix: 24, adminUp: false } }).state;
+    expect(getSandboxPingReadiness(addressed, 'pc-1', '192.168.10.20').issues).toEqual(expect.arrayContaining([expect.objectContaining({ code: 'source-interface-down' })]));
+    addressed = configureSandboxDevice(addressed, 'pc-1', { interfaceId: 'E0', interface: { adminUp: true } }).state;
+    expect(getSandboxPingReadiness(addressed, 'pc-1', '192.168.10.20')).toMatchObject({ ready: true, issues: [] });
+  });
+
+  test('selects the route-facing router address for ping readiness', () => {
+    const state = createReadyRoutedSandboxWorkspace();
+    expect(getSandboxPingReadiness(state, 'router-1', '192.168.20.20')).toMatchObject({
+      ready: true,
+      sourceInterfaceId: 'G0/1',
+      sourceAddress: '192.168.20.1',
+    });
+    expect(getSandboxPingReadiness(state, 'router-1', '192.168.10.10')).toMatchObject({ sourceInterfaceId: 'G0/0', sourceAddress: '192.168.10.1' });
+  });
+
+  test('rejects malformed persisted workspace structures', () => {
+    const valid = createReadyRoutedSandboxWorkspace();
+    expect(isSandboxWorkspace(valid)).toBe(true);
+    expect(isSandboxWorkspace({ ...valid, devices: valid.devices.map((device) => device.id === 'pc-1' ? { ...device, interfaces: [] } : device) })).toBe(false);
+    expect(isSandboxWorkspace({ ...valid, links: [{ ...valid.links[0], a: { deviceId: 'missing', interfaceId: 'E0' } }] })).toBe(false);
+  });
+
+  test('previews and explicitly applies a working beginner switched LAN', () => {
+    let state = createGuidedSandboxWorkspace();
+    const first = connectSandboxInterfaces(state, 'pc-1', 'switch-1'); if (first.ok) state = first.state;
+    const second = connectSandboxInterfaces(state, 'pc-2', 'switch-1'); if (second.ok) state = second.state;
+    const preview = previewBeginnerLanSetup(state);
+    expect(preview).toMatchObject({ pcIds: ['pc-1', 'pc-2'], switchId: 'switch-1', requiresChanges: true, overwritesExistingConfiguration: false });
+    expect(state.devices.find((device) => device.id === 'pc-1')?.interfaces[0].ipv4).toBeUndefined();
+
+    const result = applyBeginnerLanSetup(state);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.state.devices.find((device) => device.id === 'pc-1')).toMatchObject({ defaultGateway: undefined, interfaces: [expect.objectContaining({ ipv4: '192.168.10.10', prefix: 24, adminUp: true })] });
+    expect(result.state.devices.find((device) => device.id === 'pc-2')).toMatchObject({ defaultGateway: undefined, interfaces: [expect.objectContaining({ ipv4: '192.168.10.20', prefix: 24, adminUp: true })] });
+    expect(simulateSandboxPing(result.state, 'pc-1', '192.168.10.20').success).toBe(true);
+  });
+
+  test('reports when the beginner setup will replace existing configuration', () => {
+    let state = createGuidedSandboxWorkspace();
+    const first = connectSandboxInterfaces(state, 'pc-1', 'switch-1'); if (first.ok) state = first.state;
+    const second = connectSandboxInterfaces(state, 'pc-2', 'switch-1'); if (second.ok) state = second.state;
+    state = configureSandboxDevice(state, 'pc-1', { interfaceId: 'E0', interface: { ipv4: '10.0.0.10', prefix: 24 }, defaultGateway: '10.0.0.1' }).state;
+    expect(previewBeginnerLanSetup(state)).toMatchObject({ overwritesExistingConfiguration: true });
+    expect(state.devices.find((device) => device.id === 'pc-1')?.interfaces[0].ipv4).toBe('10.0.0.10');
+  });
+
   test('provides a connected and addressed routed-network preset', () => {
     const state = createReadyRoutedSandboxWorkspace();
     expect(state.devices).toHaveLength(5);
@@ -41,6 +111,38 @@ describe('sandbox domain', () => {
     const routes = executeSandboxCliCommand(state, 'router-1', 'show ip route');
     expect(routes.result?.output.map((line) => line.text).join('\n')).toEqual(expect.stringContaining('192.168.10.0/24'));
     expect(routes.result?.output.map((line) => line.text).join('\n')).toEqual(expect.stringContaining('192.168.20.0/24'));
+  });
+
+  test('runs sandbox CLI ping through switches and synchronizes learned state', () => {
+    const state = createReadyRoutedSandboxWorkspace();
+    const left = executeSandboxCliCommand(state, 'router-1', 'ping 192.168.10.10');
+    expect(left.trace).toMatchObject({ success: true });
+    expect(left.trace?.events.flatMap((item) => item.deviceIds)).toEqual(expect.arrayContaining(['router-1', 'switch-1', 'pc-1']));
+
+    const right = executeSandboxCliCommand(left.state, 'router-1', 'ping 192.168.20.20', left.sessionState);
+    expect(right.trace).toMatchObject({ success: true });
+    expect(right.result?.events).toContain('ping-success:192.168.20.20');
+    expect(right.result?.output.map((line) => line.text).join('\n')).toContain('THIS ROUND TRIP SUCCEEDED');
+    expect(right.trace?.events.flatMap((item) => item.deviceIds)).toEqual(expect.arrayContaining(['router-1', 'switch-2', 'pc-2']));
+    expect(right.state.devices.find((device) => device.id === 'router-1')?.arpTable).toEqual(expect.arrayContaining([
+      expect.objectContaining({ ip: '192.168.10.10', interfaceId: 'G0/0' }),
+      expect.objectContaining({ ip: '192.168.20.20', interfaceId: 'G0/1' }),
+    ]));
+    expect(right.sessionState.devices.find((device) => device.id === 'router-1')?.arpEntries).toEqual(expect.arrayContaining([
+      expect.objectContaining({ ip: '192.168.20.20', interfaceName: 'G0/1' }),
+    ]));
+  });
+
+  test('explains disabled routed interfaces and unaddressed switch ping sources', () => {
+    let state = createReadyRoutedSandboxWorkspace();
+    state = configureSandboxDevice(state, 'router-1', { interfaceId: 'G0/1', interface: { adminUp: false } }).state;
+    const disabled = executeSandboxCliCommand(state, 'router-1', 'ping 192.168.20.20');
+    expect(disabled.trace).toMatchObject({ success: false });
+    expect(disabled.trace?.reason).toContain('required interface is disabled');
+
+    const switchPing = executeSandboxCliCommand(state, 'switch-1', 'ping 192.168.10.10');
+    expect(switchPing.trace).toMatchObject({ success: false });
+    expect(switchPing.result?.output.map((line) => line.text).join('\n')).toContain('NO ACTIVE IPV4 INTERFACE');
   });
 
   test('allocates free ports and blocks duplicates', () => {
@@ -97,6 +199,7 @@ describe('sandbox domain', () => {
     expect(result).toMatchObject({ success: true });
     expect(result.state.devices.find((device) => device.id === 'pc-1')!.arpTable).toEqual(expect.arrayContaining([expect.objectContaining({ ip: '192.168.1.20' })]));
     expect(clearSandboxLearnedState(result.state).devices.every((device) => device.arpTable.length === 0 && device.macTable.length === 0)).toBe(true);
+    expect(simulateSandboxPing(result.state, 'pc-1', '192.168.1.20').state).toEqual(result.state);
   });
 
   test('requires both ends of a VLAN trunk to carry the access VLAN', () => {
@@ -114,8 +217,11 @@ describe('sandbox domain', () => {
     state = configureSandboxDevice(state, 'switch-1', { interfaceId: 'F0/2', interface: { switchportMode: 'trunk', allowedVlans: [10] } }).state;
     state = configureSandboxDevice(state, 'switch-2', { interfaceId: 'F0/1', interface: { switchportMode: 'trunk', allowedVlans: [] } }).state;
     state = configureSandboxDevice(state, 'switch-2', { interfaceId: 'F0/2', interface: { accessVlan: 10 } }).state;
+    state = configureSandboxDevice(state, 'pc-1', { interfaceId: 'E0', interface: { ipv4: '192.168.10.10', prefix: 24 } }).state;
+    state = configureSandboxDevice(state, 'pc-2', { interfaceId: 'E0', interface: { ipv4: '192.168.10.20', prefix: 24 } }).state;
     const mac = state.devices.find((device) => device.id === 'pc-2')!.interfaces[0].macAddress;
     expect(processSandboxFrame(state, 'pc-1', mac).success).toBe(false);
+    expect(simulateSandboxPing(state, 'pc-1', '192.168.10.20').reason).toContain('required VLAN is blocked');
     state = configureSandboxDevice(state, 'switch-2', { interfaceId: 'F0/1', interface: { allowedVlans: [10] } }).state;
     expect(processSandboxFrame(state, 'pc-1', mac).success).toBe(true);
   });

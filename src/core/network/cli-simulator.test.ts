@@ -2,6 +2,7 @@ import {
   deriveConnectedRoutes,
   deriveVlanReachability,
   executeCliCommand,
+  getCliSuggestions,
   maskToPrefix,
   normalizeInterfaceName,
   parseCliCommand,
@@ -28,6 +29,17 @@ function enterGlobal(state: CliNetworkState, deviceId: string) {
 }
 
 describe('NetBite CLI parsing', () => {
+  test('offers contextual ping destinations only to addressed devices', () => {
+    const state = createRoutingState();
+    const router = state.devices.find((device) => device.id === 'r1')!;
+    const switchState: CliNetworkState = {
+      devices: [{ ...router, id: 'sw', name: 'SW', type: 'switch', interfaces: router.interfaces.map((item) => ({ ...item, ipv4: undefined, prefix: undefined })) }, ...state.devices.filter((device) => device.type === 'host')],
+      links: state.links,
+    };
+    expect(getCliSuggestions(router, state)).toEqual(expect.arrayContaining(['ping 192.168.10.10', 'ping 192.168.30.10']));
+    expect(getCliSuggestions(switchState.devices[0], switchState).some((item) => item.startsWith('ping '))).toBe(false);
+  });
+
   test('normalizes explicit aliases, case, whitespace, and interface names', () => {
     expect(parseCliCommand('  CONF   T ')).toEqual({ ok: true, command: { kind: 'configure-terminal' } });
     expect(parseCliCommand('Sh IP Route')).toEqual({ ok: true, command: { kind: 'show-ip-route' } });

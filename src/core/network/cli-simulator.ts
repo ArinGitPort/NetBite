@@ -199,11 +199,17 @@ export function getCliPrompt(device: CliDeviceState) {
   return `${device.name}(config-vlan)#`;
 }
 
-export function getCliSuggestions(device: CliDeviceState) {
-  if (device.mode === 'user-exec') return ['enable', 'help'];
+export function getCliSuggestions(device: CliDeviceState, network?: CliNetworkState) {
+  const pingSuggestions = device.interfaces.some((item) => item.adminUp && item.linkUp && item.ipv4)
+    ? (network?.devices
+      .filter((candidate) => candidate.id !== device.id && candidate.type === 'host')
+      .flatMap((candidate) => candidate.interfaces.filter((item) => item.adminUp && item.linkUp && item.ipv4).map((item) => `ping ${item.ipv4}`)) ?? [])
+      .slice(0, 3)
+    : [];
+  if (device.mode === 'user-exec') return ['enable', ...pingSuggestions, 'help'];
   if (device.mode === 'privileged-exec') return device.type === 'switch'
     ? ['configure terminal', 'show running-config', 'show vlan brief', 'show interfaces trunk', 'show mac address-table']
-    : ['configure terminal', 'show running-config', 'show ip interface brief', 'show ip route', 'show arp'];
+    : ['configure terminal', ...pingSuggestions, 'show running-config', 'show ip interface brief', 'show ip route', 'show arp'];
   if (device.mode === 'global-config') return device.type === 'switch' ? ['interface F0/1', 'vlan 10', 'end'] : ['ip route ', 'end'];
   if (device.mode === 'interface-config') return device.type === 'switch'
     ? ['switchport mode access', 'switchport access vlan ', 'switchport mode trunk', 'switchport trunk allowed vlan ', 'exit']

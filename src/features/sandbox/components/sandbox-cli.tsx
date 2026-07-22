@@ -57,7 +57,7 @@ function SandboxCliSession({ visible, workspace, initialDeviceId, onClose, onCom
           <ScrollView ref={scrollRef} accessibilityLabel="CLI transcript" contentContainerStyle={styles.transcript} keyboardShouldPersistTaps="handled" style={styles.transcriptScroll}>
             {transcript.map((line) => <Text key={line.id} variant="technical" style={[styles.line, line.tone === 'muted' && styles.muted, line.tone === 'success' && styles.success, line.tone === 'warning' && styles.warning]}>{line.text}</Text>)}
           </ScrollView>
-          <View style={styles.suggestions}>{getCliSuggestions(sessionDevice).map((suggestion) => <Pressable key={suggestion} accessibilityRole="button" onPress={() => setInput(suggestion)} style={styles.suggestion}><Text variant="technical" style={styles.suggestionText}>{suggestion}</Text></Pressable>)}</View>
+          <View style={styles.suggestions}>{getCliSuggestions(sessionDevice, session).map((suggestion) => <Pressable key={suggestion} accessibilityRole="button" onPress={() => setInput(suggestion)} style={styles.suggestion}><Text variant="technical" style={styles.suggestionText}>{suggestion}</Text></Pressable>)}</View>
           <View style={styles.inputRow}><Text variant="technical" style={styles.prompt}>{getCliPrompt(sessionDevice)}</Text><TextInput accessibilityLabel="CLI command" autoCapitalize="none" autoCorrect={false} onChangeText={setInput} onSubmitEditing={submit} placeholder="ENTER COMMAND" placeholderTextColor={Palette.textMuted} selectionColor={Palette.orange} style={styles.input} value={input} /><Pressable accessibilityLabel="Previous command" accessibilityRole="button" onPress={() => navigateHistory(1)} style={styles.history}><Text variant="label">↑</Text></Pressable><Pressable accessibilityLabel="Next command" accessibilityRole="button" onPress={() => navigateHistory(-1)} style={styles.history}><Text variant="label">↓</Text></Pressable></View>
           <View style={styles.actions}><AppButton label="Run command" style={styles.run} onPress={submit} /><AppButton label="Help" variant="secondary" onPress={() => setInput('help')} /></View>
         </KeyboardAvoidingView>
@@ -90,7 +90,7 @@ const styles = StyleSheet.create({
   suggestionText: { color: Palette.text },
   inputRow: { minHeight: 52, flexDirection: 'row', alignItems: 'center', borderTopWidth: 1, borderTopColor: Palette.border },
   prompt: { color: Palette.green, paddingLeft: Space.sm },
-  input: { minHeight: 52, flex: 1, minWidth: 0, color: Palette.text, paddingHorizontal: Space.sm, fontFamily: Fonts.mono, ...Typography.bodySmall },
+  input: { minHeight: 52, flex: 1, minWidth: 0, color: Palette.white, paddingHorizontal: Space.sm, fontFamily: Fonts.mono, ...Typography.bodySmall },
   history: { width: 44, minHeight: 52, borderLeftWidth: 1, borderLeftColor: Palette.border, alignItems: 'center', justifyContent: 'center' },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: Space.sm, padding: Space.sm, borderTopWidth: 1, borderTopColor: Palette.border },
   run: { flexGrow: 1 },

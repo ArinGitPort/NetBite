@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
-import { createEmptySandboxWorkspace, type SandboxWorkspace } from '@/core/network/sandbox';
+import { createEmptySandboxWorkspace, isSandboxWorkspace, type SandboxWorkspace } from '@/core/network/sandbox';
 import { gameStorage } from '@/store/game-storage';
 
 const HISTORY_LIMIT = 20;
@@ -24,7 +24,7 @@ export const useSandboxStore = create<SandboxStoreState>()(persist((set) => ({
   guideSeen: false,
   past: [],
   future: [],
-  commitWorkspace: (workspace) => set((state) => ({
+  commitWorkspace: (workspace) => set((state) => JSON.stringify(state.workspace) === JSON.stringify(workspace) ? state : ({
     workspace,
     past: [...state.past, state.workspace].slice(-HISTORY_LIMIT),
     future: [],
@@ -48,5 +48,14 @@ export const useSandboxStore = create<SandboxStoreState>()(persist((set) => ({
   version: 1,
   skipHydration: true,
   partialize: (state) => ({ workspace: state.workspace, guideSeen: state.guideSeen }),
-  merge: (persisted, current) => ({ ...current, ...(persisted as Partial<SandboxStoreState>), past: [], future: [] }),
+  merge: (persisted, current) => {
+    const saved = persisted as Partial<SandboxStoreState> | undefined;
+    return {
+      ...current,
+      workspace: isSandboxWorkspace(saved?.workspace) ? saved.workspace : current.workspace,
+      guideSeen: typeof saved?.guideSeen === 'boolean' ? saved.guideSeen : current.guideSeen,
+      past: [],
+      future: [],
+    };
+  },
 }));
