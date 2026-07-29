@@ -8,6 +8,8 @@ The current sequence contains 77 focused lessons across 11 chapters.
 
 - A lesson teaches one main idea in roughly 1–2 minutes using an opening explanation, one or two titled details, a concrete example, and one key idea.
 - Multi-stage decisions use three to five numbered worked steps. Missing prerequisites receive another short lesson instead of being hidden in a dense example.
+- Complex examples use learner-controlled guided stages with an always-available full-step view. Guided interaction reinforces reasoning but never blocks lesson completion.
+- Chapters 4–6, 9, and 11 receive priority visual reasoning: prefix derivation, subnet boundaries, local-versus-gateway delivery, route match-before-selection, and responsibility-based model mapping.
 - Full IPv4 addresses are shown until any abbreviated notation has been explicitly explained.
 - Optional hints reveal one reasoning step at a time without selecting an answer, changing state, or applying a penalty.
 - Difficult distinctions may include a retry-until-correct checkpoint. Checkpoints record no score or penalty.

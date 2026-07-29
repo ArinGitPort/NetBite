@@ -12,9 +12,14 @@ This file records the content rules that apply across the curriculum:
 - Add a retryable checkpoint only for a decision or misconception worth practicing. It must explain every choice and record no penalty.
 - Use one concrete example or useful distinction instead of decorative text.
 - Give every worked example an explicit starting state and conclusion. When reasoning has several dependencies, show three to five numbered steps with stable labels.
+- Use guided presentation for calculations and causal decisions that would otherwise expose several unfamiliar state changes at once. `Previous`, `Next step`, and `Show all steps` remain optional learning controls and never gate completion.
+- Synchronize each guided step with one stable visual-stage ID. The explanation and diagram must describe the same state, values, and terminology.
+- Prefer 110–170 teaching words for a complex lesson. Move reasoning into visible steps instead of extending one dense paragraph.
+- Audit every lesson for undefined jargon, unexplained state changes, decorative visuals, inconsistent examples, and repeated copy before adding new material.
 - Use an example-before-practice sequence for novice calculations: demonstrate one complete method, then label a nearby problem as `YOUR TURN`.
 - Keep one address, prefix, topology, or protocol state consistent across an explanation. If a practice item changes it, announce the new scenario.
 - Do not use final-octet shorthand such as `.64` until the complete IPv4 address is visible and the abbreviation has been explained.
+- In subnetting, derive boundary values before using them: host bits → address count → full network starts → containing block → reserved endpoints. Describe “host bits,” “borrowed bits,” and “block size” as calculation tools, not separate packet behaviors.
 - Optional hints reveal the next intermediate value or comparison, never the final selected answer. Hints carry no score or penalty.
 - Every incorrect choice explains its misconception and leaves learned or configured state unchanged.
 - In configuration labs, distinguish invalid input from valid but incorrect state. Invalid or wrong-mode commands do not mutate state; accepted configuration remains until the learner corrects it with the supported inverse command, Undo, or Reset.

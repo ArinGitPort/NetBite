@@ -35,6 +35,8 @@ export default function LessonScreen() {
   const checkpointRequired = Boolean(lesson.checkpoint) && !lessonWasCompleted;
   const checkpointBlocking = isLessonCheckpointBlocking(lesson, completedLessonIds, checkpointPassed);
   const previousLesson = chapter.lessons[index - 1];
+  const exampleOwnsIllustration = lesson.example?.presentation === 'guided'
+    && lesson.example.visual?.illustration === lesson.illustration;
 
   const finish = () => {
     completeLesson(lesson.id);
@@ -63,7 +65,7 @@ export default function LessonScreen() {
       </View>
       <Text variant="label" style={styles.eyebrow}>{lesson.eyebrow}</Text>
       <Text variant="screenTitle" style={styles.title}>{lesson.title}</Text>
-      <LessonIllustration type={lesson.illustration} />
+      {!exampleOwnsIllustration ? <LessonIllustration type={lesson.illustration} /> : null}
       <Text variant="body" style={styles.body}>{lesson.body}</Text>
       {lesson.sections?.map((section) => (
         <View key={section.heading} style={styles.section}>
@@ -71,7 +73,7 @@ export default function LessonScreen() {
           <Text variant="body" style={styles.sectionBody}>{section.body}</Text>
         </View>
       ))}
-      {lesson.example ? <LessonWorkedExample example={lesson.example} /> : null}
+      {lesson.example ? <LessonWorkedExample key={lesson.id} example={lesson.example} /> : null}
       {lesson.fieldNote ? <LessonFieldNote note={lesson.fieldNote} /> : null}
       {lesson.termNote ? (
         <View style={styles.termNote}>

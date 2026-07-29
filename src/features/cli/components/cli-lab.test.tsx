@@ -1,4 +1,5 @@
 import { fireEvent, render } from '@testing-library/react-native';
+import { StyleSheet } from 'react-native';
 
 import { CliLab } from '@/features/cli/components/cli-lab';
 import { cliLabDefinitions } from '@/features/cli/cli-lab-definitions';
@@ -82,10 +83,14 @@ describe('CliLab', () => {
 
   test('keeps the status and terminal vertically composed while the web container resizes', async () => {
     const screen = await render(<CliLab definition={cliLabDefinitions['ping-diagnostic-desk']} />);
-    await fireEvent(screen.getByTestId('cli-layout'), 'layout', { persist: jest.fn(), nativeEvent: { layout: { width: 700, height: 900, x: 0, y: 0 } } });
+    await fireEvent(screen.getByTestId('cli-layout'), 'layout', { persist: jest.fn(), nativeEvent: { layout: { width: 1400, height: 900, x: 0, y: 0 } } });
     expect(screen.getByTestId('cli-workspace').props.style.flexDirection).toBeUndefined();
+    expect(StyleSheet.flatten(screen.getByTestId('cli-terminal-actions').props.style)).toMatchObject({ width: '100%', flexWrap: 'wrap' });
+    expect(StyleSheet.flatten(screen.getByTestId('cli-input-row').props.style).flexWrap).toBeUndefined();
     await fireEvent(screen.getByTestId('cli-layout'), 'layout', { persist: jest.fn(), nativeEvent: { layout: { width: 390, height: 760, x: 0, y: 0 } } });
     expect(screen.getByTestId('cli-workspace').props.style.flexDirection).toBeUndefined();
+    expect(StyleSheet.flatten(screen.getByTestId('cli-input-row').props.style).flexWrap).toBe('wrap');
+    expect(StyleSheet.flatten(screen.getByTestId('cli-footer-actions').props.style).width).toBe('100%');
   });
 
   test('shows accepted route state, supports history, Undo, and Reset', async () => {

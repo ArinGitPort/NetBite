@@ -52,7 +52,7 @@ describe('educational illustration registry', () => {
     expect(educationalIllustrations['ipv4-address'].segments?.map(({ value }) => value)).toEqual(['192', '168', '10', '25']);
     expect(educationalIllustrations['subnet-boundaries'].segments?.map(({ value }) => value)).toEqual(['192.168.10.64', '192.168.10.70', '192.168.10.128']);
     expect(educationalIllustrations['subnet-map'].subnets).toHaveLength(4);
-    expect(educationalIllustrations['subnet-borrowed-bits'].bits?.map(({ bit }) => bit).join('')).toBe('11100000');
+    expect(educationalIllustrations['subnet-borrowed-bits'].bits?.map(({ bit }) => bit).join('')).toBe('11000000');
     expect(educationalIllustrations['arp-request'].accessibilityLabel).toContain('broadcasts');
     expect(educationalIllustrations['arp-reply'].accessibilityLabel).toContain('unicasts');
     expect(educationalIllustrations['vlan-trunk'].footer).toContain('DOES NOT COMBINE');

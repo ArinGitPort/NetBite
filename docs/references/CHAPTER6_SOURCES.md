@@ -15,3 +15,5 @@ The practice models local-prefix comparison and next-hop choice across two LANs.
 Local-versus-remote comparison, direct next hop, default gateway, local gateway reachability, and link-layer frame replacement are taught separately. “Direct” refers to the IP next hop and can still include a Layer 2 switch.
 
 Worked examples derive both network identities before choosing a next hop and distinguish changing Ethernet frames from stable IPv4 endpoints.
+
+The guided sequence keeps the remote IP destination visible while the first Ethernet next hop changes to the locally reachable gateway, preventing the common mistake of treating those two destinations as the same field.

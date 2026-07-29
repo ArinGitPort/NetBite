@@ -6,7 +6,9 @@ import { DeviceGlyph } from '@/features/devices/components/device-glyph';
 import {
   educationalIllustrations,
   type DiagramBit,
+  type DiagramMarker,
   type DiagramNode,
+  type DiagramPrefixRow,
   type DiagramSegment,
   type DiagramSubnetRow,
   type DiagramTone,
@@ -260,12 +262,56 @@ function Mapping({ mappings = [], mode }: { mappings?: [string, string][]; mode:
   );
 }
 
-export function EducationalLessonIllustration({ type }: { type: LessonIllustration }) {
+function NumberLine({ markers }: { markers: DiagramMarker[] }) {
+  return (
+    <View style={styles.numberLine}>
+      {markers.map((marker, index) => {
+        const tone = toneColors[marker.tone ?? 'neutral'];
+        return (
+          <View key={`${marker.value}-${index}`} style={styles.numberLineRow}>
+            <View style={styles.numberLineRail}>
+              <View style={[styles.numberLineDot, { borderColor: tone.border, backgroundColor: tone.fill }]} />
+              {index < markers.length - 1 ? <View style={styles.numberLineConnector} /> : null}
+            </View>
+            <View style={[styles.numberLineCard, { borderColor: tone.border, backgroundColor: tone.fill }]}>
+              <Text variant="technical" style={styles.numberLineLabel}>{marker.label}</Text>
+              <Text variant="sectionHeading" style={[styles.numberLineValue, { color: tone.text }]}>{marker.value}</Text>
+              {marker.detail ? <Text variant="technical" style={styles.numberLineDetail}>{marker.detail}</Text> : null}
+            </View>
+          </View>
+        );
+      })}
+    </View>
+  );
+}
+
+function PrefixLadder({ rows }: { rows: DiagramPrefixRow[] }) {
+  return (
+    <View style={styles.prefixLadder}>
+      {rows.map((row, index) => (
+        <View key={row.prefix} style={[styles.prefixRow, index === 2 && styles.prefixRowActive]}>
+          <View style={styles.prefixTitle}>
+            <Text variant="sectionHeading" style={styles.prefixValue}>{row.prefix}</Text>
+            <Text variant="technical" style={styles.prefixMask}>{row.mask}</Text>
+          </View>
+          <View style={styles.prefixFacts}>
+            <Text variant="technical" style={styles.prefixFact}>{row.networkBits} NETWORK BITS</Text>
+            <Text variant="technical" style={styles.prefixFact}>{row.hostBits} HOST BITS</Text>
+            <Text variant="technical" style={styles.prefixBlock}>STEP {row.blockSize}</Text>
+          </View>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+export function EducationalLessonIllustration({ type, stageId }: { type: LessonIllustration; stageId?: string }) {
   const illustration = educationalIllustrations[type];
   const responsive = useMeasuredResponsiveLayout();
+  const stage = stageId ? illustration.stages?.find((candidate) => candidate.id === stageId) : undefined;
   if (illustration.family === 'legacy') return null;
   return (
-    <View accessible accessibilityLabel={illustration.accessibilityLabel} onLayout={responsive.onLayout} style={styles.card}>
+    <View accessible accessibilityLabel={stage?.accessibilityLabel ?? illustration.accessibilityLabel} onLayout={responsive.onLayout} style={styles.card}>
       <Text variant="label" style={styles.title}>{illustration.title}</Text>
       {illustration.family === 'topology' ? <NodeFlow mode={responsive.mode} nodes={illustration.nodes ?? []} topology /> : null}
       {illustration.family === 'sequence' ? <NodeFlow mode={responsive.mode} nodes={illustration.nodes ?? []} /> : null}
@@ -276,7 +322,13 @@ export function EducationalLessonIllustration({ type }: { type: LessonIllustrati
       {illustration.family === 'subnet-map' ? <SubnetMap mode={responsive.mode} rows={illustration.subnets ?? []} /> : null}
       {illustration.family === 'stack' ? <Stack layers={illustration.layers ?? []} mode={responsive.mode} /> : null}
       {illustration.family === 'mapping' ? <Mapping mappings={illustration.mappings} mode={responsive.mode} /> : null}
-      {illustration.footer ? <Text variant="technical" style={styles.footer}>{illustration.footer}</Text> : null}
+      {illustration.family === 'number-line' ? <NumberLine markers={illustration.markers ?? []} /> : null}
+      {illustration.family === 'prefix-ladder' ? <PrefixLadder rows={illustration.prefixRows ?? []} /> : null}
+      {stage?.callouts?.length ? (
+        <AddressRange mode={responsive.mode} presentation="full-address" segments={stage.callouts} />
+      ) : null}
+      {stage?.title ? <Text variant="label" style={styles.stageTitle}>{stage.title}</Text> : null}
+      {(stage?.footer ?? illustration.footer) ? <Text variant="technical" style={styles.footer}>{stage?.footer ?? illustration.footer}</Text> : null}
     </View>
   );
 }
@@ -360,5 +412,24 @@ const styles = StyleSheet.create({
   mappingText: { fontFamily: Fonts.medium, textAlign: 'center' },
   mappingArrow: { width: '14%', alignSelf: 'center', color: '#D18B5A', textAlign: 'center' },
   mappingArrowCompact: { width: '100%', paddingVertical: 2 },
+  numberLine: { minWidth: 0 },
+  numberLineRow: { minWidth: 0, flexDirection: 'row', alignItems: 'stretch' },
+  numberLineRail: { width: 30, alignItems: 'center' },
+  numberLineDot: { width: 16, height: 16, marginTop: 28, borderWidth: 2 },
+  numberLineConnector: { width: 2, flex: 1, minHeight: 32, backgroundColor: '#62666A' },
+  numberLineCard: { minWidth: 0, flex: 1, minHeight: 76, marginBottom: Space.sm, padding: Space.sm, borderWidth: 1 },
+  numberLineLabel: { color: '#BCB9BC' },
+  numberLineValue: { marginTop: 2, fontFamily: Fonts.semibold },
+  numberLineDetail: { color: '#BCB9BC', marginTop: Space.xs },
+  prefixLadder: { minWidth: 0, gap: Space.sm },
+  prefixRow: { minWidth: 0, padding: Space.sm, gap: Space.sm, borderWidth: 1, borderColor: '#55585A', backgroundColor: '#121114' },
+  prefixRowActive: { borderColor: '#A28C54', backgroundColor: '#292519' },
+  prefixTitle: { minWidth: 0, flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: Space.xs },
+  prefixValue: { color: '#F0DDCF', fontFamily: Fonts.semibold },
+  prefixMask: { color: '#D0CDD0' },
+  prefixFacts: { minWidth: 0, flexDirection: 'row', flexWrap: 'wrap', gap: Space.sm },
+  prefixFact: { color: '#C5C3C5' },
+  prefixBlock: { color: '#D18B5A', fontFamily: Fonts.semibold },
+  stageTitle: { color: Palette.green, textAlign: 'center' },
   footer: { color: Palette.textMuted, textAlign: 'center' },
 });

@@ -8,7 +8,7 @@ export type EducationAssetName =
 
 export type DiagramTone = 'neutral' | 'red' | 'orange' | 'sage' | 'blue' | 'violet' | 'gold';
 export type VisualToken = 'pc' | 'switch' | 'router' | 'copper-cable' | EducationAssetName;
-export type IllustrationFamily = 'legacy' | 'topology' | 'sequence' | 'comparison' | 'address-range' | 'table' | 'stack' | 'mapping' | 'bit-strip' | 'subnet-map';
+export type IllustrationFamily = 'legacy' | 'topology' | 'sequence' | 'comparison' | 'address-range' | 'table' | 'stack' | 'mapping' | 'bit-strip' | 'subnet-map' | 'number-line' | 'prefix-ladder';
 export type IllustrationPresentation = 'auto' | 'full-address';
 
 export interface DiagramValueLine {
@@ -27,6 +27,30 @@ export interface DiagramSubnetRow {
   firstUsable: string;
   lastUsable: string;
   broadcast: string;
+}
+
+export interface DiagramMarker {
+  label: string;
+  value: string;
+  detail?: string;
+  tone?: DiagramTone;
+}
+
+export interface DiagramPrefixRow {
+  prefix: string;
+  mask: string;
+  networkBits: string;
+  hostBits: string;
+  blockSize: string;
+}
+
+export interface EducationalIllustrationStage {
+  id: string;
+  title?: string;
+  accessibilityLabel: string;
+  activeIndices?: number[];
+  callouts?: DiagramSegment[];
+  footer?: string;
 }
 
 export interface DiagramNode {
@@ -61,6 +85,9 @@ export interface EducationalIllustrationSpec {
   mappings?: [leftLayer: string, rightLayer: string][];
   bits?: DiagramBit[];
   subnets?: DiagramSubnetRow[];
+  markers?: DiagramMarker[];
+  prefixRows?: DiagramPrefixRow[];
+  stages?: EducationalIllustrationStage[];
   footer?: string;
 }
 
@@ -69,6 +96,12 @@ const legacy = (id: LessonIllustration, title: string, accessibilityLabel: strin
 });
 
 const spec = (definition: EducationalIllustrationSpec) => definition;
+const guidedStages = (labels: Record<string, string>): EducationalIllustrationStage[] =>
+  Object.entries(labels).map(([id, title]) => ({
+    id,
+    title,
+    accessibilityLabel: `Guided visual stage: ${title}.`,
+  }));
 
 export const OSI_LAYERS: DiagramSegment[] = [
   { label: 'L7', value: 'APPLICATION', detail: 'Network services for applications', tone: 'violet' },
@@ -124,44 +157,52 @@ export const educationalIllustrations: Record<LessonIllustration, EducationalIll
   'ipv4-octets': spec({ id: 'ipv4-octets', family: 'table', title: 'DOTTED DECIMAL', accessibilityLabel: 'Each IPv4 octet contains eight bits and has a decimal range from zero through 255.', sourceIds: ['RFC-791'], headers: ['OCTET', 'BITS', 'DECIMAL RANGE'], rows: [['1', '8', '0–255'], ['2', '8', '0–255'], ['3', '8', '0–255'], ['4', '8', '0–255']], footer: '192 . 168 . 10 . 25' }),
   'ipv4-prefix': spec({ id: 'ipv4-prefix', family: 'address-range', title: '192.168.10.25 /24', accessibilityLabel: 'In 192.168.10.25 slash 24, the first 24 bits identify the network and the final eight bits identify the host.', sourceIds: ['RFC-4632'], segments: [
     { label: 'NETWORK', value: '192.168.10', detail: '24 BITS', tone: 'sage', weight: 3 }, { label: 'HOST', value: '25', detail: '8 BITS', tone: 'orange' },
-  ], footer: 'NETWORK 192.168.10.0 / HOST INTERFACE 192.168.10.25' }),
+  ], stages: guidedStages({ 'host-network': 'DERIVE THE SOURCE NETWORK', 'destination-network': 'DERIVE THE DESTINATION NETWORK', compare: 'COMPARE THE TWO NETWORK IDENTITIES' }), footer: 'NETWORK 192.168.10.0 / HOST INTERFACE 192.168.10.25' }),
   'private-ipv4': spec({ id: 'private-ipv4', family: 'comparison', title: 'PRIVATE HOST SETTINGS', accessibilityLabel: 'A valid private IPv4 host is unique and usable; network, broadcast, duplicate, and off-network addresses are rejected.', sourceIds: ['RFC-1918', 'RFC-4632'], nodes: [
     { label: 'VALID HOST', detail: '192.168.10.25/24 / UNIQUE / USABLE', token: 'ipv4-datagram', tone: 'sage' },
     { label: 'REJECT', detail: 'NETWORK / BROADCAST / DUPLICATE / WRONG SUBNET', token: 'ipv4-datagram', tone: 'red' },
   ] }),
-  'octet-bits': spec({ id: 'octet-bits', family: 'table', title: 'EIGHT BINARY PLACE VALUES', accessibilityLabel: 'An octet has bit place values 128, 64, 32, 16, 8, 4, 2, and 1; binary 11000000 equals decimal 192.', sourceIds: ['RFC-791'], headers: ['BIT', '128', '64', '32', '16', '8', '4', '2', '1'], rows: [['11000000', '1', '1', '0', '0', '0', '0', '0', '0']], footer: '128 + 64 = 192' }),
+  'octet-bits': spec({ id: 'octet-bits', family: 'table', title: 'EIGHT BINARY PLACE VALUES', accessibilityLabel: 'An octet has bit place values 128, 64, 32, 16, 8, 4, 2, and 1; binary 11000000 equals decimal 192.', sourceIds: ['RFC-791'], headers: ['BIT', '128', '64', '32', '16', '8', '4', '2', '1'], rows: [['11000000', '1', '1', '0', '0', '0', '0', '0', '0']], stages: guidedStages({ positions: 'LABEL EACH PLACE VALUE', active: 'KEEP VALUES WHOSE BIT IS 1', sum: 'ADD 128 + 64' }), footer: '128 + 64 = 192' }),
   'network-host': spec({ id: 'network-host', family: 'address-range', title: 'PREFIX DEFINES THE BOUNDARY', accessibilityLabel: 'In 192.168.10.25 slash 24, the first three octets are the shared network portion and final octet 25 is the host portion.', sourceIds: ['RFC-4632'], segments: [
     { label: 'NETWORK PORTION', value: '192.168.10', detail: 'SHARED / 24 BITS', tone: 'sage', weight: 3 }, { label: 'HOST PORTION', value: '25', detail: 'UNIQUE / 8 BITS', tone: 'orange' },
   ] }),
   'private-ranges': spec({ id: 'private-ranges', family: 'table', title: 'RFC 1918 PRIVATE BLOCKS', accessibilityLabel: 'The three private IPv4 blocks are 10.0.0.0 slash 8, 172.16.0.0 slash 12, and 192.168.0.0 slash 16.', sourceIds: ['RFC-1918'], headers: ['BLOCK', 'FULL RANGE'], rows: [['10.0.0.0/8', '10.0.0.0 – 10.255.255.255'], ['172.16.0.0/12', '172.16.0.0 – 172.31.255.255'], ['192.168.0.0/16', '192.168.0.0 – 192.168.255.255']] }),
-  'subnet-purpose': spec({ id: 'subnet-purpose', family: 'comparison', title: 'DIVIDE ONE /24', accessibilityLabel: 'The 192.168.10.0 slash 24 block is divided into two smaller slash 25 subnets.', sourceIds: ['RFC-950', 'RFC-4632'], nodes: [
-    { label: 'SUBNET A', detail: '192.168.10.0–192.168.10.127', token: 'router', tone: 'blue' },
-    { label: 'SUBNET B', detail: '192.168.10.128–192.168.10.255', token: 'router', tone: 'sage' },
-  ], footer: 'SEPARATE NETWORK AND BROADCAST BOUNDARIES' }),
-  'subnet-mask': spec({ id: 'subnet-mask', family: 'table', title: 'PREFIX / MASK / BLOCK', accessibilityLabel: 'A table compares slash 24 through slash 27 masks, block sizes, and usable host counts.', sourceIds: ['RFC-950', 'RFC-4632'], headers: ['PREFIX', 'MASK', 'BLOCK', 'USABLE'], rows: [['/24', '255.255.255.0', '256', '254'], ['/25', '255.255.255.128', '128', '126'], ['/26', '255.255.255.192', '64', '62'], ['/27', '255.255.255.224', '32', '30']], footer: 'LONGER PREFIX / SMALLER SUBNET' }),
+  'subnet-purpose': spec({ id: 'subnet-purpose', family: 'address-range', presentation: 'full-address', title: 'DIVIDE ONE ADDRESS SPACE', accessibilityLabel: 'The complete 192.168.10.0 slash 24 address space is divided into two slash 25 ranges, each with its own network and broadcast endpoints.', sourceIds: ['RFC-950', 'RFC-4632'], segments: [
+    { label: 'FIRST /25', value: '192.168.10.0–192.168.10.127', valueLines: [{ label: 'NETWORK', value: '192.168.10.0' }, { label: 'BROADCAST', value: '192.168.10.127' }], tone: 'blue' },
+    { label: 'SECOND /25', value: '192.168.10.128–192.168.10.255', valueLines: [{ label: 'NETWORK', value: '192.168.10.128' }, { label: 'BROADCAST', value: '192.168.10.255' }], tone: 'sage' },
+  ], stages: guidedStages({ start: 'START WITH THE COMPLETE /24', split: 'SPLIT IT INTO TWO 128-ADDRESS RANGES', separate: 'EACH RANGE HAS ITS OWN ENDPOINTS' }), footer: 'THESE ARE ADDRESS RANGES, NOT PHYSICAL ROUTERS' }),
+  'subnet-mask': spec({ id: 'subnet-mask', family: 'prefix-ladder', title: '/24 TO /27 BOUNDARY COMPARISON', accessibilityLabel: 'A vertical comparison shows slash 24 through slash 27 masks, network bits, host bits, and distance between network starts.', sourceIds: ['RFC-950', 'RFC-4632', 'RFC-1878'], prefixRows: [
+    { prefix: '/24', mask: '255.255.255.0', networkBits: '24', hostBits: '8', blockSize: '256' },
+    { prefix: '/25', mask: '255.255.255.128', networkBits: '25', hostBits: '7', blockSize: '128' },
+    { prefix: '/26', mask: '255.255.255.192', networkBits: '26', hostBits: '6', blockSize: '64' },
+    { prefix: '/27', mask: '255.255.255.224', networkBits: '27', hostBits: '5', blockSize: '32' },
+  ], stages: guidedStages({ prefix: 'COUNT THE 26 NETWORK BITS', 'full-octets': 'THE FIRST 24 BITS FILL THREE OCTETS', remaining: 'TWO MORE NETWORK BITS MAKE 192' }), footer: 'A LONGER PREFIX LEAVES FEWER HOST BITS' }),
   'subnet-boundaries': spec({ id: 'subnet-boundaries', family: 'address-range', presentation: 'full-address', title: 'LOCATE 192.168.10.70 /26', accessibilityLabel: 'Host 192.168.10.70 lies between full slash 26 network starts 192.168.10.64 and 192.168.10.128.', sourceIds: ['RFC-950'], segments: [
     { label: 'CURRENT START', value: '192.168.10.64', tone: 'sage' }, { label: 'HOST', value: '192.168.10.70', tone: 'gold' }, { label: 'NEXT START', value: '192.168.10.128', tone: 'orange' },
-  ], footer: '70 IS AT LEAST 64 AND BELOW 128' }),
+  ], stages: guidedStages({ starts: 'FIND THE TWO NEIGHBORING STARTS', compare: 'PLACE 192.168.10.70 BETWEEN THEM', choose: 'THE LOWER START NAMES THE SUBNET' }), footer: '70 IS AT LEAST 64 AND BELOW 128' }),
   'subnet-range': spec({ id: 'subnet-range', family: 'address-range', presentation: 'full-address', title: '192.168.10.64 /26', accessibilityLabel: 'The slash 26 subnet begins at network address 192.168.10.64, has usable hosts 192.168.10.65 through 192.168.10.126, and ends at broadcast 192.168.10.127.', sourceIds: ['RFC-950'], segments: [
     { label: 'NETWORK', value: '192.168.10.64', tone: 'blue' }, { label: 'USABLE HOSTS', value: '192.168.10.65–192.168.10.126', valueLines: [{ label: 'FIRST', value: '192.168.10.65' }, { label: 'LAST', value: '192.168.10.126' }], tone: 'sage', weight: 4 }, { label: 'BROADCAST', value: '192.168.10.127', tone: 'orange' },
-  ], footer: 'FIRST AND LAST ADDRESSES ARE RESERVED' }),
-  'host-bits': spec({ id: 'host-bits', family: 'table', title: 'HOST BITS CONTROL SIZE', accessibilityLabel: 'Slash 24 through slash 27 leave eight through five host bits and produce 256 through 32 total addresses.', sourceIds: ['RFC-950', 'RFC-4632'], headers: ['PREFIX', 'HOST BITS', 'TOTAL', 'USABLE'], rows: [['/24', '8', '256', '254'], ['/25', '7', '128', '126'], ['/26', '6', '64', '62'], ['/27', '5', '32', '30']] }),
-  'block-size': spec({ id: 'block-size', family: 'address-range', title: 'BOUNDARIES ADVANCE BY BLOCK SIZE', accessibilityLabel: 'For slash 27, network boundaries advance by block size 32 at zero, 32, 64, 96, 128, 160, 192, and 224.', sourceIds: ['RFC-950'], segments: [
-    { label: '/24', value: '256', tone: 'blue' }, { label: '/25', value: '128', tone: 'sage' }, { label: '/26', value: '64', tone: 'gold' }, { label: '/27', value: '32', tone: 'orange' },
-  ], footer: 'BLOCK SIZE = DISTANCE BETWEEN NETWORK STARTS' }),
+  ], stages: guidedStages({ network: 'MARK THE FIRST ADDRESS AS NETWORK', broadcast: 'MARK THE LAST ADDRESS AS BROADCAST', usable: 'THE ADDRESSES BETWEEN ARE USABLE' }), footer: 'FIRST AND LAST ADDRESSES ARE RESERVED' }),
+  'host-bits': spec({ id: 'host-bits', family: 'table', title: 'HOST BITS CONTROL SIZE', accessibilityLabel: 'Slash 24 through slash 27 leave eight through five host bits and produce 256 through 32 total addresses.', sourceIds: ['RFC-950', 'RFC-4632'], headers: ['PREFIX', 'HOST BITS', 'TOTAL', 'USABLE'], rows: [['/24', '8', '256', '254'], ['/25', '7', '128', '126'], ['/26', '6', '64', '62'], ['/27', '5', '32', '30']], stages: guidedStages({ remaining: 'COUNT THE SIX HOST BITS LEFT BY /26', total: 'SIX BITS MAKE 64 ADDRESS COMBINATIONS', usable: 'REMOVE NETWORK AND BROADCAST' }) }),
+  'block-size': spec({ id: 'block-size', family: 'number-line', title: '/26 NETWORK STARTS ADVANCE BY 64', accessibilityLabel: 'A full-address number line begins at 192.168.10.0 and repeatedly adds 64 to reach 192.168.10.64, 192.168.10.128, and 192.168.10.192.', sourceIds: ['RFC-950', 'RFC-1878'], markers: [
+    { label: 'START', value: '192.168.10.0', detail: '0', tone: 'blue' },
+    { label: 'ADD 64', value: '192.168.10.64', detail: '0 + 64', tone: 'sage' },
+    { label: 'ADD 64', value: '192.168.10.128', detail: '64 + 64', tone: 'gold' },
+    { label: 'ADD 64', value: '192.168.10.192', detail: '128 + 64', tone: 'orange' },
+  ], stages: guidedStages({ size: 'A /26 CONTAINS 64 ADDRESSES', start: 'BEGIN AT 192.168.10.0', add: 'ADD 64 FOR EACH NEXT START' }), footer: '64, 128, AND 192 COME FROM REPEATEDLY ADDING THE 64-ADDRESS BLOCK SIZE' }),
   'subnet-method': spec({ id: 'subnet-method', family: 'sequence', title: 'REPEATABLE SUBNET WORKFLOW', accessibilityLabel: 'Subnet workflow proceeds from prefix to host bits, block size, boundaries, and finally network, usable, and broadcast range.', sourceIds: ['RFC-950'], nodes: [
     { label: 'PREFIX', detail: '/24–/27', token: 'ipv4-datagram', tone: 'blue' }, { label: 'HOST BITS', detail: '32 − PREFIX', token: 'route-table', tone: 'sage' }, { label: 'BLOCK + BOUNDARIES', detail: 'LOCATE ADDRESS', token: 'route-table', tone: 'gold' }, { label: 'FULL RANGE', detail: 'NETWORK / HOSTS / BROADCAST', token: 'ipv4-datagram', tone: 'orange' },
-  ] }),
-  'subnet-borrowed-bits': spec({ id: 'subnet-borrowed-bits', family: 'bit-strip', title: '/27 BORROWS THREE POSITIONS', accessibilityLabel: 'The final mask octet for slash 27 uses network bits in the 128, 64, and 32 positions, producing binary 11100000 and decimal 224.', sourceIds: ['RFC-950', 'RFC-1878'], bits: [
-    { place: '128', bit: '1', role: 'network' }, { place: '64', bit: '1', role: 'network' }, { place: '32', bit: '1', role: 'network' }, { place: '16', bit: '0', role: 'host' },
+  ], stages: guidedStages({ bits: 'COUNT THE HOST BITS', block: 'TURN HOST BITS INTO BLOCK SIZE', starts: 'LIST EVERY FULL NETWORK START', locate: 'FIND THE CONTAINING INTERVAL', label: 'LABEL THE RESERVED ENDPOINTS' }) }),
+  'subnet-borrowed-bits': spec({ id: 'subnet-borrowed-bits', family: 'bit-strip', title: '/26 USES TWO FINAL-OCTET NETWORK POSITIONS', accessibilityLabel: 'The final mask octet for slash 26 uses network bits in the 128 and 64 positions, producing binary 11000000 and decimal 192.', sourceIds: ['RFC-950', 'RFC-1878'], bits: [
+    { place: '128', bit: '1', role: 'network' }, { place: '64', bit: '1', role: 'network' }, { place: '32', bit: '0', role: 'host' }, { place: '16', bit: '0', role: 'host' },
     { place: '8', bit: '0', role: 'host' }, { place: '4', bit: '0', role: 'host' }, { place: '2', bit: '0', role: 'host' }, { place: '1', bit: '0', role: 'host' },
-  ], footer: '128 + 64 + 32 = 224 / MASK 255.255.255.224' }),
+  ], stages: guidedStages({ borrow: 'USE THE 128 AND 64 POSITIONS', add: 'ADD 128 + 64', write: 'WRITE THE COMPLETE MASK' }), footer: '128 + 64 = 192 / MASK 255.255.255.192' }),
   'subnet-map': spec({ id: 'subnet-map', family: 'subnet-map', title: 'COMPLETE /26 MAP', accessibilityLabel: 'Four slash 26 subnets display full network, usable host, and broadcast addresses inside 192.168.10.0 slash 24.', sourceIds: ['RFC-950', 'RFC-1878'], subnets: [
     { network: '192.168.10.0', firstUsable: '192.168.10.1', lastUsable: '192.168.10.62', broadcast: '192.168.10.63' },
     { network: '192.168.10.64', firstUsable: '192.168.10.65', lastUsable: '192.168.10.126', broadcast: '192.168.10.127' },
     { network: '192.168.10.128', firstUsable: '192.168.10.129', lastUsable: '192.168.10.190', broadcast: '192.168.10.191' },
     { network: '192.168.10.192', firstUsable: '192.168.10.193', lastUsable: '192.168.10.254', broadcast: '192.168.10.255' },
-  ], footer: 'EVERY ROW CONTAINS 64 TOTAL ADDRESSES' }),
+  ], stages: guidedStages({ current: 'SELECT THE SECOND NETWORK START', next: 'ADD 64 TO FIND THE NEXT START', end: 'END ONE ADDRESS BEFORE IT' }), footer: 'EVERY ROW CONTAINS 64 TOTAL ADDRESSES' }),
 
   'router-interfaces': spec({ id: 'router-interfaces', family: 'topology', title: 'ROUTER JOINS TWO LANS', accessibilityLabel: 'A router connects LAN A and LAN B using one separately addressed interface in each subnet.', sourceIds: ['RFC-1812'], nodes: [
     { label: 'LAN A', detail: '192.168.10.0/24', token: 'pc', tone: 'blue' }, { label: 'ROUTER', detail: '192.168.10.1 / 192.168.20.1', token: 'router', tone: 'orange' }, { label: 'LAN B', detail: '192.168.20.0/24', token: 'pc', tone: 'sage' },
@@ -171,10 +212,10 @@ export const educationalIllustrations: Record<LessonIllustration, EducationalIll
   ] }),
   'default-gateway': spec({ id: 'default-gateway', family: 'sequence', title: 'REMOTE NEXT HOP', accessibilityLabel: 'PC A sends a remote destination toward gateway 192.168.10.1, which is reachable on PC A’s local subnet.', sourceIds: ['RFC-1122'], nodes: [
     { label: 'PC A', detail: '192.168.10.10/24', token: 'pc', tone: 'blue' }, { label: 'DEFAULT GATEWAY', detail: '192.168.10.1 / LOCAL', token: 'router', tone: 'orange' }, { label: 'REMOTE LAN', detail: '192.168.20.0/24', token: 'pc', tone: 'sage' },
-  ], footer: 'AN OFF-SUBNET GATEWAY IS NOT DIRECTLY REACHABLE' }),
+  ], stages: guidedStages({ compare: 'COMPARE SOURCE AND DESTINATION NETWORKS', 'next-hop': 'SELECT THE LOCAL DEFAULT GATEWAY', frame: 'ADDRESS ETHERNET TO THE GATEWAY', ip: 'KEEP THE REMOTE IP DESTINATION' }), footer: 'AN OFF-SUBNET GATEWAY IS NOT DIRECTLY REACHABLE' }),
   'routed-frame': spec({ id: 'routed-frame', family: 'sequence', title: 'ROUTER FORWARDS THE IP DATAGRAM', accessibilityLabel: 'A host sends an Ethernet frame to a router; the router forwards the same IP endpoints inside a new link-layer frame on the next LAN.', sourceIds: ['RFC-1122', 'RFC-1812'], nodes: [
     { label: 'FRAME / LAN A', detail: 'LOCAL MAC DELIVERY', token: 'ethernet-frame', tone: 'blue' }, { label: 'IP DATAGRAM', detail: 'SOURCE AND DESTINATION IP REMAIN', token: 'ipv4-datagram', tone: 'orange' }, { label: 'FRAME / LAN B', detail: 'NEW LOCAL MAC DELIVERY', token: 'ethernet-frame', tone: 'sage' },
-  ] }),
+  ], stages: guidedStages({ first: 'BUILD THE FRAME FOR LAN A', remove: 'ROUTER REMOVES THE RECEIVED FRAME', second: 'BUILD A NEW FRAME FOR LAN B', endpoints: 'IP ENDPOINTS REMAIN THE SAME' }) }),
   'same-subnet': spec({ id: 'same-subnet', family: 'comparison', title: 'COMPARE PREFIX-DEFINED NETWORKS', accessibilityLabel: 'A host compares its own and destination network identities: matching prefixes mean local, different prefixes mean remote.', sourceIds: ['RFC-1122'], nodes: [
     { label: 'SAME /24', detail: '192.168.10.25 + 192.168.10.80 / LOCAL', token: 'pc', tone: 'sage' }, { label: 'DIFFERENT /24', detail: '192.168.10.25 + 192.168.20.80 / REMOTE', token: 'router', tone: 'orange' },
   ] }),
@@ -229,17 +270,21 @@ export const educationalIllustrations: Record<LessonIllustration, EducationalIll
   ], footer: 'OUTBOUND PATH ALONE IS NOT ENOUGH' }),
   'longest-prefix': spec({ id: 'longest-prefix', family: 'comparison', title: 'LONGEST MATCH WINS', accessibilityLabel: 'When slash 24, slash 16, and default slash zero routes match, the router selects slash 24 because it is most specific.', sourceIds: ['RFC-1812', 'RFC-4632'], nodes: [
     { label: '/24 SELECTED', detail: '192.168.10.0/24 / MOST SPECIFIC', token: 'route-table', tone: 'sage' }, { label: '/16 THEN /0', detail: 'LESS SPECIFIC / DEFAULT FALLBACK', token: 'route-table', tone: 'neutral' },
-  ] }),
+  ], stages: guidedStages({ candidates: 'KEEP ONLY ROUTES THAT MATCH', lengths: 'COMPARE THEIR PREFIX LENGTHS', winner: 'SELECT THE LONGEST MATCH' }) }),
   'route-purpose': spec({ id: 'route-purpose', family: 'sequence', title: 'DESTINATION LOOKUP', accessibilityLabel: 'A router compares the destination IPv4 address with route-table prefixes, selects the longest usable match, and forwards through its path.', sourceIds: ['RFC-1812'], nodes: [
     { label: 'DESTINATION IPv4', detail: 'ADDRESS TO MATCH', token: 'ipv4-datagram', tone: 'blue' }, { label: 'ROUTE TABLE', detail: 'PREFIX LOOKUP', token: 'route-table', tone: 'gold' }, { label: 'FORWARDING PATH', detail: 'NEXT HOP / EXIT', token: 'router', tone: 'sage' },
-  ] }),
+  ], stages: guidedStages({ read: 'READ THE DESTINATION IPv4 ADDRESS', match: 'FIND ALL MATCHING ROUTES', select: 'SELECT THE MOST SPECIFIC MATCH' }) }),
   'route-next-hop': spec({ id: 'route-next-hop', family: 'topology', title: 'STATIC NEXT HOP', accessibilityLabel: 'Router R1 uses a static route for remote LAN C through reachable neighboring router 10.0.12.2.', sourceIds: ['RFC-1812', 'CISCO-STATIC'], nodes: [
     { label: 'R1', detail: 'STATIC 192.168.30.0/24', token: 'router', tone: 'blue' }, { label: 'NEXT HOP', detail: '10.0.12.2 / REACHABLE', token: 'router', tone: 'orange' }, { label: 'LAN C', detail: 'REMOTE PREFIX', token: 'pc', tone: 'sage' },
   ] }),
   'default-route': spec({ id: 'default-route', family: 'comparison', title: 'SPECIFIC ROUTE BEFORE DEFAULT', accessibilityLabel: 'A specific slash 24 route wins when it matches; default 0.0.0.0 slash 0 is used only when no more-specific usable route matches.', sourceIds: ['RFC-1812', 'RFC-4632'], nodes: [
     { label: 'SPECIFIC /24', detail: 'SELECT WHEN MATCHED', token: 'route-table', tone: 'sage' }, { label: 'DEFAULT /0', detail: 'FALLBACK ONLY', token: 'route-table', tone: 'neutral' },
   ] }),
-  'route-match-test': spec({ id: 'route-match-test', family: 'table', title: 'MATCH BEFORE SELECTING', accessibilityLabel: 'For destination 192.168.10.25, routes 192.168.10.0 slash 24 and 192.168.0.0 slash 16 match, while 10.0.0.0 slash 8 does not.', sourceIds: ['RFC-1812', 'RFC-4632'], headers: ['ROUTE', 'DESTINATION IN RANGE?'], rows: [['192.168.10.0/24', 'YES'], ['192.168.0.0/16', 'YES'], ['10.0.0.0/8', 'NO']] }),
+  'route-match-test': spec({ id: 'route-match-test', family: 'table', title: 'MATCH BEFORE SELECTING', accessibilityLabel: 'For destination 192.168.10.25, routes 192.168.10.0 slash 24 and 192.168.0.0 slash 16 match, while 10.0.0.0 slash 8 does not.', sourceIds: ['RFC-1812', 'RFC-4632'], headers: ['ROUTE', 'DESTINATION IN RANGE?'], rows: [['192.168.10.0/24', 'YES'], ['192.168.0.0/16', 'YES'], ['10.0.0.0/8', 'NO']], stages: [
+    { id: '24', title: 'TEST DESTINATION AGAINST THE /24 RANGE', accessibilityLabel: 'Guided visual stage: test the destination against the slash 24 range.' },
+    { id: '16', title: 'TEST DESTINATION AGAINST THE /16 RANGE', accessibilityLabel: 'Guided visual stage: test the destination against the slash 16 range.' },
+    { id: '8', title: 'REJECT THE NONMATCHING /8 RANGE', accessibilityLabel: 'Guided visual stage: reject the nonmatching slash 8 range.' },
+  ] }),
 
   'vlan-segments': spec({ id: 'vlan-segments', family: 'comparison', title: 'ONE SWITCH / TWO LOGICAL LANS', accessibilityLabel: 'VLAN 10 and VLAN 20 form separate Layer 2 broadcast domains on the same physical switch.', sourceIds: ['IEEE-802.1Q'], nodes: [
     { label: 'VLAN 10', detail: 'SEPARATE BROADCAST DOMAIN', token: 'pc', tone: 'blue' }, { label: 'VLAN 20', detail: 'SEPARATE BROADCAST DOMAIN', token: 'pc', tone: 'gold' },
@@ -268,7 +313,7 @@ export const educationalIllustrations: Record<LessonIllustration, EducationalIll
   ], footer: 'A MODEL IS A REFERENCE / NOT A LITERAL MACHINE SEQUENCE' }),
   'osi-stack': spec({ id: 'osi-stack', family: 'stack', title: 'OSI REFERENCE MODEL', accessibilityLabel: 'The seven OSI layers from top to bottom are Layer 7 Application, Layer 6 Presentation, Layer 5 Session, Layer 4 Transport, Layer 3 Network, Layer 2 Data Link, and Layer 1 Physical.', sourceIds: ['ISO-7498-1', 'CISCO-OSI'], layers: OSI_LAYERS, footer: 'APPLICATION AT TOP / PHYSICAL AT BOTTOM' }),
   'tcp-ip-stack': spec({ id: 'tcp-ip-stack', family: 'stack', title: 'FOUR-LAYER TCP/IP VIEW', accessibilityLabel: 'The four TCP/IP layers from top to bottom are Application, Transport, Internet, and Network Access or Link.', sourceIds: ['RFC-1122'], layers: TCP_IP_LAYERS, footer: 'RFC 1122 NAMES APPLICATION / TRANSPORT / INTERNET / LINK' }),
-  'concept-layer-map': spec({ id: 'concept-layer-map', family: 'mapping', title: 'MAP CONCEPTS BETWEEN MODELS', accessibilityLabel: 'OSI Application, Presentation, and Session map to TCP/IP Application; OSI Transport maps to Transport; OSI Network maps to Internet; OSI Data Link and Physical map to Network Access or Link.', sourceIds: ['ISO-7498-1', 'RFC-1122', 'CISCO-OSI'], layers: OSI_LAYERS, rightLayers: TCP_IP_LAYERS, mappings: [['APPLICATION + PRESENTATION + SESSION', 'APPLICATION'], ['TRANSPORT', 'TRANSPORT'], ['NETWORK', 'INTERNET'], ['DATA LINK + PHYSICAL', 'NETWORK ACCESS / LINK']], footer: 'CABLE / L1 • ETHERNET + MAC / L2 • IPv4 + ICMP / L3 • TCP + UDP / L4' }),
+  'concept-layer-map': spec({ id: 'concept-layer-map', family: 'mapping', title: 'FOLLOW ONE APPLICATION EXCHANGE', accessibilityLabel: 'One application exchange is classified by responsibility. OSI Application, Presentation, and Session map to TCP/IP Application; Transport maps to Transport; Network maps to Internet; Data Link and Physical map to Network Access or Link.', sourceIds: ['ISO-7498-1', 'RFC-1122', 'CISCO-OSI'], layers: OSI_LAYERS, rightLayers: TCP_IP_LAYERS, mappings: [['APPLICATION + PRESENTATION + SESSION', 'APPLICATION'], ['TRANSPORT', 'TRANSPORT'], ['NETWORK', 'INTERNET'], ['DATA LINK + PHYSICAL', 'NETWORK ACCESS / LINK']], stages: guidedStages({ application: 'APPLICATION DEFINES THE MESSAGE MEANING', transport: 'TRANSPORT SERVES THE APPLICATION PROCESS', network: 'IPv4 IDENTIFIES ENDPOINTS AND ROUTES', link: 'ETHERNET HANDLES ONE LOCAL LINK', physical: 'THE MEDIUM CARRIES SIGNALS' }), footer: 'EACH LAYER HAS A RESPONSIBILITY; IT DOES NOT REPLACE THE LAYERS NEXT TO IT' }),
   'osi-physical': spec({ id: 'osi-physical', family: 'comparison', title: 'OSI L1 / PHYSICAL', accessibilityLabel: 'Physical layer examples include copper, fiber, connectors, signals, and link state; it carries bits but does not interpret MAC or IP destinations.', sourceIds: ['ISO-7498-1', 'CISCO-OSI'], nodes: [
     { label: 'RESPONSIBILITY', detail: 'SIGNALS / MEDIA / CONNECTION', token: 'copper-cable', tone: 'neutral' }, { label: 'NOT THIS LAYER', detail: 'MAC LOOKUP / IP ROUTE', token: 'route-table', tone: 'red' },
   ] }),

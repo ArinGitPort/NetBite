@@ -43,6 +43,20 @@ describe('expanded curriculum depth', () => {
     });
   });
 
+  test('keeps every guided example synchronized to stable visual stages', () => {
+    const guidedExamples = chapters.flatMap(({ lessons }) =>
+      lessons.flatMap(({ example }) => example?.presentation === 'guided' ? [example] : []),
+    );
+    expect(guidedExamples.length).toBeGreaterThanOrEqual(15);
+    guidedExamples.forEach((example) => {
+      expect(example.steps?.length).toBeGreaterThanOrEqual(3);
+      expect(example.steps?.length).toBeLessThanOrEqual(5);
+      expect(example.visual?.stageIds).toEqual(example.steps?.map(({ id }) => id));
+      const registeredStageIds = educationalIllustrations[example.visual!.illustration].stages?.map(({ id }) => id);
+      expect(registeredStageIds).toEqual(example.visual?.stageIds);
+    });
+  });
+
   test('uses complete addresses in subnet teaching and practice', () => {
     const chapterFive = chapters.find(({ id }) => id === '5')!;
     const subnetText = JSON.stringify({ chapterFive, practice: practiceConfigs['subnet-range-desk'], illustrations: [educationalIllustrations['subnet-boundaries'], educationalIllustrations['subnet-range'], educationalIllustrations['subnet-map']] });

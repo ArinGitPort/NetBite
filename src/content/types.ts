@@ -40,6 +40,11 @@ export type LessonSection = {
 export type LessonExample = {
   label: string;
   setup: string;
+  presentation?: 'expanded' | 'guided';
+  visual?: {
+    illustration: LessonIllustration;
+    stageIds: string[];
+  };
   steps?: LessonExampleStep[];
   result: string;
 };

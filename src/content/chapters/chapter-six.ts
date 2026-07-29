@@ -45,7 +45,7 @@ export const chapterSix = createAdvancedChapter({
         { heading: 'Gateway is the next hop', body: 'The gateway is the next device along the route, not the final destination. Its local MAC becomes the frame destination on the first link.' },
         { heading: 'The remote address remains', body: 'If PC A sends to 192.168.20.20, that complete IPv4 destination remains unchanged; only the first local-link frame targets the gateway.' },
       ],
-      example: { label: 'LEAVE THE LAN', setup: 'PC A 192.168.10.10/24 sends to remote destination 192.168.20.20 through gateway 192.168.10.1.', steps: [
+      example: { label: 'LEAVE THE LAN', setup: 'PC A 192.168.10.10/24 sends to remote destination 192.168.20.20 through gateway 192.168.10.1.', presentation: 'guided', visual: { illustration: 'default-gateway', stageIds: ['compare', 'next-hop', 'frame', 'ip'] }, steps: [
         { id: 'compare', label: 'COMPARE NETWORK IDENTITIES', explanation: '192.168.10.0/24 and 192.168.20.0/24 differ.', value: 'REMOTE' },
         { id: 'next-hop', label: 'CHOOSE A LOCAL NEXT HOP', explanation: 'PC A selects its reachable gateway 192.168.10.1.' },
         { id: 'frame', label: 'ADDRESS THE LOCAL FRAME', explanation: 'The first Ethernet frame targets the gateway MAC, not the remote PC MAC.' },
@@ -75,7 +75,7 @@ export const chapterSix = createAdvancedChapter({
         { heading: 'Local frame addresses change', body: 'The source and destination MAC addresses are meaningful only on their particular Ethernet link. The next link uses addresses appropriate for that link.' },
         { heading: 'IP endpoints normally remain', body: 'Across this simple route, the original source and destination IPv4 addresses remain the endpoints while each router handles a new local frame.' },
       ],
-      example: { label: 'TWO ETHERNET LINKS', setup: 'PC A sends an IP datagram through one router to PC B.', steps: [
+      example: { label: 'TWO ETHERNET LINKS', setup: 'PC A sends an IP datagram through one router to PC B.', presentation: 'guided', visual: { illustration: 'routed-frame', stageIds: ['first', 'remove', 'second', 'endpoints'] }, steps: [
         { id: 'first', label: 'LAN A FRAME', explanation: 'PC A builds a local frame addressed to the router interface.' },
         { id: 'remove', label: 'ROUTER RECEIVES', explanation: 'The router removes the LAN A frame and selects the next route.' },
         { id: 'second', label: 'LAN B FRAME', explanation: 'The router creates a new frame suitable for the outgoing LAN.' },

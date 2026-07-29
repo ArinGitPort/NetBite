@@ -10,7 +10,7 @@ export const chapterNine = createAdvancedChapter({
         { heading: 'Routes describe networks', body: 'A route normally matches an address range represented by a prefix, not one application or Ethernet frame. More than one entry may match the same destination.' },
         { heading: 'No usable match means no forwarding path', body: 'If neither a specific route nor a default route is available, the router cannot invent a next hop. It drops the packet and may report an ICMP condition.' },
       ],
-      example: { label: 'LOOKUP QUESTION', setup: 'A packet reaches R1 with destination 192.168.30.25.', steps: [
+      example: { label: 'LOOKUP QUESTION', setup: 'A packet reaches R1 with destination 192.168.30.25.', presentation: 'guided', visual: { illustration: 'route-purpose', stageIds: ['read', 'match', 'select'] }, steps: [
         { id: 'read', label: 'READ THE DESTINATION', explanation: 'Route lookup uses the destination IPv4 address, not the source MAC or application name.', value: '192.168.30.25' },
         { id: 'match', label: 'FIND MATCHING PREFIXES', explanation: 'Compare the destination with each usable route’s address range.' },
         { id: 'select', label: 'SELECT THE MOST SPECIFIC', explanation: 'From the matching set, choose the route with the longest prefix.' },
@@ -74,7 +74,7 @@ export const chapterNine = createAdvancedChapter({
         { heading: 'A prefix describes a range', body: 'Route 192.168.10.0/24 covers addresses from 192.168.10.0 through 192.168.10.255. Destination 192.168.10.25 is inside that range, while 192.168.20.25 is not.' },
         { heading: 'Keep only usable matches', body: 'A matching entry whose required interface or next hop is unavailable may not supply a usable forwarding path. NetBite states route usability explicitly.' },
       ],
-      example: { label: 'TEST THREE ROUTES', setup: 'Destination 192.168.10.25 is compared with 192.168.10.0/24, 192.168.0.0/16, and 10.0.0.0/8.', steps: [
+      example: { label: 'TEST THREE ROUTES', setup: 'Destination 192.168.10.25 is compared with 192.168.10.0/24, 192.168.0.0/16, and 10.0.0.0/8.', presentation: 'guided', visual: { illustration: 'route-match-test', stageIds: ['24', '16', '8'] }, steps: [
         { id: '24', label: 'TEST THE /24', explanation: '192.168.10.25 is inside 192.168.10.0–192.168.10.255.', value: 'MATCH' },
         { id: '16', label: 'TEST THE /16', explanation: 'Its first two octets are 192.168, so it is inside 192.168.0.0/16.', value: 'MATCH' },
         { id: '8', label: 'TEST THE /8', explanation: 'The destination begins with 192, not 10.', value: 'NO MATCH' },
@@ -93,7 +93,7 @@ export const chapterNine = createAdvancedChapter({
         { heading: 'Specific before general', body: 'For destination 192.168.10.25, matching /24, /16, and /0 entries do not compete equally. /24 contains the most leading destination bits and is selected.' },
         { heading: 'Longest is not largest', body: 'A longer prefix represents a smaller range. “Longest” refers to the number of matching network bits, not a larger network.' },
       ],
-      example: { label: 'SELECT FROM THE MATCHES', setup: 'Destination 192.168.10.25 matches 192.168.10.0/24, 192.168.0.0/16, and 0.0.0.0/0.', steps: [
+      example: { label: 'SELECT FROM THE MATCHES', setup: 'Destination 192.168.10.25 matches 192.168.10.0/24, 192.168.0.0/16, and 0.0.0.0/0.', presentation: 'guided', visual: { illustration: 'longest-prefix', stageIds: ['candidates', 'lengths', 'winner'] }, steps: [
         { id: 'candidates', label: 'KEEP MATCHES ONLY', explanation: 'All three listed routes contain the destination, so all are candidates.' },
         { id: 'lengths', label: 'COMPARE PREFIX LENGTHS', explanation: 'The candidates fix 24, 16, and 0 leading network bits.', value: '/24 > /16 > /0' },
         { id: 'winner', label: 'CHOOSE THE LONGEST', explanation: 'The /24 route describes the smallest and most-specific matching range.', value: '192.168.10.0/24' },

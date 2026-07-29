@@ -78,7 +78,7 @@ export const chapterEleven = createAdvancedChapter({
       body: 'The Session layer groups responsibilities for establishing, managing, coordinating, and ending conversations between application entities. It provides a conceptual place for dialogue control and synchronization above transport.',
       sections: [
         { heading: 'Conversation organization', body: 'A long interaction may need checkpoints, recovery coordination, or rules about which side speaks when. OSI assigns such session-control responsibilities here.' },
-        { heading: 'Real stacks do not always expose it separately', body: 'Internet applications often implement session behavior inside application libraries or protocols rather than through one visible universal Session-layer protocol.' },
+        { heading: 'What it does not imply', body: 'Session does not carry bits, choose routes, or guarantee that every internet stack exposes one separate Session-layer program. Applications often implement this coordination inside their own protocols or libraries.' },
       ],
       example: { label: 'CONCEPTUAL SESSION', setup: 'Two application entities maintain a coordinated conversation after transport is available.', result: 'The conversation-management responsibility is classified at OSI Session, even if the software combines it elsewhere.' },
       takeaway: 'Session organizes and coordinates application conversations above transport.',
@@ -88,7 +88,7 @@ export const chapterEleven = createAdvancedChapter({
       body: 'The Presentation layer groups how information is represented so application entities can interpret it consistently. Encoding, data-format translation, serialization, compression, and encryption-related representation are common teaching examples.',
       sections: [
         { heading: 'Meaningful representation', body: 'Two applications must agree on how bytes represent text, images, numbers, or structured records. Presentation responsibilities bridge application meaning and transferable representation.' },
-        { heading: 'Not every transformation is a separate layer program', body: 'Modern applications frequently use libraries and application protocols for these functions. The OSI model classifies responsibility rather than dictating one software package.' },
+        { heading: 'What it does not decide', body: 'Presentation does not choose an IP route or deliver an Ethernet frame. Modern applications may perform representation work in libraries or application protocols; the model classifies the responsibility rather than dictating one software package.' },
       ],
       example: { label: 'SAME DATA / AGREED FORM', setup: 'A sender serializes structured information into an agreed encoded form.', result: 'The receiver reverses the representation so its application can interpret the same information.' },
       takeaway: 'Presentation handles how application information is represented and transformed.',
@@ -98,7 +98,7 @@ export const chapterEleven = createAdvancedChapter({
       body: 'The Application layer provides network services and protocol behavior directly used by application processes. It is the highest OSI layer, but it is not the entire visible user interface or the human user.',
       sections: [
         { heading: 'Application protocols', body: 'Protocols for web access, naming, email, and file services are commonly classified here because they define application-level requests, responses, and data meaning.' },
-        { heading: 'Depends on every lower responsibility', body: 'An application exchange still needs representation, conversation and transport services, logical routing, local delivery, and physical connectivity as appropriate.' },
+        { heading: 'What it does not do alone', body: 'Application rules do not carry signals, switch frames, or choose routes. An exchange still needs representation, conversation and transport services, logical routing, local delivery, and physical connectivity as appropriate.' },
       ],
       example: { label: 'NETWORK SERVICE', setup: 'A client application makes a protocol request to a server service.', result: 'The application-level rules define the request meaning while lower layers carry it.' },
       takeaway: 'Application supplies network protocol services used by application processes.',
@@ -120,12 +120,12 @@ export const chapterEleven = createAdvancedChapter({
         { heading: 'Place familiar concepts', body: 'Cables and signals belong at OSI Physical; Ethernet, MAC, switching, and VLANs at Data Link; IPv4, ICMP, ARP’s IP-support role, and routing around the Network/Link boundary as defined by their protocols; TCP and UDP at Transport.' },
         { heading: 'Use mapping for diagnosis', body: 'If link is down, start low. If IP works but one service fails, move toward transport and application evidence. Models guide questions; they do not replace actual tests.' },
       ],
-      example: { label: 'END-TO-END REVIEW', setup: 'A user opens a web page carried through TCP, IPv4, Ethernet, and a copper link.', steps: [
-        { id: 'application', label: 'APPLICATION MEANING', explanation: 'The application protocol defines the request and response.' },
-        { id: 'transport', label: 'TRANSPORT SERVICE', explanation: 'TCP provides the application’s transport service.' },
-        { id: 'network', label: 'NETWORK DELIVERY', explanation: 'IPv4 supplies logical endpoint addressing and routed forwarding.' },
-        { id: 'link', label: 'LOCAL DELIVERY', explanation: 'Ethernet frames and MAC addresses handle each local link.' },
-        { id: 'physical', label: 'PHYSICAL SIGNAL', explanation: 'The copper medium carries the current link’s bits as signals.' },
+      example: { label: 'END-TO-END REVIEW', setup: 'A user opens a web page carried through TCP, IPv4, Ethernet, and a copper link.', presentation: 'guided', visual: { illustration: 'concept-layer-map', stageIds: ['application', 'transport', 'network', 'link', 'physical'] }, steps: [
+        { id: 'application', label: 'APPLICATION MEANING', explanation: 'The application protocol defines what the request and response mean; it does not choose the physical path.' },
+        { id: 'transport', label: 'TRANSPORT SERVICE', explanation: 'TCP serves the application processes; it still relies on IP to reach the remote host.' },
+        { id: 'network', label: 'NETWORK DELIVERY', explanation: 'IPv4 identifies logical endpoints and supports routed forwarding; it does not select a switch port from a MAC table.' },
+        { id: 'link', label: 'LOCAL DELIVERY', explanation: 'Ethernet frames and MAC addresses handle the current local link, not the complete routed path.' },
+        { id: 'physical', label: 'PHYSICAL SIGNAL', explanation: 'The copper medium carries bits as signals without interpreting the frame or application meaning.' },
       ], result: 'One communication uses several responsibility groups without turning the OSI model into a literal seven-program machine.' },
       takeaway: 'Classify each concept by responsibility, then map the responsibility group between models.',
       checkpoint: { prompt: 'Which mapping is correct?', correctChoiceId: 'map', choices: [

@@ -16,3 +16,4 @@ NetBite validates static beginner host settings. DHCP, IPv6, NAT, address exhaus
 - Prefixes are introduced only after eight-bit place values and network-versus-host identity.
 - RFC 1918’s three private blocks are taught explicitly; private allocation is not described as a security control.
 - Numeric examples show complete IPv4 addresses and expose intermediate octet or network-identity calculations before the result.
+- Guided examples connect octet place values to decimal output and derive both network identities before labeling a destination local or remote.

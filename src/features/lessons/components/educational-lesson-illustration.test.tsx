@@ -14,7 +14,14 @@ describe('EducationalLessonIllustration', () => {
   test('renders a technical table without putting facts inside its raster asset', async () => {
     const screen = await render(<EducationalLessonIllustration type="subnet-mask" />);
     expect(screen.getByText('255.255.255.192')).toBeTruthy();
-    expect(screen.getByText('62')).toBeTruthy();
+    expect(screen.getByText('6 HOST BITS')).toBeTruthy();
+    expect(screen.getByText('STEP 64')).toBeTruthy();
+  });
+
+  test('renders a synchronized guided visual stage accessibly', async () => {
+    const screen = await render(<EducationalLessonIllustration stageId="add" type="block-size" />);
+    expect(screen.getByText('ADD 64 FOR EACH NEXT START')).toBeTruthy();
+    expect(screen.getByLabelText(/guided visual stage: add 64/i)).toBeTruthy();
   });
 
   test('renders all seven OSI layers in order', async () => {
@@ -54,5 +61,15 @@ describe('EducationalLessonIllustration', () => {
     const panel = screen.getByLabelText(educationalIllustrations[type].accessibilityLabel);
     fireEvent(panel, 'layout', { nativeEvent: { layout: { width: 360, height: 400, x: 0, y: 0 } } });
     expect(panel).toBeTruthy();
+  });
+
+  test.each([360, 390, 430, 500, 768, 1024])('keeps the full /26 number line readable at %ipx', async (width) => {
+    const screen = await render(<EducationalLessonIllustration type="block-size" />);
+    const panel = screen.getByLabelText(/number line begins at 192.168.10.0/i);
+    fireEvent(panel, 'layout', { nativeEvent: { layout: { width, height: 500, x: 0, y: 0 } } });
+    expect(screen.getByText('192.168.10.0')).toBeTruthy();
+    expect(screen.getByText('192.168.10.64')).toBeTruthy();
+    expect(screen.getByText('192.168.10.128')).toBeTruthy();
+    expect(screen.getByText('192.168.10.192')).toBeTruthy();
   });
 });

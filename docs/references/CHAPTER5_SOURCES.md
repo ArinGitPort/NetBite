@@ -14,3 +14,5 @@ Practice is deliberately limited to `/24` through `/27`, with the traditional ne
 ## Expanded lesson claims
 
 Prefix/mask equivalence, borrowed final-octet bits, host-bit counts, total address counts, block size, complete subnet maps, containing ranges, and reserved endpoints are taught in that dependency order. Primary examples use complete IPv4 addresses; shortened final-octet notation is never required. The repeatable workflow is a teaching method derived from the same prefix mathematics, not a separate protocol rule.
+
+The guided visual sequence uses `192.168.10.70/26` as one anchor. RFC 1878 verifies the `/26` mask `255.255.255.192`, 64-address step, four starts within the containing `/24`, 62 ordinary usable hosts, and the network/broadcast endpoints shown. Values such as 64, 128, and 192 are introduced as repeated full-address boundary steps before they appear in a range decision.

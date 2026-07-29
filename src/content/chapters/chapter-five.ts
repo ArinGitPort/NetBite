@@ -13,7 +13,7 @@ export const chapterFive = createAdvancedChapter({
         { heading: 'One block becomes several networks', body: 'Dividing 192.168.10.0/24 into two /25 subnets creates two separate address ranges. A router is required when traffic must cross from one subnet to the other.' },
         { heading: 'The size tradeoff', body: 'Using more bits for network identity creates more subnets, but fewer addresses remain in each subnet for hosts.' },
       ],
-      example: { label: 'DIVIDE ONE /24', setup: 'One 192.168.10.0/24 block must serve two separate LANs.', steps: [
+      example: { label: 'DIVIDE ONE /24', setup: 'One 192.168.10.0/24 block must serve two separate LANs.', presentation: 'guided', visual: { illustration: 'subnet-purpose', stageIds: ['start', 'split', 'separate'] }, steps: [
         { id: 'start', label: 'START WITH THE FULL BLOCK', explanation: 'A /24 contains addresses from 192.168.10.0 through 192.168.10.255.' },
         { id: 'split', label: 'DIVIDE IT IN HALF', explanation: 'Two /25 blocks contain 128 addresses each.', value: '192.168.10.0–192.168.10.127 / 192.168.10.128–192.168.10.255' },
         { id: 'separate', label: 'TREAT EACH HALF AS A NETWORK', explanation: 'The two ranges now have separate network and broadcast boundaries.' },
@@ -27,7 +27,7 @@ export const chapterFive = createAdvancedChapter({
         { heading: 'Read the pair together', body: 'A host address without its prefix does not identify a subnet. Write 192.168.10.70/26 or pair the address with mask 255.255.255.192.' },
         { heading: 'This chapter changes the fourth octet', body: 'For /24 through /27, the first three mask octets remain 255.255.255. Only the final mask octet changes.' },
       ],
-      example: { label: 'TWO FORMS OF /26', setup: 'Host configuration: 192.168.10.70/26.', steps: [
+      example: { label: 'TWO FORMS OF /26', setup: 'Host configuration: 192.168.10.70/26.', presentation: 'guided', visual: { illustration: 'subnet-mask', stageIds: ['prefix', 'full-octets', 'remaining'] }, steps: [
         { id: 'prefix', label: 'COUNT NETWORK BITS', explanation: '/26 means 26 of the 32 IPv4 bits are network bits.' },
         { id: 'full-octets', label: 'FILL THREE OCTETS', explanation: 'The first 24 network bits fill the first three mask octets.', value: '255.255.255' },
         { id: 'remaining', label: 'PLACE TWO MORE NETWORK BITS', explanation: 'The final mask octet begins with binary 11, followed by six host-bit zeros.', value: '11000000 = 192' },
@@ -41,11 +41,11 @@ export const chapterFive = createAdvancedChapter({
         { heading: 'Only the needed bit values', body: 'The first final-octet bit is worth 128, the second 64, and the third 32. Therefore /25 uses mask value 128, /26 uses 128 + 64 = 192, and /27 uses 128 + 64 + 32 = 224.' },
         { heading: 'Do not convert whole addresses', body: 'For the practical /24–/27 scope, recognizing these three leading bit patterns is enough. Full binary AND calculations are not required.' },
       ],
-      example: { label: 'BUILD A /27 MASK', setup: 'Extend a /24 boundary by three bits.', steps: [
-        { id: 'borrow', label: 'BORROW THREE POSITIONS', explanation: 'Mark the first three fourth-octet positions as network bits.', value: '11100000' },
-        { id: 'add', label: 'ADD THEIR VALUES', explanation: 'The active positions contribute 128, 64, and 32.', value: '128 + 64 + 32 = 224' },
-        { id: 'write', label: 'WRITE THE FULL MASK', explanation: 'The first three octets were already all network bits.', value: '255.255.255.224' },
-      ], result: '/27 and 255.255.255.224 state the same network boundary.' },
+      example: { label: 'BUILD A /26 MASK', setup: 'Use the chapter anchor example 192.168.10.70/26.', presentation: 'guided', visual: { illustration: 'subnet-borrowed-bits', stageIds: ['borrow', 'add', 'write'] }, steps: [
+        { id: 'borrow', label: 'USE TWO LEADING POSITIONS', explanation: 'A /24 already supplies 24 network bits. A /26 extends that boundary by two positions in the fourth octet.', value: '11000000' },
+        { id: 'add', label: 'ADD THEIR PLACE VALUES', explanation: 'The active positions are worth 128 and 64. The next value, 32, remains a host position.', value: '128 + 64 = 192' },
+        { id: 'write', label: 'WRITE THE FULL MASK', explanation: 'The first three octets remain all network bits.', value: '255.255.255.192' },
+      ], result: '/26 and 255.255.255.192 describe the same boundary. “Borrowed bits” is a learning shortcut for seeing how the prefix extends.' },
       takeaway: 'Borrowed leading host positions explain why /25, /26, and /27 use mask values 128, 192, and 224.',
     },
     {
@@ -55,11 +55,11 @@ export const chapterFive = createAdvancedChapter({
         { heading: 'From /24 to /27', body: '/24 leaves 8 host bits for 256 total addresses; /25 leaves 7 for 128; /26 leaves 6 for 64; /27 leaves 5 for 32.' },
         { heading: 'Total is not usable', body: 'In these conventional subnets, the first combination identifies the network and the last is broadcast. Subtract two to find the ordinary usable-host count.' },
       ],
-      example: { label: 'COUNT ONE /27', setup: 'Find the size of any /27 subnet.', steps: [
-        { id: 'remaining', label: 'COUNT HOST BITS', explanation: 'IPv4 has 32 bits, and 27 are network bits.', value: '32 − 27 = 5 host bits' },
-        { id: 'total', label: 'COUNT COMBINATIONS', explanation: 'Five two-state positions create 32 combinations.', value: '2^5 = 32 total addresses' },
-        { id: 'usable', label: 'REMOVE RESERVED ENDPOINTS', explanation: 'Network and broadcast are not ordinary host settings.', value: '32 − 2 = 30 usable addresses' },
-      ], result: 'Every conventional /27 block has 32 total addresses and 30 usable host addresses.' },
+      example: { label: 'COUNT ONE /26', setup: 'Continue with 192.168.10.70/26.', presentation: 'guided', visual: { illustration: 'host-bits', stageIds: ['remaining', 'total', 'usable'] }, steps: [
+        { id: 'remaining', label: 'COUNT HOST BITS', explanation: 'IPv4 has 32 bits, and /26 assigns 26 to the network portion.', value: '32 − 26 = 6 host bits' },
+        { id: 'total', label: 'COUNT COMBINATIONS', explanation: 'Six two-state positions create 64 possible address combinations.', value: '2^6 = 64 total addresses' },
+        { id: 'usable', label: 'REMOVE RESERVED ENDPOINTS', explanation: 'The network and broadcast endpoints are not ordinary host settings.', value: '64 − 2 = 62 usable addresses' },
+      ], result: 'Every conventional /26 block has 64 total addresses and 62 usable host addresses.' },
       takeaway: 'Remaining host bits determine total addresses; conventional usable count is two fewer.',
     },
     {
@@ -69,7 +69,7 @@ export const chapterFive = createAdvancedChapter({
         { heading: 'Use host bits', body: 'A /26 leaves six host bits, so 2^6 = 64 addresses. Its network starts therefore advance by 64 in the fourth octet.' },
         { heading: 'Starts are not ordinary hosts', body: 'Values such as 0, 64, 128, and 192 are candidate /26 network starts. They define blocks; they are not a list of usable interface addresses.' },
       ],
-      example: { label: 'STEP THROUGH A /26', setup: 'Find every /26 network start inside 192.168.10.0/24.', steps: [
+      example: { label: 'STEP THROUGH A /26', setup: 'Find every /26 network start inside 192.168.10.0/24.', presentation: 'guided', visual: { illustration: 'block-size', stageIds: ['size', 'start', 'add'] }, steps: [
         { id: 'size', label: 'FIND BLOCK SIZE', explanation: '/26 leaves six host bits.', value: '2^6 = 64' },
         { id: 'start', label: 'BEGIN AT THE /24 START', explanation: 'The containing block begins at full address 192.168.10.0.' },
         { id: 'add', label: 'REPEATEDLY ADD 64', explanation: 'Stop before the fourth octet would exceed 255.', value: '192.168.10.0, 192.168.10.64, 192.168.10.128, 192.168.10.192' },
@@ -83,7 +83,7 @@ export const chapterFive = createAdvancedChapter({
         { heading: 'Four /26 intervals', body: 'The /26 starts 192.168.10.0, 192.168.10.64, 192.168.10.128, and 192.168.10.192 create four 64-address blocks inside 192.168.10.0/24.' },
         { heading: 'The final block ends at 255', body: 'There is no fifth start inside this /24. Its final /26 block therefore ends at the final address of the containing /24, 192.168.10.255.' },
       ],
-      example: { label: 'MAP THE SECOND /26', setup: 'The second network starts at 192.168.10.64.', steps: [
+      example: { label: 'MAP THE SECOND /26', setup: 'The second network starts at 192.168.10.64.', presentation: 'guided', visual: { illustration: 'subnet-map', stageIds: ['current', 'next', 'end'] }, steps: [
         { id: 'current', label: 'CURRENT START', explanation: 'Use the second value in the full start list.', value: '192.168.10.64' },
         { id: 'next', label: 'NEXT START', explanation: 'Adding the 64-address block size gives the following network.', value: '192.168.10.128' },
         { id: 'end', label: 'END BEFORE THE NEXT START', explanation: 'Subtract one address from the next start.', value: '192.168.10.127' },
@@ -97,7 +97,7 @@ export const chapterFive = createAdvancedChapter({
         { heading: 'Use full-address containment', body: 'For 192.168.10.70/26, the neighboring starts are 192.168.10.64 and 192.168.10.128. The first begins the host’s interval; the second begins the following subnet.' },
         { heading: 'Keep host and network roles separate', body: '192.168.10.70 is the interface being tested. It is not the network address merely because it appears in the question.' },
       ],
-      example: { label: 'LOCATE 192.168.10.70/26', setup: 'Use the /26 map for 192.168.10.0/24.', steps: [
+      example: { label: 'LOCATE 192.168.10.70/26', setup: 'Use the /26 map for 192.168.10.0/24.', presentation: 'guided', visual: { illustration: 'subnet-boundaries', stageIds: ['starts', 'compare', 'choose'] }, steps: [
         { id: 'starts', label: 'READ THE STARTS', explanation: 'The relevant consecutive starts are 192.168.10.64 and 192.168.10.128.' },
         { id: 'compare', label: 'COMPARE THE HOST', explanation: '192.168.10.70 is at least 192.168.10.64 and below 192.168.10.128.' },
         { id: 'choose', label: 'CHOOSE THE LOWER START', explanation: 'That start identifies the containing subnet.', value: '192.168.10.64/26' },
@@ -116,7 +116,7 @@ export const chapterFive = createAdvancedChapter({
         { heading: 'Use the next network start', body: 'For 192.168.10.64/26, the next network starts at 192.168.10.128. One address earlier, 192.168.10.127, is therefore broadcast.' },
         { heading: 'Move inward for usable hosts', body: 'Add one to the network address for the first usable host. Subtract one from broadcast for the last usable host.' },
       ],
-      example: { label: 'LABEL 192.168.10.64/26', setup: 'The complete interval is 192.168.10.64 through 192.168.10.127.', steps: [
+      example: { label: 'LABEL 192.168.10.64/26', setup: 'The complete interval is 192.168.10.64 through 192.168.10.127.', presentation: 'guided', visual: { illustration: 'subnet-range', stageIds: ['network', 'broadcast', 'usable'] }, steps: [
         { id: 'network', label: 'FIRST ADDRESS', explanation: 'The interval start identifies the subnet.', value: 'NETWORK 192.168.10.64' },
         { id: 'broadcast', label: 'LAST ADDRESS', explanation: 'The address before next network 192.168.10.128 reaches the subnet broadcast.', value: 'BROADCAST 192.168.10.127' },
         { id: 'usable', label: 'ADD THE HOST RANGE', explanation: 'Everything between the reserved endpoints is usable for ordinary hosts.', value: 'USABLE 192.168.10.65–192.168.10.126' },
@@ -135,7 +135,7 @@ export const chapterFive = createAdvancedChapter({
         { heading: 'Write intermediate values', body: 'Do not guess from the host address. Recording host bits, block size, and full network starts makes every later result explainable and easier to verify.' },
         { heading: 'Check the completed range', body: 'The network must be a valid start, broadcast must be one address before the next start, and the tested host must lie inside the interval.' },
       ],
-      example: { label: 'COMPLETE 192.168.10.70/26', setup: 'Find the network and complete usable range.', steps: [
+      example: { label: 'COMPLETE 192.168.10.70/26', setup: 'Find the network and complete usable range.', presentation: 'guided', visual: { illustration: 'subnet-method', stageIds: ['bits', 'block', 'starts', 'locate', 'label'] }, steps: [
         { id: 'bits', label: 'PREFIX TO HOST BITS', explanation: 'IPv4 has 32 bits.', value: '32 − 26 = 6 host bits' },
         { id: 'block', label: 'HOST BITS TO BLOCK SIZE', explanation: 'Six host bits create 64 addresses.', value: '2^6 = 64' },
         { id: 'starts', label: 'LIST FULL NETWORK STARTS', explanation: 'Advance by 64 inside the containing /24.', value: '192.168.10.0, 192.168.10.64, 192.168.10.128, 192.168.10.192' },

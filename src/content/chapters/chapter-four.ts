@@ -37,7 +37,7 @@ export const chapterFour = createAdvancedChapter({
         { heading: 'Add the active places', body: 'A 1 means its place value contributes to the total; a 0 means it does not. Binary 11000000 equals 128 + 64, which is decimal 192.' },
         { heading: 'Why this matters', body: 'Prefix lengths count leading bits, not decimal digits. Understanding the eight positions makes /24, /25, and later subnet boundaries less mysterious.' },
       ],
-      example: { label: 'READ ONE OCTET', setup: 'Convert binary 11000000 without converting a complete IPv4 address.', steps: [
+      example: { label: 'READ ONE OCTET', setup: 'Convert binary 11000000 without converting a complete IPv4 address.', presentation: 'guided', visual: { illustration: 'octet-bits', stageIds: ['positions', 'active', 'sum'] }, steps: [
         { id: 'positions', label: 'LABEL THE POSITIONS', explanation: 'From left to right, the first positions are worth 128, 64, and 32.' },
         { id: 'active', label: 'KEEP ACTIVE VALUES', explanation: 'The first two bits are 1; the remaining bits are 0.', value: '128 + 64' },
         { id: 'sum', label: 'ADD THE ACTIVE VALUES', explanation: 'Only active positions contribute to the decimal octet.', value: '192' },
@@ -61,7 +61,7 @@ export const chapterFour = createAdvancedChapter({
         { heading: 'Find the /24 network', body: 'The first three octets contain 24 bits, so they stay as 192.168.10. Setting all eight host bits to zero produces network address 192.168.10.0.' },
         { heading: 'Compare destinations', body: 'A host applies the same prefix boundary to itself and the destination. Matching network portions indicate local delivery; different portions require a router.' },
       ],
-      example: { label: 'LOCAL COMPARISON', setup: 'Host 192.168.10.25/24 considers destination 192.168.10.80.', steps: [
+      example: { label: 'LOCAL COMPARISON', setup: 'Host 192.168.10.25/24 considers destination 192.168.10.80.', presentation: 'guided', visual: { illustration: 'ipv4-prefix', stageIds: ['host-network', 'destination-network', 'compare'] }, steps: [
         { id: 'host-network', label: 'DERIVE THE HOST NETWORK', explanation: '/24 keeps the first three octets and sets the final host octet to zero.', value: '192.168.10.0/24' },
         { id: 'destination-network', label: 'DERIVE THE DESTINATION NETWORK', explanation: 'Apply the same /24 boundary to the destination.', value: '192.168.10.0/24' },
         { id: 'compare', label: 'COMPARE THE RESULTS', explanation: 'The network identities match.', value: 'LOCAL DESTINATION' },

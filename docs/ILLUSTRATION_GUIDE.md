@@ -15,6 +15,8 @@ Lesson illustrations must make the networking relationship easier to understand 
 - Lesson diagrams never require horizontal scrolling, truncate factual text, or hide overflow.
 - Use text and shape differences alongside color. Every panel requires one complete accessibility description.
 - Diagrams describe deterministic educational states, not packet timing, queues, sockets, or a live protocol simulation.
+- Guided diagrams expose stable stages that match worked-example step IDs. A stage may emphasize or annotate existing exact data, but it must not replace, abbreviate, or contradict the complete diagram.
+- Guided controls use immediate state changes rather than decorative motion. This makes the same explanation valid with reduced motion enabled.
 
 ## Visual treatment
 
@@ -47,3 +49,6 @@ The library contains separate server/terminal, Ethernet frame, IPv4 datagram, AR
 - IPv4, subnet, routing, ARP, ICMP, Ethernet, MAC-learning, and VLAN diagrams must match the claims and boundaries recorded in `references/ILLUSTRATION_SOURCES.md`.
 - Subnet bit strips label every position as network or host and connect active bit values to the decimal mask octet.
 - Subnet maps use vertical rows with complete network, usable, and broadcast IPv4 addresses; unexplained final-octet shorthand is not permitted.
+- Subnet blocks use address-space graphics, never router artwork as a substitute for an address range.
+- The core `/26` sequence uses `192.168.10.70/26`: two final-octet network positions create mask value 192, six host bits create a 64-address step, and the full starts are `192.168.10.0`, `192.168.10.64`, `192.168.10.128`, and `192.168.10.192`.
+- Route-selection visuals first test membership, then remove nonmatches, then compare prefix lengths. OSI synthesis follows one exchange while naming what each layer does and does not decide.

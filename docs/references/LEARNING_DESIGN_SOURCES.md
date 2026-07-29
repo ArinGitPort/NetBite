@@ -10,6 +10,13 @@ These references guide presentation and practice structure. They do not replace 
 
 ## NetBite application
 
+- Complex worked examples reveal one synchronized explanation and visual stage at a time, with learner-controlled navigation and a `Show all steps` option.
+- Segmentation is used selectively for subnet calculations, gateway decisions, route selection, and cross-model synthesis; simple definitions remain fully visible.
+- The subnet workflow keeps one anchor host, `192.168.10.70/26`, through mask, size, boundary, containing-range, and reserved-endpoint reasoning.
+- Interaction is optional and unscored. It changes presentation only, not lesson completion, quiz versions, or saved curriculum progress.
+
+## NetBite application
+
 - One lesson introduces one main concept or prerequisite.
 - A calculated or causal example contains three to five labeled steps.
 - The learner sees the initial state, every necessary intermediate decision, and the resulting state together.
