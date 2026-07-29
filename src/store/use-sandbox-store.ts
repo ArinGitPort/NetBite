@@ -45,14 +45,15 @@ export const useSandboxStore = create<SandboxStoreState>()(persist((set) => ({
 }), {
   name: 'netbite-sandbox-state-v1',
   storage: createJSONStorage(() => gameStorage),
-  version: 1,
+  version: 2,
   skipHydration: true,
   partialize: (state) => ({ workspace: state.workspace, guideSeen: state.guideSeen }),
+  migrate: (persistedState) => persistedState as Partial<SandboxStoreState>,
   merge: (persisted, current) => {
     const saved = persisted as Partial<SandboxStoreState> | undefined;
     return {
       ...current,
-      workspace: isSandboxWorkspace(saved?.workspace) ? saved.workspace : current.workspace,
+      workspace: isSandboxWorkspace(saved?.workspace) ? { ...saved.workspace, schemaVersion: 2 } : current.workspace,
       guideSeen: typeof saved?.guideSeen === 'boolean' ? saved.guideSeen : current.guideSeen,
       past: [],
       future: [],

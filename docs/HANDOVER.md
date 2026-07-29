@@ -1,5 +1,12 @@
 # NetBite Project Handover
 
+## Chapter 12 / Inter-VLAN Routing
+
+- The curriculum now contains Chapter 12 with seven lessons, eight quiz questions, nine flashcards, and the `inter-vlan-routing-desk` CLI lab.
+- The CLI recognizes logical router interfaces such as `G0/0.10`, `encapsulation dot1q`, and explicit removal commands.
+- The sandbox persists logical router subinterfaces, exposes them through both the inspector and CLI, and includes an `INTER-VLAN ROUTING DEMO` preset.
+- Router-on-a-stick is deliberately bounded. Layer 3 switch SVIs, native-VLAN behavior, DTP, VTP, STP, ACLs, and dynamic routing remain outside the current model.
+
 ## Mobile-readiness pass
 
 - Runtime device, Ethernet, packet, and control-icon artwork now uses generated `-mobile.png` variants; the larger imported source PNGs remain untouched.

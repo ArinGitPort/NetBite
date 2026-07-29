@@ -81,6 +81,25 @@ describe('CliLab', () => {
     expect(screen.getByText(/next scenario/i)).toBeTruthy();
   });
 
+  test('keeps earlier hints visible and provides a complete inter-VLAN sequence', async () => {
+    const screen = await render(<CliLab definition={cliLabDefinitions['inter-vlan-routing-desk']} />);
+
+    await fireEvent.press(screen.getByText(/show a hint/i));
+    expect(screen.getByText(/PC-A uses SW-1 F0\/1 in VLAN 10/i)).toBeTruthy();
+    expect(screen.getByText(/revealed hints \/ 1 of 4/i)).toBeTruthy();
+
+    await fireEvent.press(screen.getByText(/show next hint/i));
+    expect(screen.getByText(/PC-A uses SW-1 F0\/1 in VLAN 10/i)).toBeTruthy();
+    expect(screen.getByText(/switchport trunk allowed vlan 10,20/i)).toBeTruthy();
+    expect(screen.getByText(/revealed hints \/ 2 of 4/i)).toBeTruthy();
+
+    await fireEvent.press(screen.getByText(/show next hint/i));
+    await fireEvent.press(screen.getByText(/show next hint/i));
+    expect(screen.getByText(/G0\/0.10 with encapsulation dot1q 10/i)).toBeTruthy();
+    expect(screen.getByText(/ping 192.168.20.20/i)).toBeTruthy();
+    expect(screen.getByText(/all 4 hints shown/i)).toBeTruthy();
+  });
+
   test('keeps the status and terminal vertically composed while the web container resizes', async () => {
     const screen = await render(<CliLab definition={cliLabDefinitions['ping-diagnostic-desk']} />);
     await fireEvent(screen.getByTestId('cli-layout'), 'layout', { persist: jest.fn(), nativeEvent: { layout: { width: 1400, height: 900, x: 0, y: 0 } } });
@@ -129,5 +148,44 @@ describe('CliLab', () => {
     expect(screen.getAllByText('F0/24 ACCESS')).toHaveLength(2);
     await fireEvent.press(screen.getByRole('tab', { name: 'NB-SW-B' }));
     expect(screen.getByLabelText('Command for NB-SW-B')).toBeTruthy();
+  });
+
+  test('renders the inter-VLAN lab and exposes logical-interface configuration without clipping controls', async () => {
+    const screen = await render(<CliLab definition={cliLabDefinitions['inter-vlan-routing-desk']} />);
+    expect(screen.getByRole('tab', { name: 'NB-SW-1' })).toBeTruthy();
+    expect(screen.getByRole('tab', { name: 'NB-R1' })).toBeTruthy();
+    expect(screen.getByRole('tab', { name: 'PC-A' })).toBeTruthy();
+    expect(screen.getByRole('tab', { name: 'PC-B' })).toBeTruthy();
+    await fireEvent.press(screen.getByRole('tab', { name: 'NB-R1' }));
+    const input = () => screen.getByLabelText('Command for NB-R1');
+    for (const command of ['enable', 'configure terminal', 'interface G0/0.10', 'encapsulation dot1q 10']) {
+      await fireEvent.changeText(input(), command);
+      await fireEvent.press(screen.getByText(/run command/i));
+    }
+    expect(screen.getAllByText(/G0\/0.10 ENCAPSULATION DOT1Q 10/i).length).toBeGreaterThanOrEqual(1);
+    expect(StyleSheet.flatten(screen.getByTestId('cli-footer-actions').props.style)).toMatchObject({ width: '100%', flexWrap: 'wrap' });
+  });
+
+  test('completes the inter-VLAN lab from configuration state and bidirectional evidence', async () => {
+    const screen = await render(<CliLab definition={cliLabDefinitions['inter-vlan-routing-desk']} />);
+    const submit = async (deviceName: string, command: string) => {
+      await fireEvent.changeText(screen.getByLabelText(`Command for ${deviceName}`), command);
+      await fireEvent.press(screen.getByText(/run command/i));
+    };
+    for (const command of ['enable', 'configure terminal', 'interface F0/24', 'switchport mode trunk', 'switchport trunk allowed vlan 10,20', 'end']) {
+      await submit('NB-SW-1', command);
+    }
+    await fireEvent.press(screen.getByRole('tab', { name: 'NB-R1' }));
+    for (const command of ['enable', 'configure terminal', 'interface G0/0.10', 'encapsulation dot1q 10', 'ip address 192.168.10.1 255.255.255.0', 'exit', 'interface G0/0.20', 'encapsulation dot1q 20', 'ip address 192.168.20.1 255.255.255.0', 'end']) {
+      await submit('NB-R1', command);
+    }
+    await fireEvent.press(screen.getByRole('tab', { name: 'PC-A' }));
+    await submit('PC-A', 'ping 192.168.20.20');
+    await fireEvent.press(screen.getByRole('tab', { name: 'PC-B' }));
+    await submit('PC-B', 'ping 192.168.10.10');
+    const complete = screen.getByRole('button', { name: /complete inter-vlan lab/i });
+    expect(complete.props.accessibilityState.disabled).toBe(false);
+    await fireEvent.press(complete);
+    expect(useGameStore.getState().completedLabIds).toContain('inter-vlan-routing-desk');
   });
 });

@@ -13,7 +13,7 @@ export interface DiagnosticScenario {
   createState: () => CliNetworkState;
 }
 export interface CliLabDefinition extends PublicCliLabDefinition {
-  kind: 'diagnostic' | 'routing' | 'vlan';
+  kind: 'diagnostic' | 'routing' | 'vlan' | 'inter-vlan';
   eyebrow: string;
   objective: string;
   scopeNote: string;
@@ -133,6 +133,28 @@ export function createVlanState(): CliNetworkState {
   };
 }
 
+export function createInterVlanState(): CliNetworkState {
+  return {
+    devices: [
+      device({ id: 'pc-a', name: 'PC-A', type: 'host', interfaces: [{ name: 'E0', ipv4: '192.168.10.10', prefix: 24, adminUp: true, linkUp: true }], routes: [{ prefix: '0.0.0.0', prefixLength: 0, nextHop: '192.168.10.1', exitInterface: 'E0', source: 'default' }] }),
+      device({ id: 'sw-1', name: 'NB-SW-1', type: 'switch', interfaces: [
+        { name: 'F0/1', adminUp: true, linkUp: true, switchportMode: 'access', accessVlan: 10 },
+        { name: 'F0/2', adminUp: true, linkUp: true, switchportMode: 'access', accessVlan: 20 },
+        { name: 'F0/24', adminUp: true, linkUp: true, switchportMode: 'access', accessVlan: 1 },
+      ], vlans: [1, 10, 20] }),
+      device({ id: 'r1', name: 'NB-R1', type: 'router', interfaces: [
+        { name: 'G0/0', adminUp: true, linkUp: true },
+      ] }),
+      device({ id: 'pc-b', name: 'PC-B', type: 'host', interfaces: [{ name: 'E0', ipv4: '192.168.20.20', prefix: 24, adminUp: true, linkUp: true }], routes: [{ prefix: '0.0.0.0', prefixLength: 0, nextHop: '192.168.20.1', exitInterface: 'E0', source: 'default' }] }),
+    ],
+    links: [
+      { aDeviceId: 'pc-a', aInterface: 'E0', bDeviceId: 'sw-1', bInterface: 'F0/1' },
+      { aDeviceId: 'pc-b', aInterface: 'E0', bDeviceId: 'sw-1', bInterface: 'F0/2' },
+      { aDeviceId: 'sw-1', aInterface: 'F0/24', bDeviceId: 'r1', bInterface: 'G0/0' },
+    ],
+  };
+}
+
 export const cliLabDefinitions: Record<string, CliLabDefinition> = {
   'ping-diagnostic-desk': {
     id: 'ping-diagnostic-desk', chapterId: '8', kind: 'diagnostic', eyebrow: 'CLI MINI LAB / DIAGNOSTICS', title: 'READ THE NETWORK EVIDENCE',
@@ -145,5 +167,9 @@ export const cliLabDefinitions: Record<string, CliLabDefinition> = {
   'vlan-port-desk': {
     id: 'vlan-port-desk', chapterId: '10', kind: 'vlan', eyebrow: 'CLI MINI LAB / VLAN CONFIG', title: 'BUILD TWO VLAN PATHS',
     objective: 'Create VLAN 10 and 20, configure access ports, and carry both VLANs across the trunk.', scopeNote: 'NO STP OR INTER-VLAN ROUTING / CONFIGURATION STATE MODEL', createState: createVlanState,
+  },
+  'inter-vlan-routing-desk': {
+    id: 'inter-vlan-routing-desk', chapterId: '12', kind: 'inter-vlan', eyebrow: 'CLI MINI LAB / ROUTER-ON-A-STICK', title: 'ROUTE BETWEEN TWO VLANs',
+    objective: 'Build the VLAN 10 and VLAN 20 router trunk, configure both gateway subinterfaces, and verify both directions.', scopeNote: 'FIXED TOPOLOGY / DETERMINISTIC 802.1Q + ROUTING STATE', createState: createInterVlanState,
   },
 };

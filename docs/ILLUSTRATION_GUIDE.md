@@ -1,5 +1,9 @@
 # NetBite Educational Illustration Guide
 
+## Inter-VLAN routing diagrams
+
+Chapter 12 illustrations keep every address, VLAN ID, interface name, route, and arrow in application-rendered text. The panels distinguish untagged endpoint access links from the tagged router trunk and show that the IP endpoints remain stable while Ethernet framing is replaced. A router subinterface is always drawn as a logical child of one physical parent, never as an independently cabled port.
+
 ## Purpose
 
 Lesson illustrations must make the networking relationship easier to understand before they decorate the page. “16-bit” describes the crisp visual treatment of device and protocol-object artwork; it does not change a protocol, layer order, address, range, table entry, or direction.

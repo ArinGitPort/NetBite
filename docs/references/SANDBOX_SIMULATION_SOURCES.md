@@ -3,7 +3,8 @@
 | Modeled behavior | Primary evidence | NetBite boundary |
 | --- | --- | --- |
 | Ethernet addressing and frames | IEEE 802.3 Ethernet standard | No electrical signaling, timing, collision, or physical encoding simulation |
-| VLAN access and tagged trunk context | IEEE 802.1Q Bridges and Bridged Networks | No STP, negotiation, native-VLAN behavior, or router-on-a-stick |
+| VLAN access and tagged trunk context | IEEE 802.1Q Bridges and Bridged Networks | No STP, negotiation, or native-VLAN behavior |
+| Router-on-a-stick inter-VLAN forwarding | IEEE 802.1Q, RFC 1122, RFC 1812, and official Cisco external-router guidance | Logical subinterfaces, connected routes, ARP, and return paths; no SVIs or vendor OS emulation |
 | IPv4 addressing and forwarding | RFC 791; RFC 1812 | Deterministic addresses and route decisions only; no fragmentation or queues |
 | ARP request, reply, and cache mapping | RFC 826 | Immediate state transitions with no timers, retries, poisoning, or security model |
 | ICMP Echo evidence | RFC 792; RFC 1122 | Round-trip reachability without invented latency, loss, or universal failure causes |

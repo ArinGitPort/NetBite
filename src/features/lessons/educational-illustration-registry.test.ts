@@ -8,9 +8,9 @@ import {
 describe('educational illustration registry', () => {
   const lessonIllustrations = chapters.flatMap(({ lessons }) => lessons.map(({ illustration }) => illustration));
 
-  test('resolves all 77 lesson illustration IDs', () => {
-    expect(lessonIllustrations).toHaveLength(77);
-    expect(new Set(lessonIllustrations).size).toBe(77);
+  test('resolves all 84 lesson illustration IDs', () => {
+    expect(lessonIllustrations).toHaveLength(84);
+    expect(new Set(lessonIllustrations).size).toBe(84);
     lessonIllustrations.forEach((id) => expect(educationalIllustrations[id].id).toBe(id));
   });
 

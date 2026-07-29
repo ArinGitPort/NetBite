@@ -146,3 +146,13 @@ Lessons: Why Layered Models Exist; Read the Seven-Layer OSI Stack; Layer 1 Physi
 Practice: classify media, Ethernet/MAC, IPv4/ICMP/routing, TCP/UDP, and application concepts.
 
 Assessment: eight quiz questions, mastery 7/8. The models classify responsibilities and do not represent a literal implementation sequence. Sources: `references/CHAPTER11_SOURCES.md`.
+
+## Chapter 12 — Inter-VLAN Routing
+
+Goal: route between two intentionally separate VLAN networks using one router trunk and two logical gateway interfaces.
+
+Lessons: Different VLANs Need a Layer 3 Crossing; Each VLAN Uses a Gateway in Its Own Subnet; One Router Link Can Serve Several VLANs; A Subinterface Terminates One VLAN Context; Routing Rebuilds the Ethernet Frame; Configure and Verify in a Reliable Order; Troubleshoot the First Broken Boundary.
+
+Practice: configure an 802.1Q switch trunk and two router subinterfaces, verify both connected networks, and prove forwarding and return paths.
+
+Assessment: eight quiz questions, mastery 7/8. Scope is router-on-a-stick only; Layer 3 switch SVIs, native-VLAN behavior, DTP, VTP, and STP remain excluded. Sources: `references/CHAPTER12_SOURCES.md`.

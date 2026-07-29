@@ -5,12 +5,12 @@ import { educationalIllustrations } from '@/features/lessons/educational-illustr
 import { practiceConfigs } from '@/features/practice/practice-configs';
 
 describe('expanded curriculum depth', () => {
-  const lessonCounts = [5, 6, 6, 7, 9, 6, 6, 6, 8, 7, 11];
-  const quizCounts = [6, 7, 7, 8, 8, 7, 7, 7, 8, 8, 8];
+  const lessonCounts = [5, 6, 6, 7, 9, 6, 6, 6, 8, 7, 11, 7];
+  const quizCounts = [6, 7, 7, 8, 8, 7, 7, 7, 8, 8, 8, 8];
 
-  test('contains the planned 77 focused lessons', () => {
+  test('contains 84 focused lessons across twelve chapters', () => {
     expect(chapters.map(({ lessons }) => lessons.length)).toEqual(lessonCounts);
-    expect(chapters.flatMap(({ lessons }) => lessons)).toHaveLength(77);
+    expect(chapters.flatMap(({ lessons }) => lessons)).toHaveLength(84);
   });
 
   test('uses dynamic numbering and stable unique IDs', () => {
@@ -72,7 +72,7 @@ describe('expanded curriculum depth', () => {
 
   test('uses planned quiz sizes and 80 percent mastery', () => {
     expect(chapters.map(({ quiz }) => quiz.length)).toEqual(quizCounts);
-    expect(chapters.map(getQuizMasteryScore)).toEqual([5, 6, 6, 7, 7, 6, 6, 6, 7, 7, 7]);
+    expect(chapters.map(getQuizMasteryScore)).toEqual([5, 6, 6, 7, 7, 6, 6, 6, 7, 7, 7, 7]);
   });
 
   test('keeps every checkpoint deterministic and retryable', () => {

@@ -1,6 +1,6 @@
 import { calculateSubnetRange, parseIPv4Address, selectBestRoute, type RouteEntry } from '@/core/network/advanced-networking';
 
-export type CliMode = 'user-exec' | 'privileged-exec' | 'global-config' | 'interface-config' | 'vlan-config';
+export type CliMode = 'user-exec' | 'privileged-exec' | 'global-config' | 'interface-config' | 'subinterface-config' | 'vlan-config';
 export type CliDeviceType = 'host' | 'router' | 'switch';
 export type CliOutputTone = 'normal' | 'muted' | 'success' | 'warning';
 
@@ -9,6 +9,8 @@ export interface CliInterfaceState {
   name: string;
   adminUp: boolean;
   linkUp: boolean;
+  parentInterface?: string;
+  encapsulationVlan?: number;
   ipv4?: string;
   prefix?: number;
   switchportMode?: 'access' | 'trunk';
@@ -55,6 +57,8 @@ export type CliCommand =
   | { kind: 'clear-arp' }
   | { kind: 'ping'; destination: string }
   | { kind: 'interface'; name: string }
+  | { kind: 'no-interface'; name: string }
+  | { kind: 'encapsulation-dot1q'; vlan?: number; remove: boolean }
   | { kind: 'ip-address'; address?: string; prefixLength?: number; remove: boolean }
   | { kind: 'shutdown'; shutdown: boolean }
   | { kind: 'vlan'; vlan: number }
@@ -104,7 +108,7 @@ export function cloneCliNetwork(state: CliNetworkState): CliNetworkState {
 
 export function normalizeInterfaceName(value: string) {
   const compact = value.trim().toLowerCase().replace(/\s+/g, '');
-  const match = compact.match(/^(?:gigabitethernet|gi|g|fastethernet|fa|f|ethernet|e)(\d+(?:\/\d+)+)$/);
+  const match = compact.match(/^(?:gigabitethernet|gi|g|fastethernet|fa|f|ethernet|e)(\d+(?:\/\d+)+(?:\.\d+)?)$/);
   if (!match) return value.trim().toUpperCase();
   const fast = /^(?:fastethernet|fa|f)/.test(compact);
   return `${fast ? 'F' : 'G'}${match[1]}`;
@@ -149,12 +153,22 @@ export function parseCliCommand(input: string): CliParseResult {
   }
   const interfaceMatch = lower.match(/^(?:interface|int) (.+)$/);
   if (interfaceMatch) return { ok: true, command: { kind: 'interface', name: normalizeInterfaceName(interfaceMatch[1]) } };
+  const noInterfaceMatch = lower.match(/^no interface (.+)$/);
+  if (noInterfaceMatch) return { ok: true, command: { kind: 'no-interface', name: normalizeInterfaceName(noInterfaceMatch[1]) } };
   const vlanMatch = lower.match(/^vlan (\d+)$/);
   if (vlanMatch) {
     const vlan = Number(vlanMatch[1]);
     return vlan >= 1 && vlan <= 4094 ? { ok: true, command: { kind: 'vlan', vlan } } : { ok: false, error: 'VLAN ID must be from 1 through 4094.' };
   }
   if (lower === 'no ip address') return { ok: true, command: { kind: 'ip-address', remove: true } };
+  if (lower === 'no encapsulation dot1q') return { ok: true, command: { kind: 'encapsulation-dot1q', remove: true } };
+  const encapsulationMatch = lower.match(/^encapsulation dot1q (\d+)$/);
+  if (encapsulationMatch) {
+    const vlan = Number(encapsulationMatch[1]);
+    return vlan >= 1 && vlan <= 4094
+      ? { ok: true, command: { kind: 'encapsulation-dot1q', vlan, remove: false } }
+      : { ok: false, error: '802.1Q VLAN ID must be from 1 through 4094.' };
+  }
   const addressMatch = lower.match(/^ip address (\S+) (\S+)$/);
   if (addressMatch) {
     const prefixLength = maskToPrefix(addressMatch[2]);
@@ -196,6 +210,7 @@ export function getCliPrompt(device: CliDeviceState) {
   if (device.mode === 'privileged-exec') return `${device.name}#`;
   if (device.mode === 'global-config') return `${device.name}(config)#`;
   if (device.mode === 'interface-config') return `${device.name}(config-if)#`;
+  if (device.mode === 'subinterface-config') return `${device.name}(config-subif)#`;
   return `${device.name}(config-vlan)#`;
 }
 
@@ -210,10 +225,13 @@ export function getCliSuggestions(device: CliDeviceState, network?: CliNetworkSt
   if (device.mode === 'privileged-exec') return device.type === 'switch'
     ? ['configure terminal', 'show running-config', 'show vlan brief', 'show interfaces trunk', 'show mac address-table']
     : ['configure terminal', ...pingSuggestions, 'show running-config', 'show ip interface brief', 'show ip route', 'show arp'];
-  if (device.mode === 'global-config') return device.type === 'switch' ? ['interface F0/1', 'vlan 10', 'end'] : ['ip route ', 'end'];
+  if (device.mode === 'global-config') return device.type === 'switch'
+    ? ['interface F0/1', 'vlan 10', 'end']
+    : ['interface G0/0', 'interface G0/0.10', 'interface G0/0.20', 'ip route ', 'end'];
   if (device.mode === 'interface-config') return device.type === 'switch'
     ? ['switchport mode access', 'switchport access vlan ', 'switchport mode trunk', 'switchport trunk allowed vlan ', 'exit']
     : ['ip address ', 'no shutdown', 'shutdown', 'exit'];
+  if (device.mode === 'subinterface-config') return ['encapsulation dot1q ', 'ip address ', 'no shutdown', 'shutdown', 'exit'];
   return ['exit', 'end'];
 }
 
@@ -221,7 +239,9 @@ function modeError(expected: string): CliOutputLine[] { return [warning(`NETBITE
 
 export function deriveConnectedRoutes(device: CliDeviceState): RouteEntry[] {
   return device.interfaces.flatMap((item) => {
-    if (!item.ipv4 || item.prefix === undefined || !item.adminUp || !item.linkUp) return [];
+    const parent = item.parentInterface ? device.interfaces.find((candidate) => candidate.name === item.parentInterface) : undefined;
+    const operational = item.adminUp && item.linkUp && (!parent || (parent.adminUp && parent.linkUp && item.encapsulationVlan !== undefined));
+    if (!item.ipv4 || item.prefix === undefined || !operational) return [];
     const range = calculateSubnetRange(item.ipv4, item.prefix);
     return range ? [{ prefix: range.network, prefixLength: item.prefix, exitInterface: item.name, source: 'connected' as const }] : [];
   });
@@ -232,6 +252,8 @@ function showRunningConfig(device: CliDeviceState) {
   device.interfaces.forEach((item) => {
     lines.push(`INTERFACE ${item.name}`);
     if (item.ipv4 && item.prefix !== undefined) lines.push(`  IP ADDRESS ${item.ipv4}/${item.prefix}`);
+    if (item.parentInterface) lines.push(`  PARENT ${item.parentInterface}`);
+    if (item.encapsulationVlan !== undefined) lines.push(`  ENCAPSULATION DOT1Q ${item.encapsulationVlan}`);
     lines.push(`  STATE ${item.adminUp ? 'ENABLED' : 'DISABLED'} / LINK ${item.linkUp ? 'UP' : 'DOWN'}`);
     if (item.switchportMode) lines.push(`  SWITCHPORT MODE ${item.switchportMode.toUpperCase()}`);
     if (item.accessVlan) lines.push(`  ACCESS VLAN ${item.accessVlan}`);
@@ -248,6 +270,62 @@ function showIpRoute(device: CliDeviceState) {
 
 function findDevice(state: CliNetworkState, id: string) { return state.devices.find((device) => device.id === id); }
 function findInterface(device: CliDeviceState, name?: string) { return device.interfaces.find((item) => item.name === name); }
+function cliInterfaceOperational(device: CliDeviceState, item: CliInterfaceState) {
+  if (!item.adminUp || !item.linkUp) return false;
+  if (!item.parentInterface) return true;
+  const parent = findInterface(device, item.parentInterface);
+  return Boolean(parent?.adminUp && parent.linkUp && item.encapsulationVlan !== undefined);
+}
+function cliPhysicalInterface(device: CliDeviceState, item: CliInterfaceState) {
+  return item.parentInterface ? findInterface(device, item.parentInterface) : item;
+}
+function cliInterfaceCarriesVlan(device: CliDeviceState, item: CliInterfaceState, vlan: number) {
+  if (!item.adminUp || !item.linkUp) return false;
+  if (device.type !== 'switch') return true;
+  return item.switchportMode === 'trunk' ? Boolean(item.allowedVlans?.includes(vlan)) : (item.accessVlan ?? 1) === vlan;
+}
+function cliVlanForInterface(state: CliNetworkState, device: CliDeviceState, item: CliInterfaceState) {
+  if (item.parentInterface && item.encapsulationVlan !== undefined) return item.encapsulationVlan;
+  const physical = cliPhysicalInterface(device, item);
+  const link = state.links.find((candidate) =>
+    (candidate.aDeviceId === device.id && candidate.aInterface === physical?.name)
+    || (candidate.bDeviceId === device.id && candidate.bInterface === physical?.name),
+  );
+  if (!link) return 1;
+  const otherDeviceId = link.aDeviceId === device.id ? link.bDeviceId : link.aDeviceId;
+  const otherInterfaceName = link.aDeviceId === device.id ? link.bInterface : link.aInterface;
+  const otherDevice = findDevice(state, otherDeviceId);
+  const otherInterface = otherDevice ? findInterface(otherDevice, otherInterfaceName) : undefined;
+  return otherDevice?.type === 'switch' && otherInterface && otherInterface.switchportMode !== 'trunk' ? otherInterface.accessVlan ?? 1 : 1;
+}
+function cliLayer2Path(state: CliNetworkState, sourceDevice: CliDeviceState, sourceInterface: CliInterfaceState, targetDevice: CliDeviceState, targetInterface: CliInterfaceState, vlan: number) {
+  const sourcePhysical = cliPhysicalInterface(sourceDevice, sourceInterface);
+  const targetPhysical = cliPhysicalInterface(targetDevice, targetInterface);
+  if (!sourcePhysical || !targetPhysical) return false;
+  const queue = [{ deviceId: sourceDevice.id, interfaceName: sourcePhysical.name }];
+  const visited = new Set<string>();
+  while (queue.length) {
+    const current = queue.shift()!;
+    const key = `${current.deviceId}:${current.interfaceName}`;
+    if (key === `${targetDevice.id}:${targetPhysical.name}`) return true;
+    if (visited.has(key)) continue;
+    visited.add(key);
+    const device = findDevice(state, current.deviceId);
+    const item = device ? findInterface(device, current.interfaceName) : undefined;
+    if (!device || !item || !cliInterfaceCarriesVlan(device, item, vlan)) continue;
+    if (device.type === 'switch') {
+      device.interfaces.filter((candidate) => candidate.name !== item.name && cliInterfaceCarriesVlan(device, candidate, vlan))
+        .forEach((candidate) => queue.push({ deviceId: device.id, interfaceName: candidate.name }));
+    }
+    state.links.filter((link) =>
+      (link.aDeviceId === device.id && link.aInterface === item.name)
+      || (link.bDeviceId === device.id && link.bInterface === item.name),
+    ).forEach((link) => queue.push(link.aDeviceId === device.id
+      ? { deviceId: link.bDeviceId, interfaceName: link.bInterface }
+      : { deviceId: link.aDeviceId, interfaceName: link.aInterface }));
+  }
+  return false;
+}
 
 export function traceIPv4Path(state: CliNetworkState, sourceDeviceId: string, destination: string): PathTraceResult {
   if (!parseIPv4Address(destination)) return { success: false, reason: 'invalid-destination', hops: [] };
@@ -258,23 +336,25 @@ export function traceIPv4Path(state: CliNetworkState, sourceDeviceId: string, de
   for (let count = 0; count <= state.devices.length + 1; count += 1) {
     if (visited.has(current.id)) return { success: false, reason: 'loop', hops };
     visited.add(current.id); hops.push(current.name);
-    if (current.interfaces.some((item) => item.ipv4 === destination && item.adminUp && item.linkUp)) return { success: true, reason: 'delivered', hops };
+    if (current.interfaces.some((item) => item.ipv4 === destination && cliInterfaceOperational(current!, item))) return { success: true, reason: 'delivered', hops };
     if (current.interfaces.some((item) => item.ipv4) && !current.interfaces.some((item) => item.ipv4 && item.adminUp && item.linkUp)) {
       return { success: false, reason: 'interface-down', hops };
     }
     const route = selectBestRoute(destination, [...deriveConnectedRoutes(current), ...current.routes]);
     if (!route) return { success: false, reason: 'no-route', hops };
     if (!route.nextHop) {
-      const target = state.devices.find((device) => device.interfaces.some((item) => item.ipv4 === destination && item.adminUp && item.linkUp));
+      const target = state.devices.find((device) => device.interfaces.some((item) => item.ipv4 === destination && cliInterfaceOperational(device, item)));
       if (!target) return { success: false, reason: 'next-hop-unreachable', hops };
-      const linked = state.links.some((link) => (link.aDeviceId === current!.id && link.bDeviceId === target.id) || (link.bDeviceId === current!.id && link.aDeviceId === target.id));
-      if (!linked) return { success: false, reason: 'next-hop-unreachable', hops };
+      const outgoing = findInterface(current, route.exitInterface) ?? current.interfaces.find((item) => item.ipv4);
+      const targetInterface = target.interfaces.find((item) => item.ipv4 === destination)!;
+      if (!outgoing || !cliLayer2Path(state, current, outgoing, target, targetInterface, cliVlanForInterface(state, current, outgoing))) return { success: false, reason: 'next-hop-unreachable', hops };
       current = target; continue;
     }
-    const next = state.devices.find((device) => device.interfaces.some((item) => item.ipv4 === route.nextHop && item.adminUp && item.linkUp));
+    const next = state.devices.find((device) => device.interfaces.some((item) => item.ipv4 === route.nextHop && cliInterfaceOperational(device, item)));
     if (!next) return { success: false, reason: 'next-hop-unreachable', hops };
-    const linked = state.links.some((link) => (link.aDeviceId === current!.id && link.bDeviceId === next.id) || (link.bDeviceId === current!.id && link.aDeviceId === next.id));
-    if (!linked) return { success: false, reason: 'next-hop-unreachable', hops };
+    const outgoing = findInterface(current, route.exitInterface) ?? current.interfaces.find((item) => item.ipv4 && calculateSubnetRange(item.ipv4, item.prefix ?? -1)?.network === calculateSubnetRange(route.nextHop!, item.prefix ?? -1)?.network);
+    const nextInterface = next.interfaces.find((item) => item.ipv4 === route.nextHop)!;
+    if (!outgoing || !cliLayer2Path(state, current, outgoing, next, nextInterface, cliVlanForInterface(state, current, outgoing))) return { success: false, reason: 'next-hop-unreachable', hops };
     current = next;
   }
   return { success: false, reason: 'loop', hops };
@@ -284,7 +364,12 @@ export function simulatePing(state: CliNetworkState, sourceDeviceId: string, des
   const forward = traceIPv4Path(state, sourceDeviceId, destination);
   if (!forward.success) return { success: false, forward, output: [normal(`PING TARGET ${destination}`), warning(`NO ECHO REPLY / ${forward.reason.replaceAll('-', ' ').toUpperCase()}`), muted(`CHECKED PATH ${forward.hops.join(' → ') || 'NONE'}`)] };
   const destinationDevice = state.devices.find((device) => device.interfaces.some((item) => item.ipv4 === destination));
-  const sourceAddress = findDevice(state, sourceDeviceId)?.interfaces.find((item) => item.ipv4)?.ipv4;
+  const sourceDevice = findDevice(state, sourceDeviceId);
+  const sourceRoute = sourceDevice ? selectBestRoute(destination, [...deriveConnectedRoutes(sourceDevice), ...sourceDevice.routes]) : undefined;
+  const sourceAddress = sourceDevice
+    ? findInterface(sourceDevice, sourceRoute?.exitInterface)?.ipv4
+      ?? sourceDevice.interfaces.find((item) => item.ipv4 && cliInterfaceOperational(sourceDevice, item))?.ipv4
+    : undefined;
   const reverse = destinationDevice && sourceAddress ? traceIPv4Path(state, destinationDevice.id, sourceAddress) : undefined;
   if (!reverse?.success) return { success: false, forward, reverse, output: [normal(`PING TARGET ${destination}`), warning('FORWARD PATH REACHED TARGET / NO RETURN ECHO REPLY'), muted(`FORWARD ${forward.hops.join(' → ')}`)] };
   return { success: true, forward, reverse, output: [normal(`PING TARGET ${destination}`), success('ECHO REPLY RECEIVED / THIS ROUND TRIP SUCCEEDED'), muted(`PATH ${forward.hops.join(' → ')}`)] };
@@ -325,7 +410,7 @@ export function executeCliCommand(state: CliNetworkState, deviceId: string, comm
   if (command.kind === 'configure-terminal') { if (device.mode !== 'privileged-exec') return reject(modeError('privileged EXEC mode')); device.mode = 'global-config'; return finish([success('GLOBAL CONFIGURATION MODE')], true, ['mode-change']); }
   if (command.kind === 'end') { device.mode = 'privileged-exec'; device.selectedInterface = undefined; device.selectedVlan = undefined; return finish([muted('PRIVILEGED EXEC MODE')], true, ['mode-change']); }
   if (command.kind === 'exit') {
-    if (device.mode === 'interface-config' || device.mode === 'vlan-config') device.mode = 'global-config';
+    if (device.mode === 'interface-config' || device.mode === 'subinterface-config' || device.mode === 'vlan-config') device.mode = 'global-config';
     else if (device.mode === 'global-config') device.mode = 'privileged-exec';
     else if (device.mode === 'privileged-exec') device.mode = 'user-exec';
     device.selectedInterface = undefined; device.selectedVlan = undefined;
@@ -365,10 +450,29 @@ export function executeCliCommand(state: CliNetworkState, deviceId: string, comm
   }
   if (command.kind === 'interface') {
     if (device.mode !== 'global-config') return reject(modeError('global configuration mode'));
-    const item = findInterface(device, command.name);
+    let item = findInterface(device, command.name);
+    const subinterfaceMatch = command.name.match(/^(.+)\.(\d+)$/);
+    if (!item && device.type === 'router' && subinterfaceMatch) {
+      const parent = findInterface(device, subinterfaceMatch[1]);
+      if (!parent || parent.parentInterface) return reject([warning(`NETBITE: Physical parent ${subinterfaceMatch[1]} is not present on ${device.name}.`)]);
+      item = {
+        name: command.name,
+        parentInterface: parent.name,
+        adminUp: true,
+        linkUp: parent.linkUp,
+      };
+      device.interfaces.push(item);
+    }
     if (!item) return reject([warning(`NETBITE: Interface ${command.name} is not present on ${device.name}.`)]);
-    device.mode = 'interface-config'; device.selectedInterface = item.name;
+    device.mode = item.parentInterface ? 'subinterface-config' : 'interface-config'; device.selectedInterface = item.name;
     return finish([success(`INTERFACE ${item.name} SELECTED`)], true, ['mode-change']);
+  }
+  if (command.kind === 'no-interface') {
+    if (device.mode !== 'global-config' || device.type !== 'router') return reject(modeError('router global configuration mode'));
+    const item = findInterface(device, command.name);
+    if (!item?.parentInterface) return reject([warning(`NETBITE: Logical subinterface ${command.name} is not present.`)]);
+    device.interfaces = device.interfaces.filter((candidate) => candidate.name !== command.name);
+    return finish([success(`INTERFACE ${command.name} REMOVED`)], true, ['config-change']);
   }
   if (command.kind === 'vlan') {
     if (device.mode !== 'global-config' || device.type !== 'switch') return reject(modeError('switch global configuration mode'));
@@ -384,14 +488,28 @@ export function executeCliCommand(state: CliNetworkState, deviceId: string, comm
     return finish([success(`${command.remove ? 'REMOVED' : 'ADDED'} ${command.network}/${command.prefixLength} VIA ${command.nextHop}`)], true, ['config-change']);
   }
   const selected = findInterface(device, device.selectedInterface);
-  if (selected && device.mode === 'interface-config' && device.type === 'router' && command.kind === 'ip-address') {
+  if (selected && (device.mode === 'interface-config' || device.mode === 'subinterface-config') && device.type === 'router' && command.kind === 'ip-address') {
+    if (!command.remove && !selected.parentInterface && device.interfaces.some((item) => item.parentInterface === selected.name)) {
+      return reject([warning('NETBITE: Remove logical subinterfaces before addressing their physical parent in this bounded model.')]);
+    }
+    const parent = selected.parentInterface ? findInterface(device, selected.parentInterface) : undefined;
+    if (!command.remove && parent?.ipv4) {
+      return reject([warning(`NETBITE: Remove the IPv4 address from ${parent.name} before addressing its logical subinterfaces.`)]);
+    }
     selected.ipv4 = command.remove ? undefined : command.address;
     selected.prefix = command.remove ? undefined : command.prefixLength;
     return finish([success(command.remove ? `${selected.name} IP ADDRESS REMOVED` : `${selected.name} IP ${selected.ipv4}/${selected.prefix}`)], true, ['config-change']);
   }
-  if (selected && device.mode === 'interface-config' && device.type !== 'host' && command.kind === 'shutdown') {
+  if (selected && (device.mode === 'interface-config' || device.mode === 'subinterface-config') && device.type !== 'host' && command.kind === 'shutdown') {
     selected.adminUp = !command.shutdown;
     return finish([success(`${selected.name} ADMIN ${selected.adminUp ? 'UP' : 'DOWN'}`)], true, ['config-change']);
+  }
+  if (selected && device.mode === 'subinterface-config' && device.type === 'router' && command.kind === 'encapsulation-dot1q') {
+    if (!command.remove && device.interfaces.some((item) => item.name !== selected.name && item.parentInterface === selected.parentInterface && item.encapsulationVlan === command.vlan)) {
+      return reject([warning(`NETBITE: VLAN ${command.vlan} is already assigned to another subinterface on ${selected.parentInterface}.`)]);
+    }
+    selected.encapsulationVlan = command.remove ? undefined : command.vlan;
+    return finish([success(command.remove ? `${selected.name} 802.1Q ENCAPSULATION REMOVED` : `${selected.name} ENCAPSULATION DOT1Q ${command.vlan}`)], true, ['config-change']);
   }
   if (!selected || device.mode !== 'interface-config' || device.type !== 'switch') return reject(modeError('switch interface configuration mode'));
   if (command.kind === 'switchport-mode') { selected.switchportMode = command.mode; return finish([success(`${selected.name} MODE ${command.mode.toUpperCase()}`)], true, ['config-change']); }

@@ -16,7 +16,8 @@
 - Configuration applies immediately to deterministic state. NetBite does not model control-plane convergence, ARP timing, queues, frame transmission, ICMP timing, or hardware processes.
 - `ping` traces modeled forward and return paths. It never invents latency or loss and never turns an Echo failure into a universal diagnosis.
 - Connected routes are derived from configured active interfaces. Static routes participate in longest-prefix selection; next hops must be modeled adjacent devices.
-- VLAN reachability requires endpoint access membership and, across switches, matching allowed VLAN state on both trunk endpoints. STP, native VLANs, negotiation, and Layer 3 inter-VLAN routing are excluded.
+- Chapter 10 VLAN reachability requires endpoint access membership and matching trunk allowance. Chapter 12 adds bounded external-router inter-VLAN forwarding through uniquely tagged logical subinterfaces. STP, native VLANs, negotiation, and Layer 3 switch SVIs remain excluded.
+- Router subinterface syntax and state are checked against Cisco’s external-router inter-VLAN configuration guidance; NetBite output remains original and does not claim IOS compatibility.
 - Lab completion is state-based and accepts valid command order. It can require no conflicting extra configuration even if the simulator otherwise accepts that configuration.
 
 ## Unsupported command behavior

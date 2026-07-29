@@ -76,12 +76,25 @@ R1, R2, and R3 begin with connected routes. Completion requires exactly four spe
 
 SW-A and SW-B derive port/trunk status directly from configuration. Completion requires VLAN 10 and 20, the required access membership, both trunk endpoints allowing both VLANs, and two evidence-based reachability predictions. Trunks preserve VLAN separation; Layer 3 forwarding is outside this lab.
 
+### Chapter 12 — `inter-vlan-routing-desk`
+
+The fixed topology provides PC-A in VLAN 10, PC-B in VLAN 20, one switch, and one router physical link. Learners configure `F0/24` as a trunk allowing VLAN 10 and 20, then build `G0/0.10` and `G0/0.20`.
+
+Supported router-on-a-stick commands add:
+
+- `interface G0/0.10`
+- `encapsulation dot1q 10`
+- `no encapsulation dot1q`
+- `no interface G0/0.10`
+
+A logical subinterface has no independent cable. Its operational state depends on its administrative state, its physical parent, a unique VLAN association, IPv4 configuration, and a switch trunk that carries that VLAN. Lab completion is based on configuration state plus successful Echo verification in both directions.
+
 ## Architecture
 
 - `src/core/network/cli-simulator.ts` owns parsing, typed state transitions, route/path derivation, ping evidence, and VLAN reachability.
 - `src/features/cli/cli-lab-definitions.ts` owns fixed lab states and state-based objectives.
 - `src/features/cli/components/cli-lab.tsx` owns mobile interaction, transcript/history/snapshots, assistance, and completion.
-- `src/features/practice/lab-registry.tsx` registers the three stable lab IDs.
+- `src/features/practice/lab-registry.tsx` registers the four stable CLI lab IDs.
 
 Unfinished CLI state is intentionally session-only. Existing lab completion persists, along with the `cli-guide-v1` acknowledgement represented by the store’s `cliGuideSeen` flag.
 

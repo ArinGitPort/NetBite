@@ -12,15 +12,18 @@ NetBite does not emulate a production network operating system or run real netwo
 - IPv4 ARP request, reply, and cache decisions
 - ICMP Echo path evidence without invented timing
 - VLAN access membership and two-ended 802.1Q trunk reachability
-- A documented Cisco-like CLI subset for Chapters 8–10
-- A standalone, port-aware Network Sandbox for bounded Ethernet, IPv4, static-route, ARP, ICMP Echo, and VLAN experimentation
+- Router-on-a-stick inter-VLAN forwarding through logical 802.1Q subinterfaces
+- A documented Cisco-like CLI subset for Chapters 8–10 and 12
+- A standalone, port-aware Network Sandbox for bounded Ethernet, IPv4, static-route, ARP, ICMP Echo, VLAN, and inter-VLAN experimentation
 
 The CLI supports only the commands listed in `CLI_SIMULATION_GUIDE.md`. Familiar syntax is used for learning transfer, but NetBite does not claim Cisco IOS compatibility and its output is original NetBite text.
+
+Router-on-a-stick is a bounded deterministic model. One physical router link may host logical subinterfaces with unique VLAN IDs and IPv4 gateway networks. The model validates VLAN carriage, connected routing, ARP, MAC learning, frame replacement, and the return path.
 
 ## Outside the current model
 
 - Dynamic routing, OSPF, BGP, and MPLS
-- STP, DTP, VTP, and inter-VLAN routing configuration
+- STP, DTP, VTP, native-VLAN behavior, and Layer 3 switch SVI configuration
 - ACLs, NAT, DHCP, and DNS configuration
 - TCP congestion and packet fragmentation
 - Real sockets, packet capture, or protocol timing

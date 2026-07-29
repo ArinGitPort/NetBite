@@ -22,7 +22,7 @@ The interface must report only what that state proves. A successful ping means t
 
 ## Deliberate exclusions
 
-The sandbox does not model STP, DTP, VTP, switch management SVIs, dynamic routing, DHCP, DNS, NAT, ACLs, router-on-a-stick, wireless, IPv6, sockets, queues, latency, jitter, loss, electrical behavior, or arbitrary vendor commands. Links that would create a Layer 2 cycle are rejected because STP is not modeled.
+The sandbox models bounded router-on-a-stick forwarding through 802.1Q router subinterfaces. It does not model STP, DTP, VTP, switch management SVIs, dynamic routing, DHCP, DNS, NAT, ACLs, wireless, IPv6, sockets, queues, latency, jitter, loss, electrical behavior, or arbitrary vendor commands. Links that would create a Layer 2 cycle are rejected because STP is not modeled.
 
 ## State and feedback rules
 
@@ -37,6 +37,8 @@ The sandbox does not model STP, DTP, VTP, switch management SVIs, dynamic routin
 - Ping form readiness is validated before simulation. Missing source addressing or malformed destination input is setup guidance, not a stopped network trace.
 - A two-PC, one-switch workspace may explicitly apply the previewed `192.168.10.0/24` beginner setup. Existing configuration is never replaced without confirmation.
 - Canvas plates show PC addressing, every configured router interface address, and whether an interface is down. Layer 2 switches state that management IPs are not modeled because the sandbox does not yet support an SVI.
+- Router inspectors can add logical subinterfaces beneath a physical parent. Each logical interface inherits the parent MAC and physical link, terminates one configured VLAN, and derives a connected route only when its parent and VLAN context are usable.
+- `INTER-VLAN ROUTING DEMO` loads PC-1 in VLAN 10, PC-2 in VLAN 20, a switch trunk, and two configured router subinterfaces. It is safe to modify, undo, reset, and test.
 - Filled configuration values use normal high-contrast input text. Muted input text is reserved for examples in empty fields.
 - Undo and redo retain 20 changes during the current session. Only the workspace and first-use acknowledgement persist after relaunch.
 

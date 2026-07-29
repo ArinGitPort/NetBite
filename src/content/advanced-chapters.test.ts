@@ -5,11 +5,11 @@ import { practiceConfigs } from '@/features/practice/practice-configs';
 import { cliLabDefinitions } from '@/features/cli/cli-lab-definitions';
 
 describe('complete curriculum', () => {
-  const expectedLessonCounts: Record<string, number> = { 4: 7, 5: 9, 6: 6, 7: 6, 8: 6, 9: 8, 10: 7, 11: 11 };
-  const expectedQuizCounts: Record<string, number> = { 4: 8, 5: 8, 6: 7, 7: 7, 8: 7, 9: 8, 10: 8, 11: 8 };
-  test('registers eleven unique chapters', () => {
-    expect(chapters).toHaveLength(11);
-    expect(new Set(chapters.map(({ id }) => id)).size).toBe(11);
+  const expectedLessonCounts: Record<string, number> = { 4: 7, 5: 9, 6: 6, 7: 6, 8: 6, 9: 8, 10: 7, 11: 11, 12: 7 };
+  const expectedQuizCounts: Record<string, number> = { 4: 8, 5: 8, 6: 7, 7: 7, 8: 7, 9: 8, 10: 8, 11: 8, 12: 8 };
+  test('registers twelve unique chapters', () => {
+    expect(chapters).toHaveLength(12);
+    expect(new Set(chapters.map(({ id }) => id)).size).toBe(12);
   });
 
   test.each(advancedChapters.map((chapter) => [chapter.id, chapter]))('chapter %s is complete', (_id, chapter) => {
@@ -52,8 +52,8 @@ describe('complete curriculum', () => {
     });
   });
 
-  test('registers the three command-driven practices under their stable IDs', () => {
-    expect(Object.keys(cliLabDefinitions).sort()).toEqual(['ping-diagnostic-desk', 'static-route-board', 'vlan-port-desk']);
+  test('registers the command-driven practices under stable IDs', () => {
+    expect(Object.keys(cliLabDefinitions).sort()).toEqual(['inter-vlan-routing-desk', 'ping-diagnostic-desk', 'static-route-board', 'vlan-port-desk']);
   });
 
 });

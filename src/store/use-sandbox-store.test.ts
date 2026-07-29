@@ -43,6 +43,17 @@ describe('sandbox store', () => {
     expect(merged.past).toEqual([]);
   });
 
+  test('passes version-one workspaces through migration for validated merging', async () => {
+    const migrate = useSandboxStore.persist.getOptions().migrate!;
+    const workspace = { ...createEmptySandboxWorkspace(), schemaVersion: 1 as const };
+    const persisted = { workspace, guideSeen: true };
+    const migrated = await migrate(persisted, 1);
+    const merged = useSandboxStore.persist.getOptions().merge!(migrated, useSandboxStore.getState()) as ReturnType<typeof useSandboxStore.getState>;
+
+    expect(merged.workspace.schemaVersion).toBe(2);
+    expect(merged.guideSeen).toBe(true);
+  });
+
   test('new network clears the workspace and remains undoable in the session', () => {
     useSandboxStore.getState().commitWorkspace(addSandboxDevice(useSandboxStore.getState().workspace, 'router', { x: 0, y: 0 }).state);
     useSandboxStore.getState().newNetwork();

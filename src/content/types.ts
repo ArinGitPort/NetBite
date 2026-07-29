@@ -28,6 +28,8 @@ export type LessonIllustration =
   | 'route-purpose' | 'route-next-hop' | 'default-route' | 'route-match-test'
   | 'vlan-segments' | 'access-port' | 'vlan-reachability' | 'vlan-trunk'
   | 'vlan-purpose' | 'same-vlan' | 'dot1q-tag'
+  | 'inter-vlan-boundary' | 'vlan-gateway' | 'router-on-stick' | 'router-subinterface'
+  | 'inter-vlan-forwarding' | 'inter-vlan-config' | 'inter-vlan-troubleshooting'
   | 'model-purpose' | 'osi-stack' | 'tcp-ip-stack' | 'concept-layer-map'
   | 'osi-physical' | 'osi-data-link' | 'osi-network' | 'osi-transport'
   | 'osi-session' | 'osi-presentation' | 'osi-application';

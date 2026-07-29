@@ -11,7 +11,7 @@ import {
   type CliCommand,
   type CliNetworkState,
 } from '@/core/network/cli-simulator';
-import { createRoutingState, createVlanState, requiredStaticRoutes } from '@/features/cli/cli-lab-definitions';
+import { createInterVlanState, createRoutingState, createVlanState, requiredStaticRoutes } from '@/features/cli/cli-lab-definitions';
 
 function command(value: string): CliCommand {
   const parsed = parseCliCommand(value);
@@ -104,6 +104,27 @@ describe('NetBite CLI execution', () => {
     expect(state.devices.find(({ id }) => id === 'r1')?.interfaces.find(({ name }) => name === 'G0/0')?.adminUp).toBe(true);
   });
 
+  test('creates unique tagged router subinterfaces and removes them explicitly', () => {
+    let state = enterGlobal(createInterVlanState(), 'r1');
+    state = run(state, 'r1', 'interface G0/0.10').state;
+    expect(state.devices.find(({ id }) => id === 'r1')?.mode).toBe('subinterface-config');
+    expect(normalizeInterfaceName('GigabitEthernet0/0.10')).toBe('G0/0.10');
+    state = run(state, 'r1', 'encapsulation dot1q 10').state;
+    state = run(state, 'r1', 'ip address 192.168.10.1 255.255.255.0').state;
+    state = run(state, 'r1', 'exit').state;
+    state = run(state, 'r1', 'interface G0/0.20').state;
+    const duplicate = run(state, 'r1', 'encapsulation dot1q 10');
+    expect(duplicate.accepted).toBe(false);
+    expect(duplicate.state).toBe(state);
+    state = run(state, 'r1', 'encapsulation dot1q 20').state;
+    state = run(state, 'r1', 'ip address 192.168.20.1 255.255.255.0').state;
+    state = run(state, 'r1', 'end').state;
+    expect(deriveConnectedRoutes(state.devices.find(({ id }) => id === 'r1')!).map(({ prefix }) => prefix).sort()).toEqual(['192.168.10.0', '192.168.20.0']);
+    state = enterGlobal(state, 'r1');
+    state = run(state, 'r1', 'no interface G0/0.20').state;
+    expect(state.devices.find(({ id }) => id === 'r1')?.interfaces.some(({ name }) => name === 'G0/0.20')).toBe(false);
+  });
+
   test('shows and clears modeled ARP and MAC entries', () => {
     const state = createVlanState();
     const sw = state.devices.find(({ id }) => id === 'sw-a')!;
@@ -183,5 +204,18 @@ describe('configuration-derived VLAN reachability', () => {
     state = configure(state, 'sw-b', swB);
     expect(deriveVlanReachability(state, 'pc-a', 'pc-b')).toMatchObject({ reachable: true });
     expect(deriveVlanReachability(state, 'pc-a', 'pc-c')).toMatchObject({ reachable: false });
+  });
+
+  test('routes an Echo round trip between two VLANs only after trunk and subinterfaces are complete', () => {
+    let state = createInterVlanState();
+    expect(simulatePing(state, 'pc-a', '192.168.20.20').success).toBe(false);
+    state = configure(state, 'sw-1', ['interface F0/24', 'switchport mode trunk', 'switchport trunk allowed vlan 10,20', 'end']);
+    state = configure(state, 'r1', ['interface G0/0.10', 'encapsulation dot1q 10', 'ip address 192.168.10.1 255.255.255.0', 'exit', 'interface G0/0.20', 'encapsulation dot1q 20', 'ip address 192.168.20.1 255.255.255.0', 'end']);
+    expect(simulatePing(state, 'pc-a', '192.168.20.20').success).toBe(true);
+    expect(simulatePing(state, 'pc-b', '192.168.10.10').success).toBe(true);
+    state = enterGlobal(state, 'r1');
+    state = run(state, 'r1', 'interface G0/0').state;
+    state = run(state, 'r1', 'shutdown').state;
+    expect(simulatePing(state, 'pc-a', '192.168.20.20').success).toBe(false);
   });
 });

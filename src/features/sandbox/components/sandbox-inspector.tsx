@@ -15,10 +15,12 @@ function SelectButton({ label, selected, onPress }: { label: string; selected: b
   return <Pressable accessibilityRole="button" accessibilityState={{ selected }} onPress={onPress} style={[styles.select, selected && styles.selectActive]}><Text variant="technical" style={[styles.selectText, selected && styles.selectTextActive]}>{label}</Text></Pressable>;
 }
 
-export function SandboxInspector({ device, issues, onConfigure, onRemove, onOpenCli }: {
+export function SandboxInspector({ device, issues, onConfigure, onCreateSubinterface, onRemoveSubinterface, onRemove, onOpenCli }: {
   device: SandboxDevice;
   issues: SandboxValidationIssue[];
   onConfigure: (patch: SandboxDevicePatch) => { ok: boolean; message?: string };
+  onCreateSubinterface?: (parentInterfaceId: string, subinterfaceNumber: number) => { ok: boolean; message?: string };
+  onRemoveSubinterface?: (interfaceId: string) => void;
   onRemove: () => void;
   onOpenCli: () => void;
 }) {
@@ -33,11 +35,13 @@ export function SandboxInspector({ device, issues, onConfigure, onRemove, onOpen
   const [routePrefix, setRoutePrefix] = useState('');
   const [routeNextHop, setRouteNextHop] = useState('');
   const [feedback, setFeedback] = useState<string>();
+  const [subinterfaceNumber, setSubinterfaceNumber] = useState('');
+  const [encapsulationVlan, setEncapsulationVlan] = useState(selected?.encapsulationVlan?.toString() ?? '');
 
   const deviceIssues = useMemo(() => issues.filter((issue) => issue.deviceIds.includes(device.id)), [device.id, issues]);
   const chooseInterface = (id: string) => {
     const item = device.interfaces.find((candidate) => candidate.id === id) ?? device.interfaces[0];
-    setInterfaceId(id); setIp(item?.ipv4 ?? ''); setPrefix(item?.prefix?.toString() ?? (device.type === 'switch' ? '' : '24')); setAllowed(item?.allowedVlans?.join(',') ?? ''); setFeedback(undefined);
+    setInterfaceId(id); setIp(item?.ipv4 ?? ''); setPrefix(item?.prefix?.toString() ?? (device.type === 'switch' ? '' : '24')); setAllowed(item?.allowedVlans?.join(',') ?? ''); setEncapsulationVlan(item?.encapsulationVlan?.toString() ?? ''); setFeedback(undefined);
   };
   const saveAddressing = () => {
     const address = ip.trim();
@@ -64,12 +68,36 @@ export function SandboxInspector({ device, issues, onConfigure, onRemove, onOpen
     if (result.ok) { setRouteNetwork(''); setRoutePrefix(''); setRouteNextHop(''); }
     setFeedback(result.ok ? 'Static route added.' : result.message);
   };
+  const saveEncapsulation = () => {
+    const vlan = Number(encapsulationVlan);
+    if (!Number.isInteger(vlan) || vlan < 1 || vlan > 4094) { setFeedback('Enter an 802.1Q VLAN ID from 1 through 4094.'); return; }
+    const result = onConfigure({ interfaceId: selected.id, interface: { encapsulationVlan: vlan } });
+    setFeedback(result.ok ? `${selected.id} now carries VLAN ${vlan}.` : result.message);
+  };
 
   return (
     <View style={styles.panel}>
       <View style={styles.header}><View style={styles.headerCopy}><Text variant="label" style={styles.eyebrow}>DEVICE INSPECTOR</Text><Text variant="sectionHeading" style={styles.title}>{device.name} / {device.type.toUpperCase()}</Text></View>{device.type !== 'pc' ? <AppButton label="Open CLI" variant="secondary" onPress={onOpenCli} /> : null}</View>
       <Text variant="technical" style={styles.boundary}>CHANGES AFFECT THIS AUTOSAVED WORKSPACE.</Text>
       <View style={styles.interfacePicker}>{device.interfaces.map((item) => <SelectButton key={item.id} label={`${item.id}${item.adminUp ? '' : ' / DOWN'}`} selected={item.id === selected.id} onPress={() => chooseInterface(item.id)} />)}</View>
+      {device.type === 'router' ? <View style={styles.formBlock}>
+        <Text variant="label" style={styles.blockTitle}>ROUTER SUBINTERFACES</Text>
+        <Text variant="bodySmall" style={styles.savedState}>Logical subinterfaces share one physical cable and separate traffic by 802.1Q VLAN ID.</Text>
+        <View style={styles.row}>
+          <Field label="SUBINTERFACE NUMBER" value={subinterfaceNumber} placeholder="EXAMPLE / 10" keyboardType="numeric" onChangeText={setSubinterfaceNumber} />
+          <AppButton label={`Create on ${selected.parentInterfaceId ?? selected.id}`} style={styles.flexButton} disabled={Boolean(selected.parentInterfaceId)} onPress={() => {
+            const number = Number(subinterfaceNumber);
+            const result = onCreateSubinterface?.(selected.id, number);
+            setFeedback(result?.ok ? `${selected.id}.${number} created. Select it above to configure VLAN and addressing.` : result?.message ?? 'Choose a physical router interface.');
+            if (result?.ok) setSubinterfaceNumber('');
+          }} />
+        </View>
+        {selected.parentInterfaceId ? <>
+          <Text variant="technical" style={styles.boundary}>PHYSICAL PARENT / {selected.parentInterfaceId} / MAC INHERITED</Text>
+          <View style={styles.row}><Field label="802.1Q VLAN" value={encapsulationVlan} placeholder="EXAMPLE / 10" keyboardType="numeric" onChangeText={setEncapsulationVlan} /><AppButton label="Save VLAN tag" style={styles.flexButton} onPress={saveEncapsulation} /></View>
+          <AppButton label={`Remove ${selected.id}`} variant="secondary" onPress={() => onRemoveSubinterface?.(selected.id)} />
+        </> : null}
+      </View> : null}
       {device.type !== 'switch' ? (
         <View style={styles.formBlock}>
           <Text variant="label" style={styles.blockTitle}>INTERFACE ADDRESSING</Text>

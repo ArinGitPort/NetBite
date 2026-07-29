@@ -6,6 +6,7 @@ import {
   connectSandboxInterfaces,
   createEmptySandboxWorkspace,
   createGuidedSandboxWorkspace,
+  createInterVlanSandboxWorkspace,
   createReadyRoutedSandboxWorkspace,
   createSandboxCliState,
   executeSandboxCliCommand,
@@ -111,6 +112,20 @@ describe('sandbox domain', () => {
     const routes = executeSandboxCliCommand(state, 'router-1', 'show ip route');
     expect(routes.result?.output.map((line) => line.text).join('\n')).toEqual(expect.stringContaining('192.168.10.0/24'));
     expect(routes.result?.output.map((line) => line.text).join('\n')).toEqual(expect.stringContaining('192.168.20.0/24'));
+  });
+
+  test('provides a working router-on-a-stick preset and precise VLAN failures', () => {
+    let state = createInterVlanSandboxWorkspace();
+    expect(state.schemaVersion).toBe(2);
+    expect(state.devices.find(({ id }) => id === 'router-1')?.interfaces).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: 'G0/0.10', parentInterfaceId: 'G0/0', encapsulationVlan: 10, ipv4: '192.168.10.1' }),
+      expect.objectContaining({ id: 'G0/0.20', parentInterfaceId: 'G0/0', encapsulationVlan: 20, ipv4: '192.168.20.1' }),
+    ]));
+    const success = simulateSandboxPing(state, 'pc-1', '192.168.20.20');
+    expect(success).toMatchObject({ success: true });
+    expect(success.events.flatMap(({ deviceIds }) => deviceIds)).toEqual(expect.arrayContaining(['pc-1', 'switch-1', 'router-1', 'pc-2']));
+    state = configureSandboxDevice(state, 'switch-1', { interfaceId: 'F0/24', interface: { allowedVlans: [10] } }).state;
+    expect(simulateSandboxPing(state, 'pc-1', '192.168.20.20').reason).toContain('required VLAN is blocked');
   });
 
   test('runs sandbox CLI ping through switches and synchronizes learned state', () => {

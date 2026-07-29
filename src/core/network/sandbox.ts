@@ -22,6 +22,8 @@ export interface SandboxInterface {
   name: string;
   macAddress: string;
   adminUp: boolean;
+  parentInterfaceId?: string;
+  encapsulationVlan?: number;
   ipv4?: string;
   prefix?: number;
   switchportMode?: SandboxSwitchportMode;
@@ -45,7 +47,7 @@ export interface SandboxDevice {
 export interface SandboxLinkEndpoint { deviceId: string; interfaceId: string }
 export interface SandboxLink { id: string; a: SandboxLinkEndpoint; b: SandboxLinkEndpoint }
 export interface SandboxWorkspace {
-  schemaVersion: 1;
+  schemaVersion: 1 | 2;
   devices: SandboxDevice[];
   links: SandboxLink[];
   nextDeviceNumber: Record<SandboxDeviceType, number>;
@@ -147,7 +149,7 @@ function macFor(deviceNumber: number, interfaceNumber: number) {
 
 function interfaceNames(type: SandboxDeviceType) {
   if (type === 'pc') return ['E0'];
-  if (type === 'switch') return Array.from({ length: 8 }, (_, index) => `F0/${index + 1}`);
+  if (type === 'switch') return [...Array.from({ length: 7 }, (_, index) => `F0/${index + 1}`), 'F0/24'];
   return Array.from({ length: 4 }, (_, index) => `G0/${index}`);
 }
 
@@ -172,8 +174,67 @@ export function createSandboxDevice(type: SandboxDeviceType, number: number, pos
   };
 }
 
+export function createRouterSubinterface(
+  state: SandboxWorkspace,
+  routerId: string,
+  parentInterfaceId: string,
+  subinterfaceNumber: number,
+): { ok: true; state: SandboxWorkspace; interface: SandboxInterface } | { ok: false; state: SandboxWorkspace; message: string } {
+  const next = cloneWorkspace(state);
+  const router = findDevice(next, routerId);
+  const parent = findInterface(router, parentInterfaceId);
+  if (!router || router.type !== 'router') return { ok: false, state, message: 'Choose a router.' };
+  if (!parent || parent.parentInterfaceId) return { ok: false, state, message: 'Choose a physical router interface.' };
+  if (!Number.isInteger(subinterfaceNumber) || subinterfaceNumber < 1 || subinterfaceNumber > 4094) {
+    return { ok: false, state, message: 'Subinterface number must be from 1 through 4094.' };
+  }
+  const id = `${parent.id}.${subinterfaceNumber}`;
+  if (findInterface(router, id)) return { ok: false, state, message: `${id} already exists.` };
+  const item: SandboxInterface = {
+    id,
+    name: id,
+    macAddress: parent.macAddress,
+    parentInterfaceId: parent.id,
+    adminUp: true,
+  };
+  router.interfaces.push(item);
+  next.schemaVersion = 2;
+  return { ok: true, state: next, interface: item };
+}
+
+export function removeRouterSubinterface(state: SandboxWorkspace, routerId: string, interfaceId: string) {
+  const next = cloneWorkspace(state);
+  const router = findDevice(next, routerId);
+  const item = findInterface(router, interfaceId);
+  if (!router || router.type !== 'router' || !item?.parentInterfaceId) return state;
+  router.interfaces = router.interfaces.filter((candidate) => candidate.id !== interfaceId);
+  router.arpTable = router.arpTable.filter((entry) => entry.interfaceId !== interfaceId);
+  return next;
+}
+
+export function validateRouterSubinterfaces(device: SandboxDevice): SandboxValidationIssue[] {
+  if (device.type !== 'router') return [];
+  const issues: SandboxValidationIssue[] = [];
+  const vlanKeys = new Set<string>();
+  device.interfaces.filter((item) => item.parentInterfaceId).forEach((item) => {
+    const parent = findInterface(device, item.parentInterfaceId!);
+    if (!parent || parent.parentInterfaceId) {
+      issues.push({ level: 'error', code: 'subinterface-parent-missing', message: `${item.name} has no valid physical parent.`, deviceIds: [device.id] });
+      return;
+    }
+    if (parent.ipv4) issues.push({ level: 'error', code: 'parent-address-conflict', message: `${parent.name} cannot keep a physical IPv4 address while router-on-a-stick subinterfaces use it.`, deviceIds: [device.id] });
+    if (item.encapsulationVlan === undefined) issues.push({ level: 'warning', code: 'subinterface-tag-missing', message: `${item.name} needs an 802.1Q VLAN ID.`, deviceIds: [device.id] });
+    else {
+      const key = `${parent.id}:${item.encapsulationVlan}`;
+      if (vlanKeys.has(key)) issues.push({ level: 'error', code: 'duplicate-subinterface-vlan', message: `VLAN ${item.encapsulationVlan} is duplicated on ${parent.name}.`, deviceIds: [device.id] });
+      vlanKeys.add(key);
+    }
+  });
+  return issues;
+}
+
 export function createEmptySandboxWorkspace(): SandboxWorkspace {
-  return { schemaVersion: 1, devices: [], links: [], nextDeviceNumber: { pc: 1, switch: 1, router: 1 } };
+  return { schemaVersion: 2, devices: [], links: [], nextDeviceNumber: { pc: 1, switch: 1, router: 1 } };
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -181,17 +242,24 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 export function isSandboxWorkspace(value: unknown): value is SandboxWorkspace {
-  if (!isRecord(value) || value.schemaVersion !== 1 || !Array.isArray(value.devices) || !Array.isArray(value.links) || !isRecord(value.nextDeviceNumber)) return false;
+  if (!isRecord(value) || ![1, 2].includes(Number(value.schemaVersion)) || !Array.isArray(value.devices) || !Array.isArray(value.links) || !isRecord(value.nextDeviceNumber)) return false;
   const counters = value.nextDeviceNumber;
   if (!(['pc', 'switch', 'router'] as const).every((type) => Number.isInteger(counters[type]) && Number(counters[type]) > 0)) return false;
   const deviceIds = new Set<string>();
   const interfaceIds = new Map<string, Set<string>>();
+  const logicalEndpointKeys = new Set<string>();
   for (const candidate of value.devices) {
     if (!isRecord(candidate) || typeof candidate.id !== 'string' || typeof candidate.name !== 'string' || !['pc', 'switch', 'router'].includes(String(candidate.type)) || !isRecord(candidate.position) || !Number.isFinite(candidate.position.x) || !Number.isFinite(candidate.position.y) || !Array.isArray(candidate.interfaces) || !candidate.interfaces.length || !Array.isArray(candidate.routes) || !Array.isArray(candidate.vlans) || !Array.isArray(candidate.arpTable) || !Array.isArray(candidate.macTable) || deviceIds.has(candidate.id)) return false;
     const ids = new Set<string>();
     for (const item of candidate.interfaces) {
       if (!isRecord(item) || typeof item.id !== 'string' || typeof item.name !== 'string' || typeof item.macAddress !== 'string' || typeof item.adminUp !== 'boolean' || ids.has(item.id)) return false;
+      if (item.parentInterfaceId !== undefined && typeof item.parentInterfaceId !== 'string') return false;
+      if (item.encapsulationVlan !== undefined && (!Number.isInteger(item.encapsulationVlan) || Number(item.encapsulationVlan) < 1 || Number(item.encapsulationVlan) > 4094)) return false;
       ids.add(item.id);
+      if (typeof item.parentInterfaceId === 'string') logicalEndpointKeys.add(`${candidate.id}:${item.id}`);
+    }
+    for (const item of candidate.interfaces) {
+      if (isRecord(item) && typeof item.parentInterfaceId === 'string' && (!ids.has(item.parentInterfaceId) || item.parentInterfaceId === item.id)) return false;
     }
     if (candidate.type === 'pc' && (candidate.interfaces.length !== 1 || candidate.interfaces[0].id !== 'E0')) return false;
     deviceIds.add(candidate.id);
@@ -204,7 +272,7 @@ export function isSandboxWorkspace(value: unknown): value is SandboxWorkspace {
     const endpointIsValid = (endpoint: Record<string, unknown>) => typeof endpoint.deviceId === 'string' && typeof endpoint.interfaceId === 'string' && Boolean(interfaceIds.get(endpoint.deviceId)?.has(endpoint.interfaceId));
     if (!endpointIsValid(candidate.a) || !endpointIsValid(candidate.b) || linkIds.has(candidate.id)) return false;
     const aKey = `${candidate.a.deviceId}:${candidate.a.interfaceId}`; const bKey = `${candidate.b.deviceId}:${candidate.b.interfaceId}`;
-    if (aKey === bKey || occupiedEndpoints.has(aKey) || occupiedEndpoints.has(bKey)) return false;
+    if (aKey === bKey || logicalEndpointKeys.has(aKey) || logicalEndpointKeys.has(bKey) || occupiedEndpoints.has(aKey) || occupiedEndpoints.has(bKey)) return false;
     linkIds.add(candidate.id); occupiedEndpoints.add(aKey); occupiedEndpoints.add(bKey);
     return true;
   });
@@ -233,6 +301,34 @@ export function createReadyRoutedSandboxWorkspace(): SandboxWorkspace {
   state = configureSandboxDevice(state, 'router-1', { interfaceId: 'G0/0', interface: { ipv4: '192.168.10.1', prefix: 24 } }).state;
   state = configureSandboxDevice(state, 'router-1', { interfaceId: 'G0/1', interface: { ipv4: '192.168.20.1', prefix: 24 } }).state;
   state = configureSandboxDevice(state, 'pc-2', { interfaceId: 'E0', interface: { ipv4: '192.168.20.20', prefix: 24 }, defaultGateway: '192.168.20.1' }).state;
+  return state;
+}
+
+export function createInterVlanSandboxWorkspace(): SandboxWorkspace {
+  let state = createEmptySandboxWorkspace();
+  state = addSandboxDevice(state, 'pc', { x: 30, y: 70 }).state;
+  state = addSandboxDevice(state, 'switch', { x: 250, y: 150 }).state;
+  state = addSandboxDevice(state, 'pc', { x: 470, y: 70 }).state;
+  state = addSandboxDevice(state, 'router', { x: 250, y: 280 }).state;
+  const links: [string, string, string, string][] = [
+    ['pc-1', 'switch-1', 'E0', 'F0/1'],
+    ['pc-2', 'switch-1', 'E0', 'F0/2'],
+    ['switch-1', 'router-1', 'F0/24', 'G0/0'],
+  ];
+  links.forEach(([first, second, firstInterface, secondInterface]) => {
+    const result = connectSandboxInterfaces(state, first, second, firstInterface, secondInterface);
+    if (result.ok) state = result.state;
+  });
+  state = configureSandboxDevice(state, 'pc-1', { interfaceId: 'E0', interface: { ipv4: '192.168.10.10', prefix: 24 }, defaultGateway: '192.168.10.1' }).state;
+  state = configureSandboxDevice(state, 'pc-2', { interfaceId: 'E0', interface: { ipv4: '192.168.20.20', prefix: 24 }, defaultGateway: '192.168.20.1' }).state;
+  state = configureSandboxDevice(state, 'switch-1', { vlans: [10, 20] }).state;
+  state = configureSandboxDevice(state, 'switch-1', { interfaceId: 'F0/1', interface: { switchportMode: 'access', accessVlan: 10 } }).state;
+  state = configureSandboxDevice(state, 'switch-1', { interfaceId: 'F0/2', interface: { switchportMode: 'access', accessVlan: 20 } }).state;
+  state = configureSandboxDevice(state, 'switch-1', { interfaceId: 'F0/24', interface: { switchportMode: 'trunk', allowedVlans: [10, 20] } }).state;
+  const first = createRouterSubinterface(state, 'router-1', 'G0/0', 10);
+  if (first.ok) state = configureSandboxDevice(first.state, 'router-1', { interfaceId: 'G0/0.10', interface: { encapsulationVlan: 10, ipv4: '192.168.10.1', prefix: 24 } }).state;
+  const second = createRouterSubinterface(state, 'router-1', 'G0/0', 20);
+  if (second.ok) state = configureSandboxDevice(second.state, 'router-1', { interfaceId: 'G0/0.20', interface: { encapsulationVlan: 20, ipv4: '192.168.20.1', prefix: 24 } }).state;
   return state;
 }
 
@@ -311,8 +407,8 @@ export function connectSandboxInterfaces(
   }
   const occupied = connectedInterfaceIds(state);
   const choose = (device: SandboxDevice, preferred?: string) => preferred
-    ? device.interfaces.find((item) => item.id === preferred && !occupied.has(`${device.id}:${item.id}`))
-    : device.interfaces.find((item) => !occupied.has(`${device.id}:${item.id}`));
+    ? device.interfaces.find((item) => item.id === preferred && !item.parentInterfaceId && !occupied.has(`${device.id}:${item.id}`))
+    : device.interfaces.find((item) => !item.parentInterfaceId && !occupied.has(`${device.id}:${item.id}`));
   const aInterface = choose(first, preferredFirstInterfaceId); const bInterface = choose(second, preferredSecondInterfaceId);
   if (!aInterface || !bInterface) return { ok: false, reason: 'no-free-interface', message: 'A selected device has no free Ethernet interface.' };
   const next = cloneWorkspace(state);
@@ -347,6 +443,14 @@ export function validateSandboxTopology(state: SandboxWorkspace): SandboxValidat
     const hostRange = calculateSubnetRange(item.ipv4, item.prefix)!;
     const gatewayRange = calculateSubnetRange(device.defaultGateway!, item.prefix);
     if (!gatewayRange || gatewayRange.network !== hostRange.network) issues.push({ level: 'warning', code: 'gateway-off-subnet', message: `${device.name}'s gateway is outside its local subnet.`, deviceIds: [device.id] });
+  });
+  state.devices.filter((device) => device.type === 'router').forEach((device) => issues.push(...validateRouterSubinterfaces(device)));
+  state.links.forEach((link) => {
+    const a = findInterface(findDevice(state, link.a.deviceId), link.a.interfaceId);
+    const b = findInterface(findDevice(state, link.b.deviceId), link.b.interfaceId);
+    if (a?.parentInterfaceId || b?.parentInterfaceId) {
+      issues.push({ level: 'error', code: 'logical-interface-linked', message: 'Logical router subinterfaces cannot own physical cables.', deviceIds: [link.a.deviceId, link.b.deviceId] });
+    }
   });
   return issues;
 }
@@ -491,6 +595,20 @@ export function configureSandboxDevice(state: SandboxWorkspace, deviceId: string
     if (patch.interface.prefix !== undefined && (!Number.isInteger(patch.interface.prefix) || patch.interface.prefix < 0 || patch.interface.prefix > 32)) return { ok: false as const, state, message: 'Prefix length must be from 0 through 32.' };
     if (patch.interface.accessVlan !== undefined && (patch.interface.accessVlan < 1 || patch.interface.accessVlan > 4094)) return { ok: false as const, state, message: 'Access VLAN must be from 1 through 4094.' };
     if (patch.interface.allowedVlans && !patch.interface.allowedVlans.every((vlan) => vlan >= 1 && vlan <= 4094)) return { ok: false as const, state, message: 'Allowed VLANs must be from 1 through 4094.' };
+    if (patch.interface.encapsulationVlan !== undefined && (!Number.isInteger(patch.interface.encapsulationVlan) || patch.interface.encapsulationVlan < 1 || patch.interface.encapsulationVlan > 4094)) {
+      return { ok: false as const, state, message: '802.1Q VLAN ID must be from 1 through 4094.' };
+    }
+    if (item.parentInterfaceId && patch.interface.encapsulationVlan !== undefined && device.interfaces.some((candidate) =>
+      candidate.id !== item.id
+      && candidate.parentInterfaceId === item.parentInterfaceId
+      && candidate.encapsulationVlan === patch.interface!.encapsulationVlan
+    )) return { ok: false as const, state, message: `VLAN ${patch.interface.encapsulationVlan} is already assigned on ${item.parentInterfaceId}.` };
+    if (normalizedAddress && !item.parentInterfaceId && device.interfaces.some((candidate) => candidate.parentInterfaceId === item.id)) {
+      return { ok: false as const, state, message: 'Remove router subinterfaces before addressing their physical parent.' };
+    }
+    if (normalizedAddress && item.parentInterfaceId && findInterface(device, item.parentInterfaceId)?.ipv4) {
+      return { ok: false as const, state, message: `Remove the IPv4 address from ${item.parentInterfaceId} before addressing a subinterface.` };
+    }
     const normalizedInterface = { ...patch.interface };
     if (patch.interface.ipv4 !== undefined) normalizedInterface.ipv4 = normalizedAddress || undefined;
     Object.assign(item, normalizedInterface);
@@ -499,6 +617,15 @@ export function configureSandboxDevice(state: SandboxWorkspace, deviceId: string
 }
 
 function linkOtherEndpoint(link: SandboxLink, endpoint: SandboxLinkEndpoint) { return endpointKey(link.a) === endpointKey(endpoint) ? link.b : link.a; }
+function physicalInterface(device: SandboxDevice, item: SandboxInterface) {
+  return item.parentInterfaceId ? findInterface(device, item.parentInterfaceId) : item;
+}
+function interfaceOperational(device: SandboxDevice, item: SandboxInterface) {
+  if (!item.adminUp) return false;
+  if (!item.parentInterfaceId) return true;
+  const parent = findInterface(device, item.parentInterfaceId);
+  return Boolean(parent?.adminUp && item.encapsulationVlan !== undefined);
+}
 function interfaceCarriesVlan(device: SandboxDevice, item: SandboxInterface, vlan: number) {
   if (!item.adminUp) return false;
   if (device.type !== 'switch') return true;
@@ -506,7 +633,11 @@ function interfaceCarriesVlan(device: SandboxDevice, item: SandboxInterface, vla
 }
 
 function inferSourceVlan(state: SandboxWorkspace, deviceId: string, interfaceId: string) {
-  const link = state.links.find((candidate) => [endpointKey(candidate.a), endpointKey(candidate.b)].includes(`${deviceId}:${interfaceId}`));
+  const sourceDevice = findDevice(state, deviceId);
+  const sourceInterface = findInterface(sourceDevice, interfaceId);
+  if (sourceInterface?.parentInterfaceId && sourceInterface.encapsulationVlan !== undefined) return sourceInterface.encapsulationVlan;
+  const physicalId = sourceInterface?.parentInterfaceId ?? interfaceId;
+  const link = state.links.find((candidate) => [endpointKey(candidate.a), endpointKey(candidate.b)].includes(`${deviceId}:${physicalId}`));
   if (!link) return 1;
   const other = linkOtherEndpoint(link, { deviceId, interfaceId }); const otherDevice = findDevice(state, other.deviceId); const otherInterface = findInterface(otherDevice, other.interfaceId);
   return otherDevice?.type === 'switch' && otherInterface?.switchportMode !== 'trunk' ? otherInterface?.accessVlan ?? 1 : 1;
@@ -589,18 +720,40 @@ function failure(state: SandboxWorkspace, reason: string, conclusion: string, su
   return { success: false, reason, conclusion, suggestion, events: [...events, event('failure', 'TRACE STOPPED', reason, [], [], 'warning')], state };
 }
 
-function activeInterfaceWithAddress(device: SandboxDevice) { return device.interfaces.find((item) => item.adminUp && item.ipv4 && item.prefix !== undefined); }
+function activeInterfaceWithAddress(device: SandboxDevice) { return device.interfaces.find((item) => interfaceOperational(device, item) && item.ipv4 && item.prefix !== undefined); }
 function routeForDevice(device: SandboxDevice, destination: string) {
   const connected = device.interfaces.flatMap((item) => {
-    if (!item.adminUp || !item.ipv4 || item.prefix === undefined) return [];
+    if (!interfaceOperational(device, item) || !item.ipv4 || item.prefix === undefined) return [];
     const range = calculateSubnetRange(item.ipv4, item.prefix);
     return range ? [{ prefix: range.network, prefixLength: item.prefix, exitInterface: item.id, source: 'connected' as const }] : [];
   });
   return selectBestRoute(destination, [...connected, ...device.routes]);
 }
 
+export function deriveSubinterfaceConnectedRoutes(device: SandboxDevice): RouteEntry[] {
+  return device.interfaces.flatMap((item) => {
+    if (!item.parentInterfaceId || !interfaceOperational(device, item) || !item.ipv4 || item.prefix === undefined) return [];
+    const range = calculateSubnetRange(item.ipv4, item.prefix);
+    return range ? [{ prefix: range.network, prefixLength: item.prefix, exitInterface: item.id, source: 'connected' as const }] : [];
+  });
+}
+
+export function resolveInterVlanGateway(state: SandboxWorkspace, sourceDeviceId: string) {
+  const source = findDevice(state, sourceDeviceId);
+  const item = source?.type === 'pc' ? activeInterfaceWithAddress(source) : undefined;
+  if (!source || !item || !source.defaultGateway) return { ok: false as const, reason: 'A configured PC and default gateway are required.' };
+  const gateway = state.devices.flatMap((device) => device.interfaces.map((candidate) => ({ device, candidate })))
+    .find(({ device, candidate }) => device.type === 'router' && interfaceOperational(device, candidate) && candidate.ipv4 === source.defaultGateway);
+  if (!gateway) return { ok: false as const, reason: 'No operational router interface owns the configured gateway address.' };
+  return { ok: true as const, routerId: gateway.device.id, interfaceId: gateway.candidate.id, vlan: gateway.candidate.encapsulationVlan };
+}
+
+export function traceInterVlanPath(state: SandboxWorkspace, sourceDeviceId: string, destinationIp: string) {
+  return traceSandboxIPv4Path(state, sourceDeviceId, destinationIp);
+}
+
 function sourceInterfaceForPing(device: SandboxDevice, destination: string) {
-  const active = device.interfaces.filter((item) => item.adminUp && item.ipv4 && item.prefix !== undefined);
+  const active = device.interfaces.filter((item) => interfaceOperational(device, item) && item.ipv4 && item.prefix !== undefined);
   if (!active.length || device.type === 'pc' || !parseIPv4Address(destination)) return active[0];
   const route = routeForDevice(device, destination);
   if (!route) return active[0];
@@ -609,12 +762,12 @@ function sourceInterfaceForPing(device: SandboxDevice, destination: string) {
 }
 
 export function traceSandboxIPv4Path(state: SandboxWorkspace, sourceDeviceId: string, destinationIp: string) {
-  if (!parseIPv4Address(destinationIp)) return { success: false as const, reason: 'invalid-destination', deviceIds: [] as string[], linkIds: [] as string[], steps: [] as { currentId: string; nextHopIp: string; interfaceId: string; l2Devices: string[]; l2Links: string[] }[] };
+  if (!parseIPv4Address(destinationIp)) return { success: false as const, reason: 'invalid-destination', deviceIds: [] as string[], linkIds: [] as string[], steps: [] as { currentId: string; nextHopIp: string; interfaceId: string; vlan: number; l2Devices: string[]; l2Links: string[] }[] };
   let current = findDevice(state, sourceDeviceId); const visited = new Set<string>(); const deviceIds: string[] = []; const linkIds: string[] = []; const steps = [];
   for (let count = 0; current && count <= state.devices.length + 1; count += 1) {
     if (visited.has(current.id)) return { success: false as const, reason: 'routing-loop', deviceIds, linkIds, steps };
     visited.add(current.id); deviceIds.push(current.id);
-    if (current.interfaces.some((item) => item.adminUp && item.ipv4 === destinationIp)) return { success: true as const, reason: 'delivered', deviceIds, linkIds, steps };
+    if (current.interfaces.some((item) => interfaceOperational(current!, item) && item.ipv4 === destinationIp)) return { success: true as const, reason: 'delivered', deviceIds, linkIds, steps };
     const route = routeForDevice(current, destinationIp);
     let nextHopIp: string | undefined; let outgoing: SandboxInterface | undefined;
     if (current.type === 'pc') {
@@ -644,19 +797,21 @@ export function traceSandboxIPv4Path(state: SandboxWorkspace, sourceDeviceId: st
       });
       if (!outgoing) return { success: false as const, reason: 'no-exit-interface', deviceIds, linkIds, steps };
     }
-    if (!outgoing.adminUp) return { success: false as const, reason: 'interface-down', deviceIds, linkIds, steps };
-    const nextDevice = state.devices.find((device) => device.interfaces.some((item) => item.adminUp && item.ipv4 === nextHopIp));
-    const nextInterface = nextDevice?.interfaces.find((item) => item.adminUp && item.ipv4 === nextHopIp);
+    if (!interfaceOperational(current, outgoing)) return { success: false as const, reason: 'interface-down', deviceIds, linkIds, steps };
+    const nextDevice = state.devices.find((device) => device.interfaces.some((item) => interfaceOperational(device, item) && item.ipv4 === nextHopIp));
+    const nextInterface = nextDevice?.interfaces.find((item) => interfaceOperational(nextDevice, item) && item.ipv4 === nextHopIp);
     if (!nextDevice || !nextInterface) return { success: false as const, reason: 'next-hop-unresolved', deviceIds, linkIds, steps };
     const vlan = inferSourceVlan(state, current.id, outgoing.id);
-    const l2 = layer2Path(state, { deviceId: current.id, interfaceId: outgoing.id }, { deviceId: nextDevice.id, interfaceId: nextInterface.id }, vlan);
+    const outgoingPhysical = physicalInterface(current, outgoing);
+    const nextPhysical = physicalInterface(nextDevice, nextInterface);
+    const l2 = layer2Path(state, { deviceId: current.id, interfaceId: outgoingPhysical?.id ?? outgoing.id }, { deviceId: nextDevice.id, interfaceId: nextPhysical?.id ?? nextInterface.id }, vlan);
     if (!l2) {
-      const physicalPath = layer2Path(state, { deviceId: current.id, interfaceId: outgoing.id }, { deviceId: nextDevice.id, interfaceId: nextInterface.id }, vlan, false);
+      const physicalPath = layer2Path(state, { deviceId: current.id, interfaceId: outgoingPhysical?.id ?? outgoing.id }, { deviceId: nextDevice.id, interfaceId: nextPhysical?.id ?? nextInterface.id }, vlan, false);
       return { success: false as const, reason: physicalPath ? 'vlan-blocked' : 'no-layer2-path', deviceIds, linkIds, steps };
     }
     l2.devices.forEach((id) => { if (!deviceIds.includes(id)) deviceIds.push(id); });
     l2.links.forEach((id) => { if (!linkIds.includes(id)) linkIds.push(id); });
-    steps.push({ currentId: current.id, nextHopIp, interfaceId: outgoing.id, l2Devices: l2.devices, l2Links: l2.links });
+    steps.push({ currentId: current.id, nextHopIp, interfaceId: outgoing.id, vlan, l2Devices: l2.devices, l2Links: l2.links });
     current = nextDevice;
   }
   return { success: false as const, reason: 'routing-loop', deviceIds, linkIds, steps };
@@ -680,7 +835,7 @@ function applyPathLearning(state: SandboxWorkspace, path: ReturnType<typeof trac
 
 export function simulateSandboxPing(state: SandboxWorkspace, sourceDeviceId: string, destinationIp: string): SandboxTraceResult {
   const next = cloneWorkspace(state); const forward = traceSandboxIPv4Path(next, sourceDeviceId, destinationIp);
-  const destinationOwners = next.devices.filter((device) => device.interfaces.some((item) => item.adminUp && item.ipv4 === destinationIp));
+  const destinationOwners = next.devices.filter((device) => device.interfaces.some((item) => interfaceOperational(device, item) && item.ipv4 === destinationIp));
   if (destinationOwners.length > 1) return failure(next, `Destination ${destinationIp} is duplicated.`, 'The model cannot identify one unambiguous destination interface.', 'Give every active interface a unique IPv4 address.');
   const source = findDevice(next, sourceDeviceId);
   const sourceAddress = source
@@ -703,8 +858,8 @@ export function simulateSandboxPing(state: SandboxWorkspace, sourceDeviceId: str
     const current = findDevice(state, step.currentId);
     const cached = current?.arpTable.some((entry) => entry.ip === step.nextHopIp);
     return [
-      event(`next-hop-${index}`, cached ? 'ARP CACHE USED' : 'NEXT-HOP MAC RESOLVED', cached ? `${current?.name} already knows the MAC for ${step.nextHopIp}.` : `${current?.name} resolves ${step.nextHopIp} before sending the frame.`, step.l2Devices, step.l2Links, 'neutral'),
-      event(`route-${index}`, index === 0 ? 'FORWARD PATH SELECTED' : 'LINK-LAYER FRAME REPLACED', index === 0 ? `${current?.name} sends through its selected Layer 2 path.` : `${current?.name} keeps the IP endpoints and builds a new Ethernet frame for the next link.`, step.l2Devices, step.l2Links, 'active'),
+      event(`next-hop-${index}`, cached ? 'ARP CACHE USED' : index === 0 ? 'GATEWAY MAC RESOLVED' : 'DESTINATION MAC RESOLVED', cached ? `${current?.name} already knows the MAC for ${step.nextHopIp} in VLAN ${step.vlan}.` : `${current?.name} resolves ${step.nextHopIp} inside VLAN ${step.vlan} before sending.`, step.l2Devices, step.l2Links, 'neutral'),
+      event(`route-${index}`, index === 0 ? 'TAGGED PATH TO NEXT HOP' : 'LINK-LAYER FRAME REPLACED', index === 0 ? `${current?.name} sends through the Layer 2 path carrying VLAN ${step.vlan}.` : `${current?.name} preserves the IP endpoints and builds new Ethernet framing for VLAN ${step.vlan}.`, step.l2Devices, step.l2Links, 'active'),
     ];
   });
   return {
@@ -746,7 +901,15 @@ export function createSandboxCliState(state: SandboxWorkspace): CliNetworkState 
       name: device.name,
       type: device.type === 'pc' ? 'host' : device.type,
       mode: 'user-exec',
-      interfaces: device.interfaces.map((item) => ({ ...item, name: item.id, linkUp: state.links.some((link) => [endpointKey(link.a), endpointKey(link.b)].includes(`${device.id}:${item.id}`)) })),
+      interfaces: device.interfaces.map((item) => {
+        const physicalId = item.parentInterfaceId ?? item.id;
+        return {
+          ...item,
+          name: item.id,
+          parentInterface: item.parentInterfaceId,
+          linkUp: state.links.some((link) => [endpointKey(link.a), endpointKey(link.b)].includes(`${device.id}:${physicalId}`)),
+        };
+      }),
       routes: device.routes.map((route) => ({ ...route })),
       vlans: [...device.vlans],
       arpEntries: device.arpTable.map((entry) => ({ ip: entry.ip, macAddress: entry.macAddress, interfaceName: entry.interfaceId })),
@@ -790,11 +953,37 @@ function mergeCliState(state: SandboxWorkspace, cli: CliNetworkState) {
     device.routes = cliDevice.routes.map((route) => ({ ...route })); device.vlans = [...cliDevice.vlans];
     if (cliDevice.arpEntries) device.arpTable = cliDevice.arpEntries.map((entry) => ({ ip: entry.ip, macAddress: entry.macAddress, interfaceId: entry.interfaceName }));
     if (cliDevice.macEntries) device.macTable = cliDevice.macEntries.map((entry) => ({ macAddress: entry.macAddress, interfaceId: entry.interfaceName, vlan: entry.vlan }));
+    const cliNames = new Set(cliDevice.interfaces.map((item) => item.name));
+    device.interfaces = device.interfaces.filter((item) => !item.parentInterfaceId || cliNames.has(item.id));
+    cliDevice.interfaces.filter((item) => item.parentInterface && !device.interfaces.some((candidate) => candidate.id === item.name)).forEach((item) => {
+      const parent = device.interfaces.find((candidate) => candidate.id === item.parentInterface);
+      if (!parent) return;
+      device.interfaces.push({
+        id: item.name,
+        name: item.name,
+        macAddress: parent.macAddress,
+        parentInterfaceId: item.parentInterface,
+        encapsulationVlan: item.encapsulationVlan,
+        adminUp: item.adminUp,
+        ipv4: item.ipv4,
+        prefix: item.prefix,
+      });
+    });
     device.interfaces.forEach((item) => {
       const cliInterface = cliDevice.interfaces.find((candidate) => candidate.name === item.id); if (!cliInterface) return;
-      Object.assign(item, { adminUp: cliInterface.adminUp, ipv4: cliInterface.ipv4, prefix: cliInterface.prefix, switchportMode: cliInterface.switchportMode, accessVlan: cliInterface.accessVlan, allowedVlans: cliInterface.allowedVlans ? [...cliInterface.allowedVlans] : undefined });
+      Object.assign(item, {
+        adminUp: cliInterface.adminUp,
+        ipv4: cliInterface.ipv4,
+        prefix: cliInterface.prefix,
+        parentInterfaceId: cliInterface.parentInterface,
+        encapsulationVlan: cliInterface.encapsulationVlan,
+        switchportMode: cliInterface.switchportMode,
+        accessVlan: cliInterface.accessVlan,
+        allowedVlans: cliInterface.allowedVlans ? [...cliInterface.allowedVlans] : undefined,
+      });
     });
   });
+  next.schemaVersion = 2;
   return next;
 }
 

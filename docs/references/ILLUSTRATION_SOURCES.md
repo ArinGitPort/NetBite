@@ -1,5 +1,9 @@
 # Educational Illustration Sources
 
+## Chapter 12
+
+`inter-vlan-boundary`, `vlan-gateway`, `router-on-stick`, `router-subinterface`, `inter-vlan-forwarding`, `inter-vlan-config`, and `inter-vlan-troubleshooting` use IEEE 802.1Q for VLAN context, RFC 826 for next-hop address resolution, RFC 1122 and RFC 1812 for host/router forwarding responsibilities, and the official Cisco external-router inter-VLAN configuration guide for the subinterface configuration structure. Artwork is original and carries no embedded technical text.
+
 The renderer registry stores the source identifiers below on every illustration specification. References determine technical structure and claims only; no source artwork is copied.
 
 | Source ID | Authoritative reference | Illustration coverage |
@@ -7,6 +11,7 @@ The renderer registry stores the source identifiers below on every illustration 
 | `IEEE-802.3` | [IEEE 802.3 Ethernet Working Group](https://www.ieee802.org/3/) | Ethernet media, interfaces, frame concepts, and 48-bit addresses |
 | `IEEE-RA` | [IEEE Registration Authority](https://standards.ieee.org/products-programs/regauth/) | MAC-address administration |
 | `IEEE-802.1Q` | [IEEE 802.1 Working Group](https://www.ieee802.org/1/pages/802.1Q.html) | VLAN separation and tagged links |
+| `CISCO-INTER-VLAN` | [Cisco external-router inter-VLAN guide](https://www.cisco.com/c/en/us/support/docs/lan-switching/inter-vlan-routing/14976-50.html) | Router trunks, logical subinterfaces, VLAN encapsulation, and gateway configuration |
 | `RFC-791` | [Internet Protocol](https://www.rfc-editor.org/rfc/rfc791) | IPv4 address and datagram structure |
 | `RFC-950` | [Internet Standard Subnetting Procedure](https://www.rfc-editor.org/rfc/rfc950) | Masks, subnet boundaries, and ranges |
 | `RFC-1878` | [Variable Length Subnet Table for IPv4](https://www.rfc-editor.org/rfc/rfc1878) | `/24–/27` masks, block sizes, complete host ranges, and broadcast endpoints |

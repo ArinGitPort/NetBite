@@ -9,13 +9,16 @@ import {
   configureSandboxDevice,
   connectSandboxInterfaces,
   createGuidedSandboxWorkspace,
+  createInterVlanSandboxWorkspace,
   createReadyRoutedSandboxWorkspace,
+  createRouterSubinterface,
   moveSandboxDevice,
   getSandboxPingReadiness,
   previewBeginnerLanSetup,
   processSandboxFrame,
   removeSandboxDevice,
   removeSandboxLink,
+  removeRouterSubinterface,
   simulateSandboxPing,
   validateSandboxTopology,
   type SandboxDevicePatch,
@@ -34,7 +37,7 @@ import { selectionHaptic, successHaptic, warningHaptic } from '@/shared/haptics'
 import { Fonts, Palette, Space, Typography } from '@/shared/theme';
 import { useSandboxStore } from '@/store/use-sandbox-store';
 
-type Confirmation = 'new' | 'clear' | 'preset' | 'beginner-lan' | 'remove-device' | 'remove-link';
+type Confirmation = 'new' | 'clear' | 'preset' | 'inter-vlan-preset' | 'beginner-lan' | 'remove-device' | 'remove-link';
 type SandboxTool = 'add' | 'connect' | 'configure' | 'test' | 'workspace';
 
 function Option({ label, selected, onPress }: { label: string; selected?: boolean; onPress: () => void }) {
@@ -274,10 +277,26 @@ export function SandboxScreen() {
     successHaptic();
   };
 
+  const loadInterVlanNetwork = () => {
+    commitWorkspace(createInterVlanSandboxWorkspace());
+    setPresetGuideActive(false);
+    setSelectedDeviceId('pc-1');
+    setSelectedLinkId(undefined);
+    setSourceId('pc-1');
+    setDestinationId('pc-2');
+    setPingTarget('192.168.20.20');
+    setTestType('ping');
+    setTrace(undefined);
+    setActiveTool('test');
+    setNotice('Inter-VLAN demo loaded. PC-1 reaches PC-2 through the switch trunk and R-1 subinterfaces.');
+    successHaptic();
+  };
+
   const confirmAction = () => {
     if (confirmation === 'new') { newNetwork(); setSelectedDeviceId(undefined); setSelectedLinkId(undefined); setTrace(undefined); setNotice('New empty network created.'); }
     if (confirmation === 'clear') { commitWorkspace(clearSandboxLearnedState(workspace)); setTrace(undefined); setNotice('MAC and ARP tables cleared.'); }
     if (confirmation === 'preset') loadReadyNetwork(true);
+    if (confirmation === 'inter-vlan-preset') loadInterVlanNetwork();
     if (confirmation === 'beginner-lan') {
       const result = applyBeginnerLanSetup(workspace);
       if (result.ok) {
@@ -379,7 +398,20 @@ export function SandboxScreen() {
       ) : null}
 
       {activeTool === 'configure' ? selectedDevice && !cliDeviceId ? (
-        <SandboxInspector key={selectedDevice.id} device={selectedDevice} issues={issues} onConfigure={configure} onRemove={() => setConfirmation('remove-device')} onOpenCli={() => setCliDeviceId(selectedDevice.id)} />
+        <SandboxInspector
+          key={selectedDevice.id}
+          device={selectedDevice}
+          issues={issues}
+          onConfigure={configure}
+          onCreateSubinterface={(parentInterfaceId, number) => {
+            const result = createRouterSubinterface(workspace, selectedDevice.id, parentInterfaceId, number);
+            if (result.ok) commitWorkspaceChange(result.state);
+            return result.ok ? { ok: true } : { ok: false, message: result.message };
+          }}
+          onRemoveSubinterface={(interfaceId) => commitWorkspaceChange(removeRouterSubinterface(workspace, selectedDevice.id, interfaceId))}
+          onRemove={() => setConfirmation('remove-device')}
+          onOpenCli={() => setCliDeviceId(selectedDevice.id)}
+        />
       ) : (
         <View style={styles.actionPanel}><Text variant="label" style={styles.actionEyebrow}>CONFIGURE A DEVICE</Text><Text variant="body" style={styles.actionCopy}>Tap a PC, switch, or router on the canvas. Only settings supported by that device will appear.</Text></View>
       ) : null}
@@ -425,7 +457,7 @@ export function SandboxScreen() {
         <View style={styles.actionPanel}>
           <Text variant="label" style={styles.actionEyebrow}>WORKSPACE TOOLS</Text>
           <Text variant="bodySmall" style={styles.actionCopy}>These controls affect the canvas or autosaved workspace, not an individual device.</Text>
-          <View style={styles.controlGrid}><AppButton label="Load routed preset" variant="secondary" onPress={() => workspace.devices.length ? setConfirmation('preset') : loadReadyNetwork(true)} /><AppButton label="Undo" variant="secondary" disabled={pastCount === 0} onPress={() => { undo(); setTrace(undefined); setTraceIndex(0); }} /><AppButton label="Redo" variant="secondary" disabled={futureCount === 0} onPress={() => { redo(); setTrace(undefined); setTraceIndex(0); }} /><AppButton label="Zoom out" variant="secondary" disabled={zoom <= 0.75} onPress={() => setZoom((value) => Math.max(0.75, value - 0.15))} /><AppButton label="Zoom in" variant="secondary" disabled={zoom >= 1.2} onPress={() => setZoom((value) => Math.min(1.2, value + 0.15))} /><AppButton label="Reset view" variant="secondary" onPress={() => setZoom(0.9)} /><AppButton label="Clear learned state" variant="secondary" onPress={() => setConfirmation('clear')} /><AppButton label="New network" variant="secondary" onPress={() => setConfirmation('new')} /></View>
+          <View style={styles.controlGrid}><AppButton label="Load routed preset" variant="secondary" onPress={() => workspace.devices.length ? setConfirmation('preset') : loadReadyNetwork(true)} /><AppButton label="Load inter-VLAN demo" variant="secondary" onPress={() => workspace.devices.length ? setConfirmation('inter-vlan-preset') : loadInterVlanNetwork()} /><AppButton label="Undo" variant="secondary" disabled={pastCount === 0} onPress={() => { undo(); setTrace(undefined); setTraceIndex(0); }} /><AppButton label="Redo" variant="secondary" disabled={futureCount === 0} onPress={() => { redo(); setTrace(undefined); setTraceIndex(0); }} /><AppButton label="Zoom out" variant="secondary" disabled={zoom <= 0.75} onPress={() => setZoom((value) => Math.max(0.75, value - 0.15))} /><AppButton label="Zoom in" variant="secondary" disabled={zoom >= 1.2} onPress={() => setZoom((value) => Math.min(1.2, value + 0.15))} /><AppButton label="Reset view" variant="secondary" onPress={() => setZoom(0.9)} /><AppButton label="Clear learned state" variant="secondary" onPress={() => setConfirmation('clear')} /><AppButton label="New network" variant="secondary" onPress={() => setConfirmation('new')} /></View>
           <Text variant="technical" style={styles.footer}>SUPPORTED / ETHERNET, MAC LEARNING, ARP, IPV4, STATIC ROUTES, VLAN ACCESS + TRUNKS, ICMP ECHO</Text>
           <Text variant="technical" style={styles.footer}>NOT MODELED / STP, DYNAMIC ROUTING, DHCP, DNS, NAT, ACLS, TIMING, LOSS, OR LIVE PACKETS</Text>
         </View>
@@ -433,7 +465,7 @@ export function SandboxScreen() {
 
       <SandboxCli visible={Boolean(cliDeviceId)} workspace={workspace} initialDeviceId={cliDeviceId ?? ''} onClose={() => setCliDeviceId(undefined)} onCommit={commitWorkspaceChange} />
       <FeedbackModal visible={guideVisible} eyebrow="FIRST SANDBOX SESSION" title="How do you want to begin?" message="Explore a complete routed network, or build a smaller switched LAN yourself." detail="The routed preset includes valid addresses, gateways, two switches, one router, a working ping, and CLI experiments." primaryAction={{ label: 'Explore routed network', onPress: () => { setGuideVisible(false); loadReadyNetwork(false); } }} secondaryAction={{ label: 'Build it myself', variant: 'secondary', onPress: () => { replaceWorkspace(createGuidedSandboxWorkspace()); setGuideVisible(false); setGuideActive(true); } }} onRequestClose={() => { markGuideSeen(); setGuideVisible(false); }} />
-      <FeedbackModal visible={Boolean(confirmation)} tone="warning" eyebrow="CONFIRM SANDBOX ACTION" title={confirmation === 'new' ? 'Create a new network?' : confirmation === 'clear' ? 'Clear learned state?' : confirmation === 'preset' ? 'Load the routed preset?' : confirmation === 'beginner-lan' ? 'Apply beginner addresses?' : confirmation === 'remove-device' ? 'Remove this device?' : 'Remove this link?'} message={confirmation === 'new' ? 'All devices, links, and configuration in the autosaved workspace will be erased.' : confirmation === 'clear' ? 'MAC and ARP tables plus the current trace will be cleared. Topology and configuration remain.' : confirmation === 'preset' ? 'The current workspace will be replaced by a five-device, two-LAN routed example. You can undo this afterward.' : confirmation === 'beginner-lan' ? beginnerLanSetup?.changes.map((change) => `${change.deviceName}: ${change.before} → ${change.after}`).join('\n') ?? 'The beginner setup is no longer available.' : confirmation === 'remove-device' ? 'Connected links will also be removed.' : 'The two endpoint interfaces will become available.'} detail={confirmation === 'beginner-lan' ? `${beginnerLanSetup?.overwritesExistingConfiguration ? 'Existing addressing or switchport settings shown above will be replaced. ' : ''}Both PCs will use VLAN 1 and require no default gateway.` : undefined} primaryAction={{ label: confirmation === 'preset' ? 'Load routed preset' : confirmation === 'beginner-lan' ? 'Apply setup' : 'Confirm action', onPress: confirmAction }} secondaryAction={{ label: 'Keep working', variant: 'secondary', onPress: () => setConfirmation(undefined) }} onRequestClose={() => setConfirmation(undefined)} />
+      <FeedbackModal visible={Boolean(confirmation)} tone="warning" eyebrow="CONFIRM SANDBOX ACTION" title={confirmation === 'new' ? 'Create a new network?' : confirmation === 'clear' ? 'Clear learned state?' : confirmation === 'preset' ? 'Load the routed preset?' : confirmation === 'inter-vlan-preset' ? 'Load the inter-VLAN demo?' : confirmation === 'beginner-lan' ? 'Apply beginner addresses?' : confirmation === 'remove-device' ? 'Remove this device?' : 'Remove this link?'} message={confirmation === 'new' ? 'All devices, links, and configuration in the autosaved workspace will be erased.' : confirmation === 'clear' ? 'MAC and ARP tables plus the current trace will be cleared. Topology and configuration remain.' : confirmation === 'preset' ? 'The current workspace will be replaced by a five-device, two-LAN routed example. You can undo this afterward.' : confirmation === 'inter-vlan-preset' ? 'The current workspace will be replaced by a configured VLAN 10 and VLAN 20 router-on-a-stick example.' : confirmation === 'beginner-lan' ? beginnerLanSetup?.changes.map((change) => `${change.deviceName}: ${change.before} → ${change.after}`).join('\n') ?? 'The beginner setup is no longer available.' : confirmation === 'remove-device' ? 'Connected links will also be removed.' : 'The two endpoint interfaces will become available.'} detail={confirmation === 'beginner-lan' ? `${beginnerLanSetup?.overwritesExistingConfiguration ? 'Existing addressing or switchport settings shown above will be replaced. ' : ''}Both PCs will use VLAN 1 and require no default gateway.` : undefined} primaryAction={{ label: confirmation === 'preset' ? 'Load routed preset' : confirmation === 'inter-vlan-preset' ? 'Load inter-VLAN demo' : confirmation === 'beginner-lan' ? 'Apply setup' : 'Confirm action', onPress: confirmAction }} secondaryAction={{ label: 'Keep working', variant: 'secondary', onPress: () => setConfirmation(undefined) }} onRequestClose={() => setConfirmation(undefined)} />
     </Screen>
   );
 }
