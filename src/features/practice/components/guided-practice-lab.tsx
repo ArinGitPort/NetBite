@@ -113,7 +113,7 @@ export function GuidedPracticeLab({ config }: { config: PracticeConfig }) {
         ? <AppButton label={isFinal ? 'Complete practice' : 'Continue'} trailingIcon="arrow-right" onPress={advance} />
         : <AppButton label="Check prediction" leadingIcon="check" disabled={selected === undefined} onPress={check} />}
 
-      <FeedbackModal visible={resetVisible} tone="warning" eyebrow="CONFIRM ACTION" title="Reset this practice?" message="Return to stage one and clear the current decisions." icon="reset" onRequestClose={() => setResetVisible(false)} secondaryAction={{ label: 'Keep working', variant: 'secondary', onPress: () => setResetVisible(false) }} primaryAction={{ label: 'Reset practice', onPress: reset }} />
+      <FeedbackModal visible={resetVisible} tone="warning" eyebrow="CONFIRM ACTION" title="Reset this practice?" message="Return to stage one and clear the current decisions." icon="reset" onRequestClose={() => setResetVisible(false)} secondaryAction={{ label: 'Keep working', variant: 'secondary', onPress: () => setResetVisible(false) }} primaryAction={{ label: 'Reset practice', variant: 'danger', onPress: reset }} />
       <FeedbackModal visible={completionVisible} tone="success" eyebrow="PRACTICE COMPLETE" title={config.title} message={config.completion} detail="Your progress has been saved." icon="check" onRequestClose={() => setCompletionVisible(false)} secondaryAction={{ label: 'Review practice', variant: 'secondary', onPress: () => setCompletionVisible(false) }} primaryAction={{ label: 'Back to chapter', leadingIcon: 'arrow-left', onPress: () => returnToOwningChapter('lab', config.id) }} />
     </Screen>
   );

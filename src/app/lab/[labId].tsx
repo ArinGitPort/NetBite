@@ -110,7 +110,7 @@ function FirstNetworkLab() {
       {failedAttempts > 0 && visibleHintCount < chapterOneLab.hints.length ? (
         <AppButton
           label={visibleHintCount === 0 ? 'Show a hint' : 'Show next hint'}
-          variant="quiet"
+          variant="utility"
           onPress={() => setVisibleHintCount((current) => current + 1)}
         />
       ) : null}
@@ -129,7 +129,7 @@ function FirstNetworkLab() {
         icon="reset"
         onRequestClose={() => setResetConfirmationVisible(false)}
         secondaryAction={{ label: 'Keep my network', onPress: () => setResetConfirmationVisible(false), variant: 'secondary' }}
-        primaryAction={{ label: 'Reset lab', leadingIcon: 'reset', onPress: reset }}
+        primaryAction={{ label: 'Reset lab', leadingIcon: 'reset', variant: 'danger', onPress: reset }}
       />
 
       <FeedbackModal

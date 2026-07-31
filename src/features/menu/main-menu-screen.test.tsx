@@ -40,10 +40,40 @@ describe('main menu', () => {
     expect(screen.getByText('START LEARNING')).toBeTruthy();
     expect(screen.getByText('NETWORK SANDBOX')).toBeTruthy();
     expect(screen.getByText('SETTINGS')).toBeTruthy();
-    await fireEvent.press(screen.getByText('BROWSE CHAPTERS'));
+    await fireEvent.press(screen.getByText('Browse all chapters'));
     expect(mockPush).toHaveBeenCalledWith('/learn');
     await fireEvent.press(screen.getByText('NETWORK SANDBOX'));
     expect(mockPush).toHaveBeenCalledWith('/sandbox');
+  });
+
+  test('places the primary learning action before sandbox and account utilities', async () => {
+    const screen = await render(<MainMenuScreen />);
+    const buttons = screen.getAllByRole('button');
+    expect(buttons[0].props.accessibilityLabel).toContain('START LEARNING');
+    expect(buttons.findIndex((button) => button.props.accessibilityLabel?.includes('NETWORK SANDBOX'))).toBeGreaterThan(0);
+    expect(buttons.findIndex((button) => button.props.accessibilityLabel?.includes('TEST LEARNER'))).toBeGreaterThan(0);
+  });
+
+  test('uses an explicit locked sandbox action for free guests', async () => {
+    mockAuthState = { ...mockAuthState, status: 'guest', hasPro: false, hasContentAccess: false, profile: { displayName: 'Test learner' } };
+    const screen = await render(<MainMenuScreen />);
+    expect(screen.getByText('VIEW PRO ACCESS')).toBeTruthy();
+    expect(screen.getByText('PRO / LOCKED')).toBeTruthy();
+    await fireEvent.press(screen.getByText('NETWORK SANDBOX'));
+    expect(mockPush).toHaveBeenCalledWith('/pro');
+  });
+
+  test('announces active cloud synchronization on the account utility', async () => {
+    mockAuthState = { ...mockAuthState, syncStatus: 'syncing' };
+    const screen = await render(<MainMenuScreen />);
+    expect(screen.getByRole('button', { name: /test learner, pro active/i }).props.accessibilityState.busy).toBe(true);
+  });
+
+  test('labels temporary presentation access without claiming a purchase', async () => {
+    mockAuthState = { ...mockAuthState, hasPro: false, hasContentAccess: true, presentationActive: true };
+    const screen = await render(<MainMenuScreen />);
+    expect(screen.getByText('DEMO ACCESS / NOT PURCHASED')).toBeTruthy();
+    expect(screen.getByText('NETWORK SANDBOX')).toBeTruthy();
   });
 
   test('redirects a fresh guest to account choices without rendering the menu', async () => {

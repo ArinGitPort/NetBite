@@ -11,7 +11,7 @@ type FeedbackTone = 'neutral' | 'warning' | 'success';
 interface FeedbackModalAction {
   label: string;
   onPress: () => void;
-  variant?: 'primary' | 'secondary' | 'quiet';
+  variant?: 'primary' | 'secondary' | 'quiet' | 'utility' | 'danger';
   leadingIcon?: AppIconName;
   trailingIcon?: AppIconName;
 }

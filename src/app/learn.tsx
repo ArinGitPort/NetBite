@@ -72,11 +72,12 @@ export default function LearningHomeScreen() {
         {chapters.map((chapter, index) => {
           const chapterComplete = isChapterComplete(chapter, learningProgress);
           const locked = !canAccessChapter(chapter.id, hasContentAccess);
+          const current = chapter.id === currentChapter.id;
           return (
-            <Pressable key={chapter.id} accessibilityLabel={`Chapter ${chapter.numberLabel}, ${chapter.title}${locked ? ', NetBite Pro required' : chapterComplete ? ', complete' : ''}`} accessibilityRole="button" onPress={() => locked ? router.push(AppRoutes.pro) : router.push({ pathname: '/chapter/[chapterId]', params: { chapterId: chapter.id } })} style={({ pressed }) => [styles.pathRow, index === chapters.length - 1 && styles.lastPathRow, locked && styles.lockedRow, pressed && styles.pressed]}>
-              <View style={[styles.circuitNode, locked ? styles.lockedNode : styles.activeNode]} />
+            <Pressable key={chapter.id} accessibilityHint={locked ? 'Opens NetBite Pro access details' : current ? 'Opens your current chapter' : 'Opens this chapter'} accessibilityLabel={`Chapter ${chapter.numberLabel}, ${chapter.title}${locked ? ', locked, NetBite Pro required' : current ? ', current chapter' : chapterComplete ? ', complete' : ''}`} accessibilityRole="button" onPress={() => locked ? router.push(AppRoutes.pro) : router.push({ pathname: '/chapter/[chapterId]', params: { chapterId: chapter.id } })} style={({ pressed }) => [styles.pathRow, index === chapters.length - 1 && styles.lastPathRow, current && styles.currentPathRow, chapterComplete && !current && styles.completedPathRow, locked && styles.lockedRow, pressed && styles.pressed]}>
+              <View style={[styles.circuitNode, locked ? styles.lockedNode : chapterComplete ? styles.completedNode : current ? styles.currentNode : styles.activeNode]} />
               <View style={styles.pathCopy}>
-                <Text variant="label" style={styles.pathLabel}>CHAPTER {chapter.numberLabel}{locked ? ' / PRO' : chapterComplete ? ' / COMPLETE' : ''}</Text>
+                <Text variant="label" style={[styles.pathLabel, current && styles.currentPathLabel, chapterComplete && !current && styles.completedPathLabel]}>CHAPTER {chapter.numberLabel}{locked ? ' / PRO LOCKED' : current ? ' / CURRENT' : chapterComplete ? ' / COMPLETE' : ''}</Text>
                 <Text variant="sectionHeading" style={styles.pathTitle}>{chapter.title}</Text>
                 <Text variant="technical" style={styles.muted}>{String(chapter.lessons.length).padStart(2, '0')} LESSONS / 01 LAB / {String(chapter.quiz.length).padStart(2, '0')} QUESTIONS</Text>
               </View>
@@ -113,9 +114,15 @@ const styles = StyleSheet.create({
   lastPathRow: { borderBottomWidth: 0 },
   circuitNode: { width: 12, height: 12, zIndex: 1 },
   activeNode: { backgroundColor: Palette.active },
+  currentNode: { backgroundColor: Palette.orange, borderWidth: 1, borderColor: Palette.white },
+  completedNode: { backgroundColor: Palette.green },
   lockedNode: { borderWidth: 1, borderColor: Palette.textMuted, backgroundColor: Palette.background },
   lockedRow: { opacity: 0.72 },
+  currentPathRow: { borderLeftWidth: 4, borderLeftColor: Palette.orange, backgroundColor: Palette.surfaceRaised },
+  completedPathRow: { opacity: 0.82 },
   pathCopy: { flex: 1, minWidth: 0, marginLeft: Space.lg },
   pathLabel: { color: Palette.accentBright, fontFamily: Fonts.medium },
+  currentPathLabel: { color: Palette.orange },
+  completedPathLabel: { color: Palette.green },
   pathTitle: { color: Palette.text, fontFamily: Fonts.medium, marginVertical: Space.xs, textTransform: 'uppercase' },
 });

@@ -73,6 +73,17 @@ Saturated color communicates state. It is not general decoration.
 
 ## Components
 
+### Interaction hierarchy
+
+- Each task state has one visually dominant action. Continue, Next, Submit, Run, and Confirm may be primary only when they advance the current task.
+- Secondary actions support the current task. Utility actions navigate to settings, account, history, view controls, or optional review without competing with the primary command.
+- Destructive actions use a warning zone, an explicit destructive treatment, and a confirmation whose safe choice is presented neutrally.
+- Use recognition over recall: pair familiar icons with visible labels for Learn, Sandbox, Account, Settings, Lesson, Lab, Quiz, and Flashcards.
+- Group controls beside the object or task they affect. Put presets, history, advanced configuration, and destructive controls behind clearly labeled disclosures when they are not immediately needed.
+- Current, selected, completed, locked, disabled, loading, success, warning, and destructive states require a text or icon cue in addition to color.
+- Action cards use three priorities: `primary` for the one next task, `secondary` for a distinct destination or tool, and `utility` for compact supporting navigation.
+- Feedback must be immediate and recoverable. Disable duplicate submission while work is pending, preserve local data after service failure, and explain the next safe action.
+
 ### Command buttons
 
 - Dark background matching the console
@@ -80,6 +91,7 @@ Saturated color communicates state. It is not general decoration.
 - Minimum 44 px touch target
 - 12 px centered uppercase label with 1.2 tracking
 - No fill animation, shadow, or scale animation
+- Primary buttons use a small signal rail. Utility buttons use a neutral border. Destructive buttons use the error border and an explicit action verb.
 
 ### Learning path circuit
 

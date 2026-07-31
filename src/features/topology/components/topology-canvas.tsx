@@ -510,7 +510,7 @@ export function TopologyCanvas({ connectionMode }: TopologyCanvasProps) {
         detail="You can add another device from the tray afterward."
         onRequestClose={() => setRemoveDeviceConfirmationVisible(false)}
         secondaryAction={{ label: 'Keep device', variant: 'secondary', onPress: () => setRemoveDeviceConfirmationVisible(false) }}
-        primaryAction={{ label: 'Remove device', onPress: confirmRemoveDevice }}
+        primaryAction={{ label: 'Remove device', variant: 'danger', onPress: confirmRemoveDevice }}
       />
 
       <FeedbackModal
@@ -521,7 +521,7 @@ export function TopologyCanvas({ connectionMode }: TopologyCanvasProps) {
         message={`The connection between ${findDevice(selectedCable?.fromDeviceId ?? '')?.name ?? 'the first device'} and ${findDevice(selectedCable?.toDeviceId ?? '')?.name ?? 'the second device'} will be removed.`}
         onRequestClose={() => setRemoveCableConfirmationVisible(false)}
         secondaryAction={{ label: 'Keep cable', variant: 'secondary', onPress: () => setRemoveCableConfirmationVisible(false) }}
-        primaryAction={{ label: 'Remove cable', onPress: confirmRemoveCable }}
+        primaryAction={{ label: 'Remove cable', variant: 'danger', onPress: confirmRemoveCable }}
       />
     </View>
   );

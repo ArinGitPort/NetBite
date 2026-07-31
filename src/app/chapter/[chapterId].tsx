@@ -2,12 +2,14 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { getChapter } from '@/content/chapters';
+import { getNextChapterActivity } from '@/content/next-activity';
 import { getChapterProgress, getQuizMasteryScore, isFlashcardsReviewed, isQuizMastered } from '@/content/progress';
 import { canAccessChapter } from '@/core/account/access';
 import { useAuth } from '@/features/account/auth-context';
 import { PremiumLockedScreen } from '@/features/account/components/premium-locked-screen';
 import { ChapterRecap } from '@/features/chapters/components/chapter-recap';
 import { AppIcon } from '@/shared/components/app-icon';
+import { SemanticIcon, type SemanticIconName } from '@/shared/components/semantic-icon';
 import { ContentNotFound } from '@/shared/components/content-not-found';
 import { Text } from '@/shared/components/console-text';
 import { IconButton } from '@/shared/components/icon-button';
@@ -23,21 +25,24 @@ interface ActivityRowProps {
   title: string;
   detail: string;
   complete: boolean;
+  current?: boolean;
+  icon: SemanticIconName;
   onPress: () => void;
 }
 
-function ActivityRow({ index, type, title, detail, complete, onPress }: ActivityRowProps) {
+function ActivityRow({ index, type, title, detail, complete, current, icon, onPress }: ActivityRowProps) {
   return (
     <Pressable
-      accessibilityLabel={`${type}: ${title}${complete ? ', complete' : ''}`}
+      accessibilityHint={current ? 'Opens the next unfinished activity' : `Opens this ${type.toLowerCase()}`}
+      accessibilityLabel={`${type}: ${title}${current ? ', next activity' : complete ? ', complete' : ''}`}
       accessibilityRole="button"
       onPress={onPress}
-      style={({ pressed }) => [styles.activity, pressed && styles.pressed]}>
+      style={({ pressed }) => [styles.activity, current && styles.currentActivity, complete && !current && styles.completedActivity, pressed && styles.pressed]}>
       <View style={[styles.activityNumber, complete && styles.activityComplete]}>
-        {complete ? <AppIcon name="check" size={24} /> : <Text variant="label" style={styles.activityNumberText}>{index}</Text>}
+        {complete ? <AppIcon name="check" size={24} /> : <SemanticIcon color={current ? Palette.orange : Palette.textMuted} name={icon} size={22} />}
       </View>
       <View style={styles.activityCopy}>
-        <Text variant="label" style={styles.activityType}>{type}</Text>
+        <Text variant="label" style={[styles.activityType, current && styles.currentActivityType]}>{current ? `NEXT / ${type}` : `${String(index).padStart(2, '0')} / ${type}`}</Text>
         <Text variant="sectionHeading" style={styles.activityTitle}>{title}</Text>
         <Text variant="bodySmall" style={styles.activityDetail}>{detail}</Text>
       </View>
@@ -78,6 +83,7 @@ export default function ChapterScreen() {
     ? `Content updated • review ${chapter.flashcards.length} cards`
     : `${chapter.flashcards.length} cards`;
   const chapterComplete = completed === total;
+  const nextActivity = getNextChapterActivity(chapter, progress);
 
   return (
     <Screen>
@@ -103,14 +109,16 @@ export default function ChapterScreen() {
           title={lesson.title}
           detail="About 1 minute"
           complete={completedLessonIds.includes(lesson.id)}
+          current={nextActivity.type === 'lesson' && nextActivity.id === lesson.id}
+          icon="lesson"
           onPress={() => router.push({ pathname: '/lesson/[lessonId]', params: { lessonId: lesson.id } })}
         />
       ))}
 
       <Text variant="sectionHeading" style={styles.sectionTitle}>PRACTICE</Text>
-      <ActivityRow index={chapter.lessons.length + 1} type="MINI LAB" title={chapter.lab.title} detail={chapter.lab.detail} complete={labComplete} onPress={() => router.push({ pathname: '/lab/[labId]', params: { labId: chapter.lab.id } })} />
-      <ActivityRow index={chapter.lessons.length + 2} type="QUIZ" title="Check your understanding" detail={quizDetail} complete={quizMastered} onPress={() => router.push({ pathname: '/quiz/[chapterId]', params: { chapterId: chapter.id } })} />
-      <ActivityRow index={chapter.lessons.length + 3} type="FLASHCARDS" title="Recall the key ideas" detail={flashcardDetail} complete={flashcardsReviewed} onPress={() => router.push({ pathname: '/flashcards/[chapterId]', params: { chapterId: chapter.id } })} />
+      <ActivityRow index={chapter.lessons.length + 1} type="MINI LAB" title={chapter.lab.title} detail={chapter.lab.detail} complete={labComplete} current={nextActivity.type === 'lab'} icon="lab" onPress={() => router.push({ pathname: '/lab/[labId]', params: { labId: chapter.lab.id } })} />
+      <ActivityRow index={chapter.lessons.length + 2} type="QUIZ" title="Check your understanding" detail={quizDetail} complete={quizMastered} current={nextActivity.type === 'quiz'} icon="quiz" onPress={() => router.push({ pathname: '/quiz/[chapterId]', params: { chapterId: chapter.id } })} />
+      <ActivityRow index={chapter.lessons.length + 3} type="FLASHCARDS" title="Recall the key ideas" detail={flashcardDetail} complete={flashcardsReviewed} current={nextActivity.type === 'flashcards'} icon="flashcards" onPress={() => router.push({ pathname: '/flashcards/[chapterId]', params: { chapterId: chapter.id } })} />
     </Screen>
   );
 }
@@ -124,12 +132,15 @@ const styles = StyleSheet.create({
   progressText: { color: Palette.textMuted, fontFamily: Fonts.regular },
   sectionTitle: { color: Palette.text, fontFamily: Fonts.semibold, marginTop: Space.xl, marginBottom: Space.md },
   activity: { flexDirection: 'row', alignItems: 'center', backgroundColor: Palette.surface, borderWidth: 1, borderColor: Palette.border, borderRadius: Radius.md, padding: Space.lg, marginBottom: Space.md },
+  currentActivity: { borderLeftWidth: 4, borderColor: Palette.orange, backgroundColor: Palette.surfaceRaised },
+  completedActivity: { opacity: 0.82 },
   pressed: { opacity: 0.7 },
   activityNumber: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: Radius.sm, backgroundColor: Palette.accentSoft },
   activityComplete: { backgroundColor: Palette.mint },
   activityNumberText: { color: Palette.accentBright, fontFamily: Fonts.medium },
   activityCopy: { flex: 1, minWidth: 0, marginLeft: Space.md },
   activityType: { color: Palette.accentBright, fontFamily: Fonts.medium },
+  currentActivityType: { color: Palette.orange },
   activityTitle: { color: Palette.text, fontFamily: Fonts.medium, marginVertical: Space.xs, textTransform: 'uppercase' },
   activityDetail: { color: Palette.textMuted, textTransform: 'uppercase' },
 });

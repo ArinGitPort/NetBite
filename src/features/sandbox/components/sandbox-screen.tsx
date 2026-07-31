@@ -28,8 +28,10 @@ import { SandboxCanvas } from '@/features/sandbox/components/sandbox-canvas';
 import { SandboxCli } from '@/features/sandbox/components/sandbox-cli';
 import { SandboxInspector } from '@/features/sandbox/components/sandbox-inspector';
 import { AppButton } from '@/shared/components/app-button';
+import { DisclosureSection } from '@/shared/components/disclosure-section';
 import { FeedbackModal } from '@/shared/components/feedback-modal';
 import { IconButton } from '@/shared/components/icon-button';
+import { SemanticIcon, type SemanticIconName } from '@/shared/components/semantic-icon';
 import { Text } from '@/shared/components/console-text';
 import { Screen } from '@/shared/components/screen';
 import { selectionHaptic, successHaptic, warningHaptic } from '@/shared/haptics';
@@ -48,9 +50,10 @@ function Option({ label, selected, onPress }: { label: string; selected?: boolea
   );
 }
 
-function ToolButton({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) {
+function ToolButton({ label, icon, selected, onPress }: { label: string; icon: SemanticIconName; selected: boolean; onPress: () => void }) {
   return (
-    <Pressable accessibilityRole="button" accessibilityState={{ selected }} onPress={onPress} style={[styles.toolButton, selected && styles.toolButtonActive]}>
+    <Pressable accessibilityHint={`Shows ${label.toLowerCase()} controls`} accessibilityRole="button" accessibilityState={{ selected }} onPress={onPress} style={[styles.toolButton, selected && styles.toolButtonActive]}>
+      <SemanticIcon color={selected ? Palette.accentBright : Palette.textMuted} name={icon} size={20} />
       <Text variant="label" style={[styles.toolButtonText, selected && styles.toolButtonTextActive]}>{label}</Text>
     </Pressable>
   );
@@ -331,7 +334,7 @@ export function SandboxScreen() {
     <Screen scrollRef={screenRef}>
       <View style={styles.header}>
         <IconButton accessibilityLabel="Back to main menu" icon="arrow-left" label="BACK / MENU" onPress={returnToMenu} />
-        <AppButton label={activeTool === 'workspace' ? 'Close tools' : 'More'} variant="secondary" onPress={() => chooseTool('workspace')} />
+        <AppButton label={activeTool === 'workspace' ? 'Close tools' : 'More tools'} variant="utility" onPress={() => chooseTool('workspace')} />
       </View>
       <Text variant="label" style={styles.eyebrow}>FREE PLAY / DETERMINISTIC STATE MODEL</Text>
       <Text variant="screenTitle" style={styles.title}>NETWORK SANDBOX</Text>
@@ -358,10 +361,10 @@ export function SandboxScreen() {
       ) : null}
 
       <View accessibilityLabel="Sandbox actions" style={styles.toolDock}>
-        <ToolButton label="Add" selected={activeTool === 'add'} onPress={() => chooseTool('add')} />
-        <ToolButton label="Connect" selected={activeTool === 'connect'} onPress={() => chooseTool('connect')} />
-        <ToolButton label="Configure" selected={activeTool === 'configure'} onPress={() => chooseTool('configure')} />
-        <ToolButton label="Test" selected={activeTool === 'test'} onPress={() => chooseTool('test')} />
+        <ToolButton icon="add" label="Add" selected={activeTool === 'add'} onPress={() => chooseTool('add')} />
+        <ToolButton icon="connect" label="Connect" selected={activeTool === 'connect'} onPress={() => chooseTool('connect')} />
+        <ToolButton icon="configure" label="Configure" selected={activeTool === 'configure'} onPress={() => chooseTool('configure')} />
+        <ToolButton icon="test" label="Test" selected={activeTool === 'test'} onPress={() => chooseTool('test')} />
       </View>
 
       <SandboxCanvas
@@ -379,7 +382,7 @@ export function SandboxScreen() {
 
       <Text accessibilityLiveRegion="polite" variant="bodySmall" style={styles.notice}>{notice}</Text>
       {selectedDevice ? <View style={styles.selectionBar}><View style={styles.selectionCopy}><Text variant="label" style={styles.selectionTitle}>SELECTED / {selectedDevice.name}</Text><Text variant="technical" style={styles.selectionDetail}>{selectedDevice.interfaces.filter((item) => workspace.links.some((link) => [link.a, link.b].some((endpoint) => endpoint.deviceId === selectedDevice.id && endpoint.interfaceId === item.id))).length} CONNECTED INTERFACES</Text></View></View> : null}
-      {selectedLink ? <View style={styles.selectionBar}><View style={styles.selectionCopy}><Text variant="label" style={styles.selectionTitle}>SELECTED / ETHERNET LINK</Text><Text variant="technical" style={styles.selectionDetail}>{selectedLink.a.deviceId} {selectedLink.a.interfaceId} ↔ {selectedLink.b.deviceId} {selectedLink.b.interfaceId}</Text></View><AppButton label="Remove link" variant="secondary" onPress={() => setConfirmation('remove-link')} /></View> : null}
+      {selectedLink ? <View style={styles.selectionBar}><View style={styles.selectionCopy}><Text variant="label" style={styles.selectionTitle}>SELECTED / ETHERNET LINK</Text><Text variant="technical" style={styles.selectionDetail}>{selectedLink.a.deviceId} {selectedLink.a.interfaceId} ↔ {selectedLink.b.deviceId} {selectedLink.b.interfaceId}</Text></View><AppButton label="Remove link" variant="danger" onPress={() => setConfirmation('remove-link')} /></View> : null}
 
       {activeTool === 'add' ? (
         <View style={styles.actionPanel}>
@@ -456,8 +459,16 @@ export function SandboxScreen() {
       {activeTool === 'workspace' ? (
         <View style={styles.actionPanel}>
           <Text variant="label" style={styles.actionEyebrow}>WORKSPACE TOOLS</Text>
-          <Text variant="bodySmall" style={styles.actionCopy}>These controls affect the canvas or autosaved workspace, not an individual device.</Text>
-          <View style={styles.controlGrid}><AppButton label="Load routed preset" variant="secondary" onPress={() => workspace.devices.length ? setConfirmation('preset') : loadReadyNetwork(true)} /><AppButton label="Load inter-VLAN demo" variant="secondary" onPress={() => workspace.devices.length ? setConfirmation('inter-vlan-preset') : loadInterVlanNetwork()} /><AppButton label="Undo" variant="secondary" disabled={pastCount === 0} onPress={() => { undo(); setTrace(undefined); setTraceIndex(0); }} /><AppButton label="Redo" variant="secondary" disabled={futureCount === 0} onPress={() => { redo(); setTrace(undefined); setTraceIndex(0); }} /><AppButton label="Zoom out" variant="secondary" disabled={zoom <= 0.75} onPress={() => setZoom((value) => Math.max(0.75, value - 0.15))} /><AppButton label="Zoom in" variant="secondary" disabled={zoom >= 1.2} onPress={() => setZoom((value) => Math.min(1.2, value + 0.15))} /><AppButton label="Reset view" variant="secondary" onPress={() => setZoom(0.9)} /><AppButton label="Clear learned state" variant="secondary" onPress={() => setConfirmation('clear')} /><AppButton label="New network" variant="secondary" onPress={() => setConfirmation('new')} /></View>
+          <Text variant="bodySmall" style={styles.actionCopy}>Open only the group you need. Device-specific commands remain under Configure.</Text>
+          <DisclosureSection defaultExpanded summary="Load a complete example to inspect or modify." title="EXAMPLE NETWORKS">
+            <View style={styles.controlGrid}><AppButton label="Load routed preset" variant="secondary" onPress={() => workspace.devices.length ? setConfirmation('preset') : loadReadyNetwork(true)} /><AppButton label="Load inter-VLAN demo" variant="secondary" onPress={() => workspace.devices.length ? setConfirmation('inter-vlan-preset') : loadInterVlanNetwork()} /></View>
+          </DisclosureSection>
+          <DisclosureSection summary="Undo changes or adjust the canvas view." title="HISTORY & VIEW">
+            <View style={styles.controlGrid}><AppButton label="Undo" variant="utility" disabled={pastCount === 0} onPress={() => { undo(); setTrace(undefined); setTraceIndex(0); }} /><AppButton label="Redo" variant="utility" disabled={futureCount === 0} onPress={() => { redo(); setTrace(undefined); setTraceIndex(0); }} /><AppButton label="Zoom out" variant="utility" disabled={zoom <= 0.75} onPress={() => setZoom((value) => Math.max(0.75, value - 0.15))} /><AppButton label="Zoom in" variant="utility" disabled={zoom >= 1.2} onPress={() => setZoom((value) => Math.min(1.2, value + 0.15))} /><AppButton label="Reset view" variant="utility" onPress={() => setZoom(0.9)} /></View>
+          </DisclosureSection>
+          <DisclosureSection danger summary="Clear learned state or erase the workspace." title="DESTRUCTIVE WORKSPACE CONTROLS">
+            <View style={styles.controlGrid}><AppButton label="Clear learned state" variant="danger" onPress={() => setConfirmation('clear')} /><AppButton label="New network" variant="danger" onPress={() => setConfirmation('new')} /></View>
+          </DisclosureSection>
           <Text variant="technical" style={styles.footer}>SUPPORTED / ETHERNET, MAC LEARNING, ARP, IPV4, STATIC ROUTES, VLAN ACCESS + TRUNKS, ICMP ECHO</Text>
           <Text variant="technical" style={styles.footer}>NOT MODELED / STP, DYNAMIC ROUTING, DHCP, DNS, NAT, ACLS, TIMING, LOSS, OR LIVE PACKETS</Text>
         </View>
@@ -465,7 +476,7 @@ export function SandboxScreen() {
 
       <SandboxCli visible={Boolean(cliDeviceId)} workspace={workspace} initialDeviceId={cliDeviceId ?? ''} onClose={() => setCliDeviceId(undefined)} onCommit={commitWorkspaceChange} />
       <FeedbackModal visible={guideVisible} eyebrow="FIRST SANDBOX SESSION" title="How do you want to begin?" message="Explore a complete routed network, or build a smaller switched LAN yourself." detail="The routed preset includes valid addresses, gateways, two switches, one router, a working ping, and CLI experiments." primaryAction={{ label: 'Explore routed network', onPress: () => { setGuideVisible(false); loadReadyNetwork(false); } }} secondaryAction={{ label: 'Build it myself', variant: 'secondary', onPress: () => { replaceWorkspace(createGuidedSandboxWorkspace()); setGuideVisible(false); setGuideActive(true); } }} onRequestClose={() => { markGuideSeen(); setGuideVisible(false); }} />
-      <FeedbackModal visible={Boolean(confirmation)} tone="warning" eyebrow="CONFIRM SANDBOX ACTION" title={confirmation === 'new' ? 'Create a new network?' : confirmation === 'clear' ? 'Clear learned state?' : confirmation === 'preset' ? 'Load the routed preset?' : confirmation === 'inter-vlan-preset' ? 'Load the inter-VLAN demo?' : confirmation === 'beginner-lan' ? 'Apply beginner addresses?' : confirmation === 'remove-device' ? 'Remove this device?' : 'Remove this link?'} message={confirmation === 'new' ? 'All devices, links, and configuration in the autosaved workspace will be erased.' : confirmation === 'clear' ? 'MAC and ARP tables plus the current trace will be cleared. Topology and configuration remain.' : confirmation === 'preset' ? 'The current workspace will be replaced by a five-device, two-LAN routed example. You can undo this afterward.' : confirmation === 'inter-vlan-preset' ? 'The current workspace will be replaced by a configured VLAN 10 and VLAN 20 router-on-a-stick example.' : confirmation === 'beginner-lan' ? beginnerLanSetup?.changes.map((change) => `${change.deviceName}: ${change.before} → ${change.after}`).join('\n') ?? 'The beginner setup is no longer available.' : confirmation === 'remove-device' ? 'Connected links will also be removed.' : 'The two endpoint interfaces will become available.'} detail={confirmation === 'beginner-lan' ? `${beginnerLanSetup?.overwritesExistingConfiguration ? 'Existing addressing or switchport settings shown above will be replaced. ' : ''}Both PCs will use VLAN 1 and require no default gateway.` : undefined} primaryAction={{ label: confirmation === 'preset' ? 'Load routed preset' : confirmation === 'inter-vlan-preset' ? 'Load inter-VLAN demo' : confirmation === 'beginner-lan' ? 'Apply setup' : 'Confirm action', onPress: confirmAction }} secondaryAction={{ label: 'Keep working', variant: 'secondary', onPress: () => setConfirmation(undefined) }} onRequestClose={() => setConfirmation(undefined)} />
+      <FeedbackModal visible={Boolean(confirmation)} tone="warning" eyebrow="CONFIRM SANDBOX ACTION" title={confirmation === 'new' ? 'Create a new network?' : confirmation === 'clear' ? 'Clear learned state?' : confirmation === 'preset' ? 'Load the routed preset?' : confirmation === 'inter-vlan-preset' ? 'Load the inter-VLAN demo?' : confirmation === 'beginner-lan' ? 'Apply beginner addresses?' : confirmation === 'remove-device' ? 'Remove this device?' : 'Remove this link?'} message={confirmation === 'new' ? 'All devices, links, and configuration in the autosaved workspace will be erased.' : confirmation === 'clear' ? 'MAC and ARP tables plus the current trace will be cleared. Topology and configuration remain.' : confirmation === 'preset' ? 'The current workspace will be replaced by a five-device, two-LAN routed example. You can undo this afterward.' : confirmation === 'inter-vlan-preset' ? 'The current workspace will be replaced by a configured VLAN 10 and VLAN 20 router-on-a-stick example.' : confirmation === 'beginner-lan' ? beginnerLanSetup?.changes.map((change) => `${change.deviceName}: ${change.before} → ${change.after}`).join('\n') ?? 'The beginner setup is no longer available.' : confirmation === 'remove-device' ? 'Connected links will also be removed.' : 'The two endpoint interfaces will become available.'} detail={confirmation === 'beginner-lan' ? `${beginnerLanSetup?.overwritesExistingConfiguration ? 'Existing addressing or switchport settings shown above will be replaced. ' : ''}Both PCs will use VLAN 1 and require no default gateway.` : undefined} primaryAction={{ label: confirmation === 'preset' ? 'Load routed preset' : confirmation === 'inter-vlan-preset' ? 'Load inter-VLAN demo' : confirmation === 'beginner-lan' ? 'Apply setup' : confirmation === 'new' ? 'Erase and start new' : confirmation === 'clear' ? 'Clear learned state' : confirmation === 'remove-device' ? 'Remove device' : confirmation === 'remove-link' ? 'Remove link' : 'Confirm action', variant: confirmation === 'new' || confirmation === 'clear' || confirmation === 'remove-device' || confirmation === 'remove-link' ? 'danger' : 'primary', onPress: confirmAction }} secondaryAction={{ label: 'Keep working', variant: 'secondary', onPress: () => setConfirmation(undefined) }} onRequestClose={() => setConfirmation(undefined)} />
     </Screen>
   );
 }
@@ -486,7 +497,7 @@ const styles = StyleSheet.create({
   guideStepCopy: { color: Palette.text, flex: 1, minWidth: 0 },
   guideActions: { flexDirection: 'row', flexWrap: 'wrap', gap: Space.sm },
   toolDock: { flexDirection: 'row', flexWrap: 'wrap', gap: Space.sm, marginBottom: Space.sm },
-  toolButton: { minWidth: 140, minHeight: 48, flexBasis: 0, flexGrow: 1, borderWidth: 1, borderColor: Palette.border, backgroundColor: Palette.surface, alignItems: 'center', justifyContent: 'center', padding: Space.sm },
+  toolButton: { minWidth: 140, minHeight: 56, flexBasis: 0, flexGrow: 1, flexDirection: 'row', gap: Space.sm, borderWidth: 1, borderColor: Palette.border, backgroundColor: Palette.surface, alignItems: 'center', justifyContent: 'center', padding: Space.sm },
   toolButtonActive: { borderColor: Palette.accentBright, backgroundColor: Palette.accentSoft },
   toolButtonText: { color: Palette.text },
   toolButtonTextActive: { color: Palette.accentBright },

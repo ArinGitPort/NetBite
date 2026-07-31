@@ -79,11 +79,11 @@ describe('account authentication screens', () => {
     mockConfigured = false;
     const signIn = await render(<SignInScreen />);
     expect(signIn.getByText(/Cloud services are not configured yet/)).toBeTruthy();
-    expect(signIn.getByText('Sign in').parent?.props.accessibilityState).toEqual({ disabled: true });
+    expect(signIn.getByText('Sign in').parent?.props.accessibilityState).toMatchObject({ disabled: true });
     await signIn.unmount();
 
     const register = await render(<RegisterScreen />);
     expect(register.getByText(/Cloud services are not configured/)).toBeTruthy();
-    expect(register.getByText('Create account').parent?.props.accessibilityState).toEqual({ disabled: true });
+    expect(register.getByText('Create account').parent?.props.accessibilityState).toMatchObject({ disabled: true });
   });
 });

@@ -217,7 +217,7 @@ export function SwitchDecisionLab() {
         message="This clears the learned MAC table and returns to the first frame."
         onRequestClose={() => setResetVisible(false)}
         secondaryAction={{ label: 'Keep progress', variant: 'secondary', onPress: () => setResetVisible(false) }}
-        primaryAction={{ label: 'Reset desk', leadingIcon: 'reset', onPress: reset }}
+        primaryAction={{ label: 'Reset desk', leadingIcon: 'reset', variant: 'danger', onPress: reset }}
       />
 
       <FeedbackModal
