@@ -1,4 +1,3 @@
-import { router } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
@@ -6,9 +5,11 @@ import { FeedbackModal } from '@/shared/components/feedback-modal';
 import { IconButton } from '@/shared/components/icon-button';
 import { Text } from '@/shared/components/console-text';
 import { Screen } from '@/shared/components/screen';
+import { goBackOrReplace } from '@/shared/navigation';
 import { Fonts, Palette, Space } from '@/shared/theme';
 import { useGameStore } from '@/store/use-game-store';
 import { useSandboxStore } from '@/store/use-sandbox-store';
+import { isDemoCapabilityEnabled, usePresentationStore } from '@/store/use-presentation-store';
 
 function Choice({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) {
   return <Pressable accessibilityRole="button" accessibilityState={{ selected }} onPress={onPress} style={[styles.choice, selected && styles.choiceSelected]}><Text variant="label" style={[styles.choiceText, selected && styles.choiceTextSelected]}>{selected ? '[X] ' : '[ ] '}{label}</Text></Pressable>;
@@ -21,11 +22,14 @@ export default function SettingsScreen() {
   const setMotionPreference = useGameStore((state) => state.setMotionPreference);
   const resetLearningProgress = useGameStore((state) => state.resetLearningProgress);
   const newNetwork = useSandboxStore((state) => state.newNetwork);
-  const [confirm, setConfirm] = useState<'learning' | 'sandbox'>();
+  const presentationActive = usePresentationStore((state) => state.active);
+  const startPresentation = usePresentationStore((state) => state.startPresentation);
+  const restorePresentation = usePresentationStore((state) => state.restorePresentation);
+  const [confirm, setConfirm] = useState<'learning' | 'sandbox' | 'presentation' | 'restore'>();
 
   return (
     <Screen>
-      <View style={styles.header}><IconButton accessibilityLabel="Back to main menu" icon="arrow-left" label="BACK / MENU" onPress={() => router.back()} /></View>
+      <View style={styles.header}><IconButton accessibilityLabel="Back to main menu" icon="arrow-left" label="BACK / MENU" onPress={() => goBackOrReplace('/')} /></View>
       <Text variant="label" style={styles.eyebrow}>APP CONTROLS</Text>
       <Text variant="screenTitle" style={styles.title}>SETTINGS</Text>
       <View style={styles.section}>
@@ -33,6 +37,11 @@ export default function SettingsScreen() {
         <Text variant="bodySmall" style={styles.detail}>Subtle feedback for selections, warnings, and success. Information never depends on vibration.</Text>
         <View style={styles.choices}><Choice label="ON" selected={hapticsEnabled} onPress={() => setHapticsEnabled(true)} /><Choice label="OFF" selected={!hapticsEnabled} onPress={() => setHapticsEnabled(false)} /></View>
       </View>
+      {isDemoCapabilityEnabled ? <View style={styles.section}>
+        <Text variant="sectionHeading" style={styles.heading}>PRESENTATION MODE</Text>
+        <Text variant="bodySmall" style={styles.detail}>Creates a reversible local demo snapshot, unlocks demo-only access, completes Chapter 1, and loads the routed sandbox preset. Cloud sync is paused.</Text>
+        <Pressable accessibilityRole="button" onPress={() => setConfirm(presentationActive ? 'restore' : 'presentation')} style={styles.demoButton}><Text variant="label" style={styles.demoText}>{presentationActive ? 'RESTORE MY DATA' : 'START PRESENTATION SESSION'}</Text></Pressable>
+      </View> : null}
       <View style={styles.section}>
         <Text variant="sectionHeading" style={styles.heading}>MOTION</Text>
         <Text variant="bodySmall" style={styles.detail}>Follow the operating system or always use reduced transitions and packet movement.</Text>
@@ -44,7 +53,7 @@ export default function SettingsScreen() {
         <Pressable accessibilityRole="button" onPress={() => setConfirm('learning')} style={styles.dangerButton}><Text variant="label" style={styles.dangerText}>RESET LEARNING PROGRESS</Text></Pressable>
         <Pressable accessibilityRole="button" onPress={() => setConfirm('sandbox')} style={styles.dangerButton}><Text variant="label" style={styles.dangerText}>ERASE SANDBOX WORKSPACE</Text></Pressable>
       </View>
-      <FeedbackModal visible={Boolean(confirm)} tone="warning" eyebrow="CONFIRM LOCAL RESET" title={confirm === 'learning' ? 'Reset learning progress?' : 'Erase sandbox workspace?'} message={confirm === 'learning' ? 'Completed lessons, labs, quiz scores, and flashcard reviews will be cleared.' : 'Every sandbox device, cable, and configuration will be removed.'} detail="This action cannot be undone after leaving this screen." icon="reset" onRequestClose={() => setConfirm(undefined)} secondaryAction={{ label: 'Keep data', variant: 'secondary', onPress: () => setConfirm(undefined) }} primaryAction={{ label: confirm === 'learning' ? 'Reset learning' : 'Erase workspace', onPress: () => { if (confirm === 'learning') resetLearningProgress(); else newNetwork(); setConfirm(undefined); } }} />
+      <FeedbackModal visible={Boolean(confirm)} tone="warning" eyebrow={confirm === 'presentation' || confirm === 'restore' ? 'PRESENTATION SESSION' : 'CONFIRM LOCAL RESET'} title={confirm === 'learning' ? 'Reset learning progress?' : confirm === 'sandbox' ? 'Erase sandbox workspace?' : confirm === 'presentation' ? 'Start presentation session?' : 'Restore your saved data?'} message={confirm === 'learning' ? 'Completed lessons, labs, quiz scores, and flashcard reviews will be cleared.' : confirm === 'sandbox' ? 'Every sandbox device, cable, and configuration will be removed.' : confirm === 'presentation' ? 'NetBite will preserve the current game and sandbox stores before loading temporary demonstration data.' : 'The exact local game and sandbox snapshot from before the presentation will be restored.'} detail={confirm === 'presentation' || confirm === 'restore' ? 'Authentication tokens and cloud data are never included in the snapshot.' : 'This action cannot be undone after leaving this screen.'} icon="reset" onRequestClose={() => setConfirm(undefined)} secondaryAction={{ label: 'Cancel', variant: 'secondary', onPress: () => setConfirm(undefined) }} primaryAction={{ label: confirm === 'learning' ? 'Reset learning' : confirm === 'sandbox' ? 'Erase workspace' : confirm === 'presentation' ? 'Start presentation' : 'Restore my data', onPress: () => { if (confirm === 'learning') resetLearningProgress(); else if (confirm === 'sandbox') newNetwork(); else if (confirm === 'presentation') startPresentation(); else restorePresentation(); setConfirm(undefined); } }} />
     </Screen>
   );
 }
@@ -63,4 +72,6 @@ const styles = StyleSheet.create({
   choiceTextSelected: { color: Palette.orange },
   dangerButton: { minHeight: 44, borderWidth: 1, borderColor: Palette.accent, alignItems: 'center', justifyContent: 'center', padding: Space.sm },
   dangerText: { color: Palette.accentBright },
+  demoButton: { minHeight: 44, borderWidth: 1, borderColor: Palette.orange, backgroundColor: Palette.orangeSoft, alignItems: 'center', justifyContent: 'center', padding: Space.sm },
+  demoText: { color: Palette.orange },
 });

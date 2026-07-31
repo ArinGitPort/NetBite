@@ -6,12 +6,30 @@ import { useGameStore } from '@/store/use-game-store';
 import { useSandboxStore } from '@/store/use-sandbox-store';
 
 const mockPush = jest.fn();
-jest.mock('expo-router', () => ({ router: { push: (...args: unknown[]) => mockPush(...args) } }));
+const mockRedirect = jest.fn((_props: unknown) => null);
+let mockAuthState = {
+  status: 'authenticated',
+  hasPro: true,
+  hasContentAccess: true,
+  presentationActive: false,
+  syncStatus: 'synced',
+  profile: { displayName: 'Test learner' },
+  accountEntryResolved: true,
+};
+jest.mock('expo-router', () => ({
+  Redirect: (props: unknown) => mockRedirect(props),
+  router: { push: (...args: unknown[]) => mockPush(...args) },
+}));
 jest.mock('expo-sqlite/kv-store', () => ({ __esModule: true, default: { getItem: jest.fn(), setItem: jest.fn(), removeItem: jest.fn() } }));
+jest.mock('@/features/account/auth-context', () => ({
+  useAuth: () => mockAuthState,
+}));
 
 describe('main menu', () => {
   beforeEach(() => {
     mockPush.mockClear();
+    mockRedirect.mockClear();
+    mockAuthState = { status: 'authenticated', hasPro: true, hasContentAccess: true, presentationActive: false, syncStatus: 'synced', profile: { displayName: 'Test learner' }, accountEntryResolved: true };
     useGameStore.setState({ completedLessonIds: [], completedLabIds: [], quizScores: {}, quizContentVersions: {}, reviewedFlashcardChapterIds: [], flashcardContentVersions: {} });
     useSandboxStore.setState({ workspace: createEmptySandboxWorkspace(), guideSeen: true, past: [], future: [] });
   });
@@ -26,5 +44,12 @@ describe('main menu', () => {
     expect(mockPush).toHaveBeenCalledWith('/learn');
     await fireEvent.press(screen.getByText('NETWORK SANDBOX'));
     expect(mockPush).toHaveBeenCalledWith('/sandbox');
+  });
+
+  test('redirects a fresh guest to account choices without rendering the menu', async () => {
+    mockAuthState = { ...mockAuthState, status: 'guest', hasPro: false, hasContentAccess: false, accountEntryResolved: false };
+    const screen = await render(<MainMenuScreen />);
+    expect(mockRedirect).toHaveBeenCalledWith(expect.objectContaining({ href: '/auth/welcome' }));
+    expect(screen.queryByTestId('main-menu-logo')).toBeNull();
   });
 });

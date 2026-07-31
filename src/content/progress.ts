@@ -21,7 +21,7 @@ export function isQuizMastered(chapter: ChapterDefinition, score: number | undef
 
 export function isFlashcardsReviewed(chapter: ChapterDefinition, progress: LearningProgress) {
   return progress.reviewedFlashcardChapterIds.includes(chapter.id)
-    && (progress.flashcardContentVersions?.[chapter.id] ?? 1) === chapter.contentVersion;
+    && (progress.flashcardContentVersions?.[chapter.id] ?? 1) === chapter.flashcardVersion;
 }
 
 export function getChapterProgress(chapter: ChapterDefinition, progress: LearningProgress) {

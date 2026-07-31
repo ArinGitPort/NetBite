@@ -1,8 +1,15 @@
 # NetBite Project Handover
 
+## Active-recall flashcards
+
+- All 12 chapter decks now ask question-first prompts mapped to stable lesson IDs. The decks cover every lesson's central objective with scenarios, comparisons, sequences, and short explanations instead of passive term-definition cards.
+- Learners answer from memory before revealing. `REVIEW AGAIN` places the idea later in the same session; `GOT IT` counts a successful retrieval. A chapter review completes only after every idea is retrieved.
+- Flashcard revisions use `flashcardVersion` independently from quiz `contentVersion`, so older reviews become historical without invalidating quiz results.
+- Automated quality checks enforce 8–12 cards per chapter, complete lesson coverage, unique question prompts, valid lesson mappings, and concise answer/explanation bounds.
+
 ## Chapter 12 / Inter-VLAN Routing
 
-- The curriculum now contains Chapter 12 with seven lessons, eight quiz questions, nine flashcards, and the `inter-vlan-routing-desk` CLI lab.
+- The curriculum now contains Chapter 12 with seven lessons, eight quiz questions, ten active-recall cards, and the `inter-vlan-routing-desk` CLI lab.
 - The CLI recognizes logical router interfaces such as `G0/0.10`, `encapsulation dot1q`, and explicit removal commands.
 - The sandbox persists logical router subinterfaces, exposes them through both the inspector and CLI, and includes an `INTER-VLAN ROUTING DEMO` preset.
 - Router-on-a-stick is deliberately bounded. Layer 3 switch SVIs, native-VLAN behavior, DTP, VTP, STP, ACLs, and dynamic routing remain outside the current model.
@@ -17,7 +24,7 @@
 - Reading-heavy panels use neutral surfaces with color reserved for borders, labels, and state markers.
 - Rendered tests cover flashcard interactions, the complete Ethernet cabling lab path, and chapter recaps.
 
-Last updated: July 18, 2026
+Last updated: July 31, 2026
 
 ## Current repository state
 
@@ -79,6 +86,7 @@ Useful commands:
 ```bash
 npm run web
 npm run android
+npm run android:clean
 npm run ios
 npx tsc --noEmit
 npm run lint
@@ -88,7 +96,9 @@ npx expo install --check
 npx expo export --platform android
 ```
 
-`ios` requires macOS. Android requires Expo Go, a development build, or an Android emulator.
+`npm run android` uses Expo localhost mode so Android Studio's emulator receives Metro through ADB forwarding. Use `npm run android:clean` after changing Expo, Reanimated, or Worklets dependencies. The default `npm start` remains in LAN mode for an iPhone running Expo Go. `ios` requires macOS.
+
+If Expo Go shows a white screen with a blue spinner, NetBite JavaScript has not loaded yet. Confirm Metro is listening on port 8081 and `adb reverse --list` contains `tcp:8081`; do not debug Supabase, splash state, or route exports until bundle delivery works. A dark NetBite splash instead means JavaScript has started and the app's font/storage/auth initialization should be inspected.
 
 The Expo SDK packages were aligned on July 18, 2026. `npx expo-doctor` passes all 20 checks.
 
@@ -573,16 +583,17 @@ Manual checks recommended before committing:
 - Restart the app and confirm progress and topology restoration.
 - Repeat the core flow with TalkBack or VoiceOver, large text, and reduced motion.
 
-## Known limitations and deferred work
+## Current account and service handover
 
-- Supabase synchronization is not implemented.
-- Chapter unlocking is visual only.
-- Chapter 4 and later networking systems are intentionally not implemented.
-- CLI, IP addressing, routing, and real packet/protocol simulation remain out of scope.
-- Packet path selection currently uses the first valid two-PC/shared-switch path.
-- The packet marker now uses final folder artwork; its scale can still be tuned after device testing.
-- The packet animation has not been extended to multiple paths, routers, failures, acknowledgements, or packet contents.
-- App accessibility has improved, but a full screen-reader and keyboard-navigation audit has not been completed.
+- Optional Supabase email/password and Google browser OAuth are implemented with Expo SQLite session persistence and `netbite` deep-link handling.
+- Learning progress and settings synchronize offline-first. Sandbox and topology workspaces remain local.
+- Chapters 1-4 are free. Chapters 5-12 and the Network Sandbox use direct-route and navigation entitlement guards.
+- Stripe PaymentSheet is native-only and test-mode only. Access is granted only after the signed webhook writes `netbite_pro`.
+- Database migration and Edge Functions are tracked under `supabase/`.
+- Public client configuration belongs in `.env.local`; server secrets belong in Supabase Edge Function secrets.
+- Complete project setup and acceptance steps are in `ACCOUNT_CLOUD_PAYMENT_GUIDE.md`.
+
+External integration testing still requires a configured Supabase project, Google provider, Stripe test account, deployed functions, and webhook endpoint. A production public-store release must replace or adapt this academic checkout to the applicable store billing rules.
 
 ## Packet artwork
 

@@ -1,4 +1,3 @@
-import { router } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
@@ -17,6 +16,7 @@ import { Screen } from '@/shared/components/screen';
 import { selectionHaptic, successHaptic, warningHaptic } from '@/shared/haptics';
 import { Fonts, Palette, Space } from '@/shared/theme';
 import { useGameStore } from '@/store/use-game-store';
+import { returnToOwningChapter } from '@/shared/navigation';
 
 const LAB_ID = 'ethernet-cables';
 
@@ -52,7 +52,7 @@ export function EthernetCableLab() {
           accessibilityLabel="Back to Chapter 2"
           icon="arrow-left"
           label="BACK / CHAPTER"
-          onPress={() => router.dismissTo('/chapter/2')}
+          onPress={() => returnToOwningChapter('lab', 'ethernet-cables')}
         />
         <IconButton
           accessibilityLabel="Reset cable choices"
@@ -136,7 +136,7 @@ export function EthernetCableLab() {
           ? { label: 'Review links', variant: 'secondary', onPress: () => setResultVisible(false) }
           : undefined}
         primaryAction={result?.success
-          ? { label: 'Back to chapter', leadingIcon: 'arrow-left', onPress: () => router.dismissTo('/chapter/2') }
+          ? { label: 'Back to chapter', leadingIcon: 'arrow-left', onPress: () => returnToOwningChapter('lab', 'ethernet-cables') }
           : { label: 'Adjust cables', onPress: () => setResultVisible(false) }}
       />
     </Screen>

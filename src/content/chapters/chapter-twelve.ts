@@ -2,6 +2,7 @@ import { createAdvancedChapter } from '@/content/advanced-content-helpers';
 
 export const chapterTwelve = createAdvancedChapter({
   id: 12,
+  flashcardVersion: 3,
   title: 'Inter-VLAN Routing',
   summary: 'Use router subinterfaces and one 802.1Q trunk to route safely between VLAN networks.',
   lessons: [
@@ -127,15 +128,16 @@ export const chapterTwelve = createAdvancedChapter({
     { lessonId: 'inter-vlan-troubleshooting', prompt: 'VLAN 10 works, VLAN 20 fails, and VLAN 20 is missing from the trunk allowed list. What should be corrected first?', answers: ['Allow VLAN 20 on the router trunk', 'Replace both host IPv4 addresses', 'Add a DNS server'], correctAnswerIndex: 0, explanation: 'The known first failure is the blocked Layer 2 VLAN path.' },
   ],
   cards: [
-    ['Inter-VLAN Routing', 'Layer 3 forwarding between separate VLAN networks.', 'VLAN 10 reaches VLAN 20 through R-1.'],
-    ['Router-on-a-Stick', 'One router physical link serving several VLANs through tagged logical interfaces.', 'R-1 G0/0 trunks to SW-1.'],
-    ['Router Subinterface', 'A logical child of a physical router interface.', 'G0/0.10.'],
-    ['802.1Q Encapsulation', 'The VLAN association used by a tagged router subinterface.', 'G0/0.20 uses VLAN 20.'],
-    ['VLAN Gateway', 'A router address inside one VLAN’s IPv4 subnet.', '192.168.10.1/24 for VLAN 10.'],
-    ['Physical Parent', 'The router interface that owns the shared trunk cable.', 'G0/0 is enabled.'],
-    ['Connected Route', 'A route derived from an operational addressed interface.', '192.168.20.0/24 through G0/0.20.'],
-    ['Frame Replacement', 'Building new link-layer delivery after a routing decision.', 'R-1 creates a VLAN 20 frame.'],
-    ['Return Path', 'The forwarding path used by the response back to the source.', 'PC-B replies through 192.168.20.1.'],
+    ['inter-vlan-routing-need', 'Why can hosts in VLAN 10 and VLAN 20 not communicate through Layer 2 switching alone?', 'They belong to separate Layer 2 broadcast domains, so traffic between their IPv4 networks requires a router.', 'The router becomes the Layer 3 boundary between the VLANs.'],
+    ['gateway-per-vlan', 'What gateway should PC-A at 192.168.10.10/24 use, and why?', '192.168.10.1, because the gateway interface must be reachable inside PC-A’s own 192.168.10.0/24 subnet.', 'PC-B in 192.168.20.0/24 uses a different gateway interface, 192.168.20.1.'],
+    ['router-on-a-stick-topology', 'What physical connection defines a router-on-a-stick topology?', 'One router physical interface connects to a switch trunk that carries multiple VLANs.', 'Logical router subinterfaces separate the VLAN contexts on that shared cable.'],
+    ['dot1q-router-subinterfaces', 'What three key settings make router subinterface G0/0.10 serve VLAN 10?', 'An 802.1Q encapsulation VLAN of 10, a valid VLAN 10 gateway address and prefix, and an active physical parent interface.', 'The switch trunk must also permit VLAN 10.'],
+    ['inter-vlan-forwarding-sequence', 'PC-A in VLAN 10 sends to PC-B in VLAN 20. What IPv4 next hop does PC-A choose first?', 'PC-A chooses its VLAN 10 default gateway, 192.168.10.1.', 'The remote destination remains 192.168.20.20, but the first Ethernet frame targets the gateway MAC.'],
+    ['inter-vlan-forwarding-sequence', 'What happens to the Ethernet frame after the router accepts VLAN 10 traffic for VLAN 20?', 'The router removes the incoming Layer 2 frame, selects the connected VLAN 20 route, and builds a new VLAN 20 frame toward PC-B.', 'The end-to-end IPv4 endpoints remain PC-A and PC-B while link-layer delivery is rebuilt.'],
+    ['inter-vlan-configuration-workflow', 'Which connected routes should appear when G0/0.10 and G0/0.20 are correctly operational?', '192.168.10.0/24 through G0/0.10 and 192.168.20.0/24 through G0/0.20.', 'Operational addressed subinterfaces let the router derive both routes automatically.'],
+    ['inter-vlan-configuration-workflow', 'What switch configuration must match the router subinterfaces?', 'The router-facing port must be a trunk that permits VLANs 10 and 20, while the PC ports must be access ports in their correct VLANs.', 'Both sides must agree on which VLAN context each frame carries.'],
+    ['inter-vlan-troubleshooting', 'VLAN 10 works but VLAN 20 is blocked on the router-facing trunk. What should you fix first?', 'Permit VLAN 20 on the trunk before changing unrelated host or routing settings.', 'Troubleshooting starts at the first known failed dependency.'],
+    ['inter-vlan-troubleshooting', 'Why must inter-VLAN verification test both directions?', 'The request path can work while a gateway, VLAN path, interface, or return configuration still prevents the reply.', 'Successful two-way testing confirms both routed directions for that scenario.'],
   ],
   lab: ['inter-vlan-routing-desk', 'Route between two VLANs', 'Configure the trunk and router subinterfaces, then verify both directions'],
   recap: ['A working router-on-a-stick path between VLAN 10 and VLAN 20', 'Gateways, tagged subinterfaces, frame replacement, verification, and troubleshooting', 'Use the sandbox to modify and test a complete inter-VLAN network'],

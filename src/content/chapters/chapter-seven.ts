@@ -1,7 +1,7 @@
 import { createAdvancedChapter } from '@/content/advanced-content-helpers';
 
 export const chapterSeven = createAdvancedChapter({
-  id: 7, title: 'ARP', summary: 'Resolve the correct local IPv4 next hop into an Ethernet destination MAC address.',
+  id: 7, flashcardVersion: 3, title: 'ARP', summary: 'Resolve the correct local IPv4 next hop into an Ethernet destination MAC address.',
   lessons: [
     {
       id: 'arp-purpose', title: 'Why IPv4 needs a local MAC mapping', illustration: 'arp-mapping',
@@ -94,10 +94,14 @@ export const chapterSeven = createAdvancedChapter({
     { lessonId: 'arp-next-hop', prompt: 'What stays as the IPv4 destination while the first frame targets the gateway MAC?', answers: ['The remote host address', 'The gateway address', 'The switch address'], correctAnswerIndex: 0, explanation: 'Link-layer next hop and final IP destination have different roles.' },
   ],
   cards: [
-    ['ARP', 'IPv4 local-next-hop to MAC resolution.', 'Resolve 192.168.10.20 to a MAC.'], ['ARP Request', 'A broadcast asking who owns a local IPv4 address.', 'Who has 192.168.10.20?'],
-    ['ARP Reply', 'The owner’s response containing its mapping.', '.20 is at 02:00:...:0B.'], ['ARP Cache', 'Temporary stored IPv4-to-MAC mappings.', 'Reuse the gateway entry.'],
-    ['Cache Hit', 'Finding a usable mapping without a new request.', 'Send immediately using the cached MAC.'], ['Local Resolution', 'Resolving the destination host itself.', 'PC A resolves PC B.'],
-    ['Gateway Resolution', 'Resolving the local router for remote traffic.', 'PC A resolves 192.168.10.1.'], ['Local Next Hop', 'The interface receiving the current local frame.', 'Destination host or gateway.'],
+    ['arp-purpose', 'What problem does ARP solve on an IPv4 Ethernet LAN?', 'It maps the local next-hop IPv4 address to the MAC address needed for the Ethernet frame.', 'The sender knows an IPv4 next hop but still needs a local-link destination.'],
+    ['arp-request', 'Why is an ARP Request sent as an Ethernet broadcast?', 'The sender does not yet know which local MAC owns the target IPv4 address.', 'Broadcast lets every interface in the local domain inspect the question.'],
+    ['arp-reply', 'Who sends the ARP Reply, and what does it provide?', 'The interface owning the requested IPv4 address replies with its IPv4-to-MAC mapping.', 'The reply is normally unicast back to the requester.'],
+    ['arp-cache-reuse', 'What advantage does an ARP cache provide?', 'It lets a host reuse a recent IPv4-to-MAC mapping without broadcasting another request.', 'A usable cache entry shortens later local delivery setup.'],
+    ['arp-local-sequence', 'PC A sends to PC B in the same subnet. Whose MAC address must PC A resolve?', 'PC B’s MAC address.', 'For local delivery, the destination host itself is the local next hop.'],
+    ['arp-next-hop', 'PC A sends to a remote subnet. Whose MAC address must PC A resolve?', 'The default gateway’s local-interface MAC address.', 'ARP resolves only the local next hop, not the final remote host across the router.'],
+    ['arp-next-hop', 'Does an ARP Request cross a router to discover a remote host’s MAC address?', 'No.', 'The source resolves its local gateway; routers perform their own next-hop resolution on later links.'],
+    ['arp-local-sequence', 'What is the correct order for local ARP delivery?', 'Choose the local next hop, check the ARP cache, broadcast a request if needed, receive the reply, cache the mapping, then send the frame.', 'ARP resolution prepares the link-layer destination before normal Ethernet delivery.'],
   ],
   lab: ['arp-resolution-desk', 'Resolve the local next hop', 'Process local resolution, cache reuse, gateway resolution, and reuse'],
   recap: ['A reusable ARP cache', 'Requests, replies, mappings, local targets, and gateway resolution', 'How ICMP Echo provides reachability evidence'],

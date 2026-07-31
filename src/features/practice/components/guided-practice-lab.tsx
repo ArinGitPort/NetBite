@@ -1,4 +1,3 @@
-import { router } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
@@ -12,6 +11,7 @@ import { Screen } from '@/shared/components/screen';
 import { selectionHaptic, successHaptic, warningHaptic } from '@/shared/haptics';
 import { Fonts, Palette, Radius, Space } from '@/shared/theme';
 import { useGameStore } from '@/store/use-game-store';
+import { returnToOwningChapter } from '@/shared/navigation';
 
 export function GuidedPracticeLab({ config }: { config: PracticeConfig }) {
   const completeLab = useGameStore((state) => state.completeLab);
@@ -59,7 +59,7 @@ export function GuidedPracticeLab({ config }: { config: PracticeConfig }) {
   return (
     <Screen>
       <View style={styles.header}>
-        <IconButton accessibilityLabel={`Back to Chapter ${config.chapterId}`} icon="arrow-left" label="BACK / CHAPTER" onPress={() => router.dismissTo(`/chapter/${config.chapterId}`)} />
+        <IconButton accessibilityLabel={`Back to Chapter ${config.chapterId}`} icon="arrow-left" label="BACK / CHAPTER" onPress={() => returnToOwningChapter('lab', config.id)} />
         <IconButton accessibilityLabel="Reset practice" icon="reset" label="RESET" onPress={() => setResetVisible(true)} />
       </View>
       <Text variant="label" style={styles.eyebrow}>{config.eyebrow}</Text>
@@ -114,7 +114,7 @@ export function GuidedPracticeLab({ config }: { config: PracticeConfig }) {
         : <AppButton label="Check prediction" leadingIcon="check" disabled={selected === undefined} onPress={check} />}
 
       <FeedbackModal visible={resetVisible} tone="warning" eyebrow="CONFIRM ACTION" title="Reset this practice?" message="Return to stage one and clear the current decisions." icon="reset" onRequestClose={() => setResetVisible(false)} secondaryAction={{ label: 'Keep working', variant: 'secondary', onPress: () => setResetVisible(false) }} primaryAction={{ label: 'Reset practice', onPress: reset }} />
-      <FeedbackModal visible={completionVisible} tone="success" eyebrow="PRACTICE COMPLETE" title={config.title} message={config.completion} detail="Your progress has been saved." icon="check" onRequestClose={() => setCompletionVisible(false)} secondaryAction={{ label: 'Review practice', variant: 'secondary', onPress: () => setCompletionVisible(false) }} primaryAction={{ label: 'Back to chapter', leadingIcon: 'arrow-left', onPress: () => router.dismissTo(`/chapter/${config.chapterId}`) }} />
+      <FeedbackModal visible={completionVisible} tone="success" eyebrow="PRACTICE COMPLETE" title={config.title} message={config.completion} detail="Your progress has been saved." icon="check" onRequestClose={() => setCompletionVisible(false)} secondaryAction={{ label: 'Review practice', variant: 'secondary', onPress: () => setCompletionVisible(false) }} primaryAction={{ label: 'Back to chapter', leadingIcon: 'arrow-left', onPress: () => returnToOwningChapter('lab', config.id) }} />
     </Screen>
   );
 }

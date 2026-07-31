@@ -1,56 +1,55 @@
-# Welcome to your Expo app 👋
+# NetBite
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+NetBite is a mobile-first networking education game built with Expo and React Native.
 
-## Get started
-
-1. Install dependencies
-
-   ```bash
-   npm install
-   ```
-
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+## Setup
 
 ```bash
-npm run reset-project
+npm install
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+Start the intended target:
 
-### Other setup steps
+```bash
+# Android Studio emulator: localhost with ADB forwarding
+npm run android
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+# Android emulator after dependency, Reanimated, or Worklets changes
+npm run android:clean
 
-## Learn more
+# Physical iPhone on the same network
+npm start
 
-To learn more about developing your project with Expo, look at the following resources:
+# Browser preview
+npm run web
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+# Full laptop presentation preflight
+npm run demo:check
 
-## Join the community
+# Automated emulator launch, Metro tunnel, and Expo Go open
+npm run demo:android
 
-Join our community of developers creating universal apps.
+# One-command browser fallback
+npm run demo:web
+```
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+The Android commands deliberately use localhost because an emulator may not be able to reach the Windows LAN address printed by Metro. The default `npm start` remains in LAN mode so a physical iPhone can scan the Expo Go QR code.
+
+## Startup troubleshooting
+
+- A white Expo Go screen with a blue spinner means Expo Go is waiting for the JavaScript bundle. It appears before NetBite code runs. Stop stale Metro processes, use `npm run android:clean`, and confirm `adb reverse --list` includes `tcp:8081`.
+- NetBite's own startup uses the dark branded splash. If that remains visible, inspect font loading, SQLite hydration, and authentication initialization instead of Metro connectivity.
+- Keep `react-native-worklets` at the exact version recorded in `package.json`; the current Android Expo Go binary was verified with that patch.
+- Route “missing default export” warnings can be secondary to an earlier dependency crash. Resolve the first runtime error before changing route files.
+
+See [docs/DEMO_RUNBOOK.md](docs/DEMO_RUNBOOK.md) for the presentation checklist, reversible development-only demo mode, and recovery sequence.
+
+## Validation
+
+```bash
+npx tsc --noEmit
+npm run lint
+npm test
+npx expo-doctor
+npx expo export --platform all
+```

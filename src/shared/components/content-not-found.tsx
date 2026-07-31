@@ -1,10 +1,10 @@
-import { router } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 
 import { AppButton } from '@/shared/components/app-button';
 import { Text } from '@/shared/components/console-text';
 import { Screen } from '@/shared/components/screen';
 import { Fonts, Palette, Space } from '@/shared/theme';
+import { returnToLearningPath, returnToMenu } from '@/shared/navigation';
 
 export function ContentNotFound({ label = 'Content' }: { label?: string }) {
   return (
@@ -14,7 +14,8 @@ export function ContentNotFound({ label = 'Content' }: { label?: string }) {
         <Text variant="screenTitle" style={styles.title}>{label} not found</Text>
         <Text variant="body" style={styles.copy}>This activity is unavailable or the link is no longer valid.</Text>
       </View>
-      <AppButton label="Back to learning path" onPress={() => router.replace('/learn')} />
+      <AppButton label="Learning path" onPress={returnToLearningPath} />
+      <AppButton label="Main menu" variant="secondary" onPress={returnToMenu} />
     </Screen>
   );
 }

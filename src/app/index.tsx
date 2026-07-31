@@ -1,13 +1,17 @@
 import { Image } from 'expo-image';
-import { router } from 'expo-router';
+import { Redirect } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { chapters } from '@/content/chapters';
 import { getNextChapterActivity } from '@/content/next-activity';
 import { isChapterComplete } from '@/content/progress';
+import { canAccessChapter } from '@/core/account/access';
+import { useAuth } from '@/features/account/auth-context';
 import { AppIcon } from '@/shared/components/app-icon';
 import { Text } from '@/shared/components/console-text';
 import { Screen } from '@/shared/components/screen';
+import { AppRoutes } from '@/shared/routes';
+import { navigateOnce } from '@/shared/navigation';
 import { Fonts, Palette, Space } from '@/shared/theme';
 import { useGameStore } from '@/store/use-game-store';
 import { useSandboxStore } from '@/store/use-sandbox-store';
@@ -26,6 +30,7 @@ function MenuCard({ title, detail, status, onPress }: { title: string; detail: s
 }
 
 export default function MainMenuScreen() {
+  const { status, profile, hasPro, hasContentAccess, presentationActive, syncStatus, accountEntryResolved } = useAuth();
   const completedLessonIds = useGameStore((state) => state.completedLessonIds);
   const completedLabIds = useGameStore((state) => state.completedLabIds);
   const quizScores = useGameStore((state) => state.quizScores);
@@ -34,16 +39,22 @@ export default function MainMenuScreen() {
   const flashcardContentVersions = useGameStore((state) => state.flashcardContentVersions);
   const sandboxDeviceCount = useSandboxStore((state) => state.workspace.devices.length);
   const progress = { completedLessonIds, completedLabIds, quizScores, quizContentVersions, reviewedFlashcardChapterIds, flashcardContentVersions };
-  const currentChapter = chapters.find((chapter) => !isChapterComplete(chapter, progress)) ?? chapters[chapters.length - 1];
+  const currentChapter = chapters.find((chapter) => canAccessChapter(chapter.id, hasContentAccess) && !isChapterComplete(chapter, progress))
+    ?? chapters.findLast((chapter) => canAccessChapter(chapter.id, hasContentAccess))
+    ?? chapters[0];
   const started = completedLessonIds.length + completedLabIds.length + Object.keys(quizScores).length > 0;
+
+  if (status === 'guest' && !accountEntryResolved) {
+    return <Redirect href={AppRoutes.authWelcome} />;
+  }
 
   const continueLearning = () => {
     const activity = getNextChapterActivity(currentChapter, progress);
-    if (activity.type === 'lesson') router.push({ pathname: '/lesson/[lessonId]', params: { lessonId: activity.id } });
-    else if (activity.type === 'lab') router.push({ pathname: '/lab/[labId]', params: { labId: activity.id } });
-    else if (activity.type === 'quiz') router.push({ pathname: '/quiz/[chapterId]', params: { chapterId: activity.id } });
-    else if (activity.type === 'flashcards') router.push({ pathname: '/flashcards/[chapterId]', params: { chapterId: activity.id } });
-    else router.push('/learn');
+    if (activity.type === 'lesson') navigateOnce({ pathname: '/lesson/[lessonId]', params: { lessonId: activity.id } });
+    else if (activity.type === 'lab') navigateOnce({ pathname: '/lab/[labId]', params: { labId: activity.id } });
+    else if (activity.type === 'quiz') navigateOnce({ pathname: '/quiz/[chapterId]', params: { chapterId: activity.id } });
+    else if (activity.type === 'flashcards') navigateOnce({ pathname: '/flashcards/[chapterId]', params: { chapterId: activity.id } });
+    else navigateOnce('/learn');
   };
 
   return (
@@ -63,10 +74,11 @@ export default function MainMenuScreen() {
         <Text variant="body" style={styles.introText}>Learn the fundamentals, then build and test your own deterministic network.</Text>
       </View>
       <View style={styles.menu}>
+        <MenuCard title={status === 'authenticated' ? (profile?.displayName?.toUpperCase() || 'MY ACCOUNT') : 'SIGN IN / REGISTER'} detail={status === 'authenticated' ? `Cloud progress: ${syncStatus.toUpperCase()}.` : 'Optional account backup, Google sign-in, and purchase restoration.'} status={hasPro ? 'PRO ACTIVE' : status === 'authenticated' ? 'FREE ACCOUNT' : 'GUEST / LOCAL'} onPress={() => navigateOnce(status === 'authenticated' ? AppRoutes.account : AppRoutes.auth)} />
         <MenuCard title={started ? 'CONTINUE LEARNING' : 'START LEARNING'} detail={`Resume ${currentChapter.title}, or browse the complete learning path.`} status={`CHAPTER ${currentChapter.numberLabel}`} onPress={continueLearning} />
-        <Pressable accessibilityRole="button" onPress={() => router.push('/learn')} style={({ pressed }) => [styles.secondaryAction, pressed && styles.pressed]}><Text variant="label" style={styles.secondaryActionText}>BROWSE CHAPTERS</Text></Pressable>
-        <MenuCard title="NETWORK SANDBOX" detail="Build, configure, and test a bounded network with explained results." status={sandboxDeviceCount ? `${sandboxDeviceCount} DEVICES / AUTOSAVED` : 'EMPTY WORKSPACE'} onPress={() => router.push('/sandbox')} />
-        <MenuCard title="SETTINGS" detail="Control motion, haptics, and locally stored progress." status="APP CONTROLS" onPress={() => router.push('/settings')} />
+        <Pressable accessibilityRole="button" onPress={() => navigateOnce('/learn')} style={({ pressed }) => [styles.secondaryAction, pressed && styles.pressed]}><Text variant="label" style={styles.secondaryActionText}>BROWSE CHAPTERS</Text></Pressable>
+        <MenuCard title="NETWORK SANDBOX" detail={hasContentAccess ? 'Build, configure, and test a bounded network with explained results.' : 'Available with the one-time NetBite Pro test unlock.'} status={presentationActive ? 'DEMO ACCESS / NOT PURCHASED' : hasPro ? (sandboxDeviceCount ? `${sandboxDeviceCount} DEVICES / AUTOSAVED` : 'PRO / EMPTY WORKSPACE') : 'PRO / LOCKED'} onPress={() => navigateOnce(hasContentAccess ? '/sandbox' : AppRoutes.pro)} />
+        <MenuCard title="SETTINGS" detail="Control motion, haptics, and locally stored progress." status="APP CONTROLS" onPress={() => navigateOnce('/settings')} />
       </View>
       <Text variant="technical" style={styles.boundary}>STATE-BASED EDUCATIONAL SIMULATION / NO LIVE PACKETS OR TIMING</Text>
     </Screen>

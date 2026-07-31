@@ -2,7 +2,7 @@
 
 This is the canonical source for chapter order, lesson scope, practice alignment, quizzes, and flashcards. NetBite introduces concrete interactions before abstract models and teaches prerequisites before using their terminology.
 
-The current sequence contains 77 focused lessons across 11 chapters.
+The current sequence contains 84 focused lessons across 12 chapters.
 
 ## Shared Quality Rules
 
@@ -16,6 +16,7 @@ The current sequence contains 77 focused lessons across 11 chapters.
 - Terms are defined before they appear in assessment or review.
 - Practice must reinforce an identified lesson skill rather than exist for decoration.
 - Quizzes use scenario questions and 80 percent mastery. A lower result remains an attempt and never locks later content.
+- Flashcards use question-first active recall. Learners answer before reveal, then choose `REVIEW AGAIN` to requeue an idea or `GOT IT` to mark it retrieved. Each deck maps its highest-value prompts to every lesson rather than repeating a passive glossary.
 - Simplified diagrams identify their limits and never claim to be live packet, timing, queue, or protocol simulations.
 - Technical claims and scope boundaries are recorded in `docs/references/`.
 
@@ -32,6 +33,7 @@ The current sequence contains 77 focused lessons across 11 chapters.
 9. Static Routing
 10. VLANs
 11. OSI and TCP/IP Models
+12. Inter-VLAN Routing
 
 Future expansion may cover DHCP, DNS, NAT, ACLs, STP, and IPv6 after the core sequence is proven.
 
@@ -43,7 +45,7 @@ Lessons: What Is a Computer Network?; Why Networks Exist; End and Intermediary D
 
 Practice: connect two PCs to the same switch. The optional message path is conceptual and does not model frames, addresses, or switching logic.
 
-Assessment: six quiz questions, mastery 5/6. Flashcards cover Network, End Device, Intermediary Device, PC, Switch, Router, and LAN.
+Assessment: six quiz questions, mastery 5/6. Eight active-recall cards cover network requirements and purpose, endpoint and intermediary roles, switch and router decisions, physical links, and LAN scope.
 
 Scope: no addressing, routing logic, protocol simulation, or configuration. Sources: `references/CHAPTER1_SOURCES.md`.
 
@@ -154,5 +156,11 @@ Goal: route between two intentionally separate VLAN networks using one router tr
 Lessons: Different VLANs Need a Layer 3 Crossing; Each VLAN Uses a Gateway in Its Own Subnet; One Router Link Can Serve Several VLANs; A Subinterface Terminates One VLAN Context; Routing Rebuilds the Ethernet Frame; Configure and Verify in a Reliable Order; Troubleshoot the First Broken Boundary.
 
 Practice: configure an 802.1Q switch trunk and two router subinterfaces, verify both connected networks, and prove forwarding and return paths.
+
+The lab keeps this topology map visible throughout configuration:
+
+- PC-A `192.168.10.10/24`, gateway `192.168.10.1` -> SW-1 `F0/1`, access VLAN 10.
+- PC-B `192.168.20.20/24`, gateway `192.168.20.1` -> SW-1 `F0/2`, access VLAN 20.
+- R-1 `G0/0` <-> SW-1 `F0/24`, trunk carrying VLANs 10 and 20.
 
 Assessment: eight quiz questions, mastery 7/8. Scope is router-on-a-stick only; Layer 3 switch SVIs, native-VLAN behavior, DTP, VTP, and STP remain excluded. Sources: `references/CHAPTER12_SOURCES.md`.

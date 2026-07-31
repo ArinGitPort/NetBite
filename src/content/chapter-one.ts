@@ -99,13 +99,14 @@ export const chapterOneQuiz: QuizQuestion[] = [
 ];
 
 export const chapterOneFlashcards: Flashcard[] = [
-  { id: 'network', term: 'Computer Network', definition: 'Connected devices with a path for exchanging data.', example: 'Two PCs connected through a switch.' },
-  { id: 'end-device', term: 'End Device', definition: 'A device where network communication starts or finishes.', example: 'A PC requesting a file.' },
-  { id: 'intermediary', term: 'Intermediary Device', definition: 'A device that connects paths or forwards data between endpoints.', example: 'A switch between two PCs.' },
-  { id: 'pc', term: 'PC', definition: 'An end device that uses network services.', example: 'A laptop opening a shared file.' },
-  { id: 'switch', term: 'Switch', definition: 'A device that connects endpoints within a local network.', example: 'The central connection point for classroom PCs.' },
-  { id: 'router', term: 'Router', definition: 'A device that connects different IP networks.', example: 'Connecting a home LAN toward the internet.' },
-  { id: 'lan', term: 'LAN', definition: 'A local area network covering a limited place.', example: 'A network inside a home, classroom, or office.' },
+  { id: 'network', lessonId: 'what-is-a-network', prompt: 'What two things must exist before devices form a computer network?', answer: 'At least two devices and a usable communication path between them.', explanation: 'Devices being close together is not enough; they need a wired or wireless path that can carry data.' },
+  { id: 'network-purpose', lessonId: 'why-networks-exist', prompt: 'Why do people connect devices into a network?', answer: 'To communicate and share information, services, and resources.', explanation: 'Examples include shared files, printers, storage, and internet access.' },
+  { id: 'end-device', lessonId: 'end-and-intermediary-devices', prompt: 'A PC requests a page from a server. Which devices are the endpoints?', answer: 'The PC and the server.', explanation: 'Communication starts or finishes at end devices; switches and routers provide the path between them.' },
+  { id: 'intermediary', lessonId: 'end-and-intermediary-devices', prompt: 'What is the role of an intermediary device?', answer: 'It connects network paths and helps forward data between endpoints.', explanation: 'Switches and routers are intermediary devices because user communication passes through them.' },
+  { id: 'switch', lessonId: 'meet-the-devices', prompt: 'Which device normally connects nearby endpoints inside one LAN?', answer: 'A switch.', explanation: 'A switch provides local connections; it does not replace the endpoints using the network.' },
+  { id: 'router', lessonId: 'meet-the-devices', prompt: 'When does a simple network need a router rather than only a switch?', answer: 'When traffic must move between different IP networks.', explanation: 'A switch connects the local LAN, while a router provides a path beyond that network.' },
+  { id: 'physical-link', lessonId: 'connecting-devices', prompt: 'PC A is connected to a switch, but PC B has no cable. What is PC B missing?', answer: 'Its own physical link to a compatible switch port.', explanation: 'One PC’s cable does not connect nearby devices automatically.' },
+  { id: 'lan', lessonId: 'connecting-devices', prompt: 'What does LAN describe?', answer: 'A local area network covering a limited place such as a home, classroom, or office.', explanation: 'A LAN is a local network boundary, not the entire internet.' },
 ];
 
 export const chapterOneLab: LabDefinition = {

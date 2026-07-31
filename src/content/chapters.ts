@@ -8,6 +8,7 @@ export const chapters: ChapterDefinition[] = [
   {
     id: '1',
     contentVersion: 2,
+    flashcardVersion: 3,
     numberLabel: '01',
     title: 'Introduction to Networks',
     summary: 'Discover what networks are, meet the devices, then build your first connection.',

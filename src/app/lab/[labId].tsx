@@ -1,9 +1,13 @@
-import { router, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { chapterOneLab } from '@/content/chapter-one';
+import { chapters } from '@/content/chapters';
+import { canAccessChapter } from '@/core/account/access';
 import type { LabValidationResult } from '@/core/network/models';
+import { useAuth } from '@/features/account/auth-context';
+import { PremiumLockedScreen } from '@/features/account/components/premium-locked-screen';
 import { TopologyCanvas } from '@/features/topology/components/topology-canvas';
 import { createLabRegistry } from '@/features/practice/lab-registry';
 import { AppButton } from '@/shared/components/app-button';
@@ -15,6 +19,7 @@ import { Screen } from '@/shared/components/screen';
 import { successHaptic, warningHaptic } from '@/shared/haptics';
 import { Fonts, Palette, Radius, Space } from '@/shared/theme';
 import { useGameStore } from '@/store/use-game-store';
+import { returnToOwningChapter } from '@/shared/navigation';
 
 function FirstNetworkLab() {
   const topology = useGameStore((state) => state.topology);
@@ -69,7 +74,7 @@ function FirstNetworkLab() {
   return (
     <Screen>
       <View style={styles.headerRow}>
-        <IconButton accessibilityLabel="Back to chapter" icon="arrow-left" label="BACK / CHAPTER" onPress={() => router.dismissTo('/chapter/1')} />
+        <IconButton accessibilityLabel="Back to chapter" icon="arrow-left" label="BACK / CHAPTER" onPress={() => returnToOwningChapter('lab', chapterOneLab.id)} />
         <IconButton accessibilityLabel="Reset lab" icon="reset" label="RESET" onPress={() => setResetConfirmationVisible(true)} />
       </View>
       <Text variant="label" style={styles.eyebrow}>MINI LAB</Text>
@@ -137,7 +142,7 @@ function FirstNetworkLab() {
         onRequestClose={() => setResultModalVisible(false)}
         secondaryAction={result?.success ? { label: 'Return to lab', onPress: () => setResultModalVisible(false), variant: 'secondary' } : undefined}
         primaryAction={result?.success
-          ? { label: 'Back to chapter', leadingIcon: 'arrow-left', onPress: () => router.dismissTo('/chapter/1') }
+          ? { label: 'Back to chapter', leadingIcon: 'arrow-left', onPress: () => returnToOwningChapter('lab', chapterOneLab.id) }
           : { label: 'Keep building', onPress: () => setResultModalVisible(false) }}
       />
     </Screen>
@@ -145,9 +150,12 @@ function FirstNetworkLab() {
 }
 
 export default function LabScreen() {
+  const { hasContentAccess } = useAuth();
   const { labId } = useLocalSearchParams<{ labId: string }>();
   const labs = createLabRegistry(FirstNetworkLab);
   const LabComponent = labId ? labs[labId] : undefined;
+  const chapter = chapters.find((item) => item.lab.id === labId);
+  if (chapter && !canAccessChapter(chapter.id, hasContentAccess)) return <PremiumLockedScreen label={`CHAPTER ${chapter.numberLabel} LAB`} />;
   return LabComponent ? <LabComponent /> : <ContentNotFound label="Lab" />;
 }
 

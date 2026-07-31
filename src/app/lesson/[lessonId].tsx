@@ -3,12 +3,16 @@ import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { getLesson } from '@/content/chapters';
+import { canAccessChapter } from '@/core/account/access';
+import { useAuth } from '@/features/account/auth-context';
+import { PremiumLockedScreen } from '@/features/account/components/premium-locked-screen';
 import { LessonFieldNote } from '@/features/lessons/components/lesson-field-note';
 import { LessonIllustration } from '@/features/lessons/components/lesson-illustration';
 import { LessonCheckpoint } from '@/features/lessons/components/lesson-checkpoint';
 import { LessonWorkedExample } from '@/features/lessons/components/lesson-worked-example';
 import { isLessonCheckpointBlocking } from '@/features/lessons/checkpoint-rules';
 import { AppButton } from '@/shared/components/app-button';
+import { ContentNotFound } from '@/shared/components/content-not-found';
 import { Text } from '@/shared/components/console-text';
 import { FeedbackModal } from '@/shared/components/feedback-modal';
 import { IconButton } from '@/shared/components/icon-button';
@@ -17,8 +21,10 @@ import { Screen } from '@/shared/components/screen';
 import { selectionHaptic, successHaptic } from '@/shared/haptics';
 import { Fonts, Palette, Radius, Space } from '@/shared/theme';
 import { useGameStore } from '@/store/use-game-store';
+import { returnToOwningChapter } from '@/shared/navigation';
 
 export default function LessonScreen() {
+  const { hasContentAccess } = useAuth();
   const { lessonId } = useLocalSearchParams<{ lessonId: string }>();
   const completeLesson = useGameStore((state) => state.completeLesson);
   const completedLessonIds = useGameStore((state) => state.completedLessonIds);
@@ -27,9 +33,10 @@ export default function LessonScreen() {
   const [checkpointResult, setCheckpointResult] = useState<{ lessonId: string; passed: boolean }>({ lessonId: '', passed: false });
 
   if (!lessonResult) {
-    return <Screen><Text variant="body">Lesson not found.</Text><AppButton label="Back to learning path" onPress={() => router.replace('/learn')} /></Screen>;
+    return <ContentNotFound label="Lesson" />;
   }
   const { chapter, lesson, index } = lessonResult;
+  if (!canAccessChapter(chapter.id, hasContentAccess)) return <PremiumLockedScreen label={`CHAPTER ${chapter.numberLabel} LESSON`} />;
   const checkpointPassed = checkpointResult.lessonId === lesson.id && checkpointResult.passed;
   const lessonWasCompleted = completedLessonIds.includes(lesson.id);
   const checkpointRequired = Boolean(lesson.checkpoint) && !lessonWasCompleted;
@@ -59,7 +66,7 @@ export default function LessonScreen() {
   return (
     <Screen>
       <View style={styles.headerRow}>
-        <IconButton accessibilityLabel="Close lessons and return to chapter" icon="close" onPress={() => router.dismissTo(`/chapter/${chapter.id}`)} />
+        <IconButton accessibilityLabel="Close lessons and return to chapter" icon="close" onPress={() => returnToOwningChapter('lesson', lesson.id)} />
         <View style={styles.progress}><ProgressBar progress={(index + 1) / chapter.lessons.length} /></View>
         <Text variant="label" style={styles.count}>{index + 1}/{chapter.lessons.length}</Text>
       </View>
@@ -113,7 +120,7 @@ export default function LessonScreen() {
         detail="The chapter screen identifies the lesson connected to this practice. You can start now or return later."
         icon="check"
         onRequestClose={() => setCompletionVisible(false)}
-        secondaryAction={{ label: 'Back to chapter', leadingIcon: 'arrow-left', variant: 'secondary', onPress: () => router.dismissTo(`/chapter/${chapter.id}`) }}
+        secondaryAction={{ label: 'Back to chapter', leadingIcon: 'arrow-left', variant: 'secondary', onPress: () => returnToOwningChapter('lesson', lesson.id) }}
         primaryAction={{ label: 'Start mini lab', trailingIcon: 'arrow-right', onPress: () => router.replace({ pathname: '/lab/[labId]', params: { labId: chapter.lab.id } }) }}
       />
     </Screen>

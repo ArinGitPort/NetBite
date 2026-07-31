@@ -37,7 +37,7 @@ describe('next chapter activity', () => {
       quizScores: Object.fromEntries(firstTwoChapters.map((item) => [item.id, getQuizMasteryScore(item)])),
       quizContentVersions: Object.fromEntries(firstTwoChapters.map((item) => [item.id, item.contentVersion])),
       reviewedFlashcardChapterIds: firstTwoChapters.map((item) => item.id),
-      flashcardContentVersions: Object.fromEntries(firstTwoChapters.map((item) => [item.id, item.contentVersion])),
+      flashcardContentVersions: Object.fromEntries(firstTwoChapters.map((item) => [item.id, item.flashcardVersion])),
     };
     const currentChapter = chapters.find((item) => !isChapterComplete(item, progress));
 
@@ -57,7 +57,7 @@ describe('next chapter activity', () => {
       quizScores: Object.fromEntries(selected.map((item) => [item.id, getQuizMasteryScore(item)])),
       quizContentVersions: Object.fromEntries(selected.map(({ id, contentVersion }) => [id, contentVersion])),
       reviewedFlashcardChapterIds: selected.map(({ id }) => id),
-      flashcardContentVersions: Object.fromEntries(selected.map(({ id, contentVersion }) => [id, contentVersion])),
+      flashcardContentVersions: Object.fromEntries(selected.map(({ id, flashcardVersion }) => [id, flashcardVersion])),
     });
     const chapterFour = chapters.find((item) => !isChapterComplete(item, complete(firstThree)));
     expect(chapterFour?.id).toBe('4');

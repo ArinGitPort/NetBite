@@ -20,7 +20,7 @@ Highlight the active cable and device while a packet moves. Use a short real cap
 
 ### Targeted review
 
-- Flashcards support `Know` and `Still learning` classifications.
+- Flashcards ask one question before revealing its answer. `REVIEW AGAIN` requeues an idea and `GOT IT` records successful retrieval for the session.
 - Missed quiz concepts can be retried without repeating mastered questions.
 - Failed labs reveal hints gradually rather than displaying the solution immediately.
 

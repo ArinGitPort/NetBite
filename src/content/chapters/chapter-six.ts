@@ -1,7 +1,7 @@
 import { createAdvancedChapter } from '@/content/advanced-content-helpers';
 
 export const chapterSix = createAdvancedChapter({
-  id: 6, title: 'Routers and Default Gateways', summary: 'Decide whether a destination is local and follow remote delivery through a reachable gateway.',
+  id: 6, flashcardVersion: 3, title: 'Routers and Default Gateways', summary: 'Decide whether a destination is local and follow remote delivery through a reachable gateway.',
   lessons: [
     {
       id: 'router-interfaces', title: 'Routers join separately addressed networks', illustration: 'router-interfaces',
@@ -94,10 +94,14 @@ export const chapterSix = createAdvancedChapter({
     { lessonId: 'routed-frame', prompt: 'What normally changes when a router forwards onto another Ethernet LAN?', answers: ['The link-layer frame addresses', 'The final IPv4 destination', 'The application’s user account'], correctAnswerIndex: 0, explanation: 'A new local frame is built while the destination IP remains.' },
   ],
   cards: [
-    ['Router Interface', 'A router attachment with an address in its connected subnet.', '192.168.10.1/24 on LAN A.'], ['Local Destination', 'A destination sharing the source subnet.', 'Deliver directly to 192.168.10.20.'],
-    ['Remote Destination', 'A destination in a different subnet.', '192.168.20.20 from LAN A.'], ['Default Gateway', 'The local router used for destinations without a more specific host route.', '192.168.10.1.'],
-    ['Next Hop', 'The next IP device along a route.', 'The local gateway for remote traffic.'], ['Direct Delivery', 'Using the local destination as the next hop.', 'PC A sends locally to PC B.'],
-    ['Routed Delivery', 'Forwarding through one or more routers.', 'LAN A to LAN B.'], ['Frame Replacement', 'Building new link-layer delivery information for a new link.', 'Router sends a new Ethernet frame on LAN B.'],
+    ['router-interfaces', 'Why does each router interface need an address from its attached subnet?', 'Each interface acts as the router’s local identity and next hop on that network.', 'A router joins separately addressed networks rather than extending one LAN unchanged.'],
+    ['same-subnet-decision', 'How does a host decide whether a destination is local or remote?', 'It compares its own and the destination’s network identities using the configured prefix.', 'Matching network identities use direct delivery; different identities use a gateway.'],
+    ['local-delivery', 'PC A is 192.168.10.10/24 and PC B is 192.168.10.20/24. What is the next hop?', 'PC B itself.', 'Both addresses derive 192.168.10.0/24, so PC A delivers directly on the local LAN.'],
+    ['remote-delivery', 'PC A is 192.168.10.10/24 and sends to 192.168.20.20. What local device receives the first frame?', 'PC A’s default gateway.', 'The IPv4 destination remains 192.168.20.20, but the first local Ethernet frame targets the gateway.'],
+    ['gateway-requirements', 'Why is 192.168.20.1 an invalid gateway for host 192.168.10.10/24?', 'The gateway is not locally reachable in 192.168.10.0/24.', 'A host must be able to reach its gateway directly before that gateway can forward anything.'],
+    ['gateway-requirements', 'What three basic conditions make a default gateway usable?', 'It has a usable address in the host’s subnet, belongs to a router interface on that LAN, and is operationally reachable.', 'A correctly formatted but off-subnet gateway is still unusable.'],
+    ['routed-frame', 'Which addresses stay end-to-end and which change when a router forwards an IPv4 packet?', 'Source and destination IPv4 addresses stay; link-layer source and destination MAC addresses change for the next link.', 'The router removes the incoming Ethernet frame and builds a new one around the forwarded packet.'],
+    ['routed-frame', 'Does a router forward the original Ethernet frame unchanged into the next LAN?', 'No.', 'It processes the packet, selects an outgoing route, and creates new link-layer delivery information.'],
   ],
   lab: ['gateway-forwarding-desk', 'Choose direct or gateway delivery', 'Compare two fixed LANs and detect an off-subnet gateway'],
   recap: ['A correct next-hop decision', 'Router interfaces, local and remote delivery, gateways, and frame replacement', 'How ARP discovers the local next-hop MAC address'],

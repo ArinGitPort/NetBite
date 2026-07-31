@@ -1,7 +1,7 @@
 import { createAdvancedChapter } from '@/content/advanced-content-helpers';
 
 export const chapterTen = createAdvancedChapter({
-  id: 10, title: 'VLANs', summary: 'Separate Layer 2 broadcast domains and carry selected VLANs between switches.',
+  id: 10, flashcardVersion: 3, title: 'VLANs', summary: 'Separate Layer 2 broadcast domains and carry selected VLANs between switches.',
   lessons: [
     {
       id: 'vlan-purpose', title: 'VLANs create logical local networks', illustration: 'vlan-purpose',
@@ -100,11 +100,15 @@ export const chapterTen = createAdvancedChapter({
     { lessonId: 'dot1q-trunks', prompt: 'What must match for an end-to-end VLAN path?', answers: ['Access membership and every required trunk allowance', 'Only endpoint names', 'Only one switch’s port color'], correctAnswerIndex: 0, explanation: 'Every segment must carry the intended VLAN.' },
   ],
   cards: [
-    ['VLAN', 'A configured logical Layer 2 network.', 'VLAN 10.'], ['Broadcast Domain', 'Interfaces reached by a Layer 2 broadcast.', 'Each VLAN has its own domain.'],
-    ['Access Port', 'An endpoint port assigned to one VLAN.', 'PC A port in VLAN 10.'], ['Same-VLAN Traffic', 'Layer 2 communication inside one VLAN.', 'VLAN 20 PC to VLAN 20 PC.'],
-    ['Inter-VLAN Routing', 'Layer 3 forwarding between VLAN networks.', 'VLAN 10 to VLAN 20.'], ['802.1Q Tag', 'Information identifying VLAN membership on a shared link.', 'A VLAN 20 tagged frame.'],
-    ['Trunk', 'A link carrying multiple allowed VLANs.', 'Switch A to Switch B.'], ['Allowed VLAN', 'A VLAN permitted across a trunk.', 'Allow VLANs 10 and 20.'],
-    ['VLAN Path', 'The access and trunk segments carrying one VLAN end to end.', 'VLAN 10 across two switches.'],
+    ['vlan-purpose', 'Why would an administrator place devices into separate VLANs on the same switch hardware?', 'To create separate logical Layer 2 networks and broadcast boundaries without requiring a different physical switch for each group.', 'VLAN membership changes the logical LAN a switchport belongs to.'],
+    ['logical-vlan-separation', 'A host in VLAN 10 sends a Layer 2 broadcast. Which ports may receive it?', 'Eligible ports carrying VLAN 10, except the ingress port.', 'Ports belonging only to VLAN 20 are outside that broadcast domain.'],
+    ['access-ports', 'What VLAN behavior should an endpoint-facing access port provide?', 'It assigns the attached endpoint’s untagged traffic to one configured VLAN.', 'The endpoint normally sends ordinary untagged Ethernet frames on an access link.'],
+    ['same-vlan-switching', 'PC A and PC B are in VLAN 10 on different switches. What Layer 2 path is required?', 'Both access ports must belong to VLAN 10, and every trunk between them must carry VLAN 10.', 'The VLAN must remain continuous across every switch segment in the path.'],
+    ['same-different-vlan', 'Can a Layer 2 switch alone forward traffic directly from VLAN 10 to VLAN 20?', 'No.', 'Different VLANs are different Layer 2 networks; communication between them requires Layer 3 routing.'],
+    ['dot1q-tag', 'What information does an IEEE 802.1Q tag add on a trunk?', 'VLAN identification so shared trunk traffic remains associated with the correct VLAN.', 'The tag preserves logical separation while multiple VLANs use one physical link.'],
+    ['dot1q-trunks', 'What is the purpose of a trunk link between switches?', 'To carry traffic for multiple permitted VLANs over one shared connection.', 'A trunk does not merge those VLANs into one broadcast domain.'],
+    ['dot1q-trunks', 'VLAN 20 is absent from a trunk’s allowed list. What traffic is affected?', 'VLAN 20 cannot continue across that trunk, while other permitted VLANs may still work.', 'Check the allowed VLAN configuration at both endpoints of the trunk.'],
+    ['same-different-vlan', 'Two PCs have addresses in the same IPv4 subnet but their access ports are in different VLANs. Can they communicate directly?', 'No.', 'Their Layer 2 VLAN separation prevents the local Ethernet path even though the IPv4 settings appear similar.'],
   ],
   lab: ['vlan-port-desk', 'Configure VLAN paths', 'Use the NetBite CLI to assign access ports, build a trunk, and verify separation'],
   recap: ['Two separated VLANs across two switches', 'Broadcast boundaries, access membership, tags, routing boundaries, and trunk allowances', 'How layered models organize all previously learned responsibilities'],

@@ -1,4 +1,3 @@
-import { router } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 
@@ -36,6 +35,7 @@ import { Screen } from '@/shared/components/screen';
 import { selectionHaptic, successHaptic, warningHaptic } from '@/shared/haptics';
 import { Fonts, Palette, Space, Typography } from '@/shared/theme';
 import { useSandboxStore } from '@/store/use-sandbox-store';
+import { returnToMenu } from '@/shared/navigation';
 
 type Confirmation = 'new' | 'clear' | 'preset' | 'inter-vlan-preset' | 'beginner-lan' | 'remove-device' | 'remove-link';
 type SandboxTool = 'add' | 'connect' | 'configure' | 'test' | 'workspace';
@@ -330,7 +330,7 @@ export function SandboxScreen() {
   return (
     <Screen scrollRef={screenRef}>
       <View style={styles.header}>
-        <IconButton accessibilityLabel="Back to main menu" icon="arrow-left" label="BACK / MENU" onPress={() => router.dismissTo('/')} />
+        <IconButton accessibilityLabel="Back to main menu" icon="arrow-left" label="BACK / MENU" onPress={returnToMenu} />
         <AppButton label={activeTool === 'workspace' ? 'Close tools' : 'More'} variant="secondary" onPress={() => chooseTool('workspace')} />
       </View>
       <Text variant="label" style={styles.eyebrow}>FREE PLAY / DETERMINISTIC STATE MODEL</Text>

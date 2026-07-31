@@ -4,7 +4,7 @@
 
 - Preserve imported source artwork and generate explicitly sized `-mobile.png` runtime assets with `npm run assets:optimize`.
 - Keep rendered interaction tests outside `src/app`; Expo Router treats every file in that directory as a route.
-- Test the complete manual-cabling selection path, flashcard flip/mode/progress behavior, chapter recaps, quiz mastery routing, store migration, and network rules.
+- Test the complete manual-cabling selection path, flashcard reveal/requeue/mastery behavior, chapter recaps, quiz mastery routing, store migration, and network rules.
 - Run TypeScript, Expo lint, Jest, and an Expo web export before extending the curriculum.
 
 ## Durable state

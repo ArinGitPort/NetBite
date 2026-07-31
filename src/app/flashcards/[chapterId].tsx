@@ -1,4 +1,4 @@
-import { router, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
 import Animated, {
@@ -11,6 +11,9 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { getChapter } from '@/content/chapters';
+import { canAccessChapter } from '@/core/account/access';
+import { useAuth } from '@/features/account/auth-context';
+import { PremiumLockedScreen } from '@/features/account/components/premium-locked-screen';
 import { AppButton } from '@/shared/components/app-button';
 import { AppIcon } from '@/shared/components/app-icon';
 import { ContentNotFound } from '@/shared/components/content-not-found';
@@ -23,35 +26,38 @@ import { getEffectiveWidth, getResponsiveMode } from '@/shared/responsive-layout
 import { useAppReducedMotion } from '@/shared/use-app-reduced-motion';
 import { Fonts, Palette, Radius, Space } from '@/shared/theme';
 import { useGameStore } from '@/store/use-game-store';
-
-type FlashcardFront = 'term' | 'definition';
+import { returnToOwningChapter } from '@/shared/navigation';
 
 const FLIP_DURATION_MS = 420;
 
 export default function FlashcardsScreen() {
+  const { hasContentAccess } = useAuth();
   const { chapterId } = useLocalSearchParams<{ chapterId: string }>();
   const chapter = getChapter(chapterId);
   const markReviewed = useGameStore((state) => state.markFlashcardsReviewed);
   const savedPosition = useGameStore((state) => state.flashcardPositions[chapterId ?? '']);
-  const savedContentVersion = useGameStore((state) => state.flashcardContentVersions[chapterId ?? '']);
+  const savedVersion = useGameStore((state) => state.flashcardContentVersions[chapterId ?? '']);
   const saveFlashcardPosition = useGameStore((state) => state.saveFlashcardPosition);
   const clearFlashcardPosition = useGameStore((state) => state.clearFlashcardPosition);
-  const currentSavedPosition = chapter && savedContentVersion === chapter.contentVersion ? savedPosition : 0;
+  const currentSavedPosition = chapter && savedVersion === chapter.flashcardVersion ? savedPosition : 0;
   const initialIndex = Math.min(currentSavedPosition ?? 0, Math.max(0, (chapter?.flashcards.length ?? 1) - 1));
-  const [index, setIndex] = useState(initialIndex);
+  const initialQueue = chapter
+    ? [...chapter.flashcards.slice(initialIndex), ...chapter.flashcards.slice(0, initialIndex)].map(({ id }) => id)
+    : [];
+  const [queue, setQueue] = useState(initialQueue);
+  const [queueIndex, setQueueIndex] = useState(0);
+  const [masteredIds, setMasteredIds] = useState<Set<string>>(() => new Set());
+  const [retryIds, setRetryIds] = useState<Set<string>>(() => new Set());
   const [revealed, setRevealed] = useState(false);
   const [finished, setFinished] = useState(false);
-  const [frontSide, setFrontSide] = useState<FlashcardFront>('term');
   const [isFlipping, setIsFlipping] = useState(false);
   const flipProgress = useSharedValue(0);
   const reducedMotion = useAppReducedMotion();
   const { width, fontScale } = useWindowDimensions();
   const compactLayout = getResponsiveMode(getEffectiveWidth(width, fontScale)) === 'compact';
-  const cardMinHeight = 400 * Math.max(fontScale, 1);
+  const cardMinHeight = 380 * Math.max(fontScale, 1);
   const flipTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const card = chapter?.flashcards[index];
-  const showingTerm = frontSide === 'term' ? !revealed : revealed;
-  const frontShowsTerm = frontSide === 'term';
+  const card = chapter?.flashcards.find(({ id }) => id === queue[queueIndex]);
 
   const frontAnimatedStyle = useAnimatedStyle(() => ({
     opacity: interpolate(flipProgress.value, [0, 0.499, 0.5, 1], [1, 1, 0, 0]),
@@ -73,6 +79,7 @@ export default function FlashcardsScreen() {
     if (flipTimer.current) clearTimeout(flipTimer.current);
   }, []);
 
+  if (chapter && !canAccessChapter(chapter.id, hasContentAccess)) return <PremiumLockedScreen label={`CHAPTER ${chapter.numberLabel} FLASHCARDS`} />;
   if (!chapter || !card) return <ContentNotFound label="Flashcards" />;
 
   const resetFlip = () => {
@@ -86,18 +93,12 @@ export default function FlashcardsScreen() {
     setRevealed(false);
   };
 
-  const flipCard = () => {
-    if (isFlipping) return;
-
-    const nextRevealed = !revealed;
+  const revealAnswer = () => {
+    if (isFlipping || revealed) return;
     const duration = reducedMotion ? 0 : FLIP_DURATION_MS;
-    setRevealed(nextRevealed);
+    setRevealed(true);
     selectionHaptic();
-    flipProgress.set(withTiming(nextRevealed ? 1 : 0, {
-      duration,
-      easing: Easing.inOut(Easing.cubic),
-    }));
-
+    flipProgress.set(withTiming(1, { duration, easing: Easing.inOut(Easing.cubic) }));
     if (duration === 0) return;
     setIsFlipping(true);
     flipTimer.current = setTimeout(() => {
@@ -106,31 +107,42 @@ export default function FlashcardsScreen() {
     }, duration);
   };
 
-  const chooseFrontSide = (side: FlashcardFront) => {
-    if (side === frontSide) return;
-    setFrontSide(side);
-    resetFlip();
-  };
-
-  const previous = () => {
-    if (index === 0) return;
-    const nextIndex = index - 1;
-    setIndex(nextIndex);
-    saveFlashcardPosition(chapter.id, nextIndex);
-    resetFlip();
-  };
-
-  const next = () => {
-    if (index === chapter.flashcards.length - 1) {
-    markReviewed(chapter.id, chapter.contentVersion);
+  const advance = (nextQueue: string[], nextMastered: Set<string>) => {
+    const nextQueueIndex = queueIndex + 1;
+    setQueue(nextQueue);
+    setMasteredIds(nextMastered);
+    if (nextMastered.size === chapter.flashcards.length) {
+      markReviewed(chapter.id, chapter.flashcardVersion);
       clearFlashcardPosition(chapter.id);
       successHaptic();
       setFinished(true);
       return;
     }
-    const nextIndex = index + 1;
-    setIndex(nextIndex);
-    saveFlashcardPosition(chapter.id, nextIndex);
+    const nextCardId = nextQueue[nextQueueIndex];
+    const originalIndex = chapter.flashcards.findIndex(({ id }) => id === nextCardId);
+    setQueueIndex(nextQueueIndex);
+    saveFlashcardPosition(chapter.id, Math.max(0, originalIndex));
+    resetFlip();
+  };
+
+  const reviewAgain = () => {
+    const nextRetryIds = new Set(retryIds).add(card.id);
+    const isAlreadyQueued = queue.slice(queueIndex + 1).includes(card.id);
+    setRetryIds(nextRetryIds);
+    advance(isAlreadyQueued ? queue : [...queue, card.id], new Set(masteredIds));
+  };
+
+  const gotIt = () => {
+    advance(queue, new Set(masteredIds).add(card.id));
+  };
+
+  const restart = () => {
+    setQueue(chapter.flashcards.map(({ id }) => id));
+    setQueueIndex(0);
+    setMasteredIds(new Set());
+    setRetryIds(new Set());
+    setFinished(false);
+    saveFlashcardPosition(chapter.id, 0);
     resetFlip();
   };
 
@@ -139,11 +151,18 @@ export default function FlashcardsScreen() {
       <Screen>
         <View style={styles.finished}>
           <AppIcon name="check" size={32} />
-          <Text variant="label" style={styles.eyebrow}>REVIEW COMPLETE</Text>
-          <Text variant="screenTitle" style={styles.finishedTitle}>{chapter.flashcards.length} key terms reviewed</Text>
-          <Text variant="body" style={styles.finishedCopy}>You can return to these cards whenever you want a quick refresher.</Text>
+          <Text variant="label" style={styles.eyebrow}>ACTIVE RECALL COMPLETE</Text>
+          <Text variant="screenTitle" style={styles.finishedTitle}>{chapter.flashcards.length} ideas retrieved</Text>
+          <Text variant="body" style={styles.finishedCopy}>
+            {retryIds.size
+              ? `${retryIds.size} ${retryIds.size === 1 ? 'card was' : 'cards were'} repeated until you recalled the answer.`
+              : 'You recalled every answer on the first pass.'}
+          </Text>
         </View>
-        <AppButton label="Back to chapter" leadingIcon="arrow-left" onPress={() => router.replace({ pathname: '/chapter/[chapterId]', params: { chapterId: chapter.id } })} />
+        <View style={styles.navigationActions}>
+          <AppButton label="Practice again" variant="secondary" onPress={restart} />
+          <AppButton label="Back to chapter" leadingIcon="arrow-left" onPress={() => returnToOwningChapter('flashcards', chapter.id)} />
+        </View>
       </Screen>
     );
   }
@@ -151,111 +170,82 @@ export default function FlashcardsScreen() {
   return (
     <Screen>
       <View style={styles.header}>
-        <IconButton accessibilityLabel="Close flashcards" icon="close" onPress={() => router.dismissTo({ pathname: '/chapter/[chapterId]', params: { chapterId: chapter.id } })} />
-        <View style={styles.progress}><ProgressBar progress={(index + 1) / chapter.flashcards.length} /></View>
-        <Text variant="label" style={styles.count}>{index + 1}/{chapter.flashcards.length}</Text>
+        <IconButton accessibilityLabel="Close flashcards" icon="close" onPress={() => returnToOwningChapter('flashcards', chapter.id)} />
+        <View style={styles.progress}><ProgressBar progress={masteredIds.size / chapter.flashcards.length} /></View>
+        <Text variant="label" style={styles.count}>{masteredIds.size}/{chapter.flashcards.length}</Text>
       </View>
-      <Text variant="label" style={styles.modeLabel}>SHOW FIRST</Text>
-      <View style={[styles.modeSelector, compactLayout && styles.modeSelectorCompact]}>
-        <Pressable
-          accessibilityLabel="Show the term first"
-          accessibilityRole="radio"
-          accessibilityState={{ checked: frontSide === 'term' }}
-          onPress={() => chooseFrontSide('term')}
-          style={({ pressed }) => [styles.modeOption, frontSide === 'term' && styles.modeOptionSelected, pressed && styles.pressed]}>
-          <Text variant="label" style={[styles.modeOptionText, frontSide === 'term' && styles.modeOptionTextSelected]}>TERM FIRST</Text>
-        </Pressable>
-        <Pressable
-          accessibilityLabel="Show the definition first"
-          accessibilityRole="radio"
-          accessibilityState={{ checked: frontSide === 'definition' }}
-          onPress={() => chooseFrontSide('definition')}
-          style={({ pressed }) => [styles.modeOption, frontSide === 'definition' && styles.modeOptionSelected, pressed && styles.pressed]}>
-          <Text variant="label" style={[styles.modeOptionText, frontSide === 'definition' && styles.modeOptionTextSelected]}>DEFINITION FIRST</Text>
-        </Pressable>
+      <View style={styles.sessionStatus}>
+        <Text variant="label" style={styles.modeLabel}>RECALL FROM MEMORY</Text>
+        <Text variant="technical" style={styles.queueCount}>CARD {queueIndex + 1} / {queue.length}</Text>
       </View>
-      <Text variant="label" style={styles.eyebrow}>TAP THE CARD TO REVEAL</Text>
+      <Text variant="bodySmall" style={styles.instructions}>Say the answer in your own words before revealing it. Then rate your recall honestly.</Text>
       <Pressable
         accessibilityRole="button"
         accessibilityState={{ disabled: isFlipping }}
-        accessibilityLabel={showingTerm
-          ? `${card.term}. Tap to ${revealed ? 'show the definition' : 'reveal the definition'}.`
-          : `${card.definition}. Tap to ${revealed ? 'show the term' : 'reveal the term'}.`}
+        accessibilityLabel={revealed
+          ? `Answer: ${card.answer}. ${card.explanation}`
+          : `Question: ${card.prompt}. Think of your answer, then tap to reveal.`}
         disabled={isFlipping}
-        onPress={flipCard}
+        onPress={revealAnswer}
         style={({ pressed }) => [styles.cardPressable, { minHeight: cardMinHeight }, pressed && styles.pressed]}>
         <View style={styles.cardScene}>
-          <Animated.View
-            accessible={false}
-            style={[styles.cardFace, styles.cardFront, styles.noPointerEvents, frontAnimatedStyle]}>
-            <Text variant="label" style={styles.cardLabel}>{frontShowsTerm ? 'NETWORK TERM' : 'DEFINITION'}</Text>
-            <Text variant={frontShowsTerm ? 'screenTitle' : 'body'} style={frontShowsTerm ? styles.term : styles.definition}>
-              {frontShowsTerm ? card.term : card.definition}
-            </Text>
-            <Text variant="label" style={styles.tapHint}>Tap to flip</Text>
+          <Animated.View accessible={false} style={[styles.cardFace, styles.cardFront, styles.noPointerEvents, frontAnimatedStyle]}>
+            <Text variant="label" style={styles.cardLabel}>QUESTION</Text>
+            <Text variant="sectionHeading" style={styles.prompt}>{card.prompt}</Text>
+            <Text variant="label" style={styles.tapHint}>Answer first / then tap to reveal</Text>
           </Animated.View>
-          <Animated.View
-            accessible={false}
-            style={[styles.cardFace, styles.cardBack, styles.noPointerEvents, backAnimatedStyle]}>
-            <Text variant="label" style={styles.cardLabel}>{frontShowsTerm ? 'DEFINITION' : 'NETWORK TERM'}</Text>
-            <Text variant={frontShowsTerm ? 'body' : 'screenTitle'} style={frontShowsTerm ? styles.definition : styles.term}>
-              {frontShowsTerm ? card.definition : card.term}
-            </Text>
-          <View style={styles.example}>
-            <Text variant="label" style={styles.exampleLabel}>EXAMPLE</Text>
-            <Text variant="body" style={styles.exampleText}>{card.example}</Text>
-          </View>
+          <Animated.View accessible={false} style={[styles.cardFace, styles.cardBack, styles.noPointerEvents, backAnimatedStyle]}>
+            <Text variant="label" style={styles.cardLabel}>ANSWER</Text>
+            <Text variant="body" style={styles.answer}>{card.answer}</Text>
+            <View style={styles.explanation}>
+              <Text variant="label" style={styles.explanationLabel}>WHY IT MATTERS</Text>
+              <Text variant="bodySmall" style={styles.explanationText}>{card.explanation}</Text>
+            </View>
           </Animated.View>
         </View>
       </Pressable>
       <View style={styles.spacer} />
-      <View style={styles.navigationActions}>
-        <AppButton
-          label="Previous card"
-          leadingIcon="arrow-left"
-          disabled={index === 0}
-          variant="secondary"
-          onPress={previous}
-        />
-        <AppButton
-          label={index === chapter.flashcards.length - 1 ? 'Finish review' : 'Next card'}
-          trailingIcon={index === chapter.flashcards.length - 1 ? 'check' : 'arrow-right'}
-          onPress={next}
-        />
-      </View>
+      {!revealed ? (
+        <AppButton label="Reveal answer" onPress={revealAnswer} />
+      ) : (
+        <View style={[styles.ratingActions, compactLayout && styles.ratingActionsCompact]}>
+          <AppButton label="Review again" variant="secondary" style={styles.ratingButton} onPress={reviewAgain} />
+          <AppButton label="Got it" trailingIcon="check" style={styles.ratingButton} onPress={gotIt} />
+        </View>
+      )}
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  header: { flexDirection: 'row', alignItems: 'center', marginBottom: Space.xxl },
+  header: { flexDirection: 'row', alignItems: 'center', marginBottom: Space.xl },
   progress: { flex: 1 },
-  count: { width: 56, textAlign: 'right', color: Palette.textMuted },
-  modeLabel: { color: Palette.textMuted, fontFamily: Fonts.medium, marginBottom: Space.sm },
-  modeSelector: { flexDirection: 'row', marginBottom: Space.lg },
-  modeSelectorCompact: { flexDirection: 'column' },
-  modeOption: { flex: 1, minHeight: 44, alignItems: 'center', justifyContent: 'center', paddingHorizontal: Space.sm, borderWidth: 1, borderColor: Palette.border, backgroundColor: Palette.surface },
-  modeOptionSelected: { borderColor: Palette.accent, backgroundColor: Palette.surfaceRaised },
-  modeOptionText: { color: Palette.textMuted, fontFamily: Fonts.medium, textAlign: 'center' },
-  modeOptionTextSelected: { color: Palette.accentBright },
-  eyebrow: { color: Palette.accentBright, fontFamily: Fonts.medium, textAlign: 'center', marginBottom: Space.lg },
-  cardPressable: { minHeight: 400 },
-  cardScene: { flex: 1, minHeight: 400 },
-  cardFace: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, minHeight: 400, borderRadius: Radius.lg, borderWidth: 1, borderColor: Palette.border, padding: Space.lg, alignItems: 'center', justifyContent: 'center', backfaceVisibility: 'hidden' },
+  count: { width: 64, textAlign: 'right', color: Palette.textMuted },
+  sessionStatus: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: Space.sm },
+  modeLabel: { color: Palette.accentBright, fontFamily: Fonts.medium },
+  queueCount: { color: Palette.textMuted },
+  instructions: { color: Palette.textMuted, marginTop: Space.sm, marginBottom: Space.lg },
+  cardPressable: { minHeight: 380 },
+  cardScene: { flex: 1, minHeight: 380 },
+  cardFace: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, minHeight: 380, borderRadius: Radius.lg, borderWidth: 1, borderColor: Palette.border, padding: Space.lg, alignItems: 'center', justifyContent: 'center', backfaceVisibility: 'hidden' },
   cardFront: { backgroundColor: Palette.surfaceRaised, borderTopColor: Palette.accent, borderTopWidth: 2 },
   cardBack: { backgroundColor: Palette.surfaceRaised, borderTopColor: Palette.orange, borderTopWidth: 2 },
   noPointerEvents: { pointerEvents: 'none' },
   cardLabel: { color: Palette.accentBright, fontFamily: Fonts.medium },
-  term: { color: Palette.white, textAlign: 'center', fontFamily: Fonts.semibold, textTransform: 'uppercase', marginTop: Space.lg },
-  definition: { color: Palette.white, textAlign: 'center', marginTop: Space.lg },
-  tapHint: { position: 'absolute', bottom: Space.xl, color: Palette.textMuted, fontFamily: Fonts.regular, textTransform: 'uppercase' },
-  example: { alignSelf: 'stretch', minWidth: 0, backgroundColor: Palette.surface, borderWidth: 1, borderColor: Palette.border, padding: Space.lg, borderRadius: Radius.md, marginTop: Space.xxl },
-  exampleLabel: { color: Palette.accentBright, fontFamily: Fonts.medium },
-  exampleText: { color: Palette.white, marginTop: Space.xs },
+  prompt: { color: Palette.white, textAlign: 'center', fontFamily: Fonts.semibold, marginTop: Space.lg },
+  answer: { color: Palette.white, textAlign: 'center', marginTop: Space.lg },
+  tapHint: { position: 'absolute', bottom: Space.xl, color: Palette.textMuted, fontFamily: Fonts.regular, textAlign: 'center' },
+  explanation: { alignSelf: 'stretch', minWidth: 0, backgroundColor: Palette.surface, borderWidth: 1, borderColor: Palette.border, padding: Space.lg, borderRadius: Radius.md, marginTop: Space.xxl },
+  explanationLabel: { color: Palette.orange, fontFamily: Fonts.medium },
+  explanationText: { color: Palette.white, marginTop: Space.xs },
   pressed: { opacity: 0.85 },
   spacer: { flex: 1, minHeight: Space.xl },
+  ratingActions: { flexDirection: 'row', gap: Space.md },
+  ratingActionsCompact: { flexDirection: 'column' },
+  ratingButton: { flex: 1, minWidth: 0 },
   navigationActions: { gap: Space.md },
   finished: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 72 },
+  eyebrow: { color: Palette.accentBright, fontFamily: Fonts.medium, textAlign: 'center', marginBottom: Space.lg },
   finishedTitle: { color: Palette.text, fontFamily: Fonts.semibold, textTransform: 'uppercase', textAlign: 'center' },
-  finishedCopy: { color: Palette.textMuted, textAlign: 'center', marginTop: Space.md, maxWidth: 380 },
+  finishedCopy: { color: Palette.textMuted, textAlign: 'center', marginTop: Space.md, maxWidth: 420 },
 });

@@ -2,6 +2,7 @@ import { createAdvancedChapter } from '@/content/advanced-content-helpers';
 
 export const chapterFour = createAdvancedChapter({
   id: 4,
+  flashcardVersion: 3,
   title: 'IPv4 Addressing',
   summary: 'Build IPv4 understanding from bits and octets before separating network and host identity.',
   lessons: [
@@ -110,11 +111,16 @@ export const chapterFour = createAdvancedChapter({
     { lessonId: 'private-valid-hosts', prompt: 'PC B receives the same IPv4 address as PC A. What should change?', answers: ['Assign PC B a unique usable address', 'Keep both because their MACs differ', 'Rename PC B only'], correctAnswerIndex: 0, explanation: 'Host IPv4 addresses must be unique within the subnet.' },
   ],
   cards: [
-    ['IPv4 Address', 'A 32-bit logical address assigned to an interface.', '192.168.10.25'], ['Octet', 'Eight bits displayed as one decimal value from 0 to 255.', 'The 168 in 192.168.10.25.'],
-    ['Bit', 'A binary value of zero or one.', 'Eight bits form an IPv4 octet.'], ['Dotted Decimal', 'Four decimal octets separated by dots.', '10.0.0.8'],
-    ['Prefix Length', 'The count of leading network bits.', '/24 means 24 network bits.'], ['Network Portion', 'The prefix-defined identity shared by a subnet.', '192.168.10 in this /24.'],
-    ['Host Portion', 'The bits identifying an interface inside the subnet.', '25 in 192.168.10.25/24.'], ['Private IPv4', 'One of three RFC 1918 internal address blocks.', '172.20.1.5 is private.'],
-    ['Network Address', 'The address identifying the subnet itself.', '192.168.10.0/24.'], ['Broadcast Address', 'The address targeting every host in the subnet.', '192.168.10.255/24.'],
+    ['ipv4-identifies-interfaces', 'How do IPv4 and MAC addresses differ in scope?', 'IPv4 provides a logical network identity used across routed paths; a MAC address identifies an interface for local-link delivery.', 'A packet can keep the same endpoint IPv4 addresses while its Ethernet MAC addresses change at a router.'],
+    ['reading-dotted-decimal', 'How is a 32-bit IPv4 address normally displayed?', 'As four decimal octets separated by dots.', 'Each octet represents eight bits and must be from 0 through 255.'],
+    ['bits-inside-octet', 'What decimal value does the bit pattern 11111111 represent?', '255.', 'The eight place values 128+64+32+16+8+4+2+1 total 255.'],
+    ['reading-dotted-decimal', 'Why is 192.168.10.300 not a valid IPv4 address?', 'An octet cannot exceed 255.', 'Every IPv4 octet is exactly eight bits, so its decimal range is 0 through 255.'],
+    ['network-host-identity', 'What two identities are contained in an IPv4 interface address?', 'A network portion and a host portion.', 'The prefix determines the boundary between the shared subnet identity and the interface identity.'],
+    ['prefixes-mark-network', 'What does /24 mean in 192.168.10.25/24?', 'The first 24 bits identify the network and the remaining 8 bits identify the host.', 'For this address, the derived network is 192.168.10.0/24.'],
+    ['private-ipv4-ranges', 'Which three IPv4 blocks are reserved for private internal use?', '10.0.0.0/8, 172.16.0.0/12, and 192.168.0.0/16.', 'Private describes address scope; it does not mean automatically secure.'],
+    ['private-valid-hosts', 'Why can 192.168.10.0/24 not be assigned as an ordinary host address?', 'It is the network address identifying the subnet itself.', 'In this conventional /24, usable hosts are 192.168.10.1 through 192.168.10.254.'],
+    ['private-valid-hosts', 'Why can 192.168.10.255/24 not be assigned as an ordinary host address?', 'It is the broadcast address for the subnet.', 'The first address identifies the network and the last targets all hosts in the conventional subnet.'],
+    ['private-valid-hosts', 'Two PCs on the same LAN both use 192.168.10.25/24. What is wrong?', 'They have duplicate IPv4 addresses.', 'Each active interface in the same subnet needs a unique usable host address.'],
   ],
   lab: ['ipv4-configurator', 'Configure a /24 host', 'Reject invalid, duplicate, reserved, and off-network settings'],
   recap: ['A valid PC IPv4 configuration', 'Bits, octets, prefixes, private space, and host rules', 'How prefixes divide a block into smaller subnets'],

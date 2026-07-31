@@ -1,7 +1,7 @@
 import { createAdvancedChapter } from '@/content/advanced-content-helpers';
 
 export const chapterNine = createAdvancedChapter({
-  id: 9, contentVersion: 3, title: 'Static Routing', summary: 'Read route entries, find every matching prefix, and select connected, static, most-specific, and default paths.',
+  id: 9, contentVersion: 3, flashcardVersion: 4, title: 'Static Routing', summary: 'Read route entries, find every matching prefix, and select connected, static, most-specific, and default paths.',
   lessons: [
     {
       id: 'route-table-purpose', title: 'A route table answers where to send IP traffic', illustration: 'route-purpose',
@@ -122,11 +122,16 @@ export const chapterNine = createAdvancedChapter({
     { lessonId: 'default-route', prompt: 'When is 0.0.0.0/0 selected?', answers: ['When no more-specific route matches', 'Before every connected route', 'Only for broadcasts'], correctAnswerIndex: 0, explanation: 'Default is the least-specific fallback.' },
   ],
   cards: [
-    ['Routing Table', 'A router’s destination-prefix forwarding instructions.', 'Look up 192.168.30.25.'], ['Connected Route', 'A route from an active directly attached interface.', '192.168.10.0/24 on LAN A.'],
-    ['Remote Route', 'A route to a network not directly attached.', 'LAN C through R2.'], ['Route Entry', 'A destination prefix plus forwarding information.', '192.168.30.0/24 via 10.0.12.2.'],
-    ['Static Route', 'An administrator-configured route.', 'A fixed route to LAN C.'], ['Next Hop', 'A neighboring router receiving forwarded traffic.', '10.0.12.2.'],
-    ['Return Route', 'A route back toward the source network.', 'R3 route to LAN A.'], ['Route Match', 'A route whose prefix-defined range contains the destination.', '192.168.0.0/16 matches 192.168.20.25.'], ['Longest Prefix', 'The most-specific matching route.', '/24 wins over /16.'],
-    ['Default Route', 'The /0 fallback for otherwise unmatched destinations.', '0.0.0.0/0.'],
+    ['route-table-purpose', 'What question does a router answer with its routing table?', 'Which matching route should carry this destination IPv4 address toward its next hop or outgoing interface.', 'The table guides Layer 3 forwarding; it does not identify the final Ethernet MAC by itself.'],
+    ['connected-remote-routes', 'When does a router derive a connected route automatically?', 'When one of its active interfaces has a valid IPv4 address and prefix for that network.', 'A remote network instead needs a learned or configured route.'],
+    ['reading-route-entry', 'What information must you read from a route entry before using it?', 'Its destination network and prefix, plus the outgoing interface or next-hop router.', 'The prefix defines what destinations match; the forwarding information defines where matching traffic goes.'],
+    ['static-next-hop', 'What must be true before a configured static next hop is usable?', 'The router must have a working route and link-layer path to reach that neighboring next-hop address.', 'Naming an unreachable next hop does not create a physical or Layer 2 path.'],
+    ['adding-static-routes', 'Traffic reaches the destination LAN, but replies never return. What routing requirement is probably missing?', 'A valid return route from the destination side back to the source network.', 'End-to-end communication requires usable forwarding in both directions.'],
+    ['route-match-test', 'How do you test whether a route matches a destination address?', 'Compare the destination with the network range defined by the route prefix.', 'For example, 192.168.20.25 lies inside 192.168.0.0/16 but not 192.168.10.0/24.'],
+    ['longest-prefix', 'Routes 192.168.0.0/16 and 192.168.20.0/24 both match 192.168.20.25. Which route wins, and why?', '192.168.20.0/24 wins because its longer prefix is the more specific match.', 'Routers first find matching routes, then prefer the match with the greatest prefix length.'],
+    ['default-route', 'When should a router use 0.0.0.0/0?', 'Only when no more-specific route matches the destination.', 'The /0 route matches every IPv4 destination, so it serves as the least-specific fallback.'],
+    ['adding-static-routes', 'What makes a static routed path complete between two remote LANs?', 'Every router needs the required forward routes, reachable next hops, and routes for the return direction.', 'A one-way route can deliver the request while still preventing the response.'],
+    ['route-table-purpose', 'Does a route tell the router the destination host’s Ethernet MAC across the entire path?', 'No.', 'Routing selects the next Layer 3 hop; ARP and local-link delivery determine a new frame destination on each Ethernet segment.'],
   ],
   lab: ['static-route-board', 'Configure static routes', 'Use the NetBite CLI to build and verify both directions across three routers'],
   recap: ['A bidirectional three-router path', 'Route fields, next hops, return paths, longest match, and default fallback', 'How VLANs separate logical LANs on switches'],

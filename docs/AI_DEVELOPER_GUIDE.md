@@ -91,6 +91,8 @@ All mutations must occur through store actions.
 - react-native-reanimated
 - expo-sqlite
 - Supabase
+- Stripe React Native SDK in test mode
+- Supabase Edge Functions
 
 ---
 
@@ -322,6 +324,8 @@ Supabase
 ```
 
 Cloud synchronization must never block the user interface.
+
+Account, synchronization, entitlement, and payment boundaries are documented in `ACCOUNT_CLOUD_PAYMENT_GUIDE.md`. The client may read its own entitlement but must never grant one. Only the signed Stripe webhook or trusted server administration may write entitlement and purchase records.
 
 ---
 

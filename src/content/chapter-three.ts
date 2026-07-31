@@ -98,18 +98,19 @@ export const chapterThreeQuiz: QuizQuestion[] = [
 ];
 
 export const chapterThreeFlashcards: Flashcard[] = [
-  { id: 'mac-address', term: 'MAC Address', definition: 'A 48-bit interface identifier used for local Ethernet delivery.', example: PC_A },
-  { id: 'source-mac', term: 'Source MAC', definition: 'The MAC address of the interface that sent the frame on the local link.', example: 'The field a switch learns from.' },
-  { id: 'destination-mac', term: 'Destination MAC', definition: 'The intended local-link receiver or group.', example: 'The field a switch looks up for forwarding.' },
-  { id: 'mac-table', term: 'MAC Address Table', definition: 'A switch table mapping learned source MAC addresses to ports.', example: `${PC_A} → port 1.` },
-  { id: 'known-unicast', term: 'Known Unicast', definition: 'A one-interface destination with a learned port.', example: 'Forward only to port 2.' },
-  { id: 'unknown-unicast', term: 'Unknown Unicast', definition: 'A one-interface destination not yet in the MAC table.', example: 'Flood every other active port.' },
-  { id: 'broadcast', term: 'Broadcast', definition: 'A frame intentionally addressed to every interface in a local broadcast domain.', example: 'FF:FF:FF:FF:FF:FF' },
-  { id: 'flooding', term: 'Flooding', definition: 'Copying a frame through every other active port in its VLAN.', example: 'Ingress is always excluded.' },
+  { id: 'mac-address', lessonId: 'mac-addresses', prompt: 'What does a MAC address identify, and how long is it?', answer: 'It identifies a network interface for local Ethernet delivery and is 48 bits, or six bytes.', explanation: `${PC_A} displays six hexadecimal byte pairs.` },
+  { id: 'source-destination', lessonId: 'mac-source-destination', prompt: 'Which MAC field does a switch learn from, and which field guides forwarding?', answer: 'It learns from the source MAC and forwards based on the destination MAC.', explanation: 'The source proves where the sender arrived; the destination states where the frame should go.' },
+  { id: 'source-learning', lessonId: 'switch-source-learning', prompt: `A frame with source ${PC_A} enters port 1. What does the switch learn?`, answer: `${PC_A} is reachable through port 1.`, explanation: 'The switch records or refreshes the source-to-ingress-port mapping before handling the destination.' },
+  { id: 'source-moves', lessonId: 'switch-source-learning', prompt: 'What should a switch do if a learned source MAC later arrives on a different port?', answer: 'Update the MAC table entry to the new ingress port.', explanation: 'The latest arrival path replaces the old dynamic mapping.' },
+  { id: 'known-unicast', lessonId: 'known-unknown-unicast', prompt: 'A destination MAC is learned on port 2 and the frame arrives on port 1. Where is it forwarded?', answer: 'Only through port 2.', explanation: 'Known unicast uses the destination’s single learned output port.' },
+  { id: 'same-ingress', lessonId: 'known-unknown-unicast', prompt: 'What happens if the destination is learned on the same port where the frame arrived?', answer: 'The switch does not forward the frame through any other port.', explanation: 'The destination is already on the ingress segment, and ingress is never used as an output.' },
+  { id: 'unknown-unicast', lessonId: 'unknown-unicast-flooding', prompt: 'An unknown unicast enters port 1 on a switch with active ports 1, 2, and 3. Which outputs are used?', answer: 'Ports 2 and 3.', explanation: 'The switch floods every other eligible port and excludes ingress port 1.' },
+  { id: 'broadcast', lessonId: 'broadcast-frames', prompt: 'Why does a switch flood FF:FF:FF:FF:FF:FF even when its MAC table is complete?', answer: 'Because that destination intentionally addresses every interface in the local broadcast domain.', explanation: 'Broadcast and unknown unicast can use similar outputs, but they flood for different reasons.' },
+  { id: 'broadcast-boundary', lessonId: 'broadcast-frames', prompt: 'Does a basic router forward an Ethernet broadcast into another LAN?', answer: 'No.', explanation: 'Ethernet broadcasts remain inside their local broadcast domain unless a separate mechanism deliberately relays them.' },
 ];
 
 export const chapterThree: ChapterDefinition = {
-  id: '3', contentVersion: 2, numberLabel: '03', title: 'Switching and MAC Addresses', summary: 'Follow source learning, table lookups, targeted forwarding, and two different reasons for flooding.',
+  id: '3', contentVersion: 2, flashcardVersion: 3, numberLabel: '03', title: 'Switching and MAC Addresses', summary: 'Follow source learning, table lookups, targeted forwarding, and two different reasons for flooding.',
   lessons: chapterThreeLessons, quiz: chapterThreeQuiz, flashcards: chapterThreeFlashcards,
   lab: { id: 'switch-decision-desk', title: 'Operate the switch desk', detail: 'Predict four source-learning and forwarding decisions' },
   recap: { built: 'A learned MAC address table', learned: 'MAC roles, source learning, known forwarding, unknown flooding, and broadcasts', next: 'How IPv4 gives interfaces logical network identities' },

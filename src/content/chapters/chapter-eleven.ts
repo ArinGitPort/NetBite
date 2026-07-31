@@ -1,7 +1,7 @@
 import { createAdvancedChapter } from '@/content/advanced-content-helpers';
 
 export const chapterEleven = createAdvancedChapter({
-  id: 11, title: 'OSI and TCP/IP Models', summary: 'Use layered responsibilities to organize concepts and narrow troubleshooting questions.',
+  id: 11, flashcardVersion: 3, title: 'OSI and TCP/IP Models', summary: 'Use layered responsibilities to organize concepts and narrow troubleshooting questions.',
   lessons: [
     {
       id: 'why-models', title: 'Why layered models exist', illustration: 'model-purpose',
@@ -146,12 +146,18 @@ export const chapterEleven = createAdvancedChapter({
     { lessonId: 'mapping-concepts', prompt: 'Where does IPv4 fit in the four-layer TCP/IP model?', answers: ['Internet', 'Application', 'Network Access only'], correctAnswerIndex: 0, explanation: 'IP and ICMP belong to the TCP/IP Internet layer.' },
   ],
   cards: [
-    ['Layered Model', 'A grouping of networking responsibilities and services.', 'Use layers to narrow a fault.'], ['Physical', 'OSI Layer 1: signals, media, and physical connections.', 'Copper link state.'],
-    ['Data Link', 'OSI Layer 2: frames and local MAC delivery.', 'Ethernet switching.'], ['Network', 'OSI Layer 3: logical addressing and routing.', 'IPv4 and ICMP.'],
-    ['Transport', 'OSI Layer 4: end-to-end application transport services.', 'TCP and UDP.'], ['Session', 'OSI Layer 5: application-conversation coordination.', 'Dialogue management.'],
-    ['Presentation', 'OSI Layer 6: information representation and transformation.', 'Encoding and serialization.'], ['Application', 'OSI Layer 7: network services used by applications.', 'A web application protocol.'],
-    ['TCP/IP Application', 'The broad top TCP/IP group for application-support responsibilities.', 'Web, naming, and email protocols.'], ['TCP/IP Internet', 'The TCP/IP group containing IP, ICMP, and routing.', 'IPv4 forwarding.'],
-    ['Network Access / Link', 'The TCP/IP bottom group for local access and transmission.', 'Ethernet over copper.'],
+    ['why-models', 'Why do networking models divide communication into layers?', 'They separate responsibilities so people can describe designs, relate protocols, and troubleshoot one part of a path at a time.', 'A model is a reasoning tool, not proof that every implementation follows a literal seven-step machine sequence.'],
+    ['seven-osi-layers', 'What are the seven OSI layers from Layer 7 down to Layer 1?', 'Application, Presentation, Session, Transport, Network, Data Link, Physical.', 'Remember the order and then attach each protocol or device function to its responsibility.'],
+    ['osi-physical-layer', 'What does OSI Layer 1 handle, and what does it not decide?', 'It handles signals, media, connectors, and bit transmission; it does not choose IPv4 routes.', 'Cables, radio signals, and link activation are Physical-layer concerns.'],
+    ['osi-data-link-layer', 'What does OSI Layer 2 handle, and what stays outside its local scope?', 'It handles frames, MAC addressing, and local-link delivery; it does not route between IPv4 networks.', 'Ethernet switching and VLAN membership are Data Link responsibilities.'],
+    ['osi-network-layer', 'What does OSI Layer 3 handle?', 'Logical addressing and forwarding between networks, including IPv4, ICMP, and routing decisions.', 'Layer 3 chooses an IP path; it does not define the electrical signal on a cable.'],
+    ['osi-transport-layer', 'What responsibility belongs to OSI Layer 4?', 'End-to-end transport services for applications, such as TCP reliability or UDP datagrams and port-based delivery.', 'Transport does not select the router’s next-hop Ethernet port.'],
+    ['osi-session-layer', 'What responsibility is associated with OSI Layer 5?', 'Conceptual coordination and management of application conversations or sessions.', 'It does not assign MAC addresses or transmit physical bits.'],
+    ['osi-presentation-layer', 'What responsibility is associated with OSI Layer 6?', 'Representing, translating, encoding, compressing, or encrypting application information.', 'It changes how information is represented, not which IP route carries it.'],
+    ['osi-application-layer', 'What does OSI Layer 7 provide?', 'Network-facing services and protocols used by applications, such as web, naming, and email protocols.', 'It is about application communication services, not the physical user interface alone.'],
+    ['four-tcp-ip-layers', 'What are the four TCP/IP model layers from top to bottom?', 'Application, Transport, Internet, Network Access or Link.', 'The TCP/IP model groups several upper OSI responsibilities into its Application layer.'],
+    ['mapping-concepts', 'How do the OSI and TCP/IP models map at the top and bottom?', 'OSI Layers 5–7 map broadly to TCP/IP Application, while OSI Layers 1–2 map broadly to Network Access or Link.', 'OSI Transport maps to TCP/IP Transport, and OSI Network maps to TCP/IP Internet.'],
+    ['mapping-concepts', 'Which OSI layers contain cables, Ethernet and MAC, IPv4 and routing, TCP or UDP, and application protocols?', 'Cables: Physical; Ethernet and MAC: Data Link; IPv4 and routing: Network; TCP or UDP: Transport; application protocols: Application.', 'Classification follows the responsibility each concept performs.'],
   ],
   lab: ['layer-sorting-desk', 'Sort the network stack', 'Classify learned concepts in OSI and TCP/IP layers'],
   recap: ['A complete layered concept map', 'Every OSI layer, the TCP/IP groups, and responsibility-based mapping', 'Revisit any chapter and use the models to connect its concepts'],

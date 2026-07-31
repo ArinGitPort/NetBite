@@ -10,7 +10,8 @@ export function createAdvancedChapter(input: {
   summary: string;
   lessons: LessonSeed[];
   questions: QuestionSeed[];
-  cards: [term: string, definition: string, example: string][];
+  cards: [lessonId: string, prompt: string, answer: string, explanation: string][];
+  flashcardVersion?: number;
   lab: [id: string, title: string, detail: string];
   recap: [built: string, learned: string, next: string];
 }): ChapterDefinition {
@@ -20,16 +21,18 @@ export function createAdvancedChapter(input: {
     ...question,
     id: `ch${input.id}-q${index + 1}`,
   }));
-  const flashcards: Flashcard[] = input.cards.map(([term, definition, example], index) => ({
+  const flashcards: Flashcard[] = input.cards.map(([lessonId, prompt, answer, explanation], index) => ({
     id: `ch${input.id}-card-${index + 1}`,
-    term,
-    definition,
-    example,
+    lessonId,
+    prompt,
+    answer,
+    explanation,
   }));
 
   return {
     id: chapterId,
     contentVersion: input.contentVersion ?? 2,
+    flashcardVersion: input.flashcardVersion ?? 2,
     numberLabel: chapterId.padStart(2, '0'),
     title: input.title,
     summary: input.summary,

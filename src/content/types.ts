@@ -107,9 +107,10 @@ export interface QuizQuestion {
 
 export interface Flashcard {
   id: string;
-  term: string;
-  definition: string;
-  example: string;
+  lessonId: string;
+  prompt: string;
+  answer: string;
+  explanation: string;
 }
 
 export interface ChapterLabSummary {
@@ -121,6 +122,7 @@ export interface ChapterLabSummary {
 export interface ChapterDefinition {
   id: string;
   contentVersion: number;
+  flashcardVersion: number;
   numberLabel: string;
   title: string;
   summary: string;

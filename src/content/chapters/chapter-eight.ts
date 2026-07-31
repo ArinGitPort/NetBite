@@ -1,7 +1,7 @@
 import { createAdvancedChapter } from '@/content/advanced-content-helpers';
 
 export const chapterEight = createAdvancedChapter({
-  id: 8, title: 'ICMP and Ping', summary: 'Use Echo results as evidence and troubleshoot dependencies in a disciplined order.',
+  id: 8, flashcardVersion: 3, title: 'ICMP and Ping', summary: 'Use Echo results as evidence and troubleshoot dependencies in a disciplined order.',
   lessons: [
     {
       id: 'icmp-role', title: 'ICMP carries IP control information', illustration: 'icmp-role',
@@ -93,10 +93,14 @@ export const chapterEight = createAdvancedChapter({
     { lessonId: 'checkpoint-troubleshooting', prompt: 'Local communication works but the configured remote gateway is off-subnet. What should change?', answers: ['The gateway configuration', 'The local switch MAC table first', 'The application name'], correctAnswerIndex: 0, explanation: 'Remote delivery requires a locally reachable gateway.' },
   ],
   cards: [
-    ['ICMP', 'An Internet-layer control and reporting protocol.', 'Echo supports ping.'], ['Echo Request', 'An ICMP message asking a destination to reply.', 'The outbound half of ping.'],
-    ['Echo Reply', 'The response to an accepted Echo Request.', 'Evidence of a completed round trip.'], ['Ping', 'A tool commonly testing IPv4 reachability with Echo.', 'Ping the gateway.'],
-    ['Round Trip', 'Delivery to a destination and back.', 'Request out, reply back.'], ['Timeout', 'The expected response was not observed in time.', 'A symptom requiring more checks.'],
-    ['Checkpoint', 'One verified dependency along a path.', 'Check link before gateway.'], ['Filtering', 'Policy that permits or blocks selected traffic.', 'ICMP may be blocked while web traffic works.'],
+    ['icmp-role', 'What is ICMP’s basic role in an IPv4 network?', 'It carries control, error-reporting, and diagnostic information related to IP delivery.', 'ICMP supports tools such as ping but does not carry ordinary application data by itself.'],
+    ['echo-request-reply', 'Which two ICMP messages form a successful basic ping exchange?', 'An Echo Request sent to the destination and an Echo Reply returned to the source.', 'The reply demonstrates a completed ICMP round trip for that test.'],
+    ['ping-outcomes', 'What should you record before guessing why a ping failed?', 'The exact observed result and the first known checkpoint that failed.', 'A timeout is evidence, not a complete diagnosis.'],
+    ['ping-success-boundary', 'What does one successful ping prove?', 'That this ICMP Echo exchange completed in both directions at that time.', 'It does not prove every application, port, protocol, or future packet will work.'],
+    ['ping-failure-boundary', 'Why can a ping timeout not identify one universal cause?', 'Many different failures can prevent an Echo Reply, including links, addressing, gateways, routes, return paths, or filtering.', 'Troubleshooting must gather more evidence rather than treating timeout as a diagnosis.'],
+    ['checkpoint-troubleshooting', 'What is a useful near-to-far troubleshooting order for failed reachability?', 'Check the local interface and link, local addressing, local gateway, route and path, return path, then policy or application-specific causes.', 'Start with dependencies closest to the source so each successful check narrows the search.'],
+    ['checkpoint-troubleshooting', 'The local interface is down. Should you investigate a remote route first?', 'No—repair or verify the local link first.', 'A remote path cannot work while the source lacks its first operational connection.'],
+    ['ping-failure-boundary', 'Can web traffic work even when ping fails?', 'Yes.', 'A device or policy may filter ICMP while permitting other protocols, so ping failure alone does not prove total outage.'],
   ],
   lab: ['ping-diagnostic-desk', 'Read CLI evidence', 'Run diagnostic commands, then state only what their output proves'],
   recap: ['A checkpoint-based diagnosis', 'ICMP Echo, result boundaries, and troubleshooting order', 'How routers select connected, static, specific, and default routes'],

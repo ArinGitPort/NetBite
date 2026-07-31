@@ -30,6 +30,10 @@ jest.mock('@/shared/haptics', () => ({
   successHaptic: jest.fn(),
 }));
 
+jest.mock('@/features/account/auth-context', () => ({
+  useAuth: () => ({ hasPro: false }),
+}));
+
 jest.mock('expo-sqlite/kv-store', () => ({
   __esModule: true,
   default: {
@@ -47,17 +51,28 @@ describe('FlashcardsScreen', () => {
     });
   });
 
-  test('flips the card, changes the preferred first side, and saves navigation progress', async () => {
+  test('requires retrieval before reveal and requeues a card rated for review', async () => {
     const screen = await render(<FlashcardsScreen />);
 
-    const termCard = screen.getByLabelText(/Ethernet\. Tap to reveal the definition/i);
-    await fireEvent.press(termCard);
-    expect(screen.getByLabelText(/family of technologies for wired local-link communication/i)).toBeTruthy();
+    expect(screen.getByText(/say the answer in your own words before revealing it/i)).toBeTruthy();
+    const questionCard = screen.getByLabelText(/What part of delivery does Ethernet handle in this course/i);
+    await fireEvent.press(questionCard);
+    expect(screen.getByLabelText(/Communication across one local wired link at a time/i)).toBeTruthy();
 
-    await fireEvent.press(screen.getByLabelText('Show the definition first'));
-    expect(screen.getByLabelText(/family of technologies for wired local-link communication/i)).toBeTruthy();
+    await fireEvent.press(screen.getByText(/review again/i));
+    expect(useGameStore.getState().flashcardPositions['2']).toBe(1);
+    expect(screen.getByText(/Why does Ethernet place data inside a frame/i)).toBeTruthy();
+    expect(screen.getByText('0/9')).toBeTruthy();
+  });
 
-    await fireEvent.press(screen.getByText(/next card/i));
+  test('counts a card as retrieved only after the learner reveals and rates it got it', async () => {
+    const screen = await render(<FlashcardsScreen />);
+
+    expect(screen.queryByText(/got it/i)).toBeNull();
+    await fireEvent.press(screen.getByText(/reveal answer/i));
+    await fireEvent.press(screen.getByText(/got it/i));
+
+    expect(screen.getByText('1/9')).toBeTruthy();
     expect(useGameStore.getState().flashcardPositions['2']).toBe(1);
   });
 });

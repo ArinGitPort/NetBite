@@ -3,6 +3,9 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { getChapter } from '@/content/chapters';
 import { getChapterProgress, getQuizMasteryScore, isFlashcardsReviewed, isQuizMastered } from '@/content/progress';
+import { canAccessChapter } from '@/core/account/access';
+import { useAuth } from '@/features/account/auth-context';
+import { PremiumLockedScreen } from '@/features/account/components/premium-locked-screen';
 import { ChapterRecap } from '@/features/chapters/components/chapter-recap';
 import { AppIcon } from '@/shared/components/app-icon';
 import { ContentNotFound } from '@/shared/components/content-not-found';
@@ -12,6 +15,7 @@ import { ProgressBar } from '@/shared/components/progress-bar';
 import { Screen } from '@/shared/components/screen';
 import { Fonts, Palette, Radius, Space } from '@/shared/theme';
 import { useGameStore } from '@/store/use-game-store';
+import { returnToLearningPath } from '@/shared/navigation';
 
 interface ActivityRowProps {
   index: number;
@@ -43,6 +47,7 @@ function ActivityRow({ index, type, title, detail, complete, onPress }: Activity
 }
 
 export default function ChapterScreen() {
+  const { hasContentAccess } = useAuth();
   const { chapterId } = useLocalSearchParams<{ chapterId: string }>();
   const completedLessonIds = useGameStore((state) => state.completedLessonIds);
   const completedLabIds = useGameStore((state) => state.completedLabIds);
@@ -54,6 +59,7 @@ export default function ChapterScreen() {
   const progress = { completedLessonIds, completedLabIds, quizScores, quizContentVersions, reviewedFlashcardChapterIds, flashcardContentVersions };
 
   if (!chapter) return <ContentNotFound label="Chapter" />;
+  if (!canAccessChapter(chapter.id, hasContentAccess)) return <PremiumLockedScreen label={`CHAPTER ${chapter.numberLabel}`} />;
   const { completed, total } = getChapterProgress(chapter, progress);
   const labComplete = completedLabIds.includes(chapter.lab.id);
   const quizScore = quizScores[chapter.id];
@@ -76,7 +82,7 @@ export default function ChapterScreen() {
   return (
     <Screen>
       <View style={styles.back}>
-        <IconButton accessibilityLabel="Back to learning path" icon="arrow-left" label="BACK / LEARN" onPress={() => router.dismissTo('/learn')} />
+        <IconButton accessibilityLabel="Back to learning path" icon="arrow-left" label="BACK / LEARN" onPress={returnToLearningPath} />
       </View>
       <View style={styles.hero}>
         <Text variant="label" style={styles.chapterLabel}>CHAPTER {chapter.numberLabel}</Text>
@@ -104,7 +110,7 @@ export default function ChapterScreen() {
       <Text variant="sectionHeading" style={styles.sectionTitle}>PRACTICE</Text>
       <ActivityRow index={chapter.lessons.length + 1} type="MINI LAB" title={chapter.lab.title} detail={chapter.lab.detail} complete={labComplete} onPress={() => router.push({ pathname: '/lab/[labId]', params: { labId: chapter.lab.id } })} />
       <ActivityRow index={chapter.lessons.length + 2} type="QUIZ" title="Check your understanding" detail={quizDetail} complete={quizMastered} onPress={() => router.push({ pathname: '/quiz/[chapterId]', params: { chapterId: chapter.id } })} />
-      <ActivityRow index={chapter.lessons.length + 3} type="FLASHCARDS" title="Review the key terms" detail={flashcardDetail} complete={flashcardsReviewed} onPress={() => router.push({ pathname: '/flashcards/[chapterId]', params: { chapterId: chapter.id } })} />
+      <ActivityRow index={chapter.lessons.length + 3} type="FLASHCARDS" title="Recall the key ideas" detail={flashcardDetail} complete={flashcardsReviewed} onPress={() => router.push({ pathname: '/flashcards/[chapterId]', params: { chapterId: chapter.id } })} />
     </Screen>
   );
 }

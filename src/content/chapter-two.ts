@@ -95,19 +95,19 @@ export const chapterTwoQuiz: QuizQuestion[] = [
 ];
 
 export const chapterTwoFlashcards: Flashcard[] = [
-  { id: 'ethernet', term: 'Ethernet', definition: 'A family of technologies for wired local-link communication.', example: 'A PC-to-switch copper link.' },
-  { id: 'frame', term: 'Ethernet Frame', definition: 'Ethernet’s structured local-link transmission unit.', example: 'Destination, source, payload, and check regions.' },
-  { id: 'nic', term: 'NIC', definition: 'A network interface that sends and receives frames for a device.', example: 'A desktop Ethernet adapter.' },
-  { id: 'port', term: 'Ethernet Port', definition: 'An interface connection for compatible Ethernet media.', example: 'A numbered copper switch port.' },
-  { id: 'twisted-pair', term: 'Twisted-Pair Copper', definition: 'Paired copper conductors carrying electrical Ethernet signals.', example: 'A short PC-to-switch link.' },
-  { id: 'fiber-optic', term: 'Fiber-Optic', definition: 'Media carrying Ethernet information as light.', example: 'A link between network rooms.' },
-  { id: 'crossover', term: 'Crossover Cable', definition: 'Legacy copper wiring that crosses transmit and receive pairs.', example: 'A manual switch-to-switch link.' },
-  { id: 'auto-mdix', term: 'Auto-MDIX', definition: 'A port feature that detects and corrects copper pair orientation.', example: 'Modern switches accepting either cable arrangement.' },
-  { id: 'link-state', term: 'Link State', definition: 'Whether two local Ethernet interfaces have established physical connectivity.', example: 'A switch port link indicator is lit.' },
+  { id: 'ethernet', lessonId: 'ethernet-local-link', prompt: 'What part of delivery does Ethernet handle in this course?', answer: 'Communication across one local wired link at a time.', explanation: 'Ethernet does not describe the complete routed path across the internet.' },
+  { id: 'frame', lessonId: 'ethernet-frames', prompt: 'Why does Ethernet place data inside a frame?', answer: 'To organize local destination and source information, payload data, and an error-detection check.', explanation: 'The frame is the structured local-link unit; it is not the signal or application message itself.' },
+  { id: 'frame-fields', lessonId: 'ethernet-frames', prompt: 'Which Ethernet frame fields identify the local sender and intended receiver?', answer: 'The source MAC and destination MAC fields.', explanation: 'Switches later learn from the source and make forwarding decisions from the destination.' },
+  { id: 'nic', lessonId: 'network-interface-card', prompt: 'What hardware sends and receives Ethernet frames for a PC?', answer: 'Its network interface controller, or NIC.', explanation: 'The NIC is the device-side attachment to the Ethernet link.' },
+  { id: 'media', lessonId: 'ethernet-media', prompt: 'How do copper and fiber Ethernet carry information differently?', answer: 'Copper uses electrical signals; fiber uses light.', explanation: 'Both ends of a link must support compatible media and connectors.' },
+  { id: 'straight-through', lessonId: 'manual-copper-cabling', prompt: 'Without auto-MDIX, which cable is traditionally used between a PC or router and a switch?', answer: 'A straight-through copper cable.', explanation: 'Unlike legacy port roles already place transmit and receive pairs opposite each other.' },
+  { id: 'crossover', lessonId: 'manual-copper-cabling', prompt: 'Without auto-MDIX, which cable is traditionally used between two switches?', answer: 'A crossover copper cable.', explanation: 'Like legacy port roles need the transmit and receive pairs crossed.' },
+  { id: 'auto-mdix', lessonId: 'manual-copper-cabling', prompt: 'What problem does auto-MDIX solve?', answer: 'It detects the copper pair orientation and corrects it automatically.', explanation: 'Modern ports can often use either wiring arrangement, but the lab teaches the underlying manual rule.' },
+  { id: 'link-state', lessonId: 'ethernet-ports', prompt: 'What does an active Ethernet link indicator prove—and what does it not prove?', answer: 'It proves local physical connectivity; it does not prove correct IP settings or end-to-end reachability.', explanation: 'Troubleshoot the local port, cable, and interface before moving to higher-layer causes.' },
 ];
 
 export const chapterTwo: ChapterDefinition = {
-  id: '2', contentVersion: 2, numberLabel: '02', title: 'Ethernet', summary: 'See how frames, interfaces, media, and port state create a working local Ethernet link.',
+  id: '2', contentVersion: 2, flashcardVersion: 3, numberLabel: '02', title: 'Ethernet', summary: 'See how frames, interfaces, media, and port state create a working local Ethernet link.',
   lessons: chapterTwoLessons, quiz: chapterTwoQuiz, flashcards: chapterTwoFlashcards,
   lab: { id: 'ethernet-cables', title: 'Manual copper cabling practice', detail: 'Focused practice for straight-through and crossover rules' },
   recap: { built: 'A set of working Ethernet links', learned: 'Frames, NICs, media, cabling roles, ports, and link state', next: 'How switches identify interfaces and forward frames' },

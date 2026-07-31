@@ -5,9 +5,14 @@ node_modules/
 
 # Expo
 .expo/
+.expo-reliability-android/
+.expo-reliability-web/
+.expo-plan-android/
+.expo-plan-web/
 dist/
 web-build/
 /tmp/export-illustrations-*/
+/tmp/export-*/
 expo-env.d.ts
 
 # Native

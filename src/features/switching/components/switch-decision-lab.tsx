@@ -1,4 +1,3 @@
-import { router } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
@@ -23,6 +22,7 @@ import { Screen } from '@/shared/components/screen';
 import { selectionHaptic, successHaptic, warningHaptic } from '@/shared/haptics';
 import { Fonts, Palette, Space } from '@/shared/theme';
 import { useGameStore } from '@/store/use-game-store';
+import { returnToOwningChapter } from '@/shared/navigation';
 
 const LAB_ID = 'switch-decision-desk';
 
@@ -107,7 +107,7 @@ export function SwitchDecisionLab() {
   return (
     <Screen>
       <View style={styles.headerRow}>
-        <IconButton accessibilityLabel="Back to Chapter 3" icon="arrow-left" label="BACK / CHAPTER" onPress={() => router.dismissTo('/chapter/3')} />
+        <IconButton accessibilityLabel="Back to Chapter 3" icon="arrow-left" label="BACK / CHAPTER" onPress={() => returnToOwningChapter('lab', 'switch-decision-desk')} />
         <IconButton accessibilityLabel="Reset switch desk" icon="reset" label="RESET" onPress={() => setResetVisible(true)} />
       </View>
 
@@ -230,7 +230,7 @@ export function SwitchDecisionLab() {
         icon="check"
         onRequestClose={() => setCompletionVisible(false)}
         secondaryAction={{ label: 'Review desk', variant: 'secondary', onPress: () => setCompletionVisible(false) }}
-        primaryAction={{ label: 'Back to chapter', leadingIcon: 'arrow-left', onPress: () => router.dismissTo('/chapter/3') }}
+        primaryAction={{ label: 'Back to chapter', leadingIcon: 'arrow-left', onPress: () => returnToOwningChapter('lab', 'switch-decision-desk') }}
       />
     </Screen>
   );

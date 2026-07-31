@@ -24,7 +24,7 @@ describe('chapter progress', () => {
       quizScores: { 1: 3 },
       quizContentVersions: { 1: 2 },
       reviewedFlashcardChapterIds: ['1'],
-      flashcardContentVersions: { 1: 2 },
+      flashcardContentVersions: { 1: firstChapter.flashcardVersion },
     };
 
     expect(isChapterComplete(firstChapter, progress)).toBe(false);
@@ -38,7 +38,7 @@ describe('chapter progress', () => {
       quizScores: { 1: getQuizMasteryScore(firstChapter) },
       quizContentVersions: { 1: 2 },
       reviewedFlashcardChapterIds: ['1'],
-      flashcardContentVersions: { 1: 2 },
+      flashcardContentVersions: { 1: firstChapter.flashcardVersion },
     };
 
     expect(isQuizMastered(firstChapter, progress.quizScores[1])).toBe(true);

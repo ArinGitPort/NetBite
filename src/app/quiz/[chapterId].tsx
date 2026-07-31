@@ -4,6 +4,9 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { getChapter } from '@/content/chapters';
 import { getQuizMasteryScore } from '@/content/progress';
+import { canAccessChapter } from '@/core/account/access';
+import { useAuth } from '@/features/account/auth-context';
+import { PremiumLockedScreen } from '@/features/account/components/premium-locked-screen';
 import { AppButton } from '@/shared/components/app-button';
 import { AppIcon } from '@/shared/components/app-icon';
 import { ContentNotFound } from '@/shared/components/content-not-found';
@@ -14,8 +17,10 @@ import { Screen } from '@/shared/components/screen';
 import { successHaptic, warningHaptic } from '@/shared/haptics';
 import { Fonts, Palette, Radius, Space } from '@/shared/theme';
 import { useGameStore } from '@/store/use-game-store';
+import { returnToOwningChapter } from '@/shared/navigation';
 
 export default function QuizScreen() {
+  const { hasContentAccess } = useAuth();
   const { chapterId } = useLocalSearchParams<{ chapterId: string }>();
   const saveQuizScore = useGameStore((state) => state.saveQuizScore);
   const [questionIndex, setQuestionIndex] = useState(0);
@@ -27,6 +32,7 @@ export default function QuizScreen() {
   const chapter = getChapter(chapterId);
 
   if (!chapter) return <ContentNotFound label="Quiz" />;
+  if (!canAccessChapter(chapter.id, hasContentAccess)) return <PremiumLockedScreen label={`CHAPTER ${chapter.numberLabel} QUIZ`} />;
   const question = chapter.quiz[questionIndex];
   const masteryScore = getQuizMasteryScore(chapter);
   const mastered = score >= masteryScore;
@@ -82,7 +88,7 @@ export default function QuizScreen() {
           ) : (
             <AppButton label="Retry quiz" onPress={retry} />
           )}
-          <AppButton label="Back to chapter" leadingIcon="arrow-left" variant="secondary" onPress={() => router.replace({ pathname: '/chapter/[chapterId]', params: { chapterId: chapter.id } })} />
+          <AppButton label="Back to chapter" leadingIcon="arrow-left" variant="secondary" onPress={() => returnToOwningChapter('quiz', chapter.id)} />
         </View>
       </Screen>
     );
@@ -91,7 +97,7 @@ export default function QuizScreen() {
   return (
     <Screen>
       <View style={styles.header}>
-        <IconButton accessibilityLabel="Close quiz" icon="close" onPress={() => router.dismissTo({ pathname: '/chapter/[chapterId]', params: { chapterId: chapter.id } })} />
+        <IconButton accessibilityLabel="Close quiz" icon="close" onPress={() => returnToOwningChapter('quiz', chapter.id)} />
         <View style={styles.progress}><ProgressBar progress={(questionIndex + 1) / chapter.quiz.length} /></View>
         <Text variant="label" style={styles.count}>{questionIndex + 1}/{chapter.quiz.length}</Text>
       </View>

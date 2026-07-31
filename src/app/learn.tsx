@@ -4,16 +4,21 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { chapters } from '@/content/chapters';
 import { getNextChapterActivity } from '@/content/next-activity';
 import { getChapterProgress, isChapterComplete } from '@/content/progress';
+import { canAccessChapter } from '@/core/account/access';
+import { useAuth } from '@/features/account/auth-context';
 import { AppButton } from '@/shared/components/app-button';
 import { AppIcon } from '@/shared/components/app-icon';
 import { IconButton } from '@/shared/components/icon-button';
 import { Text } from '@/shared/components/console-text';
 import { ProgressBar } from '@/shared/components/progress-bar';
 import { Screen } from '@/shared/components/screen';
+import { AppRoutes } from '@/shared/routes';
 import { Fonts, Palette, Radius, Space } from '@/shared/theme';
 import { useGameStore } from '@/store/use-game-store';
+import { returnToMenu } from '@/shared/navigation';
 
 export default function LearningHomeScreen() {
+  const { hasContentAccess } = useAuth();
   const completedLessonIds = useGameStore((state) => state.completedLessonIds);
   const completedLabIds = useGameStore((state) => state.completedLabIds);
   const quizScores = useGameStore((state) => state.quizScores);
@@ -21,7 +26,9 @@ export default function LearningHomeScreen() {
   const reviewedFlashcardChapterIds = useGameStore((state) => state.reviewedFlashcardChapterIds);
   const flashcardContentVersions = useGameStore((state) => state.flashcardContentVersions);
   const learningProgress = { completedLessonIds, completedLabIds, quizScores, quizContentVersions, reviewedFlashcardChapterIds, flashcardContentVersions };
-  const currentChapter = chapters.find((chapter) => !isChapterComplete(chapter, learningProgress)) ?? chapters[chapters.length - 1];
+  const currentChapter = chapters.find((chapter) => canAccessChapter(chapter.id, hasContentAccess) && !isChapterComplete(chapter, learningProgress))
+    ?? [...chapters].reverse().find((chapter) => canAccessChapter(chapter.id, hasContentAccess))
+    ?? chapters[0];
   const { completed: completedSteps, total: totalSteps } = getChapterProgress(currentChapter, learningProgress);
   const progress = completedSteps / totalSteps;
 
@@ -37,7 +44,7 @@ export default function LearningHomeScreen() {
   return (
     <Screen>
       <View style={styles.topRow}>
-        <IconButton accessibilityLabel="Back to main menu" icon="arrow-left" label="MENU" onPress={() => router.dismissTo('/')} />
+        <IconButton accessibilityLabel="Back to main menu" icon="arrow-left" label="MENU" onPress={returnToMenu} />
         <Text variant="label" style={styles.brand}>NETBITE / LEARN</Text>
       </View>
       <View style={styles.hero}>
@@ -64,15 +71,16 @@ export default function LearningHomeScreen() {
         <View style={styles.pathRail} />
         {chapters.map((chapter, index) => {
           const chapterComplete = isChapterComplete(chapter, learningProgress);
+          const locked = !canAccessChapter(chapter.id, hasContentAccess);
           return (
-            <Pressable key={chapter.id} accessibilityLabel={`Chapter ${chapter.numberLabel}, ${chapter.title}${chapterComplete ? ', complete' : ''}`} accessibilityRole="button" onPress={() => router.push({ pathname: '/chapter/[chapterId]', params: { chapterId: chapter.id } })} style={({ pressed }) => [styles.pathRow, index === chapters.length - 1 && styles.lastPathRow, pressed && styles.pressed]}>
-              <View style={[styles.circuitNode, styles.activeNode]} />
+            <Pressable key={chapter.id} accessibilityLabel={`Chapter ${chapter.numberLabel}, ${chapter.title}${locked ? ', NetBite Pro required' : chapterComplete ? ', complete' : ''}`} accessibilityRole="button" onPress={() => locked ? router.push(AppRoutes.pro) : router.push({ pathname: '/chapter/[chapterId]', params: { chapterId: chapter.id } })} style={({ pressed }) => [styles.pathRow, index === chapters.length - 1 && styles.lastPathRow, locked && styles.lockedRow, pressed && styles.pressed]}>
+              <View style={[styles.circuitNode, locked ? styles.lockedNode : styles.activeNode]} />
               <View style={styles.pathCopy}>
-                <Text variant="label" style={styles.pathLabel}>CHAPTER {chapter.numberLabel}{chapterComplete ? ' / COMPLETE' : ''}</Text>
+                <Text variant="label" style={styles.pathLabel}>CHAPTER {chapter.numberLabel}{locked ? ' / PRO' : chapterComplete ? ' / COMPLETE' : ''}</Text>
                 <Text variant="sectionHeading" style={styles.pathTitle}>{chapter.title}</Text>
                 <Text variant="technical" style={styles.muted}>{String(chapter.lessons.length).padStart(2, '0')} LESSONS / 01 LAB / {String(chapter.quiz.length).padStart(2, '0')} QUESTIONS</Text>
               </View>
-              <AppIcon name={chapterComplete ? 'check' : 'arrow-right'} size={20} />
+              <AppIcon name={locked ? 'lock' : chapterComplete ? 'check' : 'arrow-right'} size={20} />
             </Pressable>
           );
         })}
@@ -105,6 +113,8 @@ const styles = StyleSheet.create({
   lastPathRow: { borderBottomWidth: 0 },
   circuitNode: { width: 12, height: 12, zIndex: 1 },
   activeNode: { backgroundColor: Palette.active },
+  lockedNode: { borderWidth: 1, borderColor: Palette.textMuted, backgroundColor: Palette.background },
+  lockedRow: { opacity: 0.72 },
   pathCopy: { flex: 1, minWidth: 0, marginLeft: Space.lg },
   pathLabel: { color: Palette.accentBright, fontFamily: Fonts.medium },
   pathTitle: { color: Palette.text, fontFamily: Fonts.medium, marginVertical: Space.xs, textTransform: 'uppercase' },
