@@ -1,4 +1,5 @@
 import type { CloudProgressSnapshot, Entitlement, UserProfile } from '@/core/account/types';
+import type { ActivityEvent, ReviewSignal, SavedLearningItem } from '@/core/learning/adaptive-learning';
 import { supabase } from '@/services/supabase';
 
 function stringArray(value: unknown) {
@@ -10,6 +11,47 @@ function numberRecord(value: unknown) {
   return Object.fromEntries(
     Object.entries(value).filter((entry): entry is [string, number] => Number.isFinite(entry[1])),
   );
+}
+
+function objectRecord<T>(value: unknown) {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, T> : {};
+}
+
+function objectArray<T>(value: unknown) {
+  return Array.isArray(value) ? value.filter((entry): entry is T => Boolean(entry && typeof entry === 'object')) : [];
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value && typeof value === 'object' && !Array.isArray(value));
+}
+
+function reviewSignalRecord(value: unknown) {
+  const records = objectRecord<unknown>(value);
+  return Object.fromEntries(Object.entries(records).filter((entry): entry is [string, ReviewSignal] => {
+    const item = entry[1];
+    return isRecord(item) && item.key === entry[0] && (item.kind === 'quiz' || item.kind === 'flashcard')
+      && typeof item.contentId === 'string' && typeof item.lessonId === 'string' && typeof item.chapterId === 'string'
+      && Number.isInteger(item.contentVersion) && Number.isFinite(item.missCount) && typeof item.due === 'boolean' && typeof item.updatedAt === 'string';
+  }));
+}
+
+function savedItemRecord(value: unknown) {
+  const records = objectRecord<unknown>(value);
+  const targetTypes = new Set(['lesson', 'illustration', 'flashcard', 'cli-command']);
+  return Object.fromEntries(Object.entries(records).filter((entry): entry is [string, SavedLearningItem] => {
+    const item = entry[1];
+    return isRecord(item) && item.key === entry[0] && targetTypes.has(String(item.targetType))
+      && typeof item.targetId === 'string' && typeof item.chapterId === 'string' && typeof item.title === 'string'
+      && typeof item.note === 'string' && item.note.length <= 1000 && typeof item.createdAt === 'string' && typeof item.updatedAt === 'string'
+      && (item.deletedAt === undefined || typeof item.deletedAt === 'string');
+  }));
+}
+
+function activityEvents(value: unknown) {
+  const activityTypes = new Set(['lesson', 'lab', 'quiz', 'flashcards', 'review']);
+  return objectArray<unknown>(value).filter((item): item is ActivityEvent => isRecord(item) && typeof item.id === 'string'
+    && activityTypes.has(String(item.type)) && typeof item.chapterId === 'string' && typeof item.targetId === 'string'
+    && typeof item.label === 'string' && typeof item.occurredAt === 'string').slice(0, 50);
 }
 
 export function deserializeCloudProgress(row: Record<string, unknown>): CloudProgressSnapshot {
@@ -28,6 +70,9 @@ export function deserializeCloudProgress(row: Record<string, unknown>): CloudPro
     cliGuideSeen: Boolean(row.cli_guide_seen),
     hapticsEnabled: row.haptics_enabled !== false,
     motionPreference: row.motion_preference === 'reduced' ? 'reduced' : 'system',
+    reviewSignals: reviewSignalRecord(row.review_signals),
+    savedLearningItems: savedItemRecord(row.saved_learning_items),
+    activityHistory: activityEvents(row.activity_history),
     updatedAt,
   };
 }
@@ -46,6 +91,9 @@ function toRow(userId: string, value: CloudProgressSnapshot) {
     cli_guide_seen: value.cliGuideSeen,
     haptics_enabled: value.hapticsEnabled,
     motion_preference: value.motionPreference,
+    review_signals: value.reviewSignals,
+    saved_learning_items: value.savedLearningItems,
+    activity_history: value.activityHistory,
     updated_at: value.updatedAt,
   };
 }

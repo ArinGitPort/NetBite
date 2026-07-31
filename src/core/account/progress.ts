@@ -1,7 +1,7 @@
 import type { CloudProgressSnapshot } from '@/core/account/types';
 import type { GameState } from '@/store/use-game-store';
 
-export const CLOUD_PROGRESS_SCHEMA_VERSION = 1;
+export const CLOUD_PROGRESS_SCHEMA_VERSION = 2;
 
 const unique = (values: string[]) => [...new Set(values)];
 const timestamp = (value: string) => {
@@ -22,6 +22,9 @@ export function emptyLearningProgress(updatedAt = new Date(0).toISOString()): Cl
     cliGuideSeen: false,
     hapticsEnabled: true,
     motionPreference: 'system',
+    reviewSignals: {},
+    savedLearningItems: {},
+    activityHistory: [],
     updatedAt,
   };
 }
@@ -30,7 +33,8 @@ export function serializeLearningProgress(
   state: Pick<GameState,
     'completedLessonIds' | 'completedLabIds' | 'quizScores' | 'quizContentVersions'
     | 'reviewedFlashcardChapterIds' | 'flashcardContentVersions' | 'flashcardPositions'
-    | 'cliGuideSeen' | 'hapticsEnabled' | 'motionPreference'>,
+    | 'cliGuideSeen' | 'hapticsEnabled' | 'motionPreference'>
+    & Partial<Pick<GameState, 'reviewSignals' | 'savedLearningItems' | 'activityHistory'>>,
   updatedAt = new Date().toISOString(),
 ): CloudProgressSnapshot {
   return {
@@ -45,6 +49,9 @@ export function serializeLearningProgress(
     cliGuideSeen: state.cliGuideSeen,
     hapticsEnabled: state.hapticsEnabled,
     motionPreference: state.motionPreference,
+    reviewSignals: { ...(state.reviewSignals ?? {}) },
+    savedLearningItems: { ...(state.savedLearningItems ?? {}) },
+    activityHistory: [...(state.activityHistory ?? [])],
     updatedAt,
   };
 }
@@ -73,6 +80,12 @@ export function mergeLearningProgress(local: CloudProgressSnapshot, cloud: Cloud
   const flashcardVersions: Record<string, number> = {};
   unique([...Object.keys(local.flashcardContentVersions), ...Object.keys(cloud.flashcardContentVersions)])
     .forEach((id) => { flashcardVersions[id] = Math.max(local.flashcardContentVersions[id] ?? 1, cloud.flashcardContentVersions[id] ?? 1); });
+  const reviewSignals = mergeTimestampedRecords(local.reviewSignals ?? {}, cloud.reviewSignals ?? {}, (left, right) => ({ ...right, missCount: Math.max(left.missCount, right.missCount) }));
+  const savedLearningItems = mergeTimestampedRecords(local.savedLearningItems ?? {}, cloud.savedLearningItems ?? {});
+  const activityHistory = [...(local.activityHistory ?? []), ...(cloud.activityHistory ?? [])]
+    .filter((event, index, values) => values.findIndex((candidate) => candidate.id === event.id) === index)
+    .sort((a, b) => b.occurredAt.localeCompare(a.occurredAt))
+    .slice(0, 50);
 
   return {
     schemaVersion: Math.max(local.schemaVersion, cloud.schemaVersion),
@@ -86,6 +99,9 @@ export function mergeLearningProgress(local: CloudProgressSnapshot, cloud: Cloud
     cliGuideSeen: local.cliGuideSeen || cloud.cliGuideSeen,
     hapticsEnabled: recent.hapticsEnabled,
     motionPreference: recent.motionPreference,
+    reviewSignals,
+    savedLearningItems,
+    activityHistory,
     updatedAt: new Date(Math.max(localTime, cloudTime)).toISOString(),
   };
 }
@@ -94,7 +110,10 @@ export function hasLearningProgress(snapshot: CloudProgressSnapshot) {
   return snapshot.completedLessonIds.length > 0
     || snapshot.completedLabIds.length > 0
     || Object.keys(snapshot.quizScores).length > 0
-    || snapshot.reviewedFlashcardChapterIds.length > 0;
+    || snapshot.reviewedFlashcardChapterIds.length > 0
+    || Object.keys(snapshot.reviewSignals ?? {}).length > 0
+    || Object.keys(snapshot.savedLearningItems ?? {}).length > 0
+    || (snapshot.activityHistory ?? []).length > 0;
 }
 
 export function applyLearningProgress(snapshot: CloudProgressSnapshot) {
@@ -109,5 +128,23 @@ export function applyLearningProgress(snapshot: CloudProgressSnapshot) {
     cliGuideSeen: snapshot.cliGuideSeen,
     hapticsEnabled: snapshot.hapticsEnabled,
     motionPreference: snapshot.motionPreference,
+    reviewSignals: snapshot.reviewSignals ?? {},
+    savedLearningItems: snapshot.savedLearningItems ?? {},
+    activityHistory: snapshot.activityHistory ?? [],
   };
+}
+
+function mergeTimestampedRecords<T extends { updatedAt: string }>(local: Record<string, T>, cloud: Record<string, T>, combine?: (older: T, newer: T) => T) {
+  const result: Record<string, T> = {};
+  unique([...Object.keys(local), ...Object.keys(cloud)]).forEach((key) => {
+    const left = local[key];
+    const right = cloud[key];
+    if (!left) result[key] = right;
+    else if (!right) result[key] = left;
+    else {
+      const [older, newer] = timestamp(left.updatedAt) <= timestamp(right.updatedAt) ? [left, right] : [right, left];
+      result[key] = combine ? combine(older, newer) : newer;
+    }
+  });
+  return result;
 }

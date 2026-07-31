@@ -28,6 +28,8 @@ export default function LessonScreen() {
   const { lessonId } = useLocalSearchParams<{ lessonId: string }>();
   const completeLesson = useGameStore((state) => state.completeLesson);
   const completedLessonIds = useGameStore((state) => state.completedLessonIds);
+  const saveLearningItem = useGameStore((state) => state.saveLearningItem);
+  const savedLearningItems = useGameStore((state) => state.savedLearningItems);
   const lessonResult = getLesson(lessonId);
   const [completionVisible, setCompletionVisible] = useState(false);
   const [checkpointResult, setCheckpointResult] = useState<{ lessonId: string; passed: boolean }>({ lessonId: '', passed: false });
@@ -44,6 +46,9 @@ export default function LessonScreen() {
   const previousLesson = chapter.lessons[index - 1];
   const exampleOwnsIllustration = lesson.example?.presentation === 'guided'
     && lesson.example.visual?.illustration === lesson.illustration;
+  const lessonSaved = savedLearningItems[`lesson:${lesson.id}`];
+  const illustrationKey = `${lesson.id}:${lesson.illustration}`;
+  const illustrationSaved = savedLearningItems[`illustration:${illustrationKey}`];
 
   const finish = () => {
     completeLesson(lesson.id);
@@ -72,6 +77,10 @@ export default function LessonScreen() {
       </View>
       <Text variant="label" style={styles.eyebrow}>{lesson.eyebrow}</Text>
       <Text variant="screenTitle" style={styles.title}>{lesson.title}</Text>
+      <View style={styles.saveActions}>
+        <AppButton label={lessonSaved && !lessonSaved.deletedAt ? 'Lesson saved' : 'Save lesson'} selected={Boolean(lessonSaved && !lessonSaved.deletedAt)} variant="utility" onPress={() => saveLearningItem({ targetType: 'lesson', targetId: lesson.id, chapterId: chapter.id, title: lesson.title, note: lessonSaved?.note ?? '' })} />
+        <AppButton label={illustrationSaved && !illustrationSaved.deletedAt ? 'Visual saved' : 'Save visual'} selected={Boolean(illustrationSaved && !illustrationSaved.deletedAt)} variant="utility" onPress={() => saveLearningItem({ targetType: 'illustration', targetId: illustrationKey, chapterId: chapter.id, title: `${lesson.title} visual`, note: illustrationSaved?.note ?? '' })} />
+      </View>
       {!exampleOwnsIllustration ? <LessonIllustration type={lesson.illustration} /> : null}
       <Text variant="body" style={styles.body}>{lesson.body}</Text>
       {lesson.sections?.map((section) => (
@@ -133,6 +142,7 @@ const styles = StyleSheet.create({
   count: { width: 56, textAlign: 'right', color: Palette.textMuted },
   eyebrow: { color: Palette.accentBright, fontFamily: Fonts.medium, marginBottom: Space.sm },
   title: { color: Palette.text, fontFamily: Fonts.semibold, textTransform: 'uppercase', marginBottom: Space.xl },
+  saveActions: { flexDirection: 'row', flexWrap: 'wrap', gap: Space.sm, marginBottom: Space.lg },
   body: { color: Palette.text, marginTop: Space.xl },
   section: { marginTop: Space.lg },
   sectionHeading: { color: Palette.orange, fontFamily: Fonts.semibold, textTransform: 'uppercase', marginBottom: Space.xs },

@@ -11,6 +11,7 @@ node_modules/
 .expo-plan-web/
 dist/
 web-build/
+/.tmp/
 /tmp/export-illustrations-*/
 /tmp/export-*/
 expo-env.d.ts

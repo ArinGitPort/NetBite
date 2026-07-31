@@ -82,4 +82,20 @@ describe('cloud learning progress', () => {
     expect(hasLearningProgress(emptyLearningProgress())).toBe(false);
     expect(hasLearningProgress({ ...emptyLearningProgress(), completedLessonIds: ['lesson'] })).toBe(true);
   });
+
+  test('keeps the latest saved-item tombstone and highest historical miss count', () => {
+    const local = {
+      ...emptyLearningProgress('2026-07-29T00:00:00.000Z'),
+      reviewSignals: { q: { key: 'q', kind: 'quiz' as const, contentId: 'q', lessonId: 'l', chapterId: '1', contentVersion: 1, missCount: 4, due: true, updatedAt: '2026-07-29T00:00:00.000Z' } },
+      savedLearningItems: { s: { key: 's', targetType: 'lesson' as const, targetId: 'l', chapterId: '1', title: 'Lesson', note: 'old', createdAt: '2026-07-28T00:00:00.000Z', updatedAt: '2026-07-29T00:00:00.000Z' } },
+    };
+    const cloud = {
+      ...emptyLearningProgress('2026-07-30T00:00:00.000Z'),
+      reviewSignals: { q: { ...local.reviewSignals.q, missCount: 2, due: false, updatedAt: '2026-07-30T00:00:00.000Z' } },
+      savedLearningItems: { s: { ...local.savedLearningItems.s, updatedAt: '2026-07-30T00:00:00.000Z', deletedAt: '2026-07-30T00:00:00.000Z' } },
+    };
+    const result = mergeLearningProgress(local, cloud);
+    expect(result.reviewSignals.q).toMatchObject({ missCount: 4, due: false });
+    expect(result.savedLearningItems.s.deletedAt).toBeDefined();
+  });
 });

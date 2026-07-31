@@ -32,12 +32,15 @@ import { DisclosureSection } from '@/shared/components/disclosure-section';
 import { FeedbackModal } from '@/shared/components/feedback-modal';
 import { IconButton } from '@/shared/components/icon-button';
 import { SemanticIcon, type SemanticIconName } from '@/shared/components/semantic-icon';
+import { WhyExplanation } from '@/shared/components/why-explanation';
 import { Text } from '@/shared/components/console-text';
 import { Screen } from '@/shared/components/screen';
 import { selectionHaptic, successHaptic, warningHaptic } from '@/shared/haptics';
 import { Fonts, Palette, Space, Typography } from '@/shared/theme';
 import { useSandboxStore } from '@/store/use-sandbox-store';
+import { useExperienceStore } from '@/store/use-experience-store';
 import { returnToMenu } from '@/shared/navigation';
+import { useResearchStore } from '@/store/use-research-store';
 
 type Confirmation = 'new' | 'clear' | 'preset' | 'inter-vlan-preset' | 'beginner-lan' | 'remove-device' | 'remove-link';
 type SandboxTool = 'add' | 'connect' | 'configure' | 'test' | 'workspace';
@@ -72,6 +75,9 @@ export function SandboxScreen() {
   const newNetwork = useSandboxStore((state) => state.newNetwork);
   const markGuideSeen = useSandboxStore((state) => state.markGuideSeen);
   const [guideVisible, setGuideVisible] = useState(!guideSeen);
+  const markExperienceGuideSeen = useExperienceStore((state) => state.markGuideSeen);
+  const researchActive = useResearchStore((state) => state.active);
+  const recordResearchEvent = useResearchStore((state) => state.recordEvent);
   const [guideActive, setGuideActive] = useState(false);
   const [presetGuideActive, setPresetGuideActive] = useState(false);
   const [selectedDeviceId, setSelectedDeviceId] = useState<string>();
@@ -107,6 +113,16 @@ export function SandboxScreen() {
   const destinationReadinessIssue = pingReadiness.issues.find((issue) => issue.code.startsWith('destination'));
   const selectedSourceInterface = selectedSource?.interfaces.find((item) => item.id === pingReadiness.sourceInterfaceId);
   const availablePingTargets = configuredPingTargets.filter((item) => item.deviceId !== sourceId);
+
+  useEffect(() => {
+    if (!researchActive) return;
+    const pcs = workspace.devices.filter((device) => device.type === 'pc');
+    const switches = workspace.devices.filter((device) => device.type === 'switch');
+    const configured = pcs.length >= 2 && pcs.slice(0, 2).every((device) => device.interfaces.some((item) => item.adminUp && item.ipv4 && item.prefix !== undefined));
+    const sharedSwitch = switches.find((networkSwitch) => pcs.slice(0, 2).every((pc) => workspace.links.some((link) =>
+      (link.a.deviceId === pc.id && link.b.deviceId === networkSwitch.id) || (link.b.deviceId === pc.id && link.a.deviceId === networkSwitch.id))));
+    if (pcs.length >= 2 && configured && sharedSwitch) recordResearchEvent('lan-ready');
+  }, [recordResearchEvent, researchActive, workspace]);
 
   const commitWorkspaceChange = (nextWorkspace: typeof workspace) => {
     commitWorkspace(nextWorkspace);
@@ -216,7 +232,7 @@ export function SandboxScreen() {
     setTrace(result);
     setTraceIndex(0);
     setNotice(result.reason);
-    if (result.success) successHaptic(); else warningHaptic();
+    if (result.success) { recordResearchEvent('ping-success'); successHaptic(); } else { recordResearchEvent('simulation-error'); warningHaptic(); }
   };
 
   const choosePingTest = () => {
@@ -452,7 +468,7 @@ export function SandboxScreen() {
             <TextInput accessibilityLabel="Ping destination IPv4 address" autoCapitalize="none" autoCorrect={false} onChangeText={choosePingTarget} placeholder="EXAMPLE / 192.168.1.20" placeholderTextColor={Palette.textMuted} selectionColor={Palette.orange} style={[styles.pingInput, destinationReadinessIssue?.code === 'destination-invalid' && styles.pingInputInvalid]} value={pingTarget} />
             <AppButton label="Run ping" disabled={!pingReadiness.ready} onPress={runPing} />
           </View> : null}
-          {trace ? <View accessibilityLiveRegion="polite" style={[styles.tracePanel, trace.success ? styles.traceSuccess : styles.traceWarning]}><Text variant="label" style={trace.success ? styles.traceSuccessText : styles.traceWarningText}>{trace.success ? 'TRACE COMPLETE' : 'TRACE STOPPED'} / STEP {traceIndex + 1} OF {trace.events.length}</Text><Text variant="sectionHeading" style={styles.traceTitle}>{activeTraceEvent?.title}</Text><Text variant="body" style={styles.traceDetail}>{activeTraceEvent?.detail}</Text><Text variant="bodySmall" style={styles.traceConclusion}>{trace.conclusion}</Text>{trace.suggestion ? <Text variant="bodySmall" style={styles.traceSuggestion}>NEXT CHECK / {trace.suggestion}</Text> : null}<View style={styles.traceActions}><AppButton label="Previous step" variant="secondary" disabled={traceIndex === 0} onPress={() => setTraceIndex((value) => Math.max(0, value - 1))} /><AppButton label="Next step" disabled={traceIndex >= trace.events.length - 1} onPress={() => setTraceIndex((value) => Math.min(trace.events.length - 1, value + 1))} /></View></View> : null}
+          {trace ? <><View accessibilityLiveRegion="polite" style={[styles.tracePanel, trace.success ? styles.traceSuccess : styles.traceWarning]}><Text variant="label" style={trace.success ? styles.traceSuccessText : styles.traceWarningText}>{trace.success ? 'TRACE COMPLETE' : 'TRACE STOPPED'} / STEP {traceIndex + 1} OF {trace.events.length}</Text><Text variant="sectionHeading" style={styles.traceTitle}>{activeTraceEvent?.title}</Text><Text variant="body" style={styles.traceDetail}>{activeTraceEvent?.detail}</Text><Text variant="bodySmall" style={styles.traceConclusion}>{trace.conclusion}</Text>{trace.suggestion ? <Text variant="bodySmall" style={styles.traceSuggestion}>NEXT CHECK / {trace.suggestion}</Text> : null}<View style={styles.traceActions}><AppButton label="Previous step" variant="secondary" disabled={traceIndex === 0} onPress={() => setTraceIndex((value) => Math.max(0, value - 1))} /><AppButton label="Next step" disabled={traceIndex >= trace.events.length - 1} onPress={() => setTraceIndex((value) => Math.min(trace.events.length - 1, value + 1))} /></View></View><WhyExplanation observation={activeTraceEvent?.detail ?? trace.conclusion} rule={trace.conclusion} proves={trace.success ? 'The modeled forward and return conditions for this test were satisfied.' : 'The modeled state cannot establish the requested delivery beyond this point.'} nextCheck={trace.suggestion} /></> : null}
         </View>
       ) : null}
 
@@ -475,7 +491,7 @@ export function SandboxScreen() {
       ) : null}
 
       <SandboxCli visible={Boolean(cliDeviceId)} workspace={workspace} initialDeviceId={cliDeviceId ?? ''} onClose={() => setCliDeviceId(undefined)} onCommit={commitWorkspaceChange} />
-      <FeedbackModal visible={guideVisible} eyebrow="FIRST SANDBOX SESSION" title="How do you want to begin?" message="Explore a complete routed network, or build a smaller switched LAN yourself." detail="The routed preset includes valid addresses, gateways, two switches, one router, a working ping, and CLI experiments." primaryAction={{ label: 'Explore routed network', onPress: () => { setGuideVisible(false); loadReadyNetwork(false); } }} secondaryAction={{ label: 'Build it myself', variant: 'secondary', onPress: () => { replaceWorkspace(createGuidedSandboxWorkspace()); setGuideVisible(false); setGuideActive(true); } }} onRequestClose={() => { markGuideSeen(); setGuideVisible(false); }} />
+      <FeedbackModal visible={guideVisible} eyebrow="FIRST SANDBOX SESSION" title="How do you want to begin?" message="Explore a complete routed network, or build a smaller switched LAN yourself." detail="The routed preset includes valid addresses, gateways, two switches, one router, a working ping, and CLI experiments." primaryAction={{ label: 'Explore routed network', onPress: () => { markGuideSeen(); markExperienceGuideSeen('sandbox-v1'); setGuideVisible(false); loadReadyNetwork(false); } }} secondaryAction={{ label: 'Build it myself', variant: 'secondary', onPress: () => { markGuideSeen(); markExperienceGuideSeen('sandbox-v1'); replaceWorkspace(createGuidedSandboxWorkspace()); setGuideVisible(false); setGuideActive(true); } }} onRequestClose={() => { markGuideSeen(); markExperienceGuideSeen('sandbox-v1'); setGuideVisible(false); }} />
       <FeedbackModal visible={Boolean(confirmation)} tone="warning" eyebrow="CONFIRM SANDBOX ACTION" title={confirmation === 'new' ? 'Create a new network?' : confirmation === 'clear' ? 'Clear learned state?' : confirmation === 'preset' ? 'Load the routed preset?' : confirmation === 'inter-vlan-preset' ? 'Load the inter-VLAN demo?' : confirmation === 'beginner-lan' ? 'Apply beginner addresses?' : confirmation === 'remove-device' ? 'Remove this device?' : 'Remove this link?'} message={confirmation === 'new' ? 'All devices, links, and configuration in the autosaved workspace will be erased.' : confirmation === 'clear' ? 'MAC and ARP tables plus the current trace will be cleared. Topology and configuration remain.' : confirmation === 'preset' ? 'The current workspace will be replaced by a five-device, two-LAN routed example. You can undo this afterward.' : confirmation === 'inter-vlan-preset' ? 'The current workspace will be replaced by a configured VLAN 10 and VLAN 20 router-on-a-stick example.' : confirmation === 'beginner-lan' ? beginnerLanSetup?.changes.map((change) => `${change.deviceName}: ${change.before} → ${change.after}`).join('\n') ?? 'The beginner setup is no longer available.' : confirmation === 'remove-device' ? 'Connected links will also be removed.' : 'The two endpoint interfaces will become available.'} detail={confirmation === 'beginner-lan' ? `${beginnerLanSetup?.overwritesExistingConfiguration ? 'Existing addressing or switchport settings shown above will be replaced. ' : ''}Both PCs will use VLAN 1 and require no default gateway.` : undefined} primaryAction={{ label: confirmation === 'preset' ? 'Load routed preset' : confirmation === 'inter-vlan-preset' ? 'Load inter-VLAN demo' : confirmation === 'beginner-lan' ? 'Apply setup' : confirmation === 'new' ? 'Erase and start new' : confirmation === 'clear' ? 'Clear learned state' : confirmation === 'remove-device' ? 'Remove device' : confirmation === 'remove-link' ? 'Remove link' : 'Confirm action', variant: confirmation === 'new' || confirmation === 'clear' || confirmation === 'remove-device' || confirmation === 'remove-link' ? 'danger' : 'primary', onPress: confirmAction }} secondaryAction={{ label: 'Keep working', variant: 'secondary', onPress: () => setConfirmation(undefined) }} onRequestClose={() => setConfirmation(undefined)} />
     </Screen>
   );

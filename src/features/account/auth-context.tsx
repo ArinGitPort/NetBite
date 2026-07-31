@@ -12,6 +12,7 @@ import { fetchProfile, pullCloudProgress, pushCloudProgress, refreshEntitlement 
 import { createSessionFromUrl, isCloudConfigured, supabase } from '@/services/supabase';
 import { useGameStore } from '@/store/use-game-store';
 import { usePresentationStore } from '@/store/use-presentation-store';
+import { useResearchStore } from '@/store/use-research-store';
 
 type AuthStatus = 'loading' | 'guest' | 'authenticated';
 interface MergeRequest { local: CloudProgressSnapshot; cloud: CloudProgressSnapshot; userId: string }
@@ -84,6 +85,8 @@ function operationMessage(error: unknown, fallback: string) {
 
 export function AuthProvider({ children }: PropsWithChildren) {
   const presentationActive = usePresentationStore((state) => state.active);
+  const researchActive = useResearchStore((state) => state.active);
+  const localSessionActive = presentationActive || researchActive;
   const [status, setStatus] = useState<AuthStatus>(isCloudConfigured ? 'loading' : 'guest');
   const [session, setSession] = useState<Session>();
   const [profile, setProfile] = useState<UserProfile>();
@@ -204,7 +207,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
   }, [loadSession, session?.user.id]);
 
   const syncNow = useCallback(async () => {
-    if (presentationActive) {
+    if (localSessionActive) {
       setSyncStatus('local');
       return;
     }
@@ -234,10 +237,10 @@ export function AuthProvider({ children }: PropsWithChildren) {
     } finally {
       syncInFlight.current = undefined;
     }
-  }, [mergeRequest, presentationActive, session?.user.id]);
+  }, [localSessionActive, mergeRequest, session?.user.id]);
 
   useEffect(() => {
-    if (presentationActive || status !== 'authenticated' || !session || mergeRequest) return;
+    if (localSessionActive || status !== 'authenticated' || !session || mergeRequest) return;
     const unsubscribe = useGameStore.subscribe((state) => {
       if (applyingRemote.current) return;
       const comparable = progressFingerprint(state);
@@ -258,7 +261,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       network();
       if (syncTimer.current) clearTimeout(syncTimer.current);
     };
-  }, [mergeRequest, presentationActive, session, status, syncNow]);
+  }, [localSessionActive, mergeRequest, session, status, syncNow]);
 
   const resolveProgressMerge = useCallback(async (choice: ProgressMergeChoice) => {
     if (!mergeRequest) return;
@@ -383,7 +386,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     profile,
     entitlement,
     hasPro,
-    hasContentAccess: hasPro || presentationActive,
+    hasContentAccess: hasPro || presentationActive || researchActive,
     presentationActive,
     syncStatus,
     error,

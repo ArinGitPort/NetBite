@@ -23,6 +23,7 @@ export default function QuizScreen() {
   const { hasContentAccess } = useAuth();
   const { chapterId } = useLocalSearchParams<{ chapterId: string }>();
   const saveQuizScore = useGameStore((state) => state.saveQuizScore);
+  const recordReviewResult = useGameStore((state) => state.recordReviewResult);
   const [questionIndex, setQuestionIndex] = useState(0);
   const [selectedIndex, setSelectedIndex] = useState<number>();
   const [score, setScore] = useState(0);
@@ -39,8 +40,10 @@ export default function QuizScreen() {
 
   const chooseAnswer = (answerIndex: number) => {
     if (answered) return;
+    const correct = answerIndex === question.correctAnswerIndex;
+    recordReviewResult({ kind: 'quiz', contentId: question.id, lessonId: question.lessonId, chapterId: chapter.id, contentVersion: chapter.contentVersion }, correct);
     setSelectedIndex(answerIndex);
-    if (answerIndex === question.correctAnswerIndex) {
+    if (correct) {
       setScore((current) => current + 1);
       successHaptic();
     } else {

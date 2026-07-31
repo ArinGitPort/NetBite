@@ -12,6 +12,7 @@ import { selectionHaptic, successHaptic, warningHaptic } from '@/shared/haptics'
 import { Fonts, Palette, Radius, Space } from '@/shared/theme';
 import { useGameStore } from '@/store/use-game-store';
 import { returnToOwningChapter } from '@/shared/navigation';
+import { WhyExplanation } from '@/shared/components/why-explanation';
 
 export function GuidedPracticeLab({ config }: { config: PracticeConfig }) {
   const completeLab = useGameStore((state) => state.completeLab);
@@ -97,6 +98,7 @@ export function GuidedPracticeLab({ config }: { config: PracticeConfig }) {
             <Text variant="bodySmall" style={styles.feedbackText}>{feedback}</Text>
           </View>
         ) : null}
+        {feedback ? <WhyExplanation observation={current.context} rule={current.explanation} proves={resolved ? current.result : feedback} nextCheck={!resolved ? current.hints?.[0] ?? 'Try another prediction using the stated rule.' : undefined} /> : null}
         {current.hints?.slice(0, hintCount).map((hint, index) => (
           <View key={`${current.id}-hint-${index}`} accessibilityLiveRegion="polite" style={styles.hintPanel}>
             <Text variant="label" style={styles.hintLabel}>HINT {index + 1}</Text>

@@ -14,14 +14,17 @@ import { AuthProvider, useAuth } from '@/features/account/auth-context';
 import { createEmptySandboxWorkspace } from '@/core/network/sandbox';
 import { ProgressMergeModal } from '@/features/account/components/progress-merge-modal';
 import { PresentationBanner } from '@/features/demo/presentation-banner';
+import { ResearchBanner } from '@/features/research/research-banner';
 import { AppButton } from '@/shared/components/app-button';
 import { BootstrapScreen } from '@/shared/components/bootstrap-screen';
 import { Text } from '@/shared/components/console-text';
 import { Screen } from '@/shared/components/screen';
 import { useGameStore } from '@/store/use-game-store';
+import { useExperienceStore } from '@/store/use-experience-store';
 import { gameStorage } from '@/store/game-storage';
 import { usePresentationStore } from '@/store/use-presentation-store';
 import { useSandboxStore } from '@/store/use-sandbox-store';
+import { useResearchStore } from '@/store/use-research-store';
 
 SplashScreen.preventAutoHideAsync();
 if (!isRunningInExpoGo()) SplashScreen.setOptions({ duration: 450, fade: true });
@@ -33,6 +36,7 @@ function ResolvedApplication() {
     <View style={styles.application}>
       <StatusBar style="light" />
       <PresentationBanner />
+      <ResearchBanner />
       <View style={styles.stack}><Stack screenOptions={{ headerShown: false, animation: 'slide_from_right', contentStyle: { backgroundColor: '#151216' } }} /></View>
       <ProgressMergeModal />
     </View>
@@ -53,7 +57,8 @@ export default function RootLayout() {
     const timeout = setTimeout(() => { if (active) setStorageState('degraded'); }, 8_000);
     const hydrate = async () => {
       try {
-        await Promise.all([useGameStore.persist.rehydrate(), useSandboxStore.persist.rehydrate(), usePresentationStore.persist.rehydrate()]);
+        await Promise.all([useGameStore.persist.rehydrate(), useSandboxStore.persist.rehydrate(), usePresentationStore.persist.rehydrate(), useExperienceStore.persist.rehydrate(), useResearchStore.persist.rehydrate()]);
+        if (useSandboxStore.getState().guideSeen) useExperienceStore.getState().markGuideSeen('sandbox-v1');
         if (active) setStorageState('ready');
       } catch {
         if (active) setStorageState('degraded');
@@ -86,13 +91,15 @@ async function preserveRecoveryCopy() {
     game: await gameStorage.getItem('netbite-game-state-v1'),
     sandbox: await gameStorage.getItem('netbite-sandbox-state-v1'),
     presentation: await gameStorage.getItem('netbite-presentation-state-v1'),
+    research: await gameStorage.getItem('netbite-research-state-v1'),
   };
   await gameStorage.setItem(`netbite-recovery-${Date.now()}`, JSON.stringify(recovery));
-  await Promise.all([useGameStore.persist.clearStorage(), useSandboxStore.persist.clearStorage(), usePresentationStore.persist.clearStorage()]);
+  await Promise.all([useGameStore.persist.clearStorage(), useSandboxStore.persist.clearStorage(), usePresentationStore.persist.clearStorage(), useResearchStore.persist.clearStorage()]);
   useGameStore.getState().resetLearningProgress();
   useGameStore.getState().resetLab();
   useSandboxStore.setState({ workspace: createEmptySandboxWorkspace(), guideSeen: false, past: [], future: [] });
   usePresentationStore.setState({ active: false, snapshot: undefined });
+  useResearchStore.getState().deleteSession();
 }
 
 export function ErrorBoundary({ retry, error }: ErrorBoundaryProps) {

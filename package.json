@@ -9,6 +9,7 @@
     "@stripe/stripe-react-native": "0.64.0",
     "@supabase/supabase-js": "^2.111.0",
     "expo": "~57.0.9",
+    "expo-clipboard": "~57.0.1",
     "expo-constants": "~57.0.8",
     "expo-device": "~57.0.1",
     "expo-font": "~57.0.1",
@@ -51,8 +52,8 @@
   "scripts": {
     "start": "expo start",
     "reset-project": "node ./scripts/reset-project.js",
-    "android": "node --dns-result-order=ipv4first ./node_modules/expo/bin/cli start --android --localhost",
-    "android:clean": "node --dns-result-order=ipv4first ./node_modules/expo/bin/cli start --android --localhost --clear",
+    "android": "node ./scripts/demo-android.mjs",
+    "android:clean": "node ./scripts/demo-android.mjs --clear",
     "demo:check": "node ./scripts/demo-check.mjs",
     "demo:android": "node ./scripts/demo-android.mjs",
     "demo:web": "node --dns-result-order=ipv4first ./node_modules/expo/bin/cli start --web --localhost",

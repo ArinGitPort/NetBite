@@ -11,6 +11,7 @@ import { PremiumLockedScreen } from '@/features/account/components/premium-locke
 import { TopologyCanvas } from '@/features/topology/components/topology-canvas';
 import { createLabRegistry } from '@/features/practice/lab-registry';
 import { AppButton } from '@/shared/components/app-button';
+import { ContextualGuide } from '@/shared/components/contextual-guide';
 import { Text } from '@/shared/components/console-text';
 import { ContentNotFound } from '@/shared/components/content-not-found';
 import { FeedbackModal } from '@/shared/components/feedback-modal';
@@ -19,6 +20,7 @@ import { Screen } from '@/shared/components/screen';
 import { successHaptic, warningHaptic } from '@/shared/haptics';
 import { Fonts, Palette, Radius, Space } from '@/shared/theme';
 import { useGameStore } from '@/store/use-game-store';
+import { useExperienceStore } from '@/store/use-experience-store';
 import { returnToOwningChapter } from '@/shared/navigation';
 
 function FirstNetworkLab() {
@@ -155,7 +157,9 @@ export default function LabScreen() {
   const labs = createLabRegistry(FirstNetworkLab);
   const LabComponent = labId ? labs[labId] : undefined;
   const chapter = chapters.find((item) => item.lab.id === labId);
+  const labGuideSeen = useExperienceStore((state) => Boolean(state.seenGuides['lab-v1']));
   if (chapter && !canAccessChapter(chapter.id, hasContentAccess)) return <PremiumLockedScreen label={`CHAPTER ${chapter.numberLabel} LAB`} />;
+  if (LabComponent && !labGuideSeen) return <Screen><IconButton accessibilityLabel="Back to chapter" icon="arrow-left" label="BACK / CHAPTER" onPress={() => labId && returnToOwningChapter('lab', labId)} /><View style={{ marginTop: Space.xl }}><ContextualGuide id="lab-v1" eyebrow="FIRST MINI LAB" steps={[{ title: 'Act on the current goal', detail: 'The objective panel states the one result this practice checks. Other controls support that task.' }, { title: 'Predict, test, then explain', detail: 'Incorrect work stays editable. Hints reveal reasoning gradually, and Why This Happened explains deterministic results.' }]} /></View></Screen>;
   return LabComponent ? <LabComponent /> : <ContentNotFound label="Lab" />;
 }
 

@@ -12,6 +12,9 @@ describe('cloud progress records', () => {
       flashcard_positions: { 2: 4, bad: Number.NaN },
       haptics_enabled: 'wrong',
       motion_preference: 'unknown',
+      review_signals: { broken: { key: 'different', due: 'yes' } },
+      saved_learning_items: { broken: { key: 'broken', note: 42 } },
+      activity_history: [{ id: 'event', type: 'unknown' }, 'bad'],
       updated_at: 'not-a-date',
     });
 
@@ -22,6 +25,9 @@ describe('cloud progress records', () => {
     expect(result.reviewedFlashcardChapterIds).toEqual(['2']);
     expect(result.flashcardPositions).toEqual({ 2: 4 });
     expect(result.motionPreference).toBe('system');
+    expect(result.reviewSignals).toEqual({});
+    expect(result.savedLearningItems).toEqual({});
+    expect(result.activityHistory).toEqual([]);
     expect(result.updatedAt).toBe('1970-01-01T00:00:00.000Z');
   });
 });

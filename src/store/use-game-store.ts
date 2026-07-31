@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
 import { gameStorage } from '@/store/game-storage';
+import { appendActivity, tombstoneSavedLearningItem, updateReviewSignals, upsertSavedLearningItem, type ActivityEvent, type ReviewResultInput, type ReviewSignal, type SavedLearningItem } from '@/core/learning/adaptive-learning';
 
 import {
   createChapterOneTopology,
@@ -29,6 +30,9 @@ export interface GameState {
   flashcardContentVersions: Record<string, number>;
   flashcardPositions: Record<string, number>;
   completedLabIds: string[];
+  reviewSignals: Record<string, ReviewSignal>;
+  savedLearningItems: Record<string, SavedLearningItem>;
+  activityHistory: ActivityEvent[];
   cliGuideSeen: boolean;
   hapticsEnabled: boolean;
   motionPreference: 'system' | 'reduced';
@@ -49,6 +53,10 @@ export interface GameState {
   clearFlashcardPosition: (chapterId: string) => void;
   completeLab: (labId: string) => void;
   markCliGuideSeen: () => void;
+  recordReviewResult: (input: ReviewResultInput, correct: boolean) => void;
+  saveLearningItem: (input: Omit<SavedLearningItem, 'key' | 'createdAt' | 'updatedAt' | 'deletedAt'>) => void;
+  removeLearningItem: (key: string) => void;
+  clearSavedLearningItems: () => void;
   setHapticsEnabled: (enabled: boolean) => void;
   setMotionPreference: (preference: 'system' | 'reduced') => void;
   resetLearningProgress: () => void;
@@ -78,6 +86,9 @@ export const useGameStore = create<GameState>()(persist((set, get) => ({
   flashcardContentVersions: {},
   flashcardPositions: {},
   completedLabIds: [],
+  reviewSignals: {},
+  savedLearningItems: {},
+  activityHistory: [],
   cliGuideSeen: false,
   hapticsEnabled: true,
   motionPreference: 'system',
@@ -195,6 +206,7 @@ export const useGameStore = create<GameState>()(persist((set, get) => ({
       completedLessonIds: state.completedLessonIds.includes(lessonId)
         ? state.completedLessonIds
         : [...state.completedLessonIds, lessonId],
+      activityHistory: state.completedLessonIds.includes(lessonId) ? state.activityHistory : appendActivity(state.activityHistory, { type: 'lesson', chapterId: '', targetId: lessonId, label: 'Lesson completed' }),
     })),
   saveQuizScore: (chapterId, score, contentVersion) => set((state) => ({
     quizScores: {
@@ -204,12 +216,14 @@ export const useGameStore = create<GameState>()(persist((set, get) => ({
         : score,
     },
     quizContentVersions: { ...state.quizContentVersions, [chapterId]: contentVersion },
+    activityHistory: appendActivity(state.activityHistory, { type: 'quiz', chapterId, targetId: chapterId, label: `Quiz attempt / ${score}` }),
   })),
   markFlashcardsReviewed: (chapterId, contentVersion) => set((state) => ({
     reviewedFlashcardChapterIds: state.reviewedFlashcardChapterIds.includes(chapterId)
       ? state.reviewedFlashcardChapterIds
       : [...state.reviewedFlashcardChapterIds, chapterId],
     flashcardContentVersions: { ...state.flashcardContentVersions, [chapterId]: contentVersion },
+    activityHistory: appendActivity(state.activityHistory, { type: 'flashcards', chapterId, targetId: chapterId, label: 'Active recall completed' }),
   })),
   saveFlashcardPosition: (chapterId, index) => set((state) => ({
     flashcardPositions: { ...state.flashcardPositions, [chapterId]: Math.max(0, index) },
@@ -223,8 +237,21 @@ export const useGameStore = create<GameState>()(persist((set, get) => ({
     completedLabIds: state.completedLabIds.includes(labId)
       ? state.completedLabIds
       : [...state.completedLabIds, labId],
+    activityHistory: state.completedLabIds.includes(labId) ? state.activityHistory : appendActivity(state.activityHistory, { type: 'lab', chapterId: '', targetId: labId, label: 'Mini lab completed' }),
   })),
   markCliGuideSeen: () => set({ cliGuideSeen: true }),
+  recordReviewResult: (input, correct) => set((state) => ({
+    reviewSignals: updateReviewSignals(state.reviewSignals, input, correct),
+    activityHistory: correct && state.reviewSignals[`${input.kind}:${input.contentId}:v${input.contentVersion}`]?.due
+      ? appendActivity(state.activityHistory, { type: 'review', chapterId: input.chapterId, targetId: input.contentId, label: 'Weak topic retrieved' })
+      : state.activityHistory,
+  })),
+  saveLearningItem: (input) => set((state) => ({ savedLearningItems: upsertSavedLearningItem(state.savedLearningItems, input) })),
+  removeLearningItem: (key) => set((state) => ({ savedLearningItems: tombstoneSavedLearningItem(state.savedLearningItems, key) })),
+  clearSavedLearningItems: () => set((state) => {
+    const now = new Date().toISOString();
+    return { savedLearningItems: Object.fromEntries(Object.entries(state.savedLearningItems).map(([key, item]) => [key, { ...item, updatedAt: now, deletedAt: now }])) };
+  }),
   setHapticsEnabled: (hapticsEnabled) => set({ hapticsEnabled }),
   setMotionPreference: (motionPreference) => set({ motionPreference }),
   resetLearningProgress: () => set({
@@ -235,11 +262,13 @@ export const useGameStore = create<GameState>()(persist((set, get) => ({
     flashcardContentVersions: {},
     flashcardPositions: {},
     completedLabIds: [],
+    reviewSignals: {},
+    activityHistory: [],
   }),
 }), {
   name: 'netbite-game-state-v1',
   storage: createJSONStorage(() => gameStorage),
-  version: 6,
+  version: 7,
   skipHydration: true,
   partialize: (state) => ({
     topology: state.topology,
@@ -251,6 +280,9 @@ export const useGameStore = create<GameState>()(persist((set, get) => ({
     flashcardContentVersions: state.flashcardContentVersions,
     flashcardPositions: state.flashcardPositions,
     completedLabIds: state.completedLabIds,
+    reviewSignals: state.reviewSignals,
+    savedLearningItems: state.savedLearningItems,
+    activityHistory: state.activityHistory,
     cliGuideSeen: state.cliGuideSeen,
     hapticsEnabled: state.hapticsEnabled,
     motionPreference: state.motionPreference,
@@ -281,6 +313,9 @@ export const useGameStore = create<GameState>()(persist((set, get) => ({
       cliGuideSeen: migratedState.cliGuideSeen ?? false,
       hapticsEnabled: migratedState.hapticsEnabled ?? true,
       motionPreference: migratedState.motionPreference ?? 'system',
+      reviewSignals: migratedState.reviewSignals ?? {},
+      savedLearningItems: migratedState.savedLearningItems ?? {},
+      activityHistory: migratedState.activityHistory ?? [],
     } as GameState;
   },
 }));

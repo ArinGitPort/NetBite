@@ -5,7 +5,7 @@
 1. Open Android Studio and cold-start the emulator. Wait for the Android home screen.
 2. From the NetBite project, run `npm run demo:check`. It checks public configuration without printing values and builds temporary Android/web bundles.
 3. If presentation mode is needed, set `EXPO_PUBLIC_NETBITE_DEMO_MODE=1` in `.env.local`. This capability works only in development.
-4. Run `npm run demo:android`. Keep that terminal open.
+4. Run `npm run android` (or the equivalent `npm run demo:android`). Keep that terminal open. This launcher warms Expo Go, opens the project route, establishes `adb reverse tcp:8081`, and restores the tunnel if the emulator reconnects.
 5. Confirm the NetBite account welcome or main menu appears. Expo Go's blue spinner means JavaScript has not loaded yet; NetBite's dark bootstrap screen means the app is running and identifies the phase being restored.
 
 ## Presentation mode
@@ -16,7 +16,7 @@ Use **Restore My Data** in the banner or Settings when finished. Starting presen
 
 ## Recovery
 
-- White or blue Expo Go screen: stop the command, verify the emulator is online, then run `npm run android:clean` once followed by `npm run demo:android`.
+- White or blue Expo Go screen: stop the command, verify the emulator is online, then run `npm run android:clean`. The same guarded launcher clears Metro when starting a new server, warms Expo Go before the project deep link, and verifies the reverse tunnel.
 - Broken ADB connection: run `adb kill-server`, cold-start the emulator, and rerun `npm run demo:android`.
 - Port 8081 occupied: close the known process yourself. The demo launcher deliberately refuses to kill unrelated processes.
 - Cloud or DNS outage: choose **Continue locally**. Lessons, labs, quizzes, flashcards, and the development presentation session do not require Supabase.

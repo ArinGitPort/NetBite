@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import net from 'node:net';
 
 const root = process.cwd();
+const clearMetroCache = process.argv.includes('--clear');
 const adb = process.env.ANDROID_HOME ? join(process.env.ANDROID_HOME, 'platform-tools', 'adb.exe') : join(process.env.LOCALAPPDATA ?? '', 'Android', 'Sdk', 'platform-tools', 'adb.exe');
 const fail = (message, recovery) => { console.error(`\nNETBITE DEMO START STOPPED\n${message}\n\nRECOVERY\n${recovery}\n`); process.exit(1); };
 const run = (args) => { try { return execFileSync(adb, args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim(); } catch { return undefined; } };
@@ -42,7 +43,9 @@ if (!(await portFree())) {
   console.log('Using the healthy Metro server already listening on 8081.');
 } else {
   const cli = join(root, 'node_modules', 'expo', 'bin', 'cli');
-  metro = spawn(process.execPath, ['--dns-result-order=ipv4first', cli, 'start', '--localhost', '--port', '8081'], { cwd: root, stdio: 'inherit', env: process.env });
+  const metroArgs = ['--dns-result-order=ipv4first', cli, 'start', '--localhost', '--port', '8081'];
+  if (clearMetroCache) metroArgs.push('--clear');
+  metro = spawn(process.execPath, metroArgs, { cwd: root, stdio: 'inherit', env: process.env });
   for (let attempt = 0; attempt < 60 && !(await metroHealthy()); attempt += 1) await delay(1_000);
   if (!(await metroHealthy())) fail('Metro did not become ready.', 'Run npm run android:clean once, then retry npm run demo:android.');
 }

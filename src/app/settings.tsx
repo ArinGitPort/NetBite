@@ -8,11 +8,13 @@ import { FeedbackModal } from '@/shared/components/feedback-modal';
 import { IconButton } from '@/shared/components/icon-button';
 import { Text } from '@/shared/components/console-text';
 import { Screen } from '@/shared/components/screen';
-import { goBackOrReplace } from '@/shared/navigation';
+import { goBackOrReplace, navigateOnce } from '@/shared/navigation';
 import { Fonts, Palette, Space } from '@/shared/theme';
 import { useGameStore } from '@/store/use-game-store';
 import { useSandboxStore } from '@/store/use-sandbox-store';
 import { isDemoCapabilityEnabled, usePresentationStore } from '@/store/use-presentation-store';
+import { useExperienceStore } from '@/store/use-experience-store';
+import { isResearchCapabilityEnabled, useResearchStore } from '@/store/use-research-store';
 
 function Choice({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) {
   return <Pressable accessibilityRole="button" accessibilityState={{ selected }} onPress={onPress} style={[styles.choice, selected && styles.choiceSelected]}><Text variant="label" style={[styles.choiceText, selected && styles.choiceTextSelected]}>{selected ? '[X] ' : '[ ] '}{label}</Text></Pressable>;
@@ -29,17 +31,19 @@ export default function SettingsScreen() {
   const presentationActive = usePresentationStore((state) => state.active);
   const startPresentation = usePresentationStore((state) => state.startPresentation);
   const restorePresentation = usePresentationStore((state) => state.restorePresentation);
+  const resetGuides = useExperienceStore((state) => state.resetGuides);
+  const researchActive = useResearchStore((state) => state.active);
   const [confirm, setConfirm] = useState<'learning' | 'sandbox' | 'presentation' | 'restore'>();
   const [manualSyncBusy, setManualSyncBusy] = useState(false);
 
   const runManualSync = async () => {
-    if (manualSyncBusy || status !== 'authenticated' || presentationActive) return;
+    if (manualSyncBusy || status !== 'authenticated' || presentationActive || researchActive) return;
     setManualSyncBusy(true);
     try { await syncNow(); } finally { setManualSyncBusy(false); }
   };
 
-  const cloudLabel = presentationActive
-    ? 'PAUSED / PRESENTATION DATA STAYS LOCAL'
+  const cloudLabel = presentationActive || researchActive
+    ? `PAUSED / ${researchActive ? 'RESEARCH' : 'PRESENTATION'} DATA STAYS LOCAL`
     : status !== 'authenticated'
       ? 'LOCAL / SIGN IN TO ENABLE CLOUD BACKUP'
       : syncStatus === 'syncing'
@@ -63,7 +67,7 @@ export default function SettingsScreen() {
         <Text variant="label" style={syncStatus === 'action-needed' ? styles.syncWarning : styles.syncLabel}>{cloudLabel}</Text>
         <Text variant="bodySmall" style={styles.detail}>{status === 'authenticated' ? 'NetBite automatically retries when internet access returns and whenever the app becomes active.' : configured ? 'Guest learning is stored on this device. Sign in from the main menu when cloud backup is wanted.' : 'Supabase is not configured. All lessons and simulations remain available locally.'}</Text>
         {syncStatus === 'action-needed' && syncError ? <Text accessibilityRole="alert" variant="bodySmall" style={styles.syncWarning}>{syncError}</Text> : null}
-        {status === 'authenticated' ? <AppButton disabled={manualSyncBusy || syncStatus === 'syncing' || presentationActive} label={manualSyncBusy || syncStatus === 'syncing' ? 'Syncing...' : syncStatus === 'action-needed' ? 'Retry cloud sync' : 'Sync now'} variant="secondary" onPress={() => void runManualSync()} /> : null}
+        {status === 'authenticated' ? <AppButton disabled={manualSyncBusy || syncStatus === 'syncing' || presentationActive || researchActive} label={manualSyncBusy || syncStatus === 'syncing' ? 'Syncing...' : syncStatus === 'action-needed' ? 'Retry cloud sync' : 'Sync now'} variant="secondary" onPress={() => void runManualSync()} /> : null}
       </View>
       <Text variant="label" style={styles.groupLabel}>PREFERENCES</Text>
       <View style={styles.section}>
@@ -82,8 +86,15 @@ export default function SettingsScreen() {
       {isDemoCapabilityEnabled ? <View style={styles.section}>
         <Text variant="sectionHeading" style={styles.heading}>PRESENTATION MODE</Text>
         <Text variant="bodySmall" style={styles.detail}>Creates a reversible local demo snapshot, unlocks demo-only access, completes Chapter 1, and loads the routed sandbox preset. Cloud sync is paused.</Text>
-        <AppButton label={presentationActive ? 'Restore my data' : 'Start presentation session'} variant={presentationActive ? 'secondary' : 'primary'} onPress={() => setConfirm(presentationActive ? 'restore' : 'presentation')} />
+        <AppButton disabled={researchActive} label={presentationActive ? 'Restore my data' : researchActive ? 'Unavailable during research' : 'Start presentation session'} variant={presentationActive ? 'secondary' : 'primary'} onPress={() => setConfirm(presentationActive ? 'restore' : 'presentation')} />
       </View> : null}
+      <View style={styles.section}>
+        <Text variant="sectionHeading" style={styles.heading}>GUIDANCE & SUPPORT</Text>
+        <Text variant="bodySmall" style={styles.detail}>Replay the short contextual guides or inspect a redacted runtime report.</Text>
+        <AppButton label="Replay contextual guides" variant="utility" onPress={() => { resetGuides(); useSandboxStore.setState({ guideSeen: false }); }} />
+        <AppButton label="Open diagnostics" variant="utility" onPress={() => navigateOnce('/diagnostics')} />
+        {isResearchCapabilityEnabled ? <AppButton label={researchActive ? 'Continue usability session' : 'Open usability toolkit'} variant="utility" onPress={() => navigateOnce('/research')} /> : null}
+      </View>
       <DisclosureSection danger summary="Reset progress or erase the sandbox workspace." title="DESTRUCTIVE LOCAL DATA">
         <Text variant="bodySmall" style={styles.detail}>These actions affect separate local stores and always require confirmation.</Text>
         <AppButton accessibilityHint="Opens a confirmation before deleting learning progress" label="Reset learning progress" variant="danger" onPress={() => setConfirm('learning')} />

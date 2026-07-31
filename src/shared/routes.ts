@@ -12,6 +12,11 @@ export const AppRoutes = {
   authRegister: '/auth/register' as Href,
   authForgotPassword: '/auth/forgot-password' as Href,
   pro: '/pro' as Href,
+  progress: '/progress' as Href,
+  review: '/review' as Href,
+  saved: '/saved' as Href,
+  diagnostics: '/diagnostics' as Href,
+  research: '/research' as Href,
 };
 
 export const chapterRoute = (chapterId: string) => ({ pathname: '/chapter/[chapterId]', params: { chapterId } }) as Href;

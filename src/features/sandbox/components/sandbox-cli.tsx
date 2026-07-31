@@ -4,11 +4,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { getCliPrompt, getCliSuggestions, type CliNetworkState, type CliOutputLine } from '@/core/network/cli-simulator';
 import { createSandboxCliState, executeSandboxCliCommand, type SandboxWorkspace } from '@/core/network/sandbox';
+import { resolveCanonicalCliCommand } from '@/core/network/cli-command-catalog';
 import { AppButton } from '@/shared/components/app-button';
 import { IconButton } from '@/shared/components/icon-button';
 import { Text } from '@/shared/components/console-text';
 import { useMeasuredResponsiveLayout } from '@/shared/responsive-layout';
 import { Fonts, Palette, Space, Typography } from '@/shared/theme';
+import { useGameStore } from '@/store/use-game-store';
 
 interface TranscriptEntry extends CliOutputLine { id: number }
 
@@ -31,10 +33,14 @@ function SandboxCliSession({ visible, workspace, initialDeviceId, onClose, onCom
   const [historyIndex, setHistoryIndex] = useState(0);
   const scrollRef = useRef<ScrollView>(null);
   const nextId = useRef(1);
+  const saveLearningItem = useGameStore((state) => state.saveLearningItem);
+  const savedLearningItems = useGameStore((state) => state.savedLearningItems);
   useEffect(() => { scrollRef.current?.scrollToEnd({ animated: false }); }, [transcript]);
 
   const sessionDevice = session.devices.find((device) => device.id === deviceId) ?? session.devices[0];
   if (!sessionDevice) return null;
+  const canonicalCommand = resolveCanonicalCliCommand(input);
+  const commandSaved = canonicalCommand ? Boolean(savedLearningItems[`cli-command:${canonicalCommand.id}`] && !savedLearningItems[`cli-command:${canonicalCommand.id}`].deletedAt) : false;
   const submit = () => {
     const command = input.trim(); if (!command) return;
     const prompt = getCliPrompt(sessionDevice);
@@ -63,7 +69,7 @@ function SandboxCliSession({ visible, workspace, initialDeviceId, onClose, onCom
           </ScrollView>
           <View style={styles.suggestions}>{getCliSuggestions(sessionDevice, session).map((suggestion) => <Pressable key={suggestion} accessibilityRole="button" onPress={() => setInput(suggestion)} style={styles.suggestion}><Text variant="technical" style={styles.suggestionText}>{suggestion}</Text></Pressable>)}</View>
           <View style={[styles.inputRow, compact && styles.inputRowCompact]} testID="sandbox-cli-input-row"><Text variant="technical" style={[styles.prompt, compact && styles.promptCompact]}>{getCliPrompt(sessionDevice)}</Text><TextInput accessibilityLabel="CLI command" autoCapitalize="none" autoCorrect={false} onChangeText={setInput} onSubmitEditing={submit} placeholder="ENTER COMMAND" placeholderTextColor={Palette.textMuted} selectionColor={Palette.orange} style={styles.input} value={input} /><Pressable accessibilityLabel="Previous command" accessibilityRole="button" onPress={() => navigateHistory(1)} style={styles.history}><Text variant="label">↑</Text></Pressable><Pressable accessibilityLabel="Next command" accessibilityRole="button" onPress={() => navigateHistory(-1)} style={styles.history}><Text variant="label">↓</Text></Pressable></View>
-          <View style={styles.actions} testID="sandbox-cli-actions"><AppButton label="Run command" style={[styles.action, compact && styles.actionStacked]} onPress={submit} /><AppButton label="Help" style={[styles.action, compact && styles.actionStacked]} variant="secondary" onPress={() => setInput('help')} /></View>
+          <View style={styles.actions} testID="sandbox-cli-actions"><AppButton label="Run command" style={[styles.action, compact && styles.actionStacked]} onPress={submit} /><AppButton label="Help" style={[styles.action, compact && styles.actionStacked]} variant="secondary" onPress={() => setInput('help')} />{canonicalCommand ? <AppButton accessibilityHint={canonicalCommand.description} disabled={commandSaved} label={commandSaved ? 'Command saved' : 'Save command reference'} style={[styles.action, compact && styles.actionStacked]} variant="utility" onPress={() => saveLearningItem({ targetType: 'cli-command', targetId: canonicalCommand.id, chapterId: 'sandbox', title: canonicalCommand.command, note: savedLearningItems[`cli-command:${canonicalCommand.id}`]?.note ?? '' })} /> : null}</View>
           </View>
         </KeyboardAvoidingView>
       </SafeAreaView>

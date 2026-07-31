@@ -1,3 +1,5 @@
+import type { ActivityEvent, ReviewSignal, SavedLearningItem } from '@/core/learning/adaptive-learning';
+
 export type SyncStatus = 'local' | 'syncing' | 'synced' | 'action-needed';
 export type ProgressMergeChoice = 'merge' | 'cloud' | 'cancel';
 export type PurchaseStatus = 'idle' | 'preparing' | 'presenting' | 'verifying' | 'owned' | 'failed';
@@ -14,6 +16,9 @@ export interface CloudProgressSnapshot {
   cliGuideSeen: boolean;
   hapticsEnabled: boolean;
   motionPreference: 'system' | 'reduced';
+  reviewSignals: Record<string, ReviewSignal>;
+  savedLearningItems: Record<string, SavedLearningItem>;
+  activityHistory: ActivityEvent[];
   updatedAt: string;
 }
 

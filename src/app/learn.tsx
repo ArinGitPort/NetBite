@@ -7,15 +7,18 @@ import { getChapterProgress, isChapterComplete } from '@/content/progress';
 import { canAccessChapter } from '@/core/account/access';
 import { useAuth } from '@/features/account/auth-context';
 import { AppButton } from '@/shared/components/app-button';
+import { ActionCard } from '@/shared/components/action-card';
 import { AppIcon } from '@/shared/components/app-icon';
 import { IconButton } from '@/shared/components/icon-button';
 import { Text } from '@/shared/components/console-text';
+import { ContextualGuide } from '@/shared/components/contextual-guide';
 import { ProgressBar } from '@/shared/components/progress-bar';
 import { Screen } from '@/shared/components/screen';
 import { AppRoutes } from '@/shared/routes';
 import { Fonts, Palette, Radius, Space } from '@/shared/theme';
 import { useGameStore } from '@/store/use-game-store';
 import { returnToMenu } from '@/shared/navigation';
+import { useResearchStore } from '@/store/use-research-store';
 
 export default function LearningHomeScreen() {
   const { hasContentAccess } = useAuth();
@@ -25,6 +28,7 @@ export default function LearningHomeScreen() {
   const quizContentVersions = useGameStore((state) => state.quizContentVersions);
   const reviewedFlashcardChapterIds = useGameStore((state) => state.reviewedFlashcardChapterIds);
   const flashcardContentVersions = useGameStore((state) => state.flashcardContentVersions);
+  const recordResearchEvent = useResearchStore((state) => state.recordEvent);
   const learningProgress = { completedLessonIds, completedLabIds, quizScores, quizContentVersions, reviewedFlashcardChapterIds, flashcardContentVersions };
   const currentChapter = chapters.find((chapter) => canAccessChapter(chapter.id, hasContentAccess) && !isChapterComplete(chapter, learningProgress))
     ?? [...chapters].reverse().find((chapter) => canAccessChapter(chapter.id, hasContentAccess))
@@ -47,6 +51,7 @@ export default function LearningHomeScreen() {
         <IconButton accessibilityLabel="Back to main menu" icon="arrow-left" label="MENU" onPress={returnToMenu} />
         <Text variant="label" style={styles.brand}>NETBITE / LEARN</Text>
       </View>
+      <ContextualGuide id="learn-v1" eyebrow="LEARNING PATH GUIDE" steps={[{ title: 'Follow the current marker', detail: 'The highlighted chapter is the recommended continuation point. Completed and locked chapters remain visible.' }, { title: 'Completion is not mastery', detail: 'Progress & Review shows activity completion, quiz mastery, and weak topics separately.' }]} />
       <View style={styles.hero}>
         <Text variant="screenTitle" style={styles.title}>LEARN NETWORKING BY BUILDING</Text>
         <Text variant="body" style={styles.subtitle}>Short lessons and focused labs for your first network.</Text>
@@ -66,6 +71,10 @@ export default function LearningHomeScreen() {
         </View>
         <AppButton label={progress === 1 ? 'Review chapter' : progress > 0 ? 'Continue learning' : 'Start learning'} trailingIcon="arrow-right" onPress={continueLearning} />
       </View>
+      <View style={styles.learningUtilities}>
+        <ActionCard detail="Completion, quiz mastery, weak topics, and recent activity." icon="quiz" priority="utility" status="LEARNING STATUS" title="PROGRESS & REVIEW" onPress={() => router.push(AppRoutes.progress)} />
+        <ActionCard detail="Bookmarks and personal notes." icon="lesson" priority="utility" status="PERSONAL REFERENCE" title="SAVED LEARNING" onPress={() => router.push(AppRoutes.saved)} />
+      </View>
       <Text variant="sectionHeading" style={styles.sectionTitle}>LEARNING PATH</Text>
       <View style={styles.circuit}>
         <View style={styles.pathRail} />
@@ -74,7 +83,7 @@ export default function LearningHomeScreen() {
           const locked = !canAccessChapter(chapter.id, hasContentAccess);
           const current = chapter.id === currentChapter.id;
           return (
-            <Pressable key={chapter.id} accessibilityHint={locked ? 'Opens NetBite Pro access details' : current ? 'Opens your current chapter' : 'Opens this chapter'} accessibilityLabel={`Chapter ${chapter.numberLabel}, ${chapter.title}${locked ? ', locked, NetBite Pro required' : current ? ', current chapter' : chapterComplete ? ', complete' : ''}`} accessibilityRole="button" onPress={() => locked ? router.push(AppRoutes.pro) : router.push({ pathname: '/chapter/[chapterId]', params: { chapterId: chapter.id } })} style={({ pressed }) => [styles.pathRow, index === chapters.length - 1 && styles.lastPathRow, current && styles.currentPathRow, chapterComplete && !current && styles.completedPathRow, locked && styles.lockedRow, pressed && styles.pressed]}>
+            <Pressable key={chapter.id} accessibilityHint={locked ? 'Opens NetBite Pro access details' : current ? 'Opens your current chapter' : 'Opens this chapter'} accessibilityLabel={`Chapter ${chapter.numberLabel}, ${chapter.title}${locked ? ', locked, NetBite Pro required' : current ? ', current chapter' : chapterComplete ? ', complete' : ''}`} accessibilityRole="button" onPress={() => { if (chapter.numberLabel === '05') recordResearchEvent('opened-subnetting'); if (locked) router.push(AppRoutes.pro); else router.push({ pathname: '/chapter/[chapterId]', params: { chapterId: chapter.id } }); }} style={({ pressed }) => [styles.pathRow, index === chapters.length - 1 && styles.lastPathRow, current && styles.currentPathRow, chapterComplete && !current && styles.completedPathRow, locked && styles.lockedRow, pressed && styles.pressed]}>
               <View style={[styles.circuitNode, locked ? styles.lockedNode : chapterComplete ? styles.completedNode : current ? styles.currentNode : styles.activeNode]} />
               <View style={styles.pathCopy}>
                 <Text variant="label" style={[styles.pathLabel, current && styles.currentPathLabel, chapterComplete && !current && styles.completedPathLabel]}>CHAPTER {chapter.numberLabel}{locked ? ' / PRO LOCKED' : current ? ' / CURRENT' : chapterComplete ? ' / COMPLETE' : ''}</Text>
@@ -107,6 +116,7 @@ const styles = StyleSheet.create({
   muted: { color: Palette.textMuted },
   progressPercent: { color: Palette.accentBright },
   sectionTitle: { color: Palette.text, fontFamily: Fonts.semibold, marginTop: Space.xxl, marginBottom: Space.lg },
+  learningUtilities: { gap: Space.sm, marginTop: Space.md },
   pressed: { opacity: 0.7 },
   circuit: { position: 'relative', borderWidth: 1, borderColor: Palette.border, backgroundColor: Palette.surface, paddingVertical: Space.sm },
   pathRail: { position: 'absolute', left: 21, top: 0, bottom: 0, width: 1, backgroundColor: Palette.border },

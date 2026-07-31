@@ -39,6 +39,9 @@ export default function FlashcardsScreen() {
   const savedVersion = useGameStore((state) => state.flashcardContentVersions[chapterId ?? '']);
   const saveFlashcardPosition = useGameStore((state) => state.saveFlashcardPosition);
   const clearFlashcardPosition = useGameStore((state) => state.clearFlashcardPosition);
+  const recordReviewResult = useGameStore((state) => state.recordReviewResult);
+  const saveLearningItem = useGameStore((state) => state.saveLearningItem);
+  const savedLearningItems = useGameStore((state) => state.savedLearningItems);
   const currentSavedPosition = chapter && savedVersion === chapter.flashcardVersion ? savedPosition : 0;
   const initialIndex = Math.min(currentSavedPosition ?? 0, Math.max(0, (chapter?.flashcards.length ?? 1) - 1));
   const initialQueue = chapter
@@ -126,6 +129,7 @@ export default function FlashcardsScreen() {
   };
 
   const reviewAgain = () => {
+    recordReviewResult({ kind: 'flashcard', contentId: card.id, lessonId: card.lessonId, chapterId: chapter.id, contentVersion: chapter.flashcardVersion }, false);
     const nextRetryIds = new Set(retryIds).add(card.id);
     const isAlreadyQueued = queue.slice(queueIndex + 1).includes(card.id);
     setRetryIds(nextRetryIds);
@@ -133,8 +137,11 @@ export default function FlashcardsScreen() {
   };
 
   const gotIt = () => {
+    recordReviewResult({ kind: 'flashcard', contentId: card.id, lessonId: card.lessonId, chapterId: chapter.id, contentVersion: chapter.flashcardVersion }, true);
     advance(queue, new Set(masteredIds).add(card.id));
   };
+
+  const saveCard = () => saveLearningItem({ targetType: 'flashcard', targetId: card.id, chapterId: chapter.id, title: card.prompt, note: savedLearningItems[`flashcard:${card.id}`]?.note ?? '' });
 
   const restart = () => {
     setQueue(chapter.flashcards.map(({ id }) => id));
@@ -178,6 +185,7 @@ export default function FlashcardsScreen() {
         <Text variant="label" style={styles.modeLabel}>RECALL FROM MEMORY</Text>
         <Text variant="technical" style={styles.queueCount}>CARD {queueIndex + 1} / {queue.length}</Text>
       </View>
+      <View style={styles.saveRow}><AppButton label={savedLearningItems[`flashcard:${card.id}`] && !savedLearningItems[`flashcard:${card.id}`].deletedAt ? 'Saved' : 'Save card'} selected={Boolean(savedLearningItems[`flashcard:${card.id}`] && !savedLearningItems[`flashcard:${card.id}`].deletedAt)} variant="utility" onPress={saveCard} /></View>
       <Text variant="bodySmall" style={styles.instructions}>Say the answer in your own words before revealing it. Then rate your recall honestly.</Text>
       <Pressable
         accessibilityRole="button"
@@ -225,6 +233,7 @@ const styles = StyleSheet.create({
   modeLabel: { color: Palette.accentBright, fontFamily: Fonts.medium },
   queueCount: { color: Palette.textMuted },
   instructions: { color: Palette.textMuted, marginTop: Space.sm, marginBottom: Space.lg },
+  saveRow: { alignItems: 'flex-start', marginBottom: Space.md },
   cardPressable: { minHeight: 380 },
   cardScene: { flex: 1, minHeight: 380 },
   cardFace: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, minHeight: 380, borderRadius: Radius.lg, borderWidth: 1, borderColor: Palette.border, padding: Space.lg, alignItems: 'center', justifyContent: 'center', backfaceVisibility: 'hidden' },

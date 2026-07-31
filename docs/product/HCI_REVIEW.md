@@ -14,6 +14,8 @@ NetBite should look like a compact training console without making every control
 6. Preserve a neutral Cancel action and use a distinct destructive Confirm action.
 7. Prevent duplicate submissions while navigation, authentication, synchronization, or checkout is pending.
 8. Keep all controls at least 44 points and allow labels to wrap at increased font scales.
+9. Prefer recognition over recall: offer contextual guidance, saved references, and deterministic explanations near the task that needs them.
+10. Restore focus to the changed task or feedback region after modal closure, staged navigation, and review advancement.
 
 ## Task-based acceptance review
 
@@ -57,5 +59,7 @@ NetBite should look like a compact training console without making every control
 - Are optional tools discoverable without permanently occupying primary space?
 - Does every failure explain recovery without discarding local work?
 - Can the same task be completed with touch, keyboard, and screen-reader navigation?
+- Can a learner explain why a simulated result occurred without relying on animation or color?
+- Can a learner recover a weak topic without confusing completion with mastery?
 
 Run this review at 360, 390, 430, 500, 768, and 1024-point widths, with increased font scaling and reduced motion.

@@ -10,12 +10,14 @@ import { useAuth } from '@/features/account/auth-context';
 import { ActionCard } from '@/shared/components/action-card';
 import { AppButton } from '@/shared/components/app-button';
 import { Text } from '@/shared/components/console-text';
+import { ContextualGuide } from '@/shared/components/contextual-guide';
 import { Screen } from '@/shared/components/screen';
 import { AppRoutes } from '@/shared/routes';
 import { navigateOnce } from '@/shared/navigation';
 import { Fonts, Palette, Space } from '@/shared/theme';
 import { useGameStore } from '@/store/use-game-store';
 import { useSandboxStore } from '@/store/use-sandbox-store';
+import { useResearchStore } from '@/store/use-research-store';
 
 export default function MainMenuScreen() {
   const { status, profile, hasPro, hasContentAccess, presentationActive, syncStatus, accountEntryResolved } = useAuth();
@@ -26,6 +28,7 @@ export default function MainMenuScreen() {
   const reviewedFlashcardChapterIds = useGameStore((state) => state.reviewedFlashcardChapterIds);
   const flashcardContentVersions = useGameStore((state) => state.flashcardContentVersions);
   const sandboxDeviceCount = useSandboxStore((state) => state.workspace.devices.length);
+  const recordResearchEvent = useResearchStore((state) => state.recordEvent);
   const progress = { completedLessonIds, completedLabIds, quizScores, quizContentVersions, reviewedFlashcardChapterIds, flashcardContentVersions };
   const currentChapter = chapters.find((chapter) => canAccessChapter(chapter.id, hasContentAccess) && !isChapterComplete(chapter, progress))
     ?? chapters.findLast((chapter) => canAccessChapter(chapter.id, hasContentAccess))
@@ -49,6 +52,7 @@ export default function MainMenuScreen() {
   }
 
   const continueLearning = () => {
+    recordResearchEvent('continued-learning');
     const activity = nextActivity;
     if (activity.type === 'lesson') navigateOnce({ pathname: '/lesson/[lessonId]', params: { lessonId: activity.id } });
     else if (activity.type === 'lab') navigateOnce({ pathname: '/lab/[labId]', params: { labId: activity.id } });
@@ -85,6 +89,7 @@ export default function MainMenuScreen() {
           testID="primary-learning-action"
           footer={<AppButton accessibilityHint="Opens the complete learning path" label="Browse all chapters" variant="utility" onPress={() => navigateOnce('/learn')} />}
         />
+        <ContextualGuide id="menu-v1" eyebrow="FIRST SESSION" steps={[{ title: 'Continue is your next step', detail: 'The first panel always opens the next unfinished learning activity.' }, { title: 'Build when you are ready', detail: 'Network Sandbox is a separate tool for experimentation, while Account and Settings remain utilities.' }]} />
 
         <Text variant="label" style={styles.groupLabel}>BUILD & TEST</Text>
         <ActionCard
