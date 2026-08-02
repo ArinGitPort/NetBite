@@ -1,7 +1,7 @@
 import { createAdvancedChapter } from '@/content/advanced-content-helpers';
 
 export const chapterEleven = createAdvancedChapter({
-  id: 11, flashcardVersion: 3, title: 'OSI and TCP/IP Models', summary: 'Use layered responsibilities to organize concepts and narrow troubleshooting questions.',
+  id: 11, contentVersion: 3, flashcardVersion: 4, title: 'OSI and TCP/IP Models', summary: 'Use layered responsibilities to organize concepts and narrow troubleshooting questions.',
   lessons: [
     {
       id: 'why-models', title: 'Why layered models exist', illustration: 'model-purpose',
@@ -18,6 +18,7 @@ export const chapterEleven = createAdvancedChapter({
       body: 'The conventional OSI stack is shown vertically with Layer 7 Application at the top and Layer 1 Physical at the bottom. Between them are Presentation, Session, Transport, Network, and Data Link in that exact order.',
       sections: [
         { heading: 'Adjacent service relationship', body: 'Conceptually, each layer offers services to the layer above and uses services from the layer below. The model separates what is provided from how a particular implementation provides it.' },
+        { heading: 'Follow encapsulation without forcing one name', body: 'Application data may become a TCP segment or UDP datagram, then an IPv4 datagram or packet, then an Ethernet frame, and finally transmitted bits or signals. Upper-layer names and implementations vary, so responsibility matters more than memorizing one universal label for every layer.' },
         { heading: 'Learn responsibility before memorization', body: 'The order is useful, but understanding what each layer groups makes the model valuable for design and troubleshooting. The next seven lessons examine them individually.' },
       ],
       example: { label: 'BOTTOM TO TOP', setup: 'Physical → Data Link → Network → Transport → Session → Presentation → Application.', result: 'Layer numbers rise from 1 at the physical medium to 7 near application services.' },
@@ -137,7 +138,7 @@ export const chapterEleven = createAdvancedChapter({
   ],
   questions: [
     { lessonId: 'why-models', prompt: 'Why use a layered model?', answers: ['To organize responsibilities and troubleshooting', 'To replace every real protocol', 'To guarantee identical vendor code'], correctAnswerIndex: 0, explanation: 'Models provide shared structure and vocabulary.' },
-    { lessonId: 'seven-osi-layers', prompt: 'Which order is correct from Layer 1 upward?', answers: ['Physical, Data Link, Network, Transport', 'Application, Physical, Session, Network', 'Network, Data Link, Physical, Transport'], correctAnswerIndex: 0, explanation: 'The lower four begin Physical, Data Link, Network, Transport.' },
+    { lessonId: 'seven-osi-layers', prompt: 'Which encapsulation order matches a TCP application carried over IPv4 Ethernet?', answers: ['Application data → TCP segment → IPv4 packet → Ethernet frame → bits', 'Ethernet frame → application data → IPv4 packet', 'Bits → route table → user account → MAC table'], correctAnswerIndex: 0, explanation: 'Each lower responsibility adds the information needed for its scope of delivery.' },
     { lessonId: 'osi-physical-layer', prompt: 'A port has no physical link. Which OSI layer is the first focus?', answers: ['Physical', 'Session', 'Application'], correctAnswerIndex: 0, explanation: 'Media, signals, and link establishment are Physical responsibilities.' },
     { lessonId: 'osi-data-link-layer', prompt: 'Where do Ethernet frames and MAC switching belong?', answers: ['Data Link', 'Transport', 'Presentation'], correctAnswerIndex: 0, explanation: 'They provide local Layer 2 delivery.' },
     { lessonId: 'osi-network-layer', prompt: 'Where do IPv4 addressing and routing belong?', answers: ['Network', 'Physical', 'Session'], correctAnswerIndex: 0, explanation: 'Logical addressing and routing are Network responsibilities.' },

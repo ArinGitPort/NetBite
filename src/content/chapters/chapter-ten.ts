@@ -1,7 +1,7 @@
 import { createAdvancedChapter } from '@/content/advanced-content-helpers';
 
 export const chapterTen = createAdvancedChapter({
-  id: 10, flashcardVersion: 3, title: 'VLANs', summary: 'Separate Layer 2 broadcast domains and carry selected VLANs between switches.',
+  id: 10, contentVersion: 3, flashcardVersion: 4, title: 'VLANs', summary: 'Separate Layer 2 broadcast domains and carry selected VLANs between switches.',
   lessons: [
     {
       id: 'vlan-purpose', title: 'VLANs create logical local networks', illustration: 'vlan-purpose',
@@ -60,12 +60,12 @@ export const chapterTen = createAdvancedChapter({
     },
     {
       id: 'dot1q-tag', title: 'An 802.1Q tag identifies VLAN traffic', illustration: 'dot1q-tag',
-      body: 'On a link carrying traffic for multiple VLANs, IEEE 802.1Q information identifies which VLAN a frame belongs to. The tag lets the receiving switch preserve separation while sharing one physical inter-switch link.',
+      body: 'On a link carrying traffic for multiple VLANs, IEEE 802.1Q inserts a four-byte tag after the source MAC and before the original EtherType. The tag lets the receiving switch preserve VLAN separation while sharing one physical link.',
       sections: [
-        { heading: 'The tag is not a new LAN merge', body: 'VLAN 10 and VLAN 20 frames can traverse the same cable while remaining members of different logical broadcast domains.' },
-        { heading: 'Access and trunk views differ', body: 'Endpoint access traffic is normally associated through the access-port configuration. The tagged shared-link view is used where multiple VLAN identities need to cross.' },
+        { heading: 'Read the tag fields', body: 'The 16-bit Tag Protocol Identifier, or TPID, is 0x8100. Three PCP bits describe priority, one DEI bit describes drop eligibility, and the 12-bit VLAN identifier carries the VLAN context. NetBite configures only the VLAN identifier.' },
+        { heading: 'Access and trunk views differ', body: 'Endpoint access traffic is normally untagged and receives VLAN context from its access port. A trunk adds the tag for the shared path; the far switch reads it and restores the correct VLAN context.' },
       ],
-      example: { label: 'SHARED CABLE', setup: 'One inter-switch link carries VLAN 10 and VLAN 20.', result: '802.1Q identification lets the far switch place each frame back into the correct VLAN context.' },
+      example: { label: 'SHARED CABLE', setup: 'One inter-switch link carries VLAN 10 and VLAN 20.', result: 'A VLAN 20 frame carries VLAN identifier 20 on the trunk. The far switch reads that field instead of merging it into VLAN 10, and a changed frame requires a recalculated FCS.' },
       takeaway: '802.1Q identifies VLAN membership on a shared link without combining the VLANs.',
     },
     {
@@ -95,7 +95,7 @@ export const chapterTen = createAdvancedChapter({
     { lessonId: 'access-ports', prompt: 'A PC connects to an access port assigned to VLAN 20. What membership does it receive?', answers: ['VLAN 20', 'Every VLAN', 'No Layer 2 network'], correctAnswerIndex: 0, explanation: 'The access-port configuration associates endpoint traffic with VLAN 20.' },
     { lessonId: 'same-vlan-switching', prompt: 'Two valid endpoints share VLAN 10. What kind of path can connect them?', answers: ['A Layer 2 switching path in VLAN 10', 'Mandatory inter-VLAN routing', 'A default route only'], correctAnswerIndex: 0, explanation: 'Same-VLAN traffic can be switched.' },
     { lessonId: 'same-different-vlan', prompt: 'What is needed for VLAN 10 to communicate with VLAN 20?', answers: ['Layer 3 routing', 'A larger MAC table only', 'The same access port'], correctAnswerIndex: 0, explanation: 'Different VLAN networks require Layer 3 forwarding.' },
-    { lessonId: 'dot1q-tag', prompt: 'Why is 802.1Q information used on a shared VLAN link?', answers: ['To preserve the frame’s VLAN identity', 'To merge every VLAN', 'To replace IPv4 addresses'], correctAnswerIndex: 0, explanation: 'The tag identifies VLAN membership on the shared link.' },
+    { lessonId: 'dot1q-tag', prompt: 'Where is the four-byte 802.1Q tag inserted in an Ethernet frame?', answers: ['After source MAC and before EtherType', 'After the FCS', 'Inside the destination MAC'], correctAnswerIndex: 0, explanation: 'The tag is inserted between source MAC and the original EtherType or length field.' },
     { lessonId: 'dot1q-trunks', prompt: 'VLAN 20 is missing from a trunk’s allowed set. What fails?', answers: ['VLAN 20 continuity across that trunk', 'Every VLAN everywhere', 'All access-port configuration'], correctAnswerIndex: 0, explanation: 'Only allowed VLANs cross the trunk.' },
     { lessonId: 'dot1q-trunks', prompt: 'What must match for an end-to-end VLAN path?', answers: ['Access membership and every required trunk allowance', 'Only endpoint names', 'Only one switch’s port color'], correctAnswerIndex: 0, explanation: 'Every segment must carry the intended VLAN.' },
   ],
@@ -105,7 +105,7 @@ export const chapterTen = createAdvancedChapter({
     ['access-ports', 'What VLAN behavior should an endpoint-facing access port provide?', 'It assigns the attached endpoint’s untagged traffic to one configured VLAN.', 'The endpoint normally sends ordinary untagged Ethernet frames on an access link.'],
     ['same-vlan-switching', 'PC A and PC B are in VLAN 10 on different switches. What Layer 2 path is required?', 'Both access ports must belong to VLAN 10, and every trunk between them must carry VLAN 10.', 'The VLAN must remain continuous across every switch segment in the path.'],
     ['same-different-vlan', 'Can a Layer 2 switch alone forward traffic directly from VLAN 10 to VLAN 20?', 'No.', 'Different VLANs are different Layer 2 networks; communication between them requires Layer 3 routing.'],
-    ['dot1q-tag', 'What information does an IEEE 802.1Q tag add on a trunk?', 'VLAN identification so shared trunk traffic remains associated with the correct VLAN.', 'The tag preserves logical separation while multiple VLANs use one physical link.'],
+    ['dot1q-tag', 'What are the operational parts of the four-byte IEEE 802.1Q tag?', 'TPID 0x8100, three PCP bits, one DEI bit, and a 12-bit VLAN identifier.', 'NetBite focuses on the VLAN identifier; PCP and DEI are shown so the four-byte tag is not misrepresented.'],
     ['dot1q-trunks', 'What is the purpose of a trunk link between switches?', 'To carry traffic for multiple permitted VLANs over one shared connection.', 'A trunk does not merge those VLANs into one broadcast domain.'],
     ['dot1q-trunks', 'VLAN 20 is absent from a trunk’s allowed list. What traffic is affected?', 'VLAN 20 cannot continue across that trunk, while other permitted VLANs may still work.', 'Check the allowed VLAN configuration at both endpoints of the trunk.'],
     ['same-different-vlan', 'Two PCs have addresses in the same IPv4 subnet but their access ports are in different VLANs. Can they communicate directly?', 'No.', 'Their Layer 2 VLAN separation prevents the local Ethernet path even though the IPv4 settings appear similar.'],

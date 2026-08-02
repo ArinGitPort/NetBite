@@ -12,6 +12,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { AuthProvider, useAuth } from '@/features/account/auth-context';
 import { createEmptySandboxWorkspace } from '@/core/network/sandbox';
+import { hydratePersistedStores } from '@/core/reliability/storage-hydration';
 import { ProgressMergeModal } from '@/features/account/components/progress-merge-modal';
 import { PresentationBanner } from '@/features/demo/presentation-banner';
 import { ResearchBanner } from '@/features/research/research-banner';
@@ -54,18 +55,25 @@ export default function RootLayout() {
 
   useEffect(() => {
     let active = true;
-    const timeout = setTimeout(() => { if (active) setStorageState('degraded'); }, 8_000);
     const hydrate = async () => {
-      try {
-        await Promise.all([useGameStore.persist.rehydrate(), useSandboxStore.persist.rehydrate(), usePresentationStore.persist.rehydrate(), useExperienceStore.persist.rehydrate(), useResearchStore.persist.rehydrate()]);
-        if (useSandboxStore.getState().guideSeen) useExperienceStore.getState().markGuideSeen('sandbox-v1');
-        if (active) setStorageState('ready');
-      } catch {
-        if (active) setStorageState('degraded');
+      const result = await hydratePersistedStores([
+        { id: 'learning', hydrate: useGameStore.persist.rehydrate, hasHydrated: useGameStore.persist.hasHydrated },
+        { id: 'sandbox', hydrate: useSandboxStore.persist.rehydrate, hasHydrated: useSandboxStore.persist.hasHydrated },
+        { id: 'presentation', hydrate: usePresentationStore.persist.rehydrate, hasHydrated: usePresentationStore.persist.hasHydrated },
+        { id: 'experience', hydrate: useExperienceStore.persist.rehydrate, hasHydrated: useExperienceStore.persist.hasHydrated },
+        { id: 'research', hydrate: useResearchStore.persist.rehydrate, hasHydrated: useResearchStore.persist.hasHydrated },
+      ]);
+      if (!active) return;
+      if (result.status === 'failed') {
+        console.warn(`[storage] Hydration failed after ${result.attempts} attempts: ${result.failedStoreIds.join(', ')}`);
+        setStorageState('degraded');
+        return;
       }
+      if (useSandboxStore.getState().guideSeen) useExperienceStore.getState().markGuideSeen('sandbox-v1');
+      setStorageState('ready');
     };
     void hydrate();
-    return () => { active = false; clearTimeout(timeout); };
+    return () => { active = false; };
   }, [hydrateAttempt]);
 
   useEffect(() => {
@@ -74,7 +82,7 @@ export default function RootLayout() {
 
   if (!fontsLoaded && !fontError) return <BootstrapScreen phase="fonts" detail="Loading the readable console typeface." />;
   if (storageState === 'loading') return <BootstrapScreen phase="storage" detail="Restoring lessons, settings, and the sandbox workspace from this device." />;
-  if (storageState === 'degraded') return <BootstrapScreen phase="degraded" detail="Local storage did not finish loading. Retry, or preserve a recovery copy and continue with safe local defaults." onRetry={() => { setStorageState('loading'); setHydrateAttempt((value) => value + 1); }} onContinue={() => { void preserveRecoveryCopy().finally(() => setStorageState('ready')); }} />;
+  if (storageState === 'degraded') return <BootstrapScreen phase="degraded" detail="Local data could not be restored after two attempts. Retry, or preserve a recovery copy and continue with safe local defaults." onRetry={() => { setStorageState('loading'); setHydrateAttempt((value) => value + 1); }} onContinue={() => { void preserveRecoveryCopy().finally(() => setStorageState('ready')); }} />;
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>

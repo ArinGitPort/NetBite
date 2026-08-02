@@ -72,20 +72,22 @@ describe('chapter progress', () => {
     expect(getChapterProgress(firstChapter, progress)).toEqual({ completed: 6, total: 8 });
   });
 
-  test('revises only the rebuilt subnetting and routing assessments', () => {
-    expect(chapters.find(({ id }) => id === '5')?.contentVersion).toBe(3);
-    expect(chapters.find(({ id }) => id === '9')?.contentVersion).toBe(3);
-    expect(chapters.filter(({ id }) => id !== '5' && id !== '9').every(({ contentVersion }) => contentVersion === 2)).toBe(true);
+  test('keeps rebuilt protocol assessments versioned independently', () => {
+    const expectedVersions: Record<string, number> = {
+      '1': 2, '2': 3, '3': 2, '4': 2, '5': 3, '6': 3,
+      '7': 3, '8': 3, '9': 4, '10': 3, '11': 3, '12': 3,
+    };
+    expect(Object.fromEntries(chapters.map(({ id, contentVersion }) => [id, contentVersion]))).toEqual(expectedVersions);
 
-    for (const chapterId of ['5', '9']) {
+    for (const chapterId of ['2', '5', '6', '7', '8', '9', '10', '11', '12']) {
       const chapter = chapters.find(({ id }) => id === chapterId)!;
       const progress: LearningProgress = {
         completedLessonIds: chapter.lessons.map(({ id }) => id),
         completedLabIds: [chapter.lab.id],
         quizScores: { [chapter.id]: getQuizMasteryScore(chapter) },
-        quizContentVersions: { [chapter.id]: 2 },
+        quizContentVersions: { [chapter.id]: chapter.contentVersion - 1 },
         reviewedFlashcardChapterIds: [chapter.id],
-        flashcardContentVersions: { [chapter.id]: 2 },
+        flashcardContentVersions: { [chapter.id]: chapter.flashcardVersion - 1 },
       };
       expect(getChapterProgress(chapter, progress).completed).toBe(chapter.lessons.length + 1);
     }

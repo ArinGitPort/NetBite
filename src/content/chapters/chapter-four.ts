@@ -13,7 +13,12 @@ export const chapterFour = createAdvancedChapter({
         { heading: 'Logical location', body: 'The address combines a network portion with a host portion. Routers use the network identity to move traffic toward the correct destination network.' },
         { heading: 'Assigned configuration', body: 'IPv4 addresses are configured or assigned rather than being determined by the cable. Moving an interface to another subnet normally requires a suitable address for that subnet.' },
       ],
-      example: { label: 'TWO IDENTITIES', setup: 'PC A sends through a router to a remote PC.', result: 'Local MAC delivery changes at the router, while the source and destination IPv4 endpoints normally remain the same.' },
+      example: { label: 'TWO IDENTITIES', setup: 'PC A sends an IPv4 datagram through a router to a remote PC.', presentation: 'guided', visual: { illustration: 'ipv4-address', stageIds: ['ip-endpoints', 'first-link', 'router', 'second-link'] }, steps: [
+        { id: 'ip-endpoints', label: 'SET THE IP ENDPOINTS', explanation: 'The IPv4 header identifies PC A as the source and the remote PC as the destination. Routers later inspect the destination IPv4 address.', value: 'SOURCE IP A / DESTINATION IP B' },
+        { id: 'first-link', label: 'BUILD THE FIRST FRAME', explanation: 'PC A chooses its local next hop and resolves that interface\'s MAC address. The Ethernet frame carries PC A\'s source MAC and the next-hop destination MAC.', value: 'LOCAL-LINK MAC ADDRESSES' },
+        { id: 'router', label: 'CROSS THE ROUTER', explanation: 'The router removes the incoming Ethernet framing, inspects the destination IPv4 address, and selects another outgoing link.', value: 'IP DESTINATION STILL PC B' },
+        { id: 'second-link', label: 'BUILD A NEW FRAME', explanation: 'The router uses new source and destination MAC addresses for the next link while forwarding the same endpoint IP identities.', value: 'NEW MACS / SAME IP ENDPOINTS' },
+      ], result: 'IPv4 identifies the end-to-end logical endpoints; Ethernet MAC addresses identify the sender and next receiver on each local link.' },
       takeaway: 'MAC identifies local interfaces; IPv4 supplies logical interface and network identity.',
     },
     {

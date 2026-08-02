@@ -16,4 +16,6 @@ Route-table purpose, connected-route origin, entry fields, reachable static next
 
 Guided route lookup reveals range tests before prefix-length comparison. This is a learner-facing reasoning sequence, not a claim about vendor lookup timing or internal implementation.
 
+The forwarding walkthrough separates route selection from transmission: the router reduces IPv4 TTL, updates the IPv4 header checksum, resolves the outgoing next hop when needed, and builds new link-layer framing. Fragmentation, options, queues, and hardware lookup implementation remain outside scope.
+
 The chapter practice uses the bounded command and state model in `CLI_SIMULATION_SOURCES.md`. Connected routes are derived from active configured interfaces; completion validates exact static state plus modeled forward and return paths, without claiming router convergence or live packet forwarding.

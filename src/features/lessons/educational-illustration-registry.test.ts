@@ -21,6 +21,26 @@ describe('educational illustration registry', () => {
     });
   });
 
+  test('keeps packet-field groups complete and guided stages linked to real fields', () => {
+    Object.values(educationalIllustrations)
+      .filter(({ family }) => family === 'packet-fields')
+      .forEach((illustration) => {
+        const fields = illustration.protocolGroups?.flatMap(({ fields: groupFields }) => groupFields) ?? [];
+        const fieldIds = fields.map(({ id }) => id);
+
+        expect(fields.length).toBeGreaterThan(0);
+        expect(new Set(fieldIds).size).toBe(fieldIds.length);
+        fields.forEach(({ label, value, detail }) => {
+          expect(label.length).toBeGreaterThan(0);
+          expect(value.length).toBeGreaterThan(0);
+          expect(detail.length).toBeGreaterThan(0);
+        });
+        illustration.stages?.forEach(({ activeFieldIds = [] }) => {
+          activeFieldIds.forEach((fieldId) => expect(fieldIds).toContain(fieldId));
+        });
+      });
+  });
+
   test('keeps the exact conventional OSI order', () => {
     expect(OSI_LAYERS.map(({ label, value }) => `${label} ${value}`)).toEqual([
       'L7 APPLICATION',
@@ -53,8 +73,8 @@ describe('educational illustration registry', () => {
     expect(educationalIllustrations['subnet-boundaries'].segments?.map(({ value }) => value)).toEqual(['192.168.10.64', '192.168.10.70', '192.168.10.128']);
     expect(educationalIllustrations['subnet-map'].subnets).toHaveLength(4);
     expect(educationalIllustrations['subnet-borrowed-bits'].bits?.map(({ bit }) => bit).join('')).toBe('11000000');
-    expect(educationalIllustrations['arp-request'].accessibilityLabel).toContain('broadcasts');
-    expect(educationalIllustrations['arp-reply'].accessibilityLabel).toContain('unicasts');
+    expect(educationalIllustrations['arp-request'].accessibilityLabel).toContain('broadcast frame');
+    expect(educationalIllustrations['arp-reply'].accessibilityLabel).toContain('unicast');
     expect(educationalIllustrations['vlan-trunk'].footer).toContain('DOES NOT COMBINE');
   });
 });

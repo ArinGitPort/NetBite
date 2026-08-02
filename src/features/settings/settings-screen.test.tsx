@@ -9,6 +9,9 @@ let mockAuthState = {
   syncStatus: 'action-needed',
   error: 'Changes are safe on this device and will retry later.',
   presentationActive: false,
+  testProAvailable: true,
+  testProEnabled: false,
+  setTestProEnabled: jest.fn(),
   syncNow: mockSyncNow,
 };
 
@@ -39,5 +42,12 @@ describe('settings reliability controls', () => {
     await fireEvent.press(screen.getByText('Cancel'));
     await fireEvent.press(screen.getByText('Erase sandbox workspace'));
     expect(screen.getByText('Erase sandbox workspace?')).toBeTruthy();
+  });
+
+  test('enables clearly labeled local-only Pro test access', async () => {
+    const screen = await render(<SettingsScreen />);
+    expect(screen.getByText('DISABLED / DEVELOPMENT ONLY')).toBeTruthy();
+    await fireEvent.press(screen.getByText('Enable test Pro'));
+    expect(mockAuthState.setTestProEnabled).toHaveBeenCalledWith(true);
   });
 });

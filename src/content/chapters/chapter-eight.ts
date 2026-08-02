@@ -1,7 +1,7 @@
 import { createAdvancedChapter } from '@/content/advanced-content-helpers';
 
 export const chapterEight = createAdvancedChapter({
-  id: 8, flashcardVersion: 3, title: 'ICMP and Ping', summary: 'Use Echo results as evidence and troubleshoot dependencies in a disciplined order.',
+  id: 8, contentVersion: 3, flashcardVersion: 4, title: 'ICMP and Ping', summary: 'Use Echo results as evidence and troubleshoot dependencies in a disciplined order.',
   lessons: [
     {
       id: 'icmp-role', title: 'ICMP carries IP control information', illustration: 'icmp-role',
@@ -15,12 +15,17 @@ export const chapterEight = createAdvancedChapter({
     },
     {
       id: 'echo-request-reply', title: 'Echo uses a request and a reply', illustration: 'echo-exchange',
-      body: 'The source sends an ICMP Echo Request to a destination IPv4 address. A destination that receives and accepts the request can return an Echo Reply toward the source, producing a round-trip exchange.',
+      body: 'For IPv4, the source sends an ICMP Echo Request identified by Type 8 and Code 0. A destination that receives and accepts it can return an Echo Reply identified by Type 0 and Code 0, producing a round-trip exchange.',
       sections: [
-        { heading: 'Both directions matter', body: 'The request needs a forward path, and the reply needs a return path. Receiving the reply is therefore stronger evidence than seeing only the request leave.' },
+        { heading: 'Match a reply to its request', body: 'Echo messages carry an identifier and sequence number. The destination returns those values so the sender can associate a reply with the correct test and request.' },
+        { heading: 'Both directions matter', body: 'The request needs a forward path, and the reply needs a return path. Receiving the matching reply is therefore stronger evidence than seeing only the request leave.' },
         { heading: 'Each test is a moment', body: 'A successful exchange describes reachability for that source, destination, and time. It does not promise that the network can never change.' },
       ],
-      example: { label: 'ROUND TRIP', setup: 'PC A sends Echo Request to PC B.', result: 'PC B returns Echo Reply; PC A records a completed round trip.' },
+      example: { label: 'MATCH ONE ECHO ROUND TRIP', setup: 'PC A sends an Echo Request with identifier 24 and sequence 1 to PC B.', presentation: 'guided', visual: { illustration: 'echo-exchange', stageIds: ['request', 'reply', 'match'] }, steps: [
+        { id: 'request', label: 'SEND THE REQUEST', explanation: 'PC A sends Type 8, Code 0 with identifier 24 and sequence 1.' },
+        { id: 'reply', label: 'RETURN THE REPLY', explanation: 'PC B returns Type 0, Code 0 through a valid return path.' },
+        { id: 'match', label: 'MATCH THE RESPONSE', explanation: 'PC A sees identifier 24 and sequence 1 in the reply and associates it with the request.' },
+      ], result: 'The matching reply establishes that this Echo exchange completed in both directions.' },
       takeaway: 'Ping succeeds when an Echo Request reaches the destination and an Echo Reply returns.',
     },
     {
@@ -85,7 +90,7 @@ export const chapterEight = createAdvancedChapter({
   ],
   questions: [
     { lessonId: 'icmp-role', prompt: 'What is ICMP used for here?', answers: ['IP control information and diagnostics', 'Assigning VLAN access ports', 'Encrypting application data'], correctAnswerIndex: 0, explanation: 'ICMP supports IP reporting and diagnostics.' },
-    { lessonId: 'echo-request-reply', prompt: 'What completes a successful Echo round trip?', answers: ['A Request reaches the destination and a Reply returns', 'A Request leaves the source only', 'A switch learns one MAC'], correctAnswerIndex: 0, explanation: 'Both forward and return delivery are required.' },
+    { lessonId: 'echo-request-reply', prompt: 'Which IPv4 ICMP Type and Code identify an Echo Request?', answers: ['Type 8 / Code 0', 'Type 0 / Code 0', 'Type 20 / Code 10'], correctAnswerIndex: 0, explanation: 'IPv4 Echo Request is Type 8 Code 0; Echo Reply is Type 0 Code 0.' },
     { lessonId: 'ping-outcomes', prompt: 'What does a timeout directly report?', answers: ['The expected reply was not received in time', 'The cable is definitely broken', 'Every application is blocked'], correctAnswerIndex: 0, explanation: 'Timeout is an observation, not a one-cause diagnosis.' },
     { lessonId: 'ping-success-boundary', prompt: 'A ping reply returns. What does it support?', answers: ['Round-trip IP reachability for that test', 'Every TCP port is open', 'The path will always work'], correctAnswerIndex: 0, explanation: 'Echo success has a limited reachability meaning.' },
     { lessonId: 'ping-failure-boundary', prompt: 'Ping fails but a website works. What is plausible?', answers: ['ICMP Echo is filtered', 'IPv4 is impossible', 'The site has no route'], correctAnswerIndex: 0, explanation: 'Policies can treat ICMP and application traffic differently.' },
@@ -94,7 +99,7 @@ export const chapterEight = createAdvancedChapter({
   ],
   cards: [
     ['icmp-role', 'What is ICMP’s basic role in an IPv4 network?', 'It carries control, error-reporting, and diagnostic information related to IP delivery.', 'ICMP supports tools such as ping but does not carry ordinary application data by itself.'],
-    ['echo-request-reply', 'Which two ICMP messages form a successful basic ping exchange?', 'An Echo Request sent to the destination and an Echo Reply returned to the source.', 'The reply demonstrates a completed ICMP round trip for that test.'],
+    ['echo-request-reply', 'Which Type and Code identify IPv4 ICMP Echo Request and Echo Reply?', 'Request is Type 8 Code 0; Reply is Type 0 Code 0.', 'The returned identifier and sequence number help match the reply to its request.'],
     ['ping-outcomes', 'What should you record before guessing why a ping failed?', 'The exact observed result and the first known checkpoint that failed.', 'A timeout is evidence, not a complete diagnosis.'],
     ['ping-success-boundary', 'What does one successful ping prove?', 'That this ICMP Echo exchange completed in both directions at that time.', 'It does not prove every application, port, protocol, or future packet will work.'],
     ['ping-failure-boundary', 'Why can a ping timeout not identify one universal cause?', 'Many different failures can prevent an Echo Reply, including links, addressing, gateways, routes, return paths, or filtering.', 'Troubleshooting must gather more evidence rather than treating timeout as a diagnosis.'],

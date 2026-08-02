@@ -8,12 +8,14 @@
 
 ## Content boundaries
 
-The practice models local-prefix comparison and next-hop choice across two LANs. It does not model packet queues, frame timing, TTL processing, fragmentation, or router internals.
+The practice models local-prefix comparison and next-hop choice across two LANs. The lesson explains required TTL reduction and IPv4 header-checksum update, but the practice does not simulate packet queues, frame timing, fragmentation, or router hardware internals.
 
 ## Expanded lesson claims
 
 Local-versus-remote comparison, direct next hop, default gateway, local gateway reachability, and link-layer frame replacement are taught separately. “Direct” refers to the IP next hop and can still include a Layer 2 switch.
 
 Worked examples derive both network identities before choosing a next hop and distinguish changing Ethernet frames from stable IPv4 endpoints.
+
+The forwarding sequence now makes next-link preparation explicit: remove the received Ethernet frame, inspect and update IPv4, select a route, resolve the outgoing next hop when necessary, and create a new frame.
 
 The guided sequence keeps the remote IP destination visible while the first Ethernet next hop changes to the locally reachable gateway, preventing the common mistake of treating those two destinations as the same field.

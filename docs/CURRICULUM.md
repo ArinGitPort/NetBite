@@ -4,6 +4,8 @@ This is the canonical source for chapter order, lesson scope, practice alignment
 
 The current sequence contains 84 focused lessons across 12 chapters.
 
+Mechanism lessons follow a consistent beginner sequence: trigger → known information → transmitted fields → device decision → state or output → scope boundary. Exact values appear when they explain observable behavior, such as Ethernet EtherType, ARP broadcast addressing, ICMP Echo types, IPv4 TTL processing, or an 802.1Q VLAN identifier; exhaustive header memorization remains outside scope.
+
 ## Shared Quality Rules
 
 - A lesson teaches one main idea in roughly 1–2 minutes using an opening explanation, one or two titled details, a concrete example, and one key idea.

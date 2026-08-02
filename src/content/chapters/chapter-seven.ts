@@ -1,7 +1,7 @@
 import { createAdvancedChapter } from '@/content/advanced-content-helpers';
 
 export const chapterSeven = createAdvancedChapter({
-  id: 7, flashcardVersion: 3, title: 'ARP', summary: 'Resolve the correct local IPv4 next hop into an Ethernet destination MAC address.',
+  id: 7, contentVersion: 3, flashcardVersion: 4, title: 'ARP', summary: 'Resolve the correct local IPv4 next hop into an Ethernet destination MAC address.',
   lessons: [
     {
       id: 'arp-purpose', title: 'Why IPv4 needs a local MAC mapping', illustration: 'arp-mapping',
@@ -15,13 +15,19 @@ export const chapterSeven = createAdvancedChapter({
     },
     {
       id: 'arp-request', title: 'An ARP request asks the broadcast domain', illustration: 'arp-request',
-      body: 'When no usable mapping is cached, the sender broadcasts an ARP request. The request identifies the target IPv4 address and asks which local interface owns it.',
+      body: 'When no usable mapping is cached, the sender puts an ARP Request inside an Ethernet broadcast frame. The outer Ethernet destination is FF:FF:FF:FF:FF:FF, while EtherType 0x0806 tells receiving interfaces that the payload is ARP.',
       sections: [
-        { heading: 'Why broadcast', body: 'The sender does not yet know the target MAC, so it cannot address the request as a known unicast. The Ethernet broadcast lets every local interface inspect the question.' },
-        { heading: 'Only the owner answers normally', body: 'All hosts may receive the request, but the interface configured with the target IPv4 address is the one expected to identify itself.' },
+        { heading: 'The request carries known facts', body: 'PC-A includes its own IPv4 and MAC, operation Request, and target IPv4 192.168.10.20. The ARP target-hardware field is unknown and has no useful target value yet; it is separate from the outer Ethernet broadcast destination.' },
+        { heading: 'Flood only inside this VLAN', body: 'The switch learns PC-A from the frame source and floods the broadcast through every other active port in VLAN 1. All local interfaces may inspect the question, but only the owner of 192.168.10.20 normally answers.' },
       ],
-      example: { label: 'WHO HAS?', setup: 'PC A broadcasts: Who has 192.168.10.20?', result: 'The switch floods the request within the VLAN, excluding the ingress port.' },
-      takeaway: 'An ARP request broadcasts the target IPv4 question to the local domain.',
+      example: { label: 'WHO HAS 192.168.10.20?', setup: 'PC-A is 192.168.10.10 with MAC 02:00:00:00:00:0A. Its cache has no entry for PC-B.', presentation: 'guided', visual: { illustration: 'arp-request', stageIds: ['build', 'broadcast', 'flood', 'inspect'] }, steps: [
+        { id: 'build', label: 'BUILD THE ARP QUESTION', explanation: 'PC-A supplies its sender IPv4 and MAC, asks for 192.168.10.20, and marks the operation as Request.' },
+        { id: 'broadcast', label: 'ADD THE ETHERNET ENVELOPE', explanation: 'Because the target MAC is unknown, PC-A uses destination FF:FF:FF:FF:FF:FF and EtherType 0x0806.' },
+        { id: 'flood', label: 'FLOOD WITHIN VLAN 1', explanation: 'The switch sends copies through every other active VLAN 1 port, never back through the ingress port.' },
+        { id: 'inspect', label: 'MATCH THE TARGET IPv4', explanation: 'Each receiving host inspects the question. PC-B owns 192.168.10.20, so it prepares the reply.' },
+      ], result: 'The broadcast discovers the unknown local owner without confusing the Ethernet destination with the still-unknown ARP target hardware address.' },
+      takeaway: 'An ARP Request uses Ethernet broadcast FF:FF:FF:FF:FF:FF to ask who owns one local IPv4 address.',
+      termNote: { term: 'FFFF.FFFF.FFFF', definition: 'Cisco-style dotted display of the same 48-bit Ethernet broadcast address written in NetBite as FF:FF:FF:FF:FF:FF.' },
       checkpoint: { prompt: 'Why is the first ARP request broadcast?', correctChoiceId: 'unknown', choices: [
         { id: 'unknown', label: 'TARGET MAC IS UNKNOWN', feedback: 'Correct. Broadcasting lets the unknown local owner receive the question.' },
         { id: 'remote', label: 'TARGET IS ALWAYS REMOTE', feedback: 'ARP resolves a local next hop, not an always-remote target.' },
@@ -30,12 +36,18 @@ export const chapterSeven = createAdvancedChapter({
     },
     {
       id: 'arp-reply', title: 'The owner returns an ARP reply', illustration: 'arp-reply',
-      body: 'The interface owning the requested IPv4 address returns an ARP reply containing its mapping. Because the requester’s addresses were included in the request, the reply can normally be sent directly back as a unicast.',
+      body: 'The interface owning the requested IPv4 address builds operation Reply and places its IPv4-to-MAC mapping in the ARP message. Because PC-A included its addresses in the request, PC-B can normally place the reply inside a unicast Ethernet frame addressed directly to PC-A.',
       sections: [
-        { heading: 'The reply supplies the missing fact', body: 'A statement such as “192.168.10.20 is at 02:00:00:00:00:0B” gives the sender the destination MAC needed for local frame delivery.' },
+        { heading: 'The request teaches too', body: 'The sender fields in PC-A’s request assert that 192.168.10.10 is at 02:00:00:00:00:0A. PC-B can learn or refresh that mapping before it examines whether the message is a request.' },
+        { heading: 'The reply supplies the missing fact', body: 'The reply states that 192.168.10.20 is at 02:00:00:00:00:0B. PC-A stores that mapping and can finally build the separate Ethernet data frame.' },
         { heading: 'ARP does not test the entire route', body: 'A reply proves that this local mapping exchange worked. It does not guarantee that a remote application or every later routed hop is reachable.' },
       ],
-      example: { label: 'OWNER RESPONSE', setup: 'PC B owns 192.168.10.20 and receives PC A’s request.', result: 'PC B unicasts its IPv4-to-MAC mapping back to PC A.' },
+      example: { label: 'OWNER RESPONSE', setup: 'PC-B owns 192.168.10.20 and uses MAC 02:00:00:00:00:0B.', presentation: 'guided', visual: { illustration: 'arp-reply', stageIds: ['learn-requester', 'build-reply', 'unicast', 'cache'] }, steps: [
+        { id: 'learn-requester', label: 'READ THE REQUESTER', explanation: 'PC-B can learn PC-A’s mapping from the sender fields carried in the request.' },
+        { id: 'build-reply', label: 'SUPPLY THE OWNER MAPPING', explanation: 'PC-B sets operation Reply and identifies 192.168.10.20 as 02:00:00:00:00:0B.' },
+        { id: 'unicast', label: 'RETURN DIRECTLY', explanation: 'PC-B normally unicasts the Ethernet reply to PC-A MAC 02:00:00:00:00:0A.' },
+        { id: 'cache', label: 'STORE AND SEND', explanation: 'PC-A caches PC-B’s mapping, then uses it as the destination MAC of the later data frame.' },
+      ], result: 'The ARP exchange updates local mapping knowledge; the data frame is a later, separate Ethernet transmission.' },
       takeaway: 'The target owner normally unicasts an ARP reply containing its local IPv4-to-MAC mapping.',
     },
     {
@@ -86,7 +98,7 @@ export const chapterSeven = createAdvancedChapter({
   ],
   questions: [
     { lessonId: 'arp-purpose', prompt: 'What missing information does ARP discover?', answers: ['The local next-hop MAC for an IPv4 address', 'The entire internet route', 'The subnet block size'], correctAnswerIndex: 0, explanation: 'ARP resolves a selected local next-hop IPv4 address into a MAC.' },
-    { lessonId: 'arp-request', prompt: 'Why does an ARP request use Ethernet broadcast?', answers: ['The target MAC is not known yet', 'The target is always on another LAN', 'Broadcast repairs damaged frames'], correctAnswerIndex: 0, explanation: 'Broadcast lets the unknown local owner hear the request.' },
+    { lessonId: 'arp-request', prompt: 'PC-A does not know the MAC for 192.168.10.20. Which Ethernet destination carries its first ARP Request?', answers: ['FF:FF:FF:FF:FF:FF', '00:00:00:00:00:00', 'The remote router MAC'], correctAnswerIndex: 0, explanation: 'The outer Ethernet frame uses the local broadcast MAC so the unknown owner can inspect the request.' },
     { lessonId: 'arp-reply', prompt: 'Who normally answers a request for 192.168.10.20?', answers: ['The local interface owning 192.168.10.20', 'Every host', 'A remote DNS server'], correctAnswerIndex: 0, explanation: 'The target owner supplies its mapping.' },
     { lessonId: 'arp-cache-reuse', prompt: 'A usable mapping is already cached. What should the host do?', answers: ['Use it without another request', 'Broadcast anyway for every frame', 'Delete its IPv4 address'], correctAnswerIndex: 0, explanation: 'The cache avoids unnecessary repeated discovery.' },
     { lessonId: 'arp-local-sequence', prompt: 'For a local destination, whose MAC is resolved?', answers: ['The destination host’s', 'The default gateway’s', 'A remote router’s'], correctAnswerIndex: 0, explanation: 'The local destination is the IP next hop itself.' },
@@ -95,8 +107,8 @@ export const chapterSeven = createAdvancedChapter({
   ],
   cards: [
     ['arp-purpose', 'What problem does ARP solve on an IPv4 Ethernet LAN?', 'It maps the local next-hop IPv4 address to the MAC address needed for the Ethernet frame.', 'The sender knows an IPv4 next hop but still needs a local-link destination.'],
-    ['arp-request', 'Why is an ARP Request sent as an Ethernet broadcast?', 'The sender does not yet know which local MAC owns the target IPv4 address.', 'Broadcast lets every interface in the local domain inspect the question.'],
-    ['arp-reply', 'Who sends the ARP Reply, and what does it provide?', 'The interface owning the requested IPv4 address replies with its IPv4-to-MAC mapping.', 'The reply is normally unicast back to the requester.'],
+    ['arp-request', 'Which Ethernet destination and EtherType carry a normal IPv4 ARP Request?', 'Destination FF:FF:FF:FF:FF:FF and EtherType 0x0806.', 'The broadcast is the outer Ethernet destination. The ARP target-hardware field remains unknown or unused in the request.'],
+    ['arp-reply', 'How does the ARP owner normally reply, and what mapping does it provide?', 'It normally unicasts an ARP Reply to the requester and supplies its own IPv4-to-MAC mapping.', 'The requester addresses were already present in the original request.'],
     ['arp-cache-reuse', 'What advantage does an ARP cache provide?', 'It lets a host reuse a recent IPv4-to-MAC mapping without broadcasting another request.', 'A usable cache entry shortens later local delivery setup.'],
     ['arp-local-sequence', 'PC A sends to PC B in the same subnet. Whose MAC address must PC A resolve?', 'PC B’s MAC address.', 'For local delivery, the destination host itself is the local next hop.'],
     ['arp-next-hop', 'PC A sends to a remote subnet. Whose MAC address must PC A resolve?', 'The default gateway’s local-interface MAC address.', 'ARP resolves only the local next hop, not the final remote host across the router.'],

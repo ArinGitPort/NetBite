@@ -9,6 +9,7 @@ import {
   type DiagramMarker,
   type DiagramNode,
   type DiagramPrefixRow,
+  type DiagramProtocolGroup,
   type DiagramSegment,
   type DiagramSubnetRow,
   type DiagramTone,
@@ -305,6 +306,42 @@ function PrefixLadder({ rows }: { rows: DiagramPrefixRow[] }) {
   );
 }
 
+function PacketFields({ groups, activeFieldIds = [], mode }: { groups: DiagramProtocolGroup[]; activeFieldIds?: string[]; mode: ResponsiveMode }) {
+  const active = new Set(activeFieldIds);
+  return (
+    <View style={styles.protocolGroups}>
+      {groups.map((group) => (
+        <View key={group.id} style={styles.protocolGroup}>
+          <View style={styles.protocolGroupHeader}>
+            <Text variant="label" style={styles.protocolGroupLabel}>{group.label}</Text>
+            {group.detail ? <Text variant="technical" style={styles.protocolGroupDetail}>{group.detail}</Text> : null}
+          </View>
+          <View style={[styles.protocolFields, mode === 'compact' && styles.protocolFieldsCompact]}>
+            {group.fields.map((field) => {
+              const tone = toneColors[field.tone ?? 'neutral'];
+              const highlighted = active.size === 0 || active.has(field.id);
+              return (
+                <View
+                  key={field.id}
+                  accessibilityLabel={`${field.label}: ${field.value}. ${field.detail}`}
+                  style={[
+                    styles.protocolField,
+                    mode === 'compact' && styles.protocolFieldCompact,
+                    { borderColor: highlighted ? tone.border : '#3D3F42', backgroundColor: highlighted ? tone.fill : '#18171A' },
+                  ]}>
+                  <Text variant="technical" style={[styles.protocolFieldLabel, !highlighted && styles.protocolFieldMuted]}>{field.label}</Text>
+                  <Text variant="label" style={[styles.protocolFieldValue, { color: highlighted ? tone.text : '#8E8B8F' }]}>{field.value}</Text>
+                  <Text variant="technical" style={[styles.protocolFieldDetail, !highlighted && styles.protocolFieldMuted]}>{field.detail}</Text>
+                </View>
+              );
+            })}
+          </View>
+        </View>
+      ))}
+    </View>
+  );
+}
+
 export function EducationalLessonIllustration({ type, stageId }: { type: LessonIllustration; stageId?: string }) {
   const illustration = educationalIllustrations[type];
   const responsive = useMeasuredResponsiveLayout();
@@ -324,6 +361,7 @@ export function EducationalLessonIllustration({ type, stageId }: { type: LessonI
       {illustration.family === 'mapping' ? <Mapping mappings={illustration.mappings} mode={responsive.mode} /> : null}
       {illustration.family === 'number-line' ? <NumberLine markers={illustration.markers ?? []} /> : null}
       {illustration.family === 'prefix-ladder' ? <PrefixLadder rows={illustration.prefixRows ?? []} /> : null}
+      {illustration.family === 'packet-fields' ? <PacketFields activeFieldIds={stage?.activeFieldIds} groups={illustration.protocolGroups ?? []} mode={responsive.mode} /> : null}
       {stage?.callouts?.length ? (
         <AddressRange mode={responsive.mode} presentation="full-address" segments={stage.callouts} />
       ) : null}
@@ -430,6 +468,19 @@ const styles = StyleSheet.create({
   prefixFacts: { minWidth: 0, flexDirection: 'row', flexWrap: 'wrap', gap: Space.sm },
   prefixFact: { color: '#C5C3C5' },
   prefixBlock: { color: '#D18B5A', fontFamily: Fonts.semibold },
+  protocolGroups: { minWidth: 0, gap: Space.md },
+  protocolGroup: { minWidth: 0, borderWidth: 1, borderColor: '#55585A', backgroundColor: '#121114' },
+  protocolGroupHeader: { minWidth: 0, padding: Space.sm, borderBottomWidth: 1, borderBottomColor: '#3D3F42' },
+  protocolGroupLabel: { color: '#D18B5A', fontFamily: Fonts.semibold },
+  protocolGroupDetail: { color: '#BCB9BC', marginTop: 2 },
+  protocolFields: { minWidth: 0, flexDirection: 'row', flexWrap: 'wrap' },
+  protocolFieldsCompact: { flexDirection: 'column', flexWrap: 'nowrap' },
+  protocolField: { minWidth: 132, minHeight: 112, flexGrow: 1, flexBasis: 156, justifyContent: 'center', padding: Space.sm, borderWidth: 1 },
+  protocolFieldCompact: { width: '100%', minWidth: 0, minHeight: 96, flexBasis: 'auto' },
+  protocolFieldLabel: { color: '#BCB9BC' },
+  protocolFieldValue: { minWidth: 0, marginTop: Space.xs, fontFamily: Fonts.semibold },
+  protocolFieldDetail: { color: '#C5C3C5', marginTop: Space.xs },
+  protocolFieldMuted: { color: '#777579' },
   stageTitle: { color: Palette.green, textAlign: 'center' },
   footer: { color: Palette.textMuted, textAlign: 'center' },
 });

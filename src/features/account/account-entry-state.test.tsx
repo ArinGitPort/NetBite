@@ -10,16 +10,21 @@ jest.mock('@/services/supabase', () => ({
 }));
 
 function AccountEntryProbe() {
-  const { accountEntryResolved, completeGuestEntry, resetAccountEntry } = useAuth();
+  const { accountEntryResolved, completeGuestEntry, resetAccountEntry, testProEnabled, setTestProEnabled } = useAuth();
   return <>
     <Text>{accountEntryResolved ? 'RESOLVED' : 'REQUIRED'}</Text>
     <Pressable accessibilityRole="button" onPress={completeGuestEntry}><Text>COMPLETE</Text></Pressable>
     <Pressable accessibilityRole="button" onPress={resetAccountEntry}><Text>RESET</Text></Pressable>
+    <Text>{testProEnabled ? 'TEST PRO ON' : 'TEST PRO OFF'}</Text>
+    <Pressable accessibilityRole="button" onPress={() => setTestProEnabled(!testProEnabled)}><Text>TOGGLE PRO</Text></Pressable>
   </>;
 }
 
 describe('account entry preference', () => {
-  beforeEach(() => localStorage.removeItem('netbite-account-entry-v1'));
+  beforeEach(() => {
+    localStorage.removeItem('netbite-account-entry-v1');
+    localStorage.removeItem('netbite-local-test-pro-v1');
+  });
 
   test('persists a guest choice and restores it in a new provider', async () => {
     const first = await render(<AuthProvider><AccountEntryProbe /></AuthProvider>);
@@ -39,5 +44,13 @@ describe('account entry preference', () => {
     await fireEvent.press(screen.getByText('RESET'));
     expect(screen.getByText('REQUIRED')).toBeTruthy();
     expect(localStorage.getItem('netbite-account-entry-v1')).toBeNull();
+  });
+
+  test('persists a development-only local Pro override', async () => {
+    const screen = await render(<AuthProvider><AccountEntryProbe /></AuthProvider>);
+    expect(screen.getByText('TEST PRO OFF')).toBeTruthy();
+    await fireEvent.press(screen.getByText('TOGGLE PRO'));
+    expect(screen.getByText('TEST PRO ON')).toBeTruthy();
+    expect(localStorage.getItem('netbite-local-test-pro-v1')).toBe('enabled');
   });
 });

@@ -17,3 +17,4 @@ Layer mapping is a teaching model for responsibilities and troubleshooting. It i
 - The TCP/IP bottom layer is labeled `Network Access / Link` to acknowledge common terminology variants while retaining RFC 1122’s Link-layer grouping.
 - End-to-end examples classify each responsibility independently and do not present the OSI model as a literal timed processing machine.
 - The guided synthesis follows one application exchange through responsibility groups. Each stage identifies what its layer contributes without implying that adjacent-layer work is performed there.
+- The overview uses the concrete application data → TCP segment or UDP datagram → IPv4 packet/datagram → Ethernet frame → bits/signals sequence while warning that upper-layer data-unit names and implementations are not universal literal modules.

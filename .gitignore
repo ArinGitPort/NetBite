@@ -40,6 +40,9 @@ yarn-error.*
 # local env files
 .env*.local
 
+# Supabase CLI connection metadata
+/supabase/.temp/
+
 # typescript
 *.tsbuildinfo
 

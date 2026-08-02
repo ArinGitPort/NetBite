@@ -1,20 +1,23 @@
 import { createAdvancedChapter } from '@/content/advanced-content-helpers';
 
 export const chapterNine = createAdvancedChapter({
-  id: 9, contentVersion: 3, flashcardVersion: 4, title: 'Static Routing', summary: 'Read route entries, find every matching prefix, and select connected, static, most-specific, and default paths.',
+  id: 9, contentVersion: 4, flashcardVersion: 5, title: 'Static Routing', summary: 'Read route entries, find every matching prefix, and select connected, static, most-specific, and default paths.',
   lessons: [
     {
       id: 'route-table-purpose', title: 'A route table answers where to send IP traffic', illustration: 'route-purpose',
       body: 'A router compares each destination IPv4 address with entries in its routing table. A matching route describes a destination prefix and how traffic for that prefix should leave or reach a next router.',
       sections: [
         { heading: 'Routes describe networks', body: 'A route normally matches an address range represented by a prefix, not one application or Ethernet frame. More than one entry may match the same destination.' },
+        { heading: 'Selection comes before transmission', body: 'After selecting a usable route, an IPv4 router reduces TTL and updates the IPv4 header checksum. It then resolves the selected next hop on the outgoing link when needed and builds new link-layer framing.' },
         { heading: 'No usable match means no forwarding path', body: 'If neither a specific route nor a default route is available, the router cannot invent a next hop. It drops the packet and may report an ICMP condition.' },
       ],
-      example: { label: 'LOOKUP QUESTION', setup: 'A packet reaches R1 with destination 192.168.30.25.', presentation: 'guided', visual: { illustration: 'route-purpose', stageIds: ['read', 'match', 'select'] }, steps: [
+      example: { label: 'LOOKUP AND FORWARDING QUESTION', setup: 'A packet reaches R1 with destination 192.168.30.25 and TTL 64.', presentation: 'guided', visual: { illustration: 'route-purpose', stageIds: ['read', 'match', 'select', 'update', 'forward'] }, steps: [
         { id: 'read', label: 'READ THE DESTINATION', explanation: 'Route lookup uses the destination IPv4 address, not the source MAC or application name.', value: '192.168.30.25' },
         { id: 'match', label: 'FIND MATCHING PREFIXES', explanation: 'Compare the destination with each usable route’s address range.' },
         { id: 'select', label: 'SELECT THE MOST SPECIFIC', explanation: 'From the matching set, choose the route with the longest prefix.' },
-      ], result: 'Only after those steps does the router obtain a next hop or exit interface.' },
+        { id: 'update', label: 'UPDATE IPv4 FOR THE HOP', explanation: 'Reduce TTL from 64 to 63 and update the IPv4 header checksum.', value: 'TTL 63' },
+        { id: 'forward', label: 'BUILD NEXT-LINK DELIVERY', explanation: 'Resolve the selected next hop if needed, then place the packet inside a new outgoing frame.' },
+      ], result: 'Route selection identifies the path; IPv4 and link-layer processing perform the actual forwarding hop.' },
       takeaway: 'The route table maps destination prefixes to forwarding paths.',
     },
     {
@@ -112,7 +115,7 @@ export const chapterNine = createAdvancedChapter({
     },
   ],
   questions: [
-    { lessonId: 'route-table-purpose', prompt: 'What does a router compare with its route table?', answers: ['The destination IPv4 address', 'The source application password', 'The cable color'], correctAnswerIndex: 0, explanation: 'Destination prefixes drive route lookup.' },
+    { lessonId: 'route-table-purpose', prompt: 'After selecting a usable IPv4 route, what must the router do before transmitting on another Ethernet link?', answers: ['Reduce TTL and build new link-layer framing', 'Keep the original Ethernet frame unchanged', 'Replace the final destination IP with its own address'], correctAnswerIndex: 0, explanation: 'The router processes the IPv4 header and builds local delivery information for the outgoing link.' },
     { lessonId: 'connected-remote-routes', prompt: 'How is an active directly attached subnet normally known?', answers: ['As a connected route', 'As an ARP reply across the internet', 'As a VLAN name'], correctAnswerIndex: 0, explanation: 'Active addressed interfaces create connected routes.' },
     { lessonId: 'reading-route-entry', prompt: 'Which field defines the matching network?', answers: ['Destination prefix', 'Router hostname', 'Cable type'], correctAnswerIndex: 0, explanation: 'Destination plus prefix length defines the range.' },
     { lessonId: 'static-next-hop', prompt: 'What must be true of a static route’s next hop?', answers: ['It must be reachable', 'It must be the final host', 'It must use /0'], correctAnswerIndex: 0, explanation: 'The router needs a path to the named neighbor.' },
@@ -122,7 +125,7 @@ export const chapterNine = createAdvancedChapter({
     { lessonId: 'default-route', prompt: 'When is 0.0.0.0/0 selected?', answers: ['When no more-specific route matches', 'Before every connected route', 'Only for broadcasts'], correctAnswerIndex: 0, explanation: 'Default is the least-specific fallback.' },
   ],
   cards: [
-    ['route-table-purpose', 'What question does a router answer with its routing table?', 'Which matching route should carry this destination IPv4 address toward its next hop or outgoing interface.', 'The table guides Layer 3 forwarding; it does not identify the final Ethernet MAC by itself.'],
+    ['route-table-purpose', 'What complete sequence follows when a router forwards an IPv4 packet?', 'Read the destination, find matching routes, choose the longest match, reduce TTL and update the header, then resolve the next hop and build a new frame.', 'Route lookup and next-link transmission are related but distinct steps.'],
     ['connected-remote-routes', 'When does a router derive a connected route automatically?', 'When one of its active interfaces has a valid IPv4 address and prefix for that network.', 'A remote network instead needs a learned or configured route.'],
     ['reading-route-entry', 'What information must you read from a route entry before using it?', 'Its destination network and prefix, plus the outgoing interface or next-hop router.', 'The prefix defines what destinations match; the forwarding information defines where matching traffic goes.'],
     ['static-next-hop', 'What must be true before a configured static next hop is usable?', 'The router must have a working route and link-layer path to reach that neighboring next-hop address.', 'Naming an unreachable next hop does not create a physical or Layer 2 path.'],

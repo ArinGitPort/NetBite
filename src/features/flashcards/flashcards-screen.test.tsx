@@ -61,7 +61,7 @@ describe('FlashcardsScreen', () => {
 
     await fireEvent.press(screen.getByText(/review again/i));
     expect(useGameStore.getState().flashcardPositions['2']).toBe(1);
-    expect(screen.getByText(/Why does Ethernet place data inside a frame/i)).toBeTruthy();
+    expect(screen.getByText(/What are the five operational Ethernet frame fields/i)).toBeTruthy();
     expect(screen.getByText('0/9')).toBeTruthy();
   });
 

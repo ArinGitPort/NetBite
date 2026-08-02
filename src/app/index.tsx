@@ -20,7 +20,7 @@ import { useSandboxStore } from '@/store/use-sandbox-store';
 import { useResearchStore } from '@/store/use-research-store';
 
 export default function MainMenuScreen() {
-  const { status, profile, hasPro, hasContentAccess, presentationActive, syncStatus, accountEntryResolved } = useAuth();
+  const { status, profile, hasPro, hasContentAccess, testProEnabled, presentationActive, syncStatus, accountEntryResolved } = useAuth();
   const completedLessonIds = useGameStore((state) => state.completedLessonIds);
   const completedLabIds = useGameStore((state) => state.completedLabIds);
   const quizScores = useGameStore((state) => state.quizScores);
@@ -98,7 +98,7 @@ export default function MainMenuScreen() {
           detail={hasContentAccess ? 'Build and test a deterministic network.' : 'See what Pro unlocks before entering the tool.'}
           endIcon={hasContentAccess ? 'arrow-right' : 'lock'}
           icon="sandbox"
-          status={presentationActive ? 'DEMO ACCESS / NOT PURCHASED' : hasPro ? 'PRO / AUTOSAVED' : 'PRO / LOCKED'}
+          status={presentationActive ? 'DEMO ACCESS / NOT PURCHASED' : testProEnabled ? 'TEST ACCESS / NOT PURCHASED' : hasPro ? 'PRO / AUTOSAVED' : 'PRO / LOCKED'}
           title="NETWORK SANDBOX"
           tone="sandbox"
           onPress={() => navigateOnce(hasContentAccess ? '/sandbox' : AppRoutes.pro)}
@@ -110,7 +110,7 @@ export default function MainMenuScreen() {
           icon="account"
           loading={status === 'authenticated' && syncStatus === 'syncing'}
           priority="utility"
-          status={hasPro ? 'PRO ACTIVE' : status === 'authenticated' ? 'FREE ACCOUNT' : 'GUEST / LOCAL'}
+          status={testProEnabled ? 'LOCAL TEST PRO' : hasPro ? 'PRO ACTIVE' : status === 'authenticated' ? 'FREE ACCOUNT' : 'GUEST / LOCAL'}
           title={status === 'authenticated' ? (profile?.displayName?.toUpperCase() || 'MY ACCOUNT') : 'SIGN IN / REGISTER'}
           onPress={() => navigateOnce(status === 'authenticated' ? AppRoutes.account : AppRoutes.auth)}
         />

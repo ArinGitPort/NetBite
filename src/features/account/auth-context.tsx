@@ -26,6 +26,8 @@ interface AuthContextValue {
   entitlement?: Entitlement;
   hasPro: boolean;
   hasContentAccess: boolean;
+  testProAvailable: boolean;
+  testProEnabled: boolean;
   presentationActive: boolean;
   syncStatus: SyncStatus;
   error?: string;
@@ -43,6 +45,7 @@ interface AuthContextValue {
   resolveProgressMerge: (choice: ProgressMergeChoice) => Promise<void>;
   refreshEntitlement: () => Promise<boolean>;
   syncNow: () => Promise<void>;
+  setTestProEnabled: (enabled: boolean) => void;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -50,6 +53,7 @@ const GUEST_SNAPSHOT_KEY = 'netbite-guest-progress-v1';
 const OWNER_KEY = 'netbite-progress-owner-v1';
 const UPDATED_KEY = 'netbite-progress-updated-v1';
 const ACCOUNT_ENTRY_KEY = 'netbite-account-entry-v1';
+const TEST_PRO_KEY = 'netbite-local-test-pro-v1';
 const accountSnapshotKey = (userId: string) => `netbite-account-progress-v1-${userId}`;
 
 WebBrowser.maybeCompleteAuthSession();
@@ -95,6 +99,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const [error, setError] = useState<string>();
   const [mergeRequest, setMergeRequest] = useState<MergeRequest>();
   const [accountEntryResolved, setAccountEntryResolved] = useState(() => localStorage.getItem(ACCOUNT_ENTRY_KEY) === 'complete');
+  const [testProEnabled, setTestProEnabledState] = useState(() => __DEV__ && localStorage.getItem(TEST_PRO_KEY) === 'enabled');
   const applyingRemote = useRef(false);
   const syncTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const lastSerialized = useRef('');
@@ -108,6 +113,13 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const resetAccountEntry = useCallback(() => {
     localStorage.removeItem(ACCOUNT_ENTRY_KEY);
     setAccountEntryResolved(false);
+  }, []);
+
+  const setTestProEnabled = useCallback((enabled: boolean) => {
+    if (!__DEV__) return;
+    if (enabled) localStorage.setItem(TEST_PRO_KEY, 'enabled');
+    else localStorage.removeItem(TEST_PRO_KEY);
+    setTestProEnabledState(enabled);
   }, []);
 
   const applyOwnedProgress = useCallback((snapshot: CloudProgressSnapshot, owner: string) => {
@@ -386,7 +398,9 @@ export function AuthProvider({ children }: PropsWithChildren) {
     profile,
     entitlement,
     hasPro,
-    hasContentAccess: hasPro || presentationActive || researchActive,
+    hasContentAccess: hasPro || testProEnabled || presentationActive || researchActive,
+    testProAvailable: __DEV__,
+    testProEnabled,
     presentationActive,
     syncStatus,
     error,
@@ -410,6 +424,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     resolveProgressMerge,
     refreshEntitlement,
     syncNow,
+    setTestProEnabled,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

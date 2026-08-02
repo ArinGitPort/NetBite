@@ -16,4 +16,6 @@ The chapter practice uses the bounded NetBite CLI described in `CLI_SIMULATION_S
 
 Echo exchange, observable tool outcomes, success boundaries, failure ambiguity, and dependency-based troubleshooting are separate lessons. Operating-system-specific output wording is not treated as protocol behavior.
 
+For IPv4, Echo Request is Type 8 Code 0 and Echo Reply is Type 0 Code 0. Identifier and sequence values are returned so the source can associate a reply with its request; learners are not asked to memorize the complete ICMP header.
+
 Diagnostic examples separate observation, supported conclusion, unknown causes, and the first demonstrated dependency failure.

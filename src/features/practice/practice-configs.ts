@@ -50,8 +50,8 @@ export const practiceConfigs: Record<string, PracticeConfig> = {
     id: 'arp-resolution-desk', chapterId: '7', eyebrow: 'GUIDED PRACTICE / ARP DESK', title: 'RESOLVE THE NEXT HOP',
     objective: 'Choose the local IPv4 target to resolve and reuse learned cache entries.', scopeNote: 'DETERMINISTIC CACHE STEPS / NO AGING TIMER',
     stages: [
-      stage('local', 'A SENDS TO LOCAL B / CACHE EMPTY', 'What should A do?', ['BROADCAST ARP FOR B', 'ARP FOR GATEWAY', 'SEND WITHOUT A MAC'], 0, 'For a local destination, B itself is the next hop.', 'REQUEST: WHO HAS B?'),
-      stage('reply', 'B OWNS THE REQUESTED IPv4 ADDRESS', 'What follows?', ['B REPLIES / A CACHES MAPPING', 'EVERY HOST REPLIES', 'ROUTER CHANGES B ADDRESS'], 0, 'The owner replies and A records the IPv4-to-MAC mapping.', 'B MAPPING CACHED'),
+      stage('local', 'A SENDS TO LOCAL B / CACHE EMPTY', 'Which Ethernet destination carries the ARP Request?', ['FF:FF:FF:FF:FF:FF', 'B MAC / ALREADY KNOWN', 'GATEWAY MAC'], 0, 'B is the local next hop, but its MAC is unknown. Ethernet broadcast carries the ARP question within the VLAN.', 'ETHERTYPE 0x0806 / WHO HAS B?'),
+      stage('reply', 'B OWNS THE TARGET IPv4 / A ADDRESS WAS IN REQUEST', 'What follows normally?', ['B UNICASTS REPLY / A CACHES B', 'EVERY HOST REPLIES', 'B BROADCASTS THE DATA FRAME'], 0, 'B can address A from the request fields, normally unicasts its mapping, and A caches the result.', 'B MAPPING CACHED'),
       stage('remote', 'A SENDS TO REMOTE C / GATEWAY 192.168.10.1 / CACHE EMPTY', 'Which address should A resolve?', ['REMOTE C', 'LOCAL GATEWAY 192.168.10.1', 'A ITSELF'], 1, 'ARP resolves the local next hop, which is the gateway for a remote destination.', 'REQUEST: WHO HAS 192.168.10.1?'),
       stage('cache', 'A SENDS REMOTELY AGAIN / GATEWAY MAPPING CACHED', 'What should A do?', ['USE CACHED GATEWAY MAC', 'BROADCAST ARP AGAIN NOW', 'ARP FOR REMOTE C'], 0, 'A current cache entry supplies the gateway MAC immediately.', 'CACHE HIT'),
     ], completion: 'You resolved local hosts and remote gateway next hops.',

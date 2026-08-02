@@ -21,7 +21,7 @@ function Choice({ label, selected, onPress }: { label: string; selected: boolean
 }
 
 export default function SettingsScreen() {
-  const { status, configured, syncStatus, error: syncError, syncNow } = useAuth();
+  const { status, configured, syncStatus, error: syncError, syncNow, testProAvailable, testProEnabled, setTestProEnabled } = useAuth();
   const hapticsEnabled = useGameStore((state) => state.hapticsEnabled);
   const motionPreference = useGameStore((state) => state.motionPreference);
   const setHapticsEnabled = useGameStore((state) => state.setHapticsEnabled);
@@ -69,6 +69,12 @@ export default function SettingsScreen() {
         {syncStatus === 'action-needed' && syncError ? <Text accessibilityRole="alert" variant="bodySmall" style={styles.syncWarning}>{syncError}</Text> : null}
         {status === 'authenticated' ? <AppButton disabled={manualSyncBusy || syncStatus === 'syncing' || presentationActive || researchActive} label={manualSyncBusy || syncStatus === 'syncing' ? 'Syncing...' : syncStatus === 'action-needed' ? 'Retry cloud sync' : 'Sync now'} variant="secondary" onPress={() => void runManualSync()} /> : null}
       </View>
+      {testProAvailable ? <View style={[styles.section, styles.testAccessSection]}>
+        <Text variant="sectionHeading" style={styles.heading}>LOCAL PRO TEST ACCESS</Text>
+        <Text variant="label" style={testProEnabled ? styles.syncLabel : styles.syncWarning}>{testProEnabled ? 'ENABLED / NOT PURCHASED' : 'DISABLED / DEVELOPMENT ONLY'}</Text>
+        <Text variant="bodySmall" style={styles.detail}>Unlocks Chapters 5–12 and Network Sandbox on this development installation. It does not create a purchase or Supabase entitlement and cannot exist in a release build.</Text>
+        <AppButton label={testProEnabled ? 'Disable test Pro' : 'Enable test Pro'} variant={testProEnabled ? 'secondary' : 'primary'} onPress={() => setTestProEnabled(!testProEnabled)} />
+      </View> : null}
       <Text variant="label" style={styles.groupLabel}>PREFERENCES</Text>
       <View style={styles.section}>
         <View style={styles.preferenceGroup}>
@@ -121,6 +127,7 @@ const styles = StyleSheet.create({
   syncDotWarning: { borderColor: Palette.orange, backgroundColor: Palette.orange },
   syncLabel: { color: Palette.green },
   syncWarning: { color: Palette.orange },
+  testAccessSection: { borderColor: Palette.orange },
   choices: { flexDirection: 'row', flexWrap: 'wrap', gap: Space.sm },
   choice: { minWidth: 120, minHeight: 44, flexGrow: 1, borderWidth: 1, borderColor: Palette.border, alignItems: 'center', justifyContent: 'center', padding: Space.sm },
   choiceSelected: { borderColor: Palette.orange, backgroundColor: Palette.orangeSoft },

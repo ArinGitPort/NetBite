@@ -21,6 +21,9 @@ Lesson illustrations must make the networking relationship easier to understand 
 - Diagrams describe deterministic educational states, not packet timing, queues, sockets, or a live protocol simulation.
 - Guided diagrams expose stable stages that match worked-example step IDs. A stage may emphasize or annotate existing exact data, but it must not replace, abbreviate, or contradict the complete diagram.
 - Guided controls use immediate state changes rather than decorative motion. This makes the same explanation valid with reduced motion enabled.
+- Packet-field diagrams group the outer Ethernet frame separately from its contained ARP, IPv4, ICMP, or 802.1Q information. Every field has a stable ID, exact selectable value, and short operational explanation.
+- Packet fields stack as full-width records on compact screens. Wider screens may wrap or arrange fields horizontally only when complete MAC addresses, EtherTypes, types/codes, and VLAN values remain readable without truncation.
+- Guided packet stages emphasize existing fields by stable ID; inactive fields remain visible so the learner never mistakes progressive disclosure for a changing frame format.
 
 ## Visual treatment
 
@@ -51,6 +54,9 @@ The library contains separate server/terminal, Ethernet frame, IPv4 datagram, AR
 - TCP/IP is shown as Application, Transport, Internet, and Network Access / Link.
 - Model mapping is deterministic: OSI Application/Presentation/Session to TCP/IP Application; Transport to Transport; Network to Internet; Data Link/Physical to Network Access / Link.
 - IPv4, subnet, routing, ARP, ICMP, Ethernet, MAC-learning, and VLAN diagrams must match the claims and boundaries recorded in `references/ILLUSTRATION_SOURCES.md`.
+- ARP Request diagrams must distinguish the Ethernet broadcast destination `FF:FF:FF:FF:FF:FF` from the unknown ARP target-hardware field and from an IPv4 broadcast address.
+- IPv4 ICMP Echo diagrams show Request Type 8 Code 0 and Reply Type 0 Code 0; identifier and sequence are matching aids, not trivia-only labels.
+- 802.1Q diagrams place the four-byte tag after source MAC and before the original EtherType, with `0x8100` TPID and a 12-bit VLAN identifier.
 - Subnet bit strips label every position as network or host and connect active bit values to the decimal mask octet.
 - Subnet maps use vertical rows with complete network, usable, and broadcast IPv4 addresses; unexplained final-octet shorthand is not permitted.
 - Subnet blocks use address-space graphics, never router artwork as a substitute for an address range.

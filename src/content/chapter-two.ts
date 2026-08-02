@@ -16,14 +16,15 @@ export const chapterTwoLessons = buildLessons('2', [
     id: 'ethernet-frames', title: 'Data travels in frames', illustration: 'frame',
     body: 'Ethernet does not send an application message as an unstructured stream of symbols. It places local-link data and control information into a defined unit called a frame so receiving interfaces can interpret the transmission.',
     sections: [
-      { heading: 'Delivery fields', body: 'A frame carries destination and source MAC addresses. Chapter 3 explains how switches use those addresses; for now, recognize that both identify interfaces on the local Ethernet path.' },
-      { heading: 'Payload and check', body: 'The data field carries information from an upper protocol. A trailer check helps a receiver detect a damaged frame, but Ethernet does not repair the damaged data.' },
+      { heading: 'Read the important fields in order', body: 'Destination MAC names the local receiver or group, source MAC names the sender, and the two-byte EtherType identifies the contained protocol. For example, 0x0800 identifies IPv4 and 0x0806 identifies ARP.' },
+      { heading: 'Payload and check', body: 'The payload carries the upper-layer packet or message. The four-byte Frame Check Sequence, or FCS, helps a receiver detect corruption, but Ethernet discards rather than repairs a damaged frame.' },
     ],
-    example: { label: 'FROM DATA TO SIGNAL', setup: 'PC A needs to send IP data across its local link to a switch.', steps: [
-      { id: 'data', label: 'RECEIVE THE PAYLOAD', explanation: 'The networking stack gives the NIC data that must cross this Ethernet link.' },
-      { id: 'frame', label: 'BUILD THE FRAME', explanation: 'The NIC adds local destination and source MAC fields plus an error-detection check.' },
-      { id: 'signal', label: 'TRANSMIT ON THE MEDIUM', explanation: 'The completed frame is represented as signals across the attached copper or fiber link.' },
-    ], result: 'The frame is the structured local-link unit; it is not the cable signal or the application message by itself.' },
+    example: { label: 'BUILD ONE ETHERNET FRAME', setup: 'PC A needs to carry an IPv4 datagram across its local Ethernet link.', presentation: 'guided', visual: { illustration: 'frame', stageIds: ['payload', 'addresses', 'type', 'check'] }, steps: [
+      { id: 'payload', label: 'RECEIVE THE PAYLOAD', explanation: 'The networking stack gives the NIC an IPv4 datagram that must cross this link.' },
+      { id: 'addresses', label: 'ADD LOCAL MAC ADDRESSES', explanation: 'The NIC writes the destination and source MAC addresses for this Ethernet hop.' },
+      { id: 'type', label: 'IDENTIFY THE PAYLOAD', explanation: 'EtherType 0x0800 tells the receiver that the payload is IPv4.', value: '0x0800 / IPv4' },
+      { id: 'check', label: 'ADD THE FCS', explanation: 'The sender calculates an error-detection value that the receiver checks after transmission.' },
+    ], result: 'The completed frame is then represented as signals on copper or fiber; the frame is not the signal itself.' },
     takeaway: 'An Ethernet frame packages local-link delivery information, payload data, and an error check.',
     checkpoint: { prompt: 'Which frame field identifies where the frame should go on the local link?', correctChoiceId: 'destination', choices: [
       { id: 'destination', label: 'DESTINATION MAC', feedback: 'Correct. The destination MAC identifies the intended local-link interface.' },
@@ -86,7 +87,7 @@ export const chapterTwoLessons = buildLessons('2', [
 
 export const chapterTwoQuiz: QuizQuestion[] = [
   { id: 'ethernet-scope', lessonId: 'ethernet-local-link', prompt: 'What scope does this chapter assign to Ethernet?', answers: ['Communication across a local link', 'A complete route across every network', 'Application login and permissions'], correctAnswerIndex: 0, explanation: 'Ethernet provides local-link communication; routing and applications have other responsibilities.' },
-  { id: 'frame-purpose', lessonId: 'ethernet-frames', prompt: 'Why does Ethernet use frames?', answers: ['To organize local delivery information, payload, and a check', 'To assign every router a route', 'To replace the physical medium'], correctAnswerIndex: 0, explanation: 'A frame is Ethernet’s structured transmission unit.' },
+  { id: 'frame-purpose', lessonId: 'ethernet-frames', prompt: 'Which field tells a receiver whether an Ethernet payload contains IPv4 or ARP?', answers: ['EtherType', 'Source MAC', 'Frame Check Sequence'], correctAnswerIndex: 0, explanation: 'EtherType identifies the upper protocol carried in the payload.' },
   { id: 'nic-purpose', lessonId: 'network-interface-card', prompt: 'What sends and receives Ethernet frames for a PC?', answers: ['Its NIC', 'A remote router table', 'The application window alone'], correctAnswerIndex: 0, explanation: 'The NIC is the PC’s Ethernet interface.' },
   { id: 'fiber-signal', lessonId: 'ethernet-media', prompt: 'What carries information through fiber-optic Ethernet media?', answers: ['Light', 'Electrical current in copper pairs', 'A MAC table'], correctAnswerIndex: 0, explanation: 'Fiber carries information using pulses of light.' },
   { id: 'media-compatibility', lessonId: 'ethernet-media', prompt: 'A copper port is cabled directly to a fiber-only port with no converter. What is the problem?', answers: ['The endpoints do not support the same medium', 'The frame has too many MAC addresses', 'The LAN needs a second name'], correctAnswerIndex: 0, explanation: 'Both endpoints must support compatible media and connectors.' },
@@ -96,7 +97,7 @@ export const chapterTwoQuiz: QuizQuestion[] = [
 
 export const chapterTwoFlashcards: Flashcard[] = [
   { id: 'ethernet', lessonId: 'ethernet-local-link', prompt: 'What part of delivery does Ethernet handle in this course?', answer: 'Communication across one local wired link at a time.', explanation: 'Ethernet does not describe the complete routed path across the internet.' },
-  { id: 'frame', lessonId: 'ethernet-frames', prompt: 'Why does Ethernet place data inside a frame?', answer: 'To organize local destination and source information, payload data, and an error-detection check.', explanation: 'The frame is the structured local-link unit; it is not the signal or application message itself.' },
+  { id: 'frame', lessonId: 'ethernet-frames', prompt: 'What are the five operational Ethernet frame fields shown in NetBite, in order?', answer: 'Destination MAC, source MAC, EtherType, payload, and Frame Check Sequence.', explanation: 'EtherType identifies the payload protocol; FCS detects corruption rather than repairing it.' },
   { id: 'frame-fields', lessonId: 'ethernet-frames', prompt: 'Which Ethernet frame fields identify the local sender and intended receiver?', answer: 'The source MAC and destination MAC fields.', explanation: 'Switches later learn from the source and make forwarding decisions from the destination.' },
   { id: 'nic', lessonId: 'network-interface-card', prompt: 'What hardware sends and receives Ethernet frames for a PC?', answer: 'Its network interface controller, or NIC.', explanation: 'The NIC is the device-side attachment to the Ethernet link.' },
   { id: 'media', lessonId: 'ethernet-media', prompt: 'How do copper and fiber Ethernet carry information differently?', answer: 'Copper uses electrical signals; fiber uses light.', explanation: 'Both ends of a link must support compatible media and connectors.' },
@@ -107,7 +108,7 @@ export const chapterTwoFlashcards: Flashcard[] = [
 ];
 
 export const chapterTwo: ChapterDefinition = {
-  id: '2', contentVersion: 2, flashcardVersion: 3, numberLabel: '02', title: 'Ethernet', summary: 'See how frames, interfaces, media, and port state create a working local Ethernet link.',
+  id: '2', contentVersion: 3, flashcardVersion: 4, numberLabel: '02', title: 'Ethernet', summary: 'See how frames, interfaces, media, and port state create a working local Ethernet link.',
   lessons: chapterTwoLessons, quiz: chapterTwoQuiz, flashcards: chapterTwoFlashcards,
   lab: { id: 'ethernet-cables', title: 'Manual copper cabling practice', detail: 'Focused practice for straight-through and crossover rules' },
   recap: { built: 'A set of working Ethernet links', learned: 'Frames, NICs, media, cabling roles, ports, and link state', next: 'How switches identify interfaces and forward frames' },

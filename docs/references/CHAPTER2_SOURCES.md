@@ -22,7 +22,8 @@ The Chapter 2 lab is explicitly marked `LEGACY MODE` so learners understand why 
 ## Content Decisions
 
 - Detailed MAC address formatting, switch learning, flooding, broadcast behavior, and forwarding are reserved for Chapter 3.
-- Ethernet frame content is simplified to destination, source, data, and error-checking concepts. Exact field sizes are intentionally deferred.
+- The operational frame view includes destination MAC, source MAC, the two-byte EtherType, payload, and four-byte FCS. Preamble, minimum/maximum frame calculations, and physical timing remain deferred.
+- EtherType examples `0x0800` for IPv4 and `0x0806` for ARP are checked against the IANA IEEE 802 number registry.
 - Fiber is introduced as optical media, while the lab focuses only on traditional copper wiring choices.
 - Manual cabling graphics show conceptual transmit and receive paths. They are explicitly not RJ-45 pinouts or a representation of conductor count.
 - Ethernet scope, frame structure, media choice, manual pair orientation, auto-MDIX, and link-state evidence are taught as separate concepts.

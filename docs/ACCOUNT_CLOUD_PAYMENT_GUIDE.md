@@ -43,6 +43,11 @@ The migration creates:
 - `entitlements`: owner-readable, server-writable access records.
 - `purchases`: owner-readable, server-writable Stripe event records.
 
+The profile backfill migration creates a `profiles` row for accounts that
+already existed in Supabase Auth before the NetBite tables were deployed. It
+copies only the user ID, display name, and avatar URL from Auth metadata;
+credentials and provider tokens remain in Supabase Auth.
+
 Row-level security limits profile, progress, entitlement, and purchase reads to the authenticated owner. Mobile clients cannot grant entitlements or write purchase records.
 
 ## Edge Functions and Secrets

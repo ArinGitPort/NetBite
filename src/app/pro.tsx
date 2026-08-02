@@ -12,7 +12,7 @@ import { AppRoutes } from '@/shared/routes';
 import { Fonts, Palette, Space } from '@/shared/theme';
 
 export default function ProScreen() {
-  const { status, hasPro } = useAuth();
+  const { status, hasPro, testProEnabled } = useAuth();
   return (
     <Screen>
       <IconButton accessibilityLabel="Back" icon="arrow-left" label="BACK" onPress={() => goBackOrReplace('/')} />
@@ -29,7 +29,12 @@ export default function ProScreen() {
         <Text variant="body">Network Sandbox</Text>
         <Text variant="body">Account-based entitlement restoration</Text>
       </View>
-      {hasPro ? (
+      {testProEnabled ? (
+        <View style={styles.testOwned}>
+          <Text variant="sectionHeading" style={styles.test}>LOCAL TEST ACCESS</Text>
+          <Text variant="bodySmall">Advanced learning and Network Sandbox are unlocked on this development installation. No purchase or account entitlement was created.</Text>
+        </View>
+      ) : hasPro ? (
         <View style={styles.owned}>
           <Text variant="sectionHeading" style={styles.green}>PRO ACTIVE</Text>
           <Text variant="bodySmall">Advanced learning and the Network Sandbox are unlocked for this account.</Text>
@@ -53,6 +58,7 @@ const styles = StyleSheet.create({
   test: { color: Palette.orange },
   panel: { padding: Space.lg, gap: Space.sm, borderWidth: 1, borderColor: Palette.border, backgroundColor: Palette.surface, marginBottom: Space.lg },
   owned: { padding: Space.lg, gap: Space.sm, borderWidth: 1, borderColor: Palette.green, backgroundColor: Palette.surface, marginBottom: Space.lg },
+  testOwned: { padding: Space.lg, gap: Space.sm, borderWidth: 1, borderColor: Palette.orange, backgroundColor: Palette.surface, marginBottom: Space.lg },
   green: { color: Palette.green },
   message: { color: Palette.orange, marginBottom: Space.md },
   boundary: { color: Palette.textMuted, textAlign: 'center', marginTop: Space.xl },

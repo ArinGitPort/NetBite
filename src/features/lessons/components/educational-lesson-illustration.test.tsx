@@ -18,6 +18,34 @@ describe('EducationalLessonIllustration', () => {
     expect(screen.getByText('STEP 64')).toBeTruthy();
   });
 
+  test('renders exact ARP envelope and payload fields as selectable text', async () => {
+    const screen = await render(<EducationalLessonIllustration type="arp-request" />);
+    expect(screen.getByText('FF:FF:FF:FF:FF:FF')).toBeTruthy();
+    expect(screen.getByText('0x0806')).toBeTruthy();
+    expect(screen.getByText('UNKNOWN / UNUSED')).toBeTruthy();
+    expect(screen.getByLabelText(/target hardware: unknown \/ unused/i)).toBeTruthy();
+  });
+
+  test('stacks packet fields without truncating exact values on a narrow panel', async () => {
+    const screen = await render(<EducationalLessonIllustration type="arp-request" />);
+    const panel = screen.getByLabelText(/PC A sends an ARP Request/i);
+    fireEvent(panel, 'layout', { nativeEvent: { layout: { width: 360, height: 600, x: 0, y: 0 } } });
+    expect(screen.getByText('192.168.10.10 / 02:00:00:00:00:0A')).toBeTruthy();
+    expect(screen.getByText('192.168.10.20')).toBeTruthy();
+  });
+
+  test('renders exact ICMP Echo operational values', async () => {
+    const echo = await render(<EducationalLessonIllustration type="echo-exchange" />);
+    expect(echo.getByText('8 / 0')).toBeTruthy();
+    expect(echo.getByText('0 / 0')).toBeTruthy();
+  });
+
+  test('renders exact 802.1Q operational values', async () => {
+    const vlan = await render(<EducationalLessonIllustration type="dot1q-tag" />);
+    expect(vlan.getByText('0x8100 / 16 BITS')).toBeTruthy();
+    expect(vlan.getByText('12 BITS')).toBeTruthy();
+  });
+
   test('renders a synchronized guided visual stage accessibly', async () => {
     const screen = await render(<EducationalLessonIllustration stageId="add" type="block-size" />);
     expect(screen.getByText('ADD 64 FOR EACH NEXT START')).toBeTruthy();

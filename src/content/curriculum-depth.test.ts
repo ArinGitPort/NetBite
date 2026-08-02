@@ -57,6 +57,26 @@ describe('expanded curriculum depth', () => {
     });
   });
 
+  test('teaches protocol mechanisms with exact operational values', () => {
+    const chapterSeven = chapters.find(({ id }) => id === '7')!;
+    const arpText = JSON.stringify({
+      lessons: chapterSeven.lessons,
+      request: educationalIllustrations['arp-request'],
+      reply: educationalIllustrations['arp-reply'],
+    });
+    expect(arpText).toContain('FF:FF:FF:FF:FF:FF');
+    expect(arpText).toContain('FFFF.FFFF.FFFF');
+    expect(arpText).toContain('0x0806');
+    expect(arpText).toContain('UNKNOWN / UNUSED');
+    expect(arpText).toContain('02:00:00:00:00:0A');
+    expect(arpText).toContain('02:00:00:00:00:0B');
+
+    expect(JSON.stringify(educationalIllustrations['echo-exchange'])).toContain('8 / 0');
+    expect(JSON.stringify(educationalIllustrations['echo-exchange'])).toContain('0 / 0');
+    expect(JSON.stringify(educationalIllustrations['dot1q-tag'])).toContain('0x8100');
+    expect(JSON.stringify(educationalIllustrations['dot1q-tag'])).toContain('12 BITS');
+  });
+
   test('uses complete addresses in subnet teaching and practice', () => {
     const chapterFive = chapters.find(({ id }) => id === '5')!;
     const subnetText = JSON.stringify({ chapterFive, practice: practiceConfigs['subnet-range-desk'], illustrations: [educationalIllustrations['subnet-boundaries'], educationalIllustrations['subnet-range'], educationalIllustrations['subnet-map']] });

@@ -12,4 +12,6 @@
 
 The chapter teaches router-on-a-stick with VLAN 10 and VLAN 20. A subinterface is modeled as a logical child of one physical interface, inherits the parent MAC and physical link, and becomes usable only with a unique VLAN ID, IPv4 configuration, and an active VLAN path.
 
+The forwarding sequence distinguishes the untagged source access frame, tagged VLAN 10 trunk delivery, router frame termination and IPv4 processing, destination-side ARP, newly built VLAN 20 trunk frame, and final untagged access delivery. IPv4 endpoints remain stable while TTL and link-layer information are processed.
+
 The simulator does not claim Cisco IOS compatibility. It does not model Layer 3 switch SVIs, native-VLAN behavior, DTP, VTP, STP, ACLs, dynamic routing, packet timing, queues, loss, or hardware-specific behavior. CLI output and prompts are original NetBite educational text.

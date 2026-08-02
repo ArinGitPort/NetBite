@@ -8,7 +8,7 @@ export type EducationAssetName =
 
 export type DiagramTone = 'neutral' | 'red' | 'orange' | 'sage' | 'blue' | 'violet' | 'gold';
 export type VisualToken = 'pc' | 'switch' | 'router' | 'copper-cable' | EducationAssetName;
-export type IllustrationFamily = 'legacy' | 'topology' | 'sequence' | 'comparison' | 'address-range' | 'table' | 'stack' | 'mapping' | 'bit-strip' | 'subnet-map' | 'number-line' | 'prefix-ladder';
+export type IllustrationFamily = 'legacy' | 'topology' | 'sequence' | 'comparison' | 'address-range' | 'table' | 'stack' | 'mapping' | 'bit-strip' | 'subnet-map' | 'number-line' | 'prefix-ladder' | 'packet-fields';
 export type IllustrationPresentation = 'auto' | 'full-address';
 
 export interface DiagramValueLine {
@@ -44,6 +44,21 @@ export interface DiagramPrefixRow {
   blockSize: string;
 }
 
+export interface DiagramProtocolField {
+  id: string;
+  label: string;
+  value: string;
+  detail: string;
+  tone?: DiagramTone;
+}
+
+export interface DiagramProtocolGroup {
+  id: string;
+  label: string;
+  detail?: string;
+  fields: DiagramProtocolField[];
+}
+
 export interface EducationalIllustrationStage {
   id: string;
   title?: string;
@@ -51,6 +66,7 @@ export interface EducationalIllustrationStage {
   activeIndices?: number[];
   callouts?: DiagramSegment[];
   footer?: string;
+  activeFieldIds?: string[];
 }
 
 export interface DiagramNode {
@@ -87,6 +103,7 @@ export interface EducationalIllustrationSpec {
   subnets?: DiagramSubnetRow[];
   markers?: DiagramMarker[];
   prefixRows?: DiagramPrefixRow[];
+  protocolGroups?: DiagramProtocolGroup[];
   stages?: EducationalIllustrationStage[];
   footer?: string;
 }
@@ -125,7 +142,20 @@ export const educationalIllustrations: Record<LessonIllustration, EducationalIll
   purpose: legacy('purpose', 'NETWORKS SHARE SERVICES', 'Two computers communicate through network infrastructure to share information and services.', ['C1-CISCO-NETWORK']),
   devices: legacy('devices', 'COMMON NETWORK DEVICES', 'A PC, switch, and router shown as distinct network device roles.', ['C1-CISCO-DEVICES']),
   connection: legacy('connection', 'PHYSICAL LAN LINKS', 'Two PCs use physical links to reach the same Ethernet switch.', ['C1-CISCO-LAN']),
-  frame: legacy('frame', 'ETHERNET FRAME STRUCTURE', 'An Ethernet frame with destination, source, data, and check regions in transmission order.', ['IEEE-802.3']),
+  frame: spec({ id: 'frame', family: 'packet-fields', title: 'ETHERNET FRAME / OPERATIONAL FIELDS', accessibilityLabel: 'An Ethernet frame in transmission order contains destination MAC, source MAC, EtherType, payload, and frame check sequence fields.', sourceIds: ['IEEE-802.3', 'C2-CISCO-ETHERNET'], protocolGroups: [
+    { id: 'ethernet-frame', label: 'ETHERNET FRAME', detail: 'FIELDS SHOWN IN TRANSMISSION ORDER', fields: [
+      { id: 'destination-mac', label: 'DESTINATION MAC', value: '6 BYTES', detail: 'Names the local receiver or group.', tone: 'red' },
+      { id: 'source-mac', label: 'SOURCE MAC', value: '6 BYTES', detail: 'Names the sending interface.', tone: 'blue' },
+      { id: 'ethertype', label: 'ETHERTYPE', value: '2 BYTES', detail: 'Identifies the contained upper protocol.', tone: 'gold' },
+      { id: 'payload', label: 'PAYLOAD', value: 'DATA', detail: 'Carries an upper-layer packet or message.', tone: 'sage' },
+      { id: 'fcs', label: 'FRAME CHECK SEQUENCE', value: '4 BYTES', detail: 'Detects corruption; it does not repair data.', tone: 'orange' },
+    ] },
+  ], stages: [
+    { id: 'payload', title: 'START WITH UPPER-LAYER DATA', accessibilityLabel: 'The Ethernet payload carries an upper-layer packet or message.', activeFieldIds: ['payload'] },
+    { id: 'addresses', title: 'ADD LOCAL SOURCE AND DESTINATION', accessibilityLabel: 'The source and destination MAC fields identify interfaces on this local Ethernet path.', activeFieldIds: ['destination-mac', 'source-mac'] },
+    { id: 'type', title: 'IDENTIFY THE PAYLOAD PROTOCOL', accessibilityLabel: 'EtherType tells the receiver which upper protocol is carried in the payload.', activeFieldIds: ['ethertype'] },
+    { id: 'check', title: 'ADD THE ERROR-DETECTION CHECK', accessibilityLabel: 'The Frame Check Sequence lets a receiver detect corruption but does not repair it.', activeFieldIds: ['fcs'] },
+  ], footer: 'PREAMBLE AND PHYSICAL TIMING ARE OUTSIDE THIS BEGINNER VIEW' }),
   nic: legacy('nic', 'NETWORK INTERFACE', 'A network interface controller provides an Ethernet connection for a host.', ['IEEE-802.3']),
   cables: legacy('cables', 'ETHERNET MEDIA', 'Copper carries electrical signals while fiber carries light signals.', ['IEEE-802.3']),
   ports: legacy('ports', 'PORT AND LINK STATE', 'An Ethernet port with link and activity indicators.', ['IEEE-802.3']),
@@ -153,7 +183,7 @@ export const educationalIllustrations: Record<LessonIllustration, EducationalIll
   'ipv4-address': spec({ id: 'ipv4-address', family: 'address-range', title: 'IPv4 / 32 BITS', accessibilityLabel: 'IPv4 address 192.168.10.25 divided into four eight-bit octets.', sourceIds: ['RFC-791'], segments: [
     { label: 'OCTET 1', value: '192', detail: '8 BITS', tone: 'blue' }, { label: 'OCTET 2', value: '168', detail: '8 BITS', tone: 'sage' },
     { label: 'OCTET 3', value: '10', detail: '8 BITS', tone: 'gold' }, { label: 'OCTET 4', value: '25', detail: '8 BITS', tone: 'orange' },
-  ], footer: 'ONE LOGICAL ADDRESS / FOUR OCTETS' }),
+  ], stages: guidedStages({ 'ip-endpoints': 'SET THE SOURCE AND DESTINATION IP ENDPOINTS', 'first-link': 'ENCAPSULATE FOR THE FIRST LOCAL LINK', router: 'REMOVE THE FRAME AND INSPECT DESTINATION IP', 'second-link': 'ENCAPSULATE WITH NEW MAC ADDRESSES' }), footer: 'IP ENDPOINTS PERSIST / LOCAL-LINK MAC ADDRESSES CHANGE' }),
   'ipv4-octets': spec({ id: 'ipv4-octets', family: 'table', title: 'DOTTED DECIMAL', accessibilityLabel: 'Each IPv4 octet contains eight bits and has a decimal range from zero through 255.', sourceIds: ['RFC-791'], headers: ['OCTET', 'BITS', 'DECIMAL RANGE'], rows: [['1', '8', '0–255'], ['2', '8', '0–255'], ['3', '8', '0–255'], ['4', '8', '0–255']], footer: '192 . 168 . 10 . 25' }),
   'ipv4-prefix': spec({ id: 'ipv4-prefix', family: 'address-range', title: '192.168.10.25 /24', accessibilityLabel: 'In 192.168.10.25 slash 24, the first 24 bits identify the network and the final eight bits identify the host.', sourceIds: ['RFC-4632'], segments: [
     { label: 'NETWORK', value: '192.168.10', detail: '24 BITS', tone: 'sage', weight: 3 }, { label: 'HOST', value: '25', detail: '8 BITS', tone: 'orange' },
@@ -226,12 +256,41 @@ export const educationalIllustrations: Record<LessonIllustration, EducationalIll
   'arp-mapping': spec({ id: 'arp-mapping', family: 'sequence', title: 'RESOLVE LOCAL NEXT HOP', accessibilityLabel: 'ARP maps the local next-hop IPv4 address 192.168.10.20 to MAC address 02:00:00:00:00:0B.', sourceIds: ['RFC-826'], nodes: [
     { label: 'NEXT-HOP IPv4', detail: '192.168.10.20', token: 'ipv4-datagram', tone: 'blue' }, { label: 'ARP', detail: 'LOCAL RESOLUTION', token: 'arp-request', tone: 'orange' }, { label: 'DESTINATION MAC', detail: '02:00:00:00:00:0B', token: 'arp-reply', tone: 'sage' },
   ] }),
-  'arp-request': spec({ id: 'arp-request', family: 'topology', title: 'ARP REQUEST / BROADCAST', accessibilityLabel: 'PC A broadcasts an ARP request to all other interfaces on the local LAN asking who owns 192.168.10.20.', sourceIds: ['RFC-826'], nodes: [
-    { label: 'PC A / REQUESTER', detail: 'WHO OWNS 192.168.10.20?', token: 'pc', tone: 'orange' }, { label: 'SWITCH / FLOOD', detail: 'EVERY OTHER ACTIVE PORT', token: 'switch', tone: 'red' }, { label: 'LOCAL HOSTS', detail: 'ONLY THE OWNER SHOULD REPLY', token: 'arp-request', tone: 'sage' },
-  ] }),
-  'arp-reply': spec({ id: 'arp-reply', family: 'sequence', title: 'ARP REPLY / CACHE UPDATE', accessibilityLabel: 'The owner normally unicasts an ARP reply to PC A, which stores the IPv4-to-MAC mapping in its ARP cache.', sourceIds: ['RFC-826'], nodes: [
-    { label: 'OWNER REPLIES', detail: '192.168.10.20 IS AT 02:00:…:0B', token: 'arp-reply', tone: 'sage' }, { label: 'UNICAST TO PC A', detail: 'DIRECT LOCAL RESPONSE', token: 'pc', tone: 'blue' }, { label: 'CACHE ENTRY', detail: 'IPv4 ↔ MAC', token: 'arp-cache', tone: 'gold' },
-  ] }),
+  'arp-request': spec({ id: 'arp-request', family: 'packet-fields', title: 'ARP REQUEST INSIDE ETHERNET', accessibilityLabel: 'PC A sends an ARP Request in an Ethernet broadcast frame. The Ethernet destination is FF:FF:FF:FF:FF:FF, EtherType is 0x0806, and the ARP message asks for the MAC owning 192.168.10.20.', sourceIds: ['RFC-826', 'IANA-ETHERTYPES'], protocolGroups: [
+    { id: 'ethernet-envelope', label: 'OUTER ETHERNET FRAME', detail: 'DELIVERS THE QUESTION LOCALLY', fields: [
+      { id: 'arp-eth-destination', label: 'DESTINATION MAC', value: 'FF:FF:FF:FF:FF:FF', detail: 'Broadcast to every interface in this VLAN.', tone: 'red' },
+      { id: 'arp-eth-source', label: 'SOURCE MAC', value: '02:00:00:00:00:0A', detail: 'PC-A sent this frame.', tone: 'blue' },
+      { id: 'arp-ethertype', label: 'ETHERTYPE', value: '0x0806', detail: 'The payload contains ARP.', tone: 'gold' },
+    ] },
+    { id: 'arp-message', label: 'ARP REQUEST PAYLOAD', detail: 'ASSERTION ABOUT A / QUESTION ABOUT B', fields: [
+      { id: 'arp-operation', label: 'OPERATION', value: 'REQUEST (1)', detail: 'This message asks for a mapping.', tone: 'orange' },
+      { id: 'arp-sender', label: 'SENDER IPv4 + MAC', value: '192.168.10.10 / 02:00:00:00:00:0A', detail: 'PC-A identifies itself so peers can learn it.', tone: 'blue' },
+      { id: 'arp-target-ip', label: 'TARGET IPv4', value: '192.168.10.20', detail: 'Only the owner of this address should answer normally.', tone: 'sage' },
+      { id: 'arp-target-mac', label: 'TARGET HARDWARE', value: 'UNKNOWN / UNUSED', detail: 'This is the missing value; it is not the Ethernet broadcast field.', tone: 'neutral' },
+    ] },
+  ], stages: [
+    { id: 'build', title: 'BUILD THE ARP QUESTION', accessibilityLabel: 'PC A supplies its own IPv4 and MAC plus target IPv4 192.168.10.20.', activeFieldIds: ['arp-operation', 'arp-sender', 'arp-target-ip', 'arp-target-mac'] },
+    { id: 'broadcast', title: 'BROADCAST THE ETHERNET FRAME', accessibilityLabel: 'The unknown target MAC causes PC A to use Ethernet destination FF:FF:FF:FF:FF:FF with EtherType 0x0806.', activeFieldIds: ['arp-eth-destination', 'arp-eth-source', 'arp-ethertype'] },
+    { id: 'flood', title: 'SWITCH FLOODS WITHIN VLAN 1', accessibilityLabel: 'The switch floods the broadcast through every other active VLAN 1 port and excludes ingress.', activeFieldIds: ['arp-eth-destination'] },
+    { id: 'inspect', title: 'ONLY THE IPv4 OWNER ANSWERS NORMALLY', accessibilityLabel: 'Every local interface may inspect the request, but only the owner of 192.168.10.20 normally answers.', activeFieldIds: ['arp-target-ip'] },
+  ], footer: 'CISCO DISPLAY FORMAT FOR THE SAME BROADCAST MAC: FFFF.FFFF.FFFF' }),
+  'arp-reply': spec({ id: 'arp-reply', family: 'packet-fields', title: 'ARP REPLY AND CACHE UPDATE', accessibilityLabel: 'PC B normally sends a unicast ARP Reply to PC A, identifying 192.168.10.20 as MAC 02:00:00:00:00:0B, and PC A stores the mapping.', sourceIds: ['RFC-826'], protocolGroups: [
+    { id: 'reply-frame', label: 'OUTER ETHERNET FRAME', detail: 'DIRECT RESPONSE TO THE REQUESTER', fields: [
+      { id: 'reply-eth-destination', label: 'DESTINATION MAC', value: '02:00:00:00:00:0A', detail: 'Normally unicast to PC-A.', tone: 'blue' },
+      { id: 'reply-eth-source', label: 'SOURCE MAC', value: '02:00:00:00:00:0B', detail: 'PC-B owns the requested address.', tone: 'sage' },
+      { id: 'reply-ethertype', label: 'ETHERTYPE', value: '0x0806', detail: 'The payload still contains ARP.', tone: 'gold' },
+    ] },
+    { id: 'reply-message', label: 'ARP REPLY PAYLOAD', fields: [
+      { id: 'reply-operation', label: 'OPERATION', value: 'REPLY (2)', detail: 'This message supplies the mapping.', tone: 'orange' },
+      { id: 'reply-mapping', label: 'SENDER MAPPING', value: '192.168.10.20 / 02:00:00:00:00:0B', detail: 'The fact PC-A needed to build its data frame.', tone: 'sage' },
+      { id: 'reply-target', label: 'REQUESTER', value: '192.168.10.10 / 02:00:00:00:00:0A', detail: 'The response is directed back to PC-A.', tone: 'blue' },
+    ] },
+  ], stages: [
+    { id: 'learn-requester', title: 'PC-B CAN LEARN PC-A FROM THE REQUEST', accessibilityLabel: 'The original request carried PC A sender IPv4 and MAC, allowing PC B to learn that mapping.', activeFieldIds: ['reply-target'] },
+    { id: 'build-reply', title: 'PC-B BUILDS THE REPLY', accessibilityLabel: 'PC B sets operation Reply and supplies its own IPv4 to MAC mapping.', activeFieldIds: ['reply-operation', 'reply-mapping'] },
+    { id: 'unicast', title: 'REPLY NORMALLY RETURNS BY UNICAST', accessibilityLabel: 'PC B normally sends the Ethernet frame directly to PC A MAC.', activeFieldIds: ['reply-eth-destination', 'reply-eth-source', 'reply-ethertype'] },
+    { id: 'cache', title: 'PC-A STORES THE MAPPING', accessibilityLabel: 'PC A stores 192.168.10.20 mapped to 02:00:00:00:00:0B for later frame delivery.', activeFieldIds: ['reply-mapping'] },
+  ], footer: 'RFC 826 DESCRIBES THE NORMAL DIRECT REPLY; OTHER SPECIFIED CASES MAY USE BROADCAST REPLIES' }),
   'arp-next-hop': spec({ id: 'arp-next-hop', family: 'comparison', title: 'WHAT DOES ARP RESOLVE?', accessibilityLabel: 'For local delivery ARP resolves the destination host; for remote delivery ARP resolves the local default gateway, not the remote host.', sourceIds: ['RFC-826', 'RFC-1122'], nodes: [
     { label: 'LOCAL DESTINATION', detail: 'RESOLVE DESTINATION HOST MAC', token: 'pc', tone: 'sage' }, { label: 'REMOTE DESTINATION', detail: 'RESOLVE LOCAL GATEWAY MAC', token: 'router', tone: 'orange' },
   ] }),
@@ -245,9 +304,21 @@ export const educationalIllustrations: Record<LessonIllustration, EducationalIll
   'icmp-role': spec({ id: 'icmp-role', family: 'stack', title: 'ICMP / INTERNET LAYER', accessibilityLabel: 'ICMP is an Internet-layer control protocol carried using IP; it reports conditions and supports diagnostics.', sourceIds: ['RFC-792', 'RFC-1122'], layers: [
     { label: 'APPLICATION', value: 'USER SERVICES', tone: 'violet' }, { label: 'TRANSPORT', value: 'TCP / UDP', tone: 'gold' }, { label: 'INTERNET', value: 'IPv4 + ICMP', detail: 'CONTROL AND ERROR REPORTING', tone: 'orange' }, { label: 'LINK', value: 'LOCAL DELIVERY', tone: 'sage' },
   ], footer: 'ICMP SUPPORTS IP / IT DOES NOT REPAIR THE PATH' }),
-  'echo-exchange': spec({ id: 'echo-exchange', family: 'sequence', title: 'ICMP ECHO EXCHANGE', accessibilityLabel: 'The source sends an ICMP Echo Request to the destination, which returns an Echo Reply to the source.', sourceIds: ['RFC-792'], nodes: [
-    { label: 'ECHO REQUEST', detail: 'SOURCE → DESTINATION', token: 'icmp-echo-request', tone: 'orange' }, { label: 'DESTINATION', detail: 'RECEIVES REQUEST', token: 'server-terminal', tone: 'blue' }, { label: 'ECHO REPLY', detail: 'DESTINATION → SOURCE', token: 'icmp-echo-reply', tone: 'sage' },
-  ], footer: 'REQUEST OUT / REPLY BACK' }),
+  'echo-exchange': spec({ id: 'echo-exchange', family: 'packet-fields', title: 'ICMP ECHO REQUEST AND REPLY', accessibilityLabel: 'An IPv4 ICMP Echo Request uses Type 8 Code 0. Its Echo Reply uses Type 0 Code 0 and returns the same identifier and sequence number.', sourceIds: ['RFC-792'], protocolGroups: [
+    { id: 'echo-request', label: 'ECHO REQUEST', detail: 'SOURCE TO DESTINATION', fields: [
+      { id: 'echo-request-type', label: 'TYPE / CODE', value: '8 / 0', detail: 'Identifies an IPv4 Echo Request.', tone: 'orange' },
+      { id: 'echo-request-id', label: 'IDENTIFIER', value: 'SESSION MATCH', detail: 'Helps the sender associate the reply with this test.', tone: 'blue' },
+      { id: 'echo-request-sequence', label: 'SEQUENCE', value: 'REQUEST NUMBER', detail: 'Distinguishes requests in the same test.', tone: 'gold' },
+    ] },
+    { id: 'echo-reply', label: 'ECHO REPLY', detail: 'DESTINATION BACK TO SOURCE', fields: [
+      { id: 'echo-reply-type', label: 'TYPE / CODE', value: '0 / 0', detail: 'Identifies an IPv4 Echo Reply.', tone: 'sage' },
+      { id: 'echo-reply-match', label: 'RETURNED VALUES', value: 'SAME ID + SEQUENCE', detail: 'Lets the source match the response to its request.', tone: 'blue' },
+    ] },
+  ], stages: [
+    { id: 'request', title: 'SEND TYPE 8 / CODE 0', accessibilityLabel: 'The source sends an IPv4 ICMP Echo Request using Type 8 Code 0 with an identifier and sequence number.', activeFieldIds: ['echo-request-type', 'echo-request-id', 'echo-request-sequence'] },
+    { id: 'reply', title: 'RETURN TYPE 0 / CODE 0', accessibilityLabel: 'The destination returns an IPv4 ICMP Echo Reply using Type 0 Code 0.', activeFieldIds: ['echo-reply-type'] },
+    { id: 'match', title: 'MATCH ID AND SEQUENCE', accessibilityLabel: 'The reply returns the same identifier and sequence number so the source can match it to the request.', activeFieldIds: ['echo-request-id', 'echo-request-sequence', 'echo-reply-match'] },
+  ], footer: 'THE REPLY NEEDS A VALID RETURN PATH' }),
   'ping-boundary': spec({ id: 'ping-boundary', family: 'comparison', title: 'PING IS EVIDENCE', accessibilityLabel: 'An Echo Reply supports round-trip IP reachability for that test; no reply requires further checks and does not identify one certain fault.', sourceIds: ['RFC-792', 'CISCO-PING'], nodes: [
     { label: 'REPLY RECEIVED', detail: 'ROUND-TRIP IP REACHABILITY FOR THIS TEST', token: 'icmp-echo-reply', tone: 'sage' }, { label: 'NO REPLY', detail: 'CHECK LINK / CONFIG / PATH / DESTINATION / FILTERING', token: 'icmp-echo-request', tone: 'red' },
   ] }),
@@ -273,7 +344,7 @@ export const educationalIllustrations: Record<LessonIllustration, EducationalIll
   ], stages: guidedStages({ candidates: 'KEEP ONLY ROUTES THAT MATCH', lengths: 'COMPARE THEIR PREFIX LENGTHS', winner: 'SELECT THE LONGEST MATCH' }) }),
   'route-purpose': spec({ id: 'route-purpose', family: 'sequence', title: 'DESTINATION LOOKUP', accessibilityLabel: 'A router compares the destination IPv4 address with route-table prefixes, selects the longest usable match, and forwards through its path.', sourceIds: ['RFC-1812'], nodes: [
     { label: 'DESTINATION IPv4', detail: 'ADDRESS TO MATCH', token: 'ipv4-datagram', tone: 'blue' }, { label: 'ROUTE TABLE', detail: 'PREFIX LOOKUP', token: 'route-table', tone: 'gold' }, { label: 'FORWARDING PATH', detail: 'NEXT HOP / EXIT', token: 'router', tone: 'sage' },
-  ], stages: guidedStages({ read: 'READ THE DESTINATION IPv4 ADDRESS', match: 'FIND ALL MATCHING ROUTES', select: 'SELECT THE MOST SPECIFIC MATCH' }) }),
+  ], stages: guidedStages({ read: 'READ THE DESTINATION IPv4 ADDRESS', match: 'FIND ALL MATCHING ROUTES', select: 'SELECT THE MOST SPECIFIC MATCH', update: 'REDUCE TTL AND UPDATE THE IPv4 HEADER', forward: 'RESOLVE THE NEXT HOP AND BUILD A NEW FRAME' }) }),
   'route-next-hop': spec({ id: 'route-next-hop', family: 'topology', title: 'STATIC NEXT HOP', accessibilityLabel: 'Router R1 uses a static route for remote LAN C through reachable neighboring router 10.0.12.2.', sourceIds: ['RFC-1812', 'CISCO-STATIC'], nodes: [
     { label: 'R1', detail: 'STATIC 192.168.30.0/24', token: 'router', tone: 'blue' }, { label: 'NEXT HOP', detail: '10.0.12.2 / REACHABLE', token: 'router', tone: 'orange' }, { label: 'LAN C', detail: 'REMOTE PREFIX', token: 'pc', tone: 'sage' },
   ] }),
@@ -304,9 +375,16 @@ export const educationalIllustrations: Record<LessonIllustration, EducationalIll
   'same-vlan': spec({ id: 'same-vlan', family: 'topology', title: 'SAME-VLAN LAYER 2 PATH', accessibilityLabel: 'Two PCs in VLAN 10 can use a Layer 2 switching path when access membership and every link carrying VLAN 10 are valid.', sourceIds: ['IEEE-802.1Q', 'CISCO-VLAN'], nodes: [
     { label: 'PC A / VLAN 10', token: 'pc', tone: 'blue' }, { label: 'SWITCHING PATH', detail: 'VLAN 10', token: 'switch', tone: 'sage' }, { label: 'PC B / VLAN 10', token: 'pc', tone: 'blue' },
   ] }),
-  'dot1q-tag': spec({ id: 'dot1q-tag', family: 'sequence', title: 'VLAN IDENTITY ON A SHARED LINK', accessibilityLabel: 'An 802.1Q-tagged frame identifies its VLAN on a shared link so the receiving switch preserves VLAN separation.', sourceIds: ['IEEE-802.1Q'], nodes: [
-    { label: 'SWITCH A', detail: 'VLAN 10 OR 20', token: 'switch', tone: 'blue' }, { label: '802.1Q FRAME', detail: 'VLAN IDENTIFIER', token: 'vlan-tagged-frame', tone: 'orange' }, { label: 'SWITCH B', detail: 'RESTORE VLAN CONTEXT', token: 'switch', tone: 'sage' },
-  ] }),
+  'dot1q-tag': spec({ id: 'dot1q-tag', family: 'packet-fields', title: '802.1Q TAG INSIDE AN ETHERNET FRAME', accessibilityLabel: 'A four-byte 802.1Q tag appears after the source MAC and before EtherType. TPID 0x8100 marks the tag and the twelve-bit VLAN identifier carries VLAN context.', sourceIds: ['IEEE-802.1Q', 'CISCO-8021Q-FRAME'], protocolGroups: [
+    { id: 'tagged-frame', label: 'TRANSMISSION ORDER', detail: 'DESTINATION / SOURCE / 802.1Q TAG / ETHERTYPE / PAYLOAD / FCS', fields: [
+      { id: 'tag-destination', label: 'DESTINATION MAC', value: '6 BYTES', detail: 'Local Layer 2 receiver.', tone: 'red' },
+      { id: 'tag-source', label: 'SOURCE MAC', value: '6 BYTES', detail: 'Local Layer 2 sender.', tone: 'blue' },
+      { id: 'tag-tpid', label: 'TPID', value: '0x8100 / 16 BITS', detail: 'Marks the presence of an IEEE 802.1Q tag.', tone: 'orange' },
+      { id: 'tag-pcp-dei', label: 'PCP + DEI', value: '3 + 1 BITS', detail: 'Priority and drop eligibility; not configured in this course.', tone: 'neutral' },
+      { id: 'tag-vid', label: 'VLAN ID', value: '12 BITS', detail: 'Preserves VLAN context on the shared link.', tone: 'gold' },
+      { id: 'tag-ethertype', label: 'ETHERTYPE', value: '2 BYTES', detail: 'Identifies the payload protocol after the tag.', tone: 'sage' },
+    ] },
+  ], footer: 'THE FOUR-BYTE TAG IS INSERTED AFTER SOURCE MAC; THE FCS IS RECALCULATED' }),
   'inter-vlan-boundary': spec({ id: 'inter-vlan-boundary', family: 'sequence', title: 'CROSS A VLAN BOUNDARY', accessibilityLabel: 'PC-A in VLAN 10 reaches PC-B in VLAN 20 only through a Layer 3 router; the two Layer 2 broadcast domains remain separate.', sourceIds: ['IEEE-802.1Q', 'RFC-1812', 'CISCO-INTER-VLAN'], nodes: [
     { label: 'PC-A / VLAN 10', detail: '192.168.10.10/24', token: 'pc', tone: 'blue' }, { label: 'R-1 / LAYER 3', detail: 'ROUTES BETWEEN NETWORKS', token: 'router', tone: 'orange' }, { label: 'PC-B / VLAN 20', detail: '192.168.20.20/24', token: 'pc', tone: 'gold' },
   ], footer: 'ROUTING CROSSES THE BOUNDARY / IT DOES NOT MERGE THE VLANS' }),

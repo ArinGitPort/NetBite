@@ -7,6 +7,10 @@ This file records the content rules that apply across the curriculum:
 - Introduce concrete device behavior before abstract models.
 - Define a term before it appears in a quiz or flashcard review.
 - Keep lessons short, but include enough context to explain why the concept matters.
+- For a protocol or forwarding mechanism, explain the trigger, known inputs, transmitted fields, device decision, state change or output, and scope boundary. Do not stop at naming what a protocol accomplishes.
+- Include exact field values only when they explain observable behavior or a troubleshooting decision. Define the value before asking the learner to recall it.
+- Separate an outer delivery envelope from the message it carries. For example, an ARP Request's Ethernet broadcast destination is not the same field as its unknown ARP target-hardware address.
+- Label alternate display notation explicitly. NetBite uses colon-separated MAC addresses first and may show Cisco dotted notation as a format note.
 - Use one opening explanation, one or two titled detail sections, a concrete example, and one concise key idea. Aim for roughly 100–160 words of lesson explanation.
 - Split a missing prerequisite into its own lesson instead of hiding it inside a dense paragraph.
 - Add a retryable checkpoint only for a decision or misconception worth practicing. It must explain every choice and record no penalty.
