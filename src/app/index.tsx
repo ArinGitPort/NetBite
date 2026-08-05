@@ -98,7 +98,7 @@ export default function MainMenuScreen() {
           detail={hasContentAccess ? 'Build and test a deterministic network.' : 'See what Pro unlocks before entering the tool.'}
           endIcon={hasContentAccess ? 'arrow-right' : 'lock'}
           icon="sandbox"
-          status={presentationActive ? 'DEMO ACCESS / NOT PURCHASED' : testProEnabled ? 'TEST ACCESS / NOT PURCHASED' : hasPro ? 'PRO / AUTOSAVED' : 'PRO / LOCKED'}
+          status={presentationActive ? 'DEMO ACCESS / NOT PURCHASED' : testProEnabled ? 'TEST ACCESS / NOT PURCHASED' : hasPro ? 'PRO / AUTOSAVED' : status === 'guest' ? 'GUEST ACCESS / OFFLINE READY' : 'PRO / LOCKED'}
           title="NETWORK SANDBOX"
           tone="sandbox"
           onPress={() => navigateOnce(hasContentAccess ? '/sandbox' : AppRoutes.pro)}

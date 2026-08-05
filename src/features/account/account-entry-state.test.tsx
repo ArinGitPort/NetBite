@@ -10,12 +10,13 @@ jest.mock('@/services/supabase', () => ({
 }));
 
 function AccountEntryProbe() {
-  const { accountEntryResolved, completeGuestEntry, resetAccountEntry, testProEnabled, setTestProEnabled } = useAuth();
+  const { accountEntryResolved, completeGuestEntry, hasContentAccess, resetAccountEntry, testProEnabled, setTestProEnabled } = useAuth();
   return <>
     <Text>{accountEntryResolved ? 'RESOLVED' : 'REQUIRED'}</Text>
     <Pressable accessibilityRole="button" onPress={completeGuestEntry}><Text>COMPLETE</Text></Pressable>
     <Pressable accessibilityRole="button" onPress={resetAccountEntry}><Text>RESET</Text></Pressable>
     <Text>{testProEnabled ? 'TEST PRO ON' : 'TEST PRO OFF'}</Text>
+    <Text>{hasContentAccess ? 'ALL CONTENT AVAILABLE' : 'FREE CONTENT ONLY'}</Text>
     <Pressable accessibilityRole="button" onPress={() => setTestProEnabled(!testProEnabled)}><Text>TOGGLE PRO</Text></Pressable>
   </>;
 }
@@ -29,6 +30,7 @@ describe('account entry preference', () => {
   test('persists a guest choice and restores it in a new provider', async () => {
     const first = await render(<AuthProvider><AccountEntryProbe /></AuthProvider>);
     expect(first.getByText('REQUIRED')).toBeTruthy();
+    expect(first.getByText('ALL CONTENT AVAILABLE')).toBeTruthy();
     await fireEvent.press(first.getByText('COMPLETE'));
     expect(first.getByText('RESOLVED')).toBeTruthy();
     await first.unmount();

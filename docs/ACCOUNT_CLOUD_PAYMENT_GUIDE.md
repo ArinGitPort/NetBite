@@ -2,7 +2,7 @@
 
 ## Product Boundary
 
-Accounts are optional. A guest can use Chapters 1-4 without network access. An authenticated account can synchronize learning progress and settings. Chapters 5-12 and the Network Sandbox require the `netbite_pro` entitlement.
+Accounts are optional. Guest mode currently enables all Chapters 1-12 and the Network Sandbox locally, including without internet access. This temporary guest access is not a purchase or account entitlement and does not sync between devices. An authenticated account can synchronize learning progress and settings; account-based Pro entitlement remains separate.
 
 NetBite Pro is an academic Stripe test-mode demonstration priced at PHP 149. The application must always display `TEST MODE / NO REAL CHARGE`. It is not a production App Store or Google Play billing implementation.
 

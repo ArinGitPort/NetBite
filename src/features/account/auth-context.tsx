@@ -390,6 +390,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
   };
 
   const hasPro = entitlement?.status === 'active';
+  const guestContentAccess = status === 'guest';
   const value: AuthContextValue = {
     status,
     configured: isCloudConfigured,
@@ -398,7 +399,10 @@ export function AuthProvider({ children }: PropsWithChildren) {
     profile,
     entitlement,
     hasPro,
-    hasContentAccess: hasPro || testProEnabled || presentationActive || researchActive,
+    // Guest mode intentionally includes the complete local curriculum and Sandbox for now.
+    // Keep `hasPro` reserved for a real account entitlement so local access is never
+    // misrepresented as a purchase or synchronized subscription.
+    hasContentAccess: guestContentAccess || hasPro || testProEnabled || presentationActive || researchActive,
     testProAvailable: __DEV__,
     testProEnabled,
     presentationActive,

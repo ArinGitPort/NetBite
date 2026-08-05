@@ -12,7 +12,7 @@ import { AppRoutes } from '@/shared/routes';
 import { Fonts, Palette, Space } from '@/shared/theme';
 
 export default function ProScreen() {
-  const { status, hasPro, testProEnabled } = useAuth();
+  const { status, hasPro, hasContentAccess, testProEnabled } = useAuth();
   return (
     <Screen>
       <IconButton accessibilityLabel="Back" icon="arrow-left" label="BACK" onPress={() => goBackOrReplace('/')} />
@@ -39,6 +39,11 @@ export default function ProScreen() {
           <Text variant="sectionHeading" style={styles.green}>PRO ACTIVE</Text>
           <Text variant="bodySmall">Advanced learning and the Network Sandbox are unlocked for this account.</Text>
         </View>
+      ) : status === 'guest' && hasContentAccess ? (
+        <View style={styles.guestAccess}>
+          <Text variant="sectionHeading" style={styles.green}>GUEST ACCESS ACTIVE</Text>
+          <Text variant="bodySmall">All chapters and the Network Sandbox are enabled locally for guest mode. This temporary access is not a purchase and does not sync between devices.</Text>
+        </View>
       ) : status !== 'authenticated' ? (
         <>
           <Text variant="bodySmall" style={styles.message}>Sign in before purchasing so the entitlement can be restored securely.</Text>
@@ -59,6 +64,7 @@ const styles = StyleSheet.create({
   panel: { padding: Space.lg, gap: Space.sm, borderWidth: 1, borderColor: Palette.border, backgroundColor: Palette.surface, marginBottom: Space.lg },
   owned: { padding: Space.lg, gap: Space.sm, borderWidth: 1, borderColor: Palette.green, backgroundColor: Palette.surface, marginBottom: Space.lg },
   testOwned: { padding: Space.lg, gap: Space.sm, borderWidth: 1, borderColor: Palette.orange, backgroundColor: Palette.surface, marginBottom: Space.lg },
+  guestAccess: { padding: Space.lg, gap: Space.sm, borderWidth: 1, borderColor: Palette.green, backgroundColor: Palette.surface, marginBottom: Space.lg },
   green: { color: Palette.green },
   message: { color: Palette.orange, marginBottom: Space.md },
   boundary: { color: Palette.textMuted, textAlign: 'center', marginTop: Space.xl },

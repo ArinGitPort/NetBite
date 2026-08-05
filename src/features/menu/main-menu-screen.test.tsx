@@ -42,8 +42,6 @@ describe('main menu', () => {
     expect(screen.getByText('SETTINGS')).toBeTruthy();
     await fireEvent.press(screen.getByText('Browse all chapters'));
     expect(mockPush).toHaveBeenCalledWith('/learn');
-    await fireEvent.press(screen.getByText('NETWORK SANDBOX'));
-    expect(mockPush).toHaveBeenCalledWith('/sandbox');
   });
 
   test('places the primary learning action before sandbox and account utilities', async () => {
@@ -54,13 +52,13 @@ describe('main menu', () => {
     expect(buttons.findIndex((button) => button.props.accessibilityLabel?.includes('TEST LEARNER'))).toBeGreaterThan(0);
   });
 
-  test('uses an explicit locked sandbox action for free guests', async () => {
-    mockAuthState = { ...mockAuthState, status: 'guest', hasPro: false, hasContentAccess: false, profile: { displayName: 'Test learner' } };
+  test('gives guests clearly labeled local access to the sandbox', async () => {
+    mockAuthState = { ...mockAuthState, status: 'guest', hasPro: false, hasContentAccess: true, profile: { displayName: 'Test learner' } };
     const screen = await render(<MainMenuScreen />);
-    expect(screen.getByText('VIEW PRO ACCESS')).toBeTruthy();
-    expect(screen.getByText('PRO / LOCKED')).toBeTruthy();
+    expect(screen.getByText('GUEST ACCESS / OFFLINE READY')).toBeTruthy();
+    expect(screen.queryByText('VIEW PRO ACCESS')).toBeNull();
     await fireEvent.press(screen.getByText('NETWORK SANDBOX'));
-    expect(mockPush).toHaveBeenCalledWith('/pro');
+    expect(mockPush).toHaveBeenCalledWith('/sandbox');
   });
 
   test('announces active cloud synchronization on the account utility', async () => {
