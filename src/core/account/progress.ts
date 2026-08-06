@@ -1,7 +1,7 @@
 import type { CloudProgressSnapshot } from '@/core/account/types';
 import type { GameState } from '@/store/use-game-store';
 
-export const CLOUD_PROGRESS_SCHEMA_VERSION = 2;
+export const CLOUD_PROGRESS_SCHEMA_VERSION = 3;
 
 const unique = (values: string[]) => [...new Set(values)];
 const timestamp = (value: string) => {
@@ -25,6 +25,9 @@ export function emptyLearningProgress(updatedAt = new Date(0).toISOString()): Cl
     reviewSignals: {},
     savedLearningItems: {},
     activityHistory: [],
+    readinessScores: {},
+    completedCapstoneIds: [],
+    courseAchievements: {},
     updatedAt,
   };
 }
@@ -34,7 +37,7 @@ export function serializeLearningProgress(
     'completedLessonIds' | 'completedLabIds' | 'quizScores' | 'quizContentVersions'
     | 'reviewedFlashcardChapterIds' | 'flashcardContentVersions' | 'flashcardPositions'
     | 'cliGuideSeen' | 'hapticsEnabled' | 'motionPreference'>
-    & Partial<Pick<GameState, 'reviewSignals' | 'savedLearningItems' | 'activityHistory'>>,
+    & Partial<Pick<GameState, 'reviewSignals' | 'savedLearningItems' | 'activityHistory' | 'readinessScores' | 'completedCapstoneIds' | 'courseAchievements'>>,
   updatedAt = new Date().toISOString(),
 ): CloudProgressSnapshot {
   return {
@@ -52,6 +55,9 @@ export function serializeLearningProgress(
     reviewSignals: { ...(state.reviewSignals ?? {}) },
     savedLearningItems: { ...(state.savedLearningItems ?? {}) },
     activityHistory: [...(state.activityHistory ?? [])],
+    readinessScores: { ...(state.readinessScores ?? {}) },
+    completedCapstoneIds: unique(state.completedCapstoneIds ?? []),
+    courseAchievements: { ...(state.courseAchievements ?? {}) },
     updatedAt,
   };
 }
@@ -86,6 +92,8 @@ export function mergeLearningProgress(local: CloudProgressSnapshot, cloud: Cloud
     .filter((event, index, values) => values.findIndex((candidate) => candidate.id === event.id) === index)
     .sort((a, b) => b.occurredAt.localeCompare(a.occurredAt))
     .slice(0, 50);
+  const readinessScores = numberMaximums(local.readinessScores ?? {}, cloud.readinessScores ?? {});
+  const courseAchievements = { ...(cloud.courseAchievements ?? {}), ...(local.courseAchievements ?? {}) };
 
   return {
     schemaVersion: Math.max(local.schemaVersion, cloud.schemaVersion),
@@ -102,6 +110,9 @@ export function mergeLearningProgress(local: CloudProgressSnapshot, cloud: Cloud
     reviewSignals,
     savedLearningItems,
     activityHistory,
+    readinessScores,
+    completedCapstoneIds: unique([...(local.completedCapstoneIds ?? []), ...(cloud.completedCapstoneIds ?? [])]),
+    courseAchievements,
     updatedAt: new Date(Math.max(localTime, cloudTime)).toISOString(),
   };
 }
@@ -113,7 +124,10 @@ export function hasLearningProgress(snapshot: CloudProgressSnapshot) {
     || snapshot.reviewedFlashcardChapterIds.length > 0
     || Object.keys(snapshot.reviewSignals ?? {}).length > 0
     || Object.keys(snapshot.savedLearningItems ?? {}).length > 0
-    || (snapshot.activityHistory ?? []).length > 0;
+    || (snapshot.activityHistory ?? []).length > 0
+    || Object.keys(snapshot.readinessScores ?? {}).length > 0
+    || (snapshot.completedCapstoneIds ?? []).length > 0
+    || Object.keys(snapshot.courseAchievements ?? {}).length > 0;
 }
 
 export function applyLearningProgress(snapshot: CloudProgressSnapshot) {
@@ -131,7 +145,14 @@ export function applyLearningProgress(snapshot: CloudProgressSnapshot) {
     reviewSignals: snapshot.reviewSignals ?? {},
     savedLearningItems: snapshot.savedLearningItems ?? {},
     activityHistory: snapshot.activityHistory ?? [],
+    readinessScores: snapshot.readinessScores ?? {},
+    completedCapstoneIds: snapshot.completedCapstoneIds ?? [],
+    courseAchievements: snapshot.courseAchievements ?? {},
   };
+}
+
+function numberMaximums(local: Record<string, number>, cloud: Record<string, number>) {
+  return Object.fromEntries(unique([...Object.keys(local), ...Object.keys(cloud)]).map((key) => [key, Math.max(local[key] ?? 0, cloud[key] ?? 0)]));
 }
 
 function mergeTimestampedRecords<T extends { updatedAt: string }>(local: Record<string, T>, cloud: Record<string, T>, combine?: (older: T, newer: T) => T) {

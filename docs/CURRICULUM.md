@@ -2,7 +2,7 @@
 
 This is the canonical source for chapter order, lesson scope, practice alignment, quizzes, and flashcards. NetBite introduces concrete interactions before abstract models and teaches prerequisites before using their terminology.
 
-The current sequence contains 84 focused lessons across 12 chapters.
+NetBite now contains two distinct courses: 84 Foundation lessons across 12 chapters and 82 Network Operations lessons across 11 dependency-ordered modules.
 
 Mechanism lessons follow a consistent beginner sequence: trigger → known information → transmitted fields → device decision → state or output → scope boundary. Exact values appear when they explain observable behavior, such as Ethernet EtherType, ARP broadcast addressing, ICMP Echo types, IPv4 TTL processing, or an 802.1Q VLAN identifier; exhaustive header memorization remains outside scope.
 
@@ -37,7 +37,27 @@ Mechanism lessons follow a consistent beginner sequence: trigger → known infor
 11. OSI and TCP/IP Models
 12. Inter-VLAN Routing
 
-Future expansion may cover DHCP, DNS, NAT, ACLs, STP, and IPv6 after the core sequence is proven.
+## Course 2 — Network Operations
+
+Course 2 is unlocked by completing Network Foundations or passing the 12-question prerequisite diagnostic at 10/12. Modules unlock in order. Each practical activity is a fixed-topology, configuration-driven mini-simulator backed by a pure deterministic engine. Valid mistakes remain editable, malformed input does not mutate state, hints accumulate, and every activity documents its simulation boundary. Module visibility also follows an explicit released/validation/coming-soon quality state.
+
+| Module | Lessons | Guided simulation |
+| --- | ---: | --- |
+| 01 Transport and Application Endpoints | 8 | TCP/UDP endpoint and recovery desk |
+| 02 DHCP | 7 | Pool, binding, exhaustion, and relay desk |
+| 03 DNS | 7 | Recursive resolution, cache, and logical-TTL desk |
+| 04 IPv4 Traffic Policy and ACLs | 8 | Ordered named-ACL match trace |
+| 05 NAT and PAT | 8 | Translation creation and return matching |
+| 06 IPv6 Addressing | 8 | Expansion, compression, scope, and interface validation |
+| 07 IPv6 Local Delivery and Routing | 8 | NDP, router discovery, static route, and return-path trace |
+| 08 Redundant Switching and STP | 8 | Root election, port roles, and topology recalculation |
+| 09 EtherChannel | 6 | LACP compatibility and port-channel verification |
+| 10 Dynamic Routing Foundations | 6 | Prefix, route source, AD, metric, and withdrawal decisions |
+| 11 Single-Area OSPFv2 | 8 | Neighbor graph, topology state, SPF, and failure recovery |
+
+Eight- and seven-lesson modules use eight scenario questions with 7/8 mastery. Six-lesson modules use seven questions with 6/7 mastery. Every deck contains 8–11 question-first active-recall cards. The two-part Operations capstone integrates an IPv4 small office and IPv6 branch; completion requires forward and return verification plus correction of injected faults.
+
+Future expansion may cover DHCPv6, OSPFv3, wireless RF, QoS, advanced OSPF areas, BGP, production packet capture, and vendor hardware practice after the bounded operations sequence is proven.
 
 ## Chapter 1 — Introduction to Networks
 

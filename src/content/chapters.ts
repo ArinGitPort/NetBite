@@ -2,9 +2,10 @@ import { chapterOneLessons, chapterOneQuiz, chapterOneFlashcards, chapterOneLab 
 import { chapterTwo } from '@/content/chapter-two';
 import { chapterThree } from '@/content/chapter-three';
 import { advancedChapters } from '@/content/advanced-chapters';
+import { operationsChapters } from '@/content/operations-chapters';
 import type { ChapterDefinition, Lesson } from '@/content/types';
 
-export const chapters: ChapterDefinition[] = [
+const foundationSource: ChapterDefinition[] = [
   {
     id: '1',
     contentVersion: 2,
@@ -30,6 +31,17 @@ export const chapters: ChapterDefinition[] = [
   chapterThree,
   ...advancedChapters,
 ];
+
+export const foundationChapters: ChapterDefinition[] = foundationSource.map((chapter, index) => ({
+  ...chapter,
+  courseId: 'network-foundations',
+  courseOrder: index + 1,
+  accessTier: Number(chapter.id) <= 4 ? 'free' : 'pro',
+  prerequisiteChapterIds: [],
+}));
+
+export { operationsChapters };
+export const chapters: ChapterDefinition[] = [...foundationChapters, ...operationsChapters];
 
 export function getChapter(chapterId: string | undefined) {
   return chapters.find((chapter) => chapter.id === chapterId);

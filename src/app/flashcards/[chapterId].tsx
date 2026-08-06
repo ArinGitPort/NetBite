@@ -12,8 +12,10 @@ import Animated, {
 
 import { getChapter } from '@/content/chapters';
 import { canAccessChapter } from '@/core/account/access';
+import { canOpenChapter, getChapterLockReason } from '@/core/learning/course-access';
 import { useAuth } from '@/features/account/auth-context';
 import { PremiumLockedScreen } from '@/features/account/components/premium-locked-screen';
+import { CourseLockedScreen } from '@/features/account/components/course-locked-screen';
 import { AppButton } from '@/shared/components/app-button';
 import { AppIcon } from '@/shared/components/app-icon';
 import { ContentNotFound } from '@/shared/components/content-not-found';
@@ -31,7 +33,9 @@ import { returnToOwningChapter } from '@/shared/navigation';
 const FLIP_DURATION_MS = 420;
 
 export default function FlashcardsScreen() {
-  const { hasContentAccess } = useAuth();
+  const { hasContentAccess, presentationActive, testProEnabled } = useAuth();
+  const accessBypass = presentationActive || testProEnabled;
+  const progress = useGameStore();
   const { chapterId } = useLocalSearchParams<{ chapterId: string }>();
   const chapter = getChapter(chapterId);
   const markReviewed = useGameStore((state) => state.markFlashcardsReviewed);
@@ -83,6 +87,7 @@ export default function FlashcardsScreen() {
   }, []);
 
   if (chapter && !canAccessChapter(chapter.id, hasContentAccess)) return <PremiumLockedScreen label={`CHAPTER ${chapter.numberLabel} FLASHCARDS`} />;
+  if (chapter && !canOpenChapter(chapter, progress, accessBypass)) return <CourseLockedScreen reason={getChapterLockReason(chapter, progress) ?? 'Complete the prior requirement.'} />;
   if (!chapter || !card) return <ContentNotFound label="Flashcards" />;
 
   const resetFlip = () => {

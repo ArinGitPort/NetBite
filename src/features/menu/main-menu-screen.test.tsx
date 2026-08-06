@@ -40,8 +40,8 @@ describe('main menu', () => {
     expect(screen.getByText('START LEARNING')).toBeTruthy();
     expect(screen.getByText('NETWORK SANDBOX')).toBeTruthy();
     expect(screen.getByText('SETTINGS')).toBeTruthy();
-    await fireEvent.press(screen.getByText('Browse all chapters'));
-    expect(mockPush).toHaveBeenCalledWith('/learn');
+    await fireEvent.press(screen.getByText('Browse courses'));
+    expect(mockPush).toHaveBeenCalledWith('/courses');
   });
 
   test('places the primary learning action before sandbox and account utilities', async () => {

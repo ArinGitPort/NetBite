@@ -1,5 +1,16 @@
 # NetBite Project Handover
 
+## Network Operations course
+
+- Course 1 remains the 12-chapter, 84-lesson Network Foundations path. Course 2 adds 11 namespaced modules (`ops-01` through `ops-11`) with 82 lessons.
+- `/courses` is the course library. Course 2 requires completed Foundations or a 10/12 readiness diagnostic, then unlocks modules in order. Development presentation mode visibly bypasses readiness.
+- Course 2 uses state-driven guided mini-simulators. `transport-service-desk` is the reference step-driven implementation: the learner manually builds TCP state, recovers a controlled missing segment, and compares UDP. Remaining modules continue using the stable version-2 Operations shell until their specialized replacements pass validation.
+- Generic Course 2 sessions remain local in `netbite-operations-labs-v1`. Specialized protocol sessions use `netbite-protocol-labs-v1`. Both retain up to 20 Undo snapshots; incompatible unfinished Transport state is preserved as a recovery copy and earned completion is not removed.
+- Every Operations module currently has `simulationReleaseState: released`. The access layer supports `validation` and `comingSoon`, displays those labels in the learning path, and rejects direct entry until promotion.
+- Detailed lab sessions stay local; completion, readiness, capstones, assessments, review state, and achievements may sync.
+- The two-part Operations capstone and PDF certificate are available after all module requirements are complete.
+- Technical boundaries and sources are in `NETWORK_OPERATIONS_SIMULATION_GUIDE.md` and `references/NETWORK_OPERATIONS_SOURCES.md`.
+
 ## Active-recall flashcards
 
 - All 12 chapter decks now ask question-first prompts mapped to stable lesson IDs. The decks cover every lesson's central objective with scenarios, comparisons, sequences, and short explanations instead of passive term-definition cards.

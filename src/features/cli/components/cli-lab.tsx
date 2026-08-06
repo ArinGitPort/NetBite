@@ -19,14 +19,17 @@ import {
   getCliPrompt,
   getCliSuggestions,
   parseCliCommand,
+  simulatePing,
   type CliNetworkState,
   type CliOutputLine,
 } from '@/core/network/cli-simulator';
 import {
   requiredStaticRoutes,
   type CliLabDefinition,
+  type CliLabView,
   type CliPredictionChoice,
 } from '@/features/cli/cli-lab-definitions';
+import { CliTopologyView, createCliVisualTrace, type CliVisualTrace } from '@/features/cli/components/cli-topology-view';
 import { AppButton } from '@/shared/components/app-button';
 import { Text } from '@/shared/components/console-text';
 import { FeedbackModal } from '@/shared/components/feedback-modal';
@@ -90,6 +93,7 @@ function GuideModal({ visible, onClose }: { visible: boolean; onClose: () => voi
           <View style={styles.guideCard}><Text variant="sectionHeading" style={styles.guideTitle}>1 / READ THE PROMPT</Text><Text variant="bodySmall">The ending shows the mode: &gt; user, # privileged, (config)# configuration.</Text></View>
           <View style={styles.guideCard}><Text variant="sectionHeading" style={styles.guideTitle}>2 / TYPE OR TAP</Text><Text variant="bodySmall">Suggestions reduce mobile typing. You can still enter any supported command yourself.</Text></View>
           <View style={styles.guideCard}><Text variant="sectionHeading" style={styles.guideTitle}>3 / INSPECT AND CORRECT</Text><Text variant="bodySmall">Valid configuration changes remain active. Use NO commands, Undo, or Reset to correct mistakes.</Text></View>
+          <View style={styles.guideCard}><Text variant="sectionHeading" style={styles.guideTitle}>4 / VIEW THE NETWORK</Text><Text variant="bodySmall">Switch to Topology to inspect devices, links, configuration, and the latest ping path. Configuration remains in the CLI.</Text></View>
           <AppButton label="Open the console" onPress={onClose} />
         </View>
       </View>
@@ -118,7 +122,10 @@ export function CliLab({ definition }: { definition: CliLabDefinition }) {
   const compact = responsiveMode === 'compact';
   const wide = responsiveMode === 'wide';
   const [network, setNetwork] = useState(definition.createState);
+  const [labView, setLabView] = useState<CliLabView>('cli');
   const [activeDeviceId, setActiveDeviceId] = useState(() => definition.kind === 'vlan' ? 'sw-a' : definition.kind === 'inter-vlan' ? 'sw-1' : 'r1');
+  const [inspectedDeviceId, setInspectedDeviceId] = useState(() => definition.kind === 'vlan' ? 'sw-a' : definition.kind === 'inter-vlan' ? 'sw-1' : 'r1');
+  const [visualTrace, setVisualTrace] = useState<CliVisualTrace>();
   const [input, setInput] = useState('');
   const [transcripts, setTranscripts] = useState<Record<string, TranscriptEntry[]>>({});
   const [history, setHistory] = useState<string[]>([]);
@@ -225,6 +232,8 @@ export function CliLab({ definition }: { definition: CliLabDefinition }) {
     const result = executeCliCommand(network, activeDevice.id, parsed.command);
     if (result.events.includes('config-change')) setSnapshots((current) => [...current, cloneCliNetwork(network)].slice(-20));
     setNetwork(result.state);
+    if (result.mutated) setVisualTrace(undefined);
+    if (parsed.command.kind === 'ping') setVisualTrace(createCliVisualTrace(result.state, simulatePing(result.state, activeDevice.id, parsed.command.destination), parsed.command.destination));
     const nextEvents = [...events, ...result.events];
     if (result.events.includes('ping-success:192.168.30.10') && activeDevice.id === 'pc-a') nextEvents.push('verified-forward');
     if (result.events.includes('ping-success:192.168.10.10') && activeDevice.id === 'pc-c') nextEvents.push('verified-reverse');
@@ -251,13 +260,14 @@ export function CliLab({ definition }: { definition: CliLabDefinition }) {
 
   const undo = () => {
     const previous = snapshots.at(-1); if (!previous) return;
-    setNetwork(previous); setSnapshots((current) => current.slice(0, -1));
+    setNetwork(previous); setSnapshots((current) => current.slice(0, -1)); setVisualTrace(undefined);
     appendTranscript(activeDevice.id, { lines: [{ text: 'NETBITE: Last configuration change undone.', tone: 'muted' }] });
   };
 
   const reset = () => {
     const state = definition.kind === 'diagnostic' ? definition.diagnosticScenarios![0].createState() : definition.createState();
-    setNetwork(state); setActiveDeviceId(definition.kind === 'vlan' ? 'sw-a' : definition.kind === 'inter-vlan' ? 'sw-1' : 'r1'); setTranscripts({}); setHistory([]); setSnapshots([]); setEvents([]); setScenarioIndex(0); setSelectedPrediction(undefined); setPredictionFeedback(undefined); setVlanPredictions({}); setVlanSelections({}); setVlanFeedback({}); setResetVisible(false); setHintLevel(0);
+    const initialDeviceId = definition.kind === 'vlan' ? 'sw-a' : definition.kind === 'inter-vlan' ? 'sw-1' : 'r1';
+    setNetwork(state); setLabView('cli'); setActiveDeviceId(initialDeviceId); setInspectedDeviceId(initialDeviceId); setVisualTrace(undefined); setTranscripts({}); setHistory([]); setSnapshots([]); setEvents([]); setScenarioIndex(0); setSelectedPrediction(undefined); setPredictionFeedback(undefined); setVlanPredictions({}); setVlanSelections({}); setVlanFeedback({}); setResetVisible(false); setHintLevel(0);
     setTimeout(() => pageRef.current?.scrollTo({ y: 0, animated: true }), 0);
   };
 
@@ -270,7 +280,7 @@ export function CliLab({ definition }: { definition: CliLabDefinition }) {
   const advanceDiagnostic = () => {
     if (!scenario || selectedPrediction !== scenario.correctChoiceId) return;
     if (scenarioIndex === definition.diagnosticScenarios!.length - 1) return finishLab();
-    const nextIndex = scenarioIndex + 1; setScenarioIndex(nextIndex); setNetwork(definition.diagnosticScenarios![nextIndex].createState()); setActiveDeviceId('r1'); setEvents([]); setSelectedPrediction(undefined); setPredictionFeedback(undefined); setHintLevel(0); setTimeout(() => pageRef.current?.scrollTo({ y: 0, animated: true }), 0);
+    const nextIndex = scenarioIndex + 1; setScenarioIndex(nextIndex); setNetwork(definition.diagnosticScenarios![nextIndex].createState()); setActiveDeviceId('r1'); setInspectedDeviceId('r1'); setVisualTrace(undefined); setEvents([]); setSelectedPrediction(undefined); setPredictionFeedback(undefined); setHintLevel(0); setTimeout(() => pageRef.current?.scrollTo({ y: 0, animated: true }), 0);
   };
 
   const finishLab = () => { completeLab(definition.id); setCompletionVisible(true); successHaptic(); };
@@ -335,8 +345,9 @@ export function CliLab({ definition }: { definition: CliLabDefinition }) {
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={8} onLayout={onLayout} style={styles.screen} testID="cli-layout">
         <View style={styles.header}><IconButton accessibilityLabel={`Back to Chapter ${definition.chapterId}`} icon="arrow-left" label={compact ? 'BACK' : 'BACK / CHAPTER'} onPress={() => returnToOwningChapter('lab', definition.id)} /><View style={styles.headerActions}><IconButton accessibilityLabel="Open CLI help" icon="check" label="HELP" onPress={() => setGuideVisible(true)} /><IconButton accessibilityLabel="Reset CLI lab" icon="reset" label="RESET" onPress={() => setResetVisible(true)} /></View></View>
         <Text variant="label" style={styles.orange}>{definition.eyebrow}</Text><Text variant="screenTitle" style={styles.title}>{definition.title}</Text><Text variant="technical" style={styles.scope}>{definition.scopeNote}</Text>
-        <View style={styles.deviceTabs}>{visibleDevices.map((item) => <Pressable accessibilityRole="tab" accessibilityState={{ selected: item.id === activeDevice.id }} key={item.id} onPress={() => { setActiveDeviceId(item.id); setInput(''); selectionHaptic(); }} style={[styles.deviceTab, item.id === activeDevice.id && styles.deviceTabActive]}><Text variant="label" style={styles.deviceTabText}>{item.name}</Text></Pressable>)}</View>
-        <View style={styles.workspace} testID="cli-workspace">{statusPanel}{terminal}</View>
+        <View accessibilityLabel="Lab view" accessibilityRole="tablist" style={styles.viewSwitch}><Pressable accessibilityRole="tab" accessibilityState={{ selected: labView === 'cli' }} onPress={() => setLabView('cli')} style={[styles.viewOption, labView === 'cli' && styles.viewOptionActive]}><Text variant="label" style={labView === 'cli' ? styles.viewOptionTextActive : styles.deviceTabText}>CLI</Text></Pressable><Pressable accessibilityRole="tab" accessibilityState={{ selected: labView === 'topology' }} onPress={() => setLabView('topology')} style={[styles.viewOption, labView === 'topology' && styles.viewOptionActive]}><Text variant="label" style={labView === 'topology' ? styles.viewOptionTextActive : styles.deviceTabText}>TOPOLOGY</Text></Pressable></View>
+        {labView === 'cli' ? <View style={styles.deviceTabs}>{visibleDevices.map((item) => <Pressable accessibilityRole="tab" accessibilityState={{ selected: item.id === activeDevice.id }} key={item.id} onPress={() => { setActiveDeviceId(item.id); setInspectedDeviceId(item.id); setInput(''); selectionHaptic(); }} style={[styles.deviceTab, item.id === activeDevice.id && styles.deviceTabActive]}><Text variant="label" style={styles.deviceTabText}>{item.name}</Text></Pressable>)}</View> : null}
+        <View style={styles.workspace} testID="cli-workspace">{statusPanel}{labView === 'cli' ? terminal : <CliTopologyView cliDeviceIds={visibleDevices.map((item) => item.id)} layout={definition.topology} mode={responsiveMode} network={network} onOpenCli={(deviceId) => { setActiveDeviceId(deviceId); setInspectedDeviceId(deviceId); setInput(''); setLabView('cli'); selectionHaptic(); }} onSelectDevice={(deviceId) => { setInspectedDeviceId(deviceId); if (visibleDevices.some((item) => item.id === deviceId)) setActiveDeviceId(deviceId); selectionHaptic(); }} selectedDeviceId={inspectedDeviceId} trace={visualTrace} />}</View>
         {definition.kind === 'diagnostic' && diagnosticEvidenceReady && scenario ? <View style={styles.assessment}><Text variant="sectionHeading">{scenario.prompt}</Text><PredictionPanel choices={scenario.choices} feedback={predictionFeedback} onSelect={chooseDiagnosticPrediction} selected={selectedPrediction} /><AppButton disabled={selectedPrediction !== scenario.correctChoiceId} label={scenarioIndex === definition.diagnosticScenarios!.length - 1 ? 'Complete diagnostics' : 'Next scenario'} onPress={advanceDiagnostic} /></View> : null}
         {definition.kind === 'vlan' && vlanState.exact ? <View style={styles.assessment}><Text variant="label" style={styles.orange}>VERIFY THE RESULT</Text><Text variant="bodySmall">Use the actual port and trunk state to predict both paths.</Text><PredictionPanel choices={[{ id: 'yes', label: 'PC-A → PC-B / REACHABLE', feedback: deriveVlanReachability(network, 'pc-a', 'pc-b').reason }, { id: 'no', label: 'PC-A → PC-B / BLOCKED', feedback: 'A matching VLAN is allowed across both configured trunk endpoints, so the switches can carry this same-VLAN path.' }]} feedback={vlanFeedback.same} selected={vlanSelections.same} onSelect={(id) => { const result = deriveVlanReachability(network, 'pc-a', 'pc-b'); const correct = id === 'yes' && result.reachable; const choice = id === 'yes' ? result.reason : 'A trunk keeps VLANs separate, but it can carry VLAN 10 between the switches.'; setVlanSelections((current) => ({ ...current, same: id })); setVlanFeedback((current) => ({ ...current, same: choice })); setVlanPredictions((current) => ({ ...current, same: correct })); if (correct) successHaptic(); else warningHaptic(); }} /><PredictionPanel choices={[{ id: 'blocked', label: 'PC-A → PC-C / ROUTING REQUIRED', feedback: deriveVlanReachability(network, 'pc-a', 'pc-c').reason }, { id: 'merged', label: 'PC-A → PC-C / TRUNK MERGES VLANS', feedback: 'A trunk carries tagged VLAN contexts; it does not merge VLAN 10 and VLAN 20 into one LAN.' }]} feedback={vlanFeedback.different} selected={vlanSelections.different} onSelect={(id) => { const result = deriveVlanReachability(network, 'pc-a', 'pc-c'); const correct = id === 'blocked' && !result.reachable; const choice = id === 'blocked' ? result.reason : 'Trunks preserve VLAN separation. Communication between VLAN 10 and VLAN 20 needs Layer 3 routing.'; setVlanSelections((current) => ({ ...current, different: id })); setVlanFeedback((current) => ({ ...current, different: choice })); setVlanPredictions((current) => ({ ...current, different: correct })); if (correct) successHaptic(); else warningHaptic(); }} /></View> : null}
         {revealedHints.length ? <View accessibilityLabel={`${revealedHints.length} of ${availableHints.length} hints revealed`} style={styles.hintPanel}>
@@ -361,6 +372,10 @@ const styles = StyleSheet.create({
   headerActions: { minWidth: 0, maxWidth: '100%', flexShrink: 1, flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end', gap: Space.sm },
   orange: { color: Palette.orange, fontFamily: Fonts.medium }, green: { color: Palette.green, fontFamily: Fonts.medium },
   title: { color: Palette.text, fontFamily: Fonts.semibold, marginTop: Space.xs }, scope: { color: Palette.textMuted, marginVertical: Space.sm },
+  viewSwitch: { width: '100%', minWidth: 0, flexDirection: 'row', marginBottom: Space.sm, borderWidth: 1, borderColor: Palette.border, backgroundColor: Palette.surface },
+  viewOption: { minWidth: 0, minHeight: 44, flex: 1, alignItems: 'center', justifyContent: 'center', padding: Space.sm },
+  viewOptionActive: { borderWidth: 1, borderColor: Palette.orange, backgroundColor: Palette.orangeSoft },
+  viewOptionTextActive: { color: Palette.orange, fontFamily: Fonts.semibold },
   deviceTabs: { flexDirection: 'row', flexWrap: 'wrap', gap: Space.xs, marginBottom: Space.sm },
   deviceTab: { minWidth: 72, minHeight: 44, flexGrow: 1, alignItems: 'center', justifyContent: 'center', padding: Space.xs, borderWidth: 1, borderColor: Palette.border, backgroundColor: Palette.surface },
   deviceTabActive: { borderColor: Palette.orange, backgroundColor: Palette.orangeSoft }, deviceTabText: { textAlign: 'center' },

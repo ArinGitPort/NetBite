@@ -1,4 +1,4 @@
-import { chapters } from '@/content/chapters';
+import { foundationChapters as chapters } from '@/content/chapters';
 import { getChapterProgress, getQuizMasteryScore, isChapterComplete, isQuizMastered, type LearningProgress } from '@/content/progress';
 
 describe('chapter progress', () => {

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { AccessibilityInfo, findNodeHandle, StyleSheet, View } from 'react-native';
+import { AccessibilityInfo, findNodeHandle, Platform, StyleSheet, View } from 'react-native';
 
 import { AppButton } from '@/shared/components/app-button';
 import { Text } from '@/shared/components/console-text';
@@ -14,7 +14,7 @@ export function ContextualGuide({ id, eyebrow, steps }: { id: GuideId; eyebrow: 
   const [index, setIndex] = useState(0);
   const guideRef = useRef<View>(null);
   useEffect(() => {
-    if (index === 0) return;
+    if (index === 0 || Platform.OS === 'web') return;
     const timer = setTimeout(() => {
       const node = findNodeHandle(guideRef.current);
       if (node) AccessibilityInfo.setAccessibilityFocus(node);

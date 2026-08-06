@@ -1,4 +1,5 @@
 import type { ActivityEvent, ReviewSignal, SavedLearningItem } from '@/core/learning/adaptive-learning';
+import type { CourseAchievement } from '@/content/types';
 
 export type SyncStatus = 'local' | 'syncing' | 'synced' | 'action-needed';
 export type ProgressMergeChoice = 'merge' | 'cloud' | 'cancel';
@@ -19,6 +20,9 @@ export interface CloudProgressSnapshot {
   reviewSignals: Record<string, ReviewSignal>;
   savedLearningItems: Record<string, SavedLearningItem>;
   activityHistory: ActivityEvent[];
+  readinessScores: Record<string, number>;
+  completedCapstoneIds: string[];
+  courseAchievements: Record<string, CourseAchievement>;
   updatedAt: string;
 }
 

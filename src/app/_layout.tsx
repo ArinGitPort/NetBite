@@ -26,6 +26,8 @@ import { gameStorage } from '@/store/game-storage';
 import { usePresentationStore } from '@/store/use-presentation-store';
 import { useSandboxStore } from '@/store/use-sandbox-store';
 import { useResearchStore } from '@/store/use-research-store';
+import { useOperationsLabStore } from '@/store/use-operations-lab-store';
+import { useProtocolLabStore } from '@/store/use-protocol-lab-store';
 
 SplashScreen.preventAutoHideAsync();
 if (!isRunningInExpoGo()) SplashScreen.setOptions({ duration: 450, fade: true });
@@ -62,6 +64,8 @@ export default function RootLayout() {
         { id: 'presentation', hydrate: usePresentationStore.persist.rehydrate, hasHydrated: usePresentationStore.persist.hasHydrated },
         { id: 'experience', hydrate: useExperienceStore.persist.rehydrate, hasHydrated: useExperienceStore.persist.hasHydrated },
         { id: 'research', hydrate: useResearchStore.persist.rehydrate, hasHydrated: useResearchStore.persist.hasHydrated },
+        { id: 'operations-labs', hydrate: useOperationsLabStore.persist.rehydrate, hasHydrated: useOperationsLabStore.persist.hasHydrated },
+        { id: 'protocol-labs', hydrate: useProtocolLabStore.persist.rehydrate, hasHydrated: useProtocolLabStore.persist.hasHydrated },
       ]);
       if (!active) return;
       if (result.status === 'failed') {
@@ -100,14 +104,18 @@ async function preserveRecoveryCopy() {
     sandbox: await gameStorage.getItem('netbite-sandbox-state-v1'),
     presentation: await gameStorage.getItem('netbite-presentation-state-v1'),
     research: await gameStorage.getItem('netbite-research-state-v1'),
+    operationsLabs: await gameStorage.getItem('netbite-operations-labs-v1'),
+    protocolLabs: await gameStorage.getItem('netbite-protocol-labs-v1'),
   };
   await gameStorage.setItem(`netbite-recovery-${Date.now()}`, JSON.stringify(recovery));
-  await Promise.all([useGameStore.persist.clearStorage(), useSandboxStore.persist.clearStorage(), usePresentationStore.persist.clearStorage(), useResearchStore.persist.clearStorage()]);
+  await Promise.all([useGameStore.persist.clearStorage(), useSandboxStore.persist.clearStorage(), usePresentationStore.persist.clearStorage(), useResearchStore.persist.clearStorage(), useOperationsLabStore.persist.clearStorage(), useProtocolLabStore.persist.clearStorage()]);
   useGameStore.getState().resetLearningProgress();
   useGameStore.getState().resetLab();
   useSandboxStore.setState({ workspace: createEmptySandboxWorkspace(), guideSeen: false, past: [], future: [] });
   usePresentationStore.setState({ active: false, snapshot: undefined });
   useResearchStore.getState().deleteSession();
+  useOperationsLabStore.setState({ sessions: {}, history: {} });
+  useProtocolLabStore.setState({ sessions: {}, history: {} });
 }
 
 export function ErrorBoundary({ retry, error }: ErrorBoundaryProps) {

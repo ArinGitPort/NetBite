@@ -73,6 +73,9 @@ export function deserializeCloudProgress(row: Record<string, unknown>): CloudPro
     reviewSignals: reviewSignalRecord(row.review_signals),
     savedLearningItems: savedItemRecord(row.saved_learning_items),
     activityHistory: activityEvents(row.activity_history),
+    readinessScores: numberRecord(row.readiness_scores),
+    completedCapstoneIds: stringArray(row.completed_capstone_ids),
+    courseAchievements: objectRecord(row.course_achievements),
     updatedAt,
   };
 }
@@ -94,6 +97,9 @@ function toRow(userId: string, value: CloudProgressSnapshot) {
     review_signals: value.reviewSignals,
     saved_learning_items: value.savedLearningItems,
     activity_history: value.activityHistory,
+    readiness_scores: value.readinessScores,
+    completed_capstone_ids: value.completedCapstoneIds,
+    course_achievements: value.courseAchievements,
     updated_at: value.updatedAt,
   };
 }

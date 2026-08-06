@@ -1,5 +1,5 @@
 import { advancedChapters } from '@/content/advanced-chapters';
-import { chapters } from '@/content/chapters';
+import { foundationChapters as chapters } from '@/content/chapters';
 import { educationalIllustrations } from '@/features/lessons/educational-illustration-registry';
 import { practiceConfigs } from '@/features/practice/practice-configs';
 import { cliLabDefinitions } from '@/features/cli/cli-lab-definitions';

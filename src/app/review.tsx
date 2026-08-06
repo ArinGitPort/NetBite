@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { AccessibilityInfo, findNodeHandle, Pressable, StyleSheet, View } from 'react-native';
+import { AccessibilityInfo, findNodeHandle, Platform, Pressable, StyleSheet, View } from 'react-native';
 
 import { chapters } from '@/content/chapters';
 import { canAccessChapter } from '@/core/account/access';
@@ -36,7 +36,7 @@ export default function ReviewScreen() {
   const resolved = current ? resolveItem(current) : undefined;
 
   useEffect(() => {
-    if (!currentKey) return;
+    if (!currentKey || Platform.OS === 'web') return;
     const timer = setTimeout(() => {
       const node = findNodeHandle(reviewItemRef.current);
       if (node) AccessibilityInfo.setAccessibilityFocus(node);

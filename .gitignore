@@ -9,6 +9,8 @@ node_modules/
 .expo-reliability-web/
 .expo-plan-android/
 .expo-plan-web/
+.expo-export-android/
+.expo-export-web/
 dist/
 web-build/
 /.tmp/

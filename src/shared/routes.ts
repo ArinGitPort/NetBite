@@ -4,6 +4,9 @@ import type { Href } from 'expo-router';
 export const AppRoutes = {
   menu: '/' as Href,
   learningPath: '/learn' as Href,
+  courses: '/courses' as Href,
+  readiness: '/readiness' as Href,
+  certificate: '/certificate/network-foundations' as Href,
   settings: '/settings' as Href,
   sandbox: '/sandbox' as Href,
   account: '/account' as Href,

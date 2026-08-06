@@ -3,6 +3,7 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 
 import { gameStorage } from '@/store/game-storage';
 import { appendActivity, tombstoneSavedLearningItem, updateReviewSignals, upsertSavedLearningItem, type ActivityEvent, type ReviewResultInput, type ReviewSignal, type SavedLearningItem } from '@/core/learning/adaptive-learning';
+import type { CourseAchievement, CourseId } from '@/content/types';
 
 import {
   createChapterOneTopology,
@@ -30,6 +31,9 @@ export interface GameState {
   flashcardContentVersions: Record<string, number>;
   flashcardPositions: Record<string, number>;
   completedLabIds: string[];
+  readinessScores: Record<string, number>;
+  completedCapstoneIds: string[];
+  courseAchievements: Record<string, CourseAchievement>;
   reviewSignals: Record<string, ReviewSignal>;
   savedLearningItems: Record<string, SavedLearningItem>;
   activityHistory: ActivityEvent[];
@@ -52,6 +56,9 @@ export interface GameState {
   saveFlashcardPosition: (chapterId: string, index: number) => void;
   clearFlashcardPosition: (chapterId: string) => void;
   completeLab: (labId: string) => void;
+  saveReadinessScore: (courseId: string, score: number) => void;
+  completeCapstone: (capstoneId: string) => void;
+  awardCourseAchievement: (courseId: CourseId, title: string) => void;
   markCliGuideSeen: () => void;
   recordReviewResult: (input: ReviewResultInput, correct: boolean) => void;
   saveLearningItem: (input: Omit<SavedLearningItem, 'key' | 'createdAt' | 'updatedAt' | 'deletedAt'>) => void;
@@ -86,6 +93,9 @@ export const useGameStore = create<GameState>()(persist((set, get) => ({
   flashcardContentVersions: {},
   flashcardPositions: {},
   completedLabIds: [],
+  readinessScores: {},
+  completedCapstoneIds: [],
+  courseAchievements: {},
   reviewSignals: {},
   savedLearningItems: {},
   activityHistory: [],
@@ -239,6 +249,17 @@ export const useGameStore = create<GameState>()(persist((set, get) => ({
       : [...state.completedLabIds, labId],
     activityHistory: state.completedLabIds.includes(labId) ? state.activityHistory : appendActivity(state.activityHistory, { type: 'lab', chapterId: '', targetId: labId, label: 'Mini lab completed' }),
   })),
+  saveReadinessScore: (courseId, score) => set((state) => ({
+    readinessScores: { ...state.readinessScores, [courseId]: Math.max(score, state.readinessScores[courseId] ?? 0) },
+  })),
+  completeCapstone: (capstoneId) => set((state) => ({
+    completedCapstoneIds: state.completedCapstoneIds.includes(capstoneId) ? state.completedCapstoneIds : [...state.completedCapstoneIds, capstoneId],
+  })),
+  awardCourseAchievement: (courseId, title) => set((state) => ({
+    courseAchievements: state.courseAchievements[courseId]
+      ? state.courseAchievements
+      : { ...state.courseAchievements, [courseId]: { courseId, title, awardedAt: new Date().toISOString() } },
+  })),
   markCliGuideSeen: () => set({ cliGuideSeen: true }),
   recordReviewResult: (input, correct) => set((state) => ({
     reviewSignals: updateReviewSignals(state.reviewSignals, input, correct),
@@ -264,11 +285,14 @@ export const useGameStore = create<GameState>()(persist((set, get) => ({
     completedLabIds: [],
     reviewSignals: {},
     activityHistory: [],
+    readinessScores: {},
+    completedCapstoneIds: [],
+    courseAchievements: {},
   }),
 }), {
   name: 'netbite-game-state-v1',
   storage: createJSONStorage(() => gameStorage),
-  version: 7,
+  version: 8,
   skipHydration: true,
   partialize: (state) => ({
     topology: state.topology,
@@ -280,6 +304,9 @@ export const useGameStore = create<GameState>()(persist((set, get) => ({
     flashcardContentVersions: state.flashcardContentVersions,
     flashcardPositions: state.flashcardPositions,
     completedLabIds: state.completedLabIds,
+    readinessScores: state.readinessScores,
+    completedCapstoneIds: state.completedCapstoneIds,
+    courseAchievements: state.courseAchievements,
     reviewSignals: state.reviewSignals,
     savedLearningItems: state.savedLearningItems,
     activityHistory: state.activityHistory,
@@ -316,6 +343,9 @@ export const useGameStore = create<GameState>()(persist((set, get) => ({
       reviewSignals: migratedState.reviewSignals ?? {},
       savedLearningItems: migratedState.savedLearningItems ?? {},
       activityHistory: migratedState.activityHistory ?? [],
+      readinessScores: migratedState.readinessScores ?? {},
+      completedCapstoneIds: migratedState.completedCapstoneIds ?? [],
+      courseAchievements: migratedState.courseAchievements ?? {},
     } as GameState;
   },
 }));

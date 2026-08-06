@@ -24,15 +24,16 @@ export default function ProScreen() {
       </View>
       <View style={styles.panel}>
         <Text variant="sectionHeading">INCLUDED</Text>
-        <Text variant="body">Chapters 5-12</Text>
+        <Text variant="body">Network Foundations premium chapters</Text>
+        <Text variant="body">Complete Network Operations course</Text>
         <Text variant="body">All advanced mini labs and CLI practices</Text>
         <Text variant="body">Network Sandbox</Text>
         <Text variant="body">Account-based entitlement restoration</Text>
       </View>
       {testProEnabled ? (
         <View style={styles.testOwned}>
-          <Text variant="sectionHeading" style={styles.test}>LOCAL TEST ACCESS</Text>
-          <Text variant="bodySmall">Advanced learning and Network Sandbox are unlocked on this development installation. No purchase or account entitlement was created.</Text>
+          <Text variant="sectionHeading" style={styles.test}>DEVELOPMENT TEST ACCESS</Text>
+          <Text variant="bodySmall">All chapters, Network Operations modules, the Operations capstone, and Network Sandbox are unlocked on this development installation. No purchase or account entitlement was created.</Text>
         </View>
       ) : hasPro ? (
         <View style={styles.owned}>

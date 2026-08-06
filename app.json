@@ -40,7 +40,9 @@
         {
           "enableGooglePay": false
         }
-      ]
+      ],
+      "expo-sharing",
+      "expo-image"
     ],
     "experiments": {
       "typedRoutes": true,

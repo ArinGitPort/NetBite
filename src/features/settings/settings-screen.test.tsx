@@ -44,10 +44,12 @@ describe('settings reliability controls', () => {
     expect(screen.getByText('Erase sandbox workspace?')).toBeTruthy();
   });
 
-  test('enables clearly labeled local-only Pro test access', async () => {
+  test('enables clearly labeled development test access', async () => {
     const screen = await render(<SettingsScreen />);
+    expect(screen.getByText('DEVELOPMENT TEST ACCESS')).toBeTruthy();
+    expect(screen.getByText(/every Network Operations module/i)).toBeTruthy();
     expect(screen.getByText('DISABLED / DEVELOPMENT ONLY')).toBeTruthy();
-    await fireEvent.press(screen.getByText('Enable test Pro'));
+    await fireEvent.press(screen.getByText('Enable test access'));
     expect(mockAuthState.setTestProEnabled).toHaveBeenCalledWith(true);
   });
 });

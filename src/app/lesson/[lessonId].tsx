@@ -4,8 +4,10 @@ import { StyleSheet, View } from 'react-native';
 
 import { getLesson } from '@/content/chapters';
 import { canAccessChapter } from '@/core/account/access';
+import { canOpenChapter, getChapterLockReason } from '@/core/learning/course-access';
 import { useAuth } from '@/features/account/auth-context';
 import { PremiumLockedScreen } from '@/features/account/components/premium-locked-screen';
+import { CourseLockedScreen } from '@/features/account/components/course-locked-screen';
 import { LessonFieldNote } from '@/features/lessons/components/lesson-field-note';
 import { LessonIllustration } from '@/features/lessons/components/lesson-illustration';
 import { LessonCheckpoint } from '@/features/lessons/components/lesson-checkpoint';
@@ -24,7 +26,9 @@ import { useGameStore } from '@/store/use-game-store';
 import { returnToOwningChapter } from '@/shared/navigation';
 
 export default function LessonScreen() {
-  const { hasContentAccess } = useAuth();
+  const { hasContentAccess, presentationActive, testProEnabled } = useAuth();
+  const accessBypass = presentationActive || testProEnabled;
+  const progress = useGameStore();
   const { lessonId } = useLocalSearchParams<{ lessonId: string }>();
   const completeLesson = useGameStore((state) => state.completeLesson);
   const completedLessonIds = useGameStore((state) => state.completedLessonIds);
@@ -39,6 +43,7 @@ export default function LessonScreen() {
   }
   const { chapter, lesson, index } = lessonResult;
   if (!canAccessChapter(chapter.id, hasContentAccess)) return <PremiumLockedScreen label={`CHAPTER ${chapter.numberLabel} LESSON`} />;
+  if (!canOpenChapter(chapter, progress, accessBypass)) return <CourseLockedScreen reason={getChapterLockReason(chapter, progress) ?? 'Complete the prior requirement.'} />;
   const checkpointPassed = checkpointResult.lessonId === lesson.id && checkpointResult.passed;
   const lessonWasCompleted = completedLessonIds.includes(lesson.id);
   const checkpointRequired = Boolean(lesson.checkpoint) && !lessonWasCompleted;

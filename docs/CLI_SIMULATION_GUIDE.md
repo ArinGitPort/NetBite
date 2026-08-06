@@ -15,9 +15,18 @@ It is not Cisco IOS, a terminal emulator, or a live packet simulator. Commands u
 - Valid configuration changes persist in the active lab even when they are not the objective. Learners correct them with an exact `no` command, Undo, or Reset.
 - Invalid syntax and wrong-mode commands never mutate configuration.
 - Undo retains 20 configuration snapshots; history retains 50 commands; each device transcript retains 200 entries.
-- The first CLI lab shows a persistent three-part guide. Help reopens it at any time.
+- The first CLI lab shows a persistent four-part guide. Help reopens it at any time.
 - Suggestions reduce mobile typing but never submit automatically. Hints have no score penalty.
 - Controls remain at least 44 points high, text wraps, operating-system font scaling remains enabled, and status never depends on color alone.
+
+### CLI and topology views
+
+- Every CLI lab opens in the CLI view and offers an optional read-only Topology view.
+- Both views read the same deterministic `CliNetworkState`; topology inspection never maintains a second configuration.
+- Tapping a CLI-enabled device selects its console. Fixed endpoints that are outside a lab's command scope remain inspectable without gaining unrelated commands.
+- The inspector shows current interfaces, addressing, routes, VLANs, trunks, MAC entries, and physical endpoints where relevant. Missing values are labeled `NOT CONFIGURED`.
+- The latest ping is shown as a color-independent forward/return path with a written result. Configuration changes, Undo, scenario changes, and Reset clear stale path evidence.
+- Devices and links cannot be moved or rewired. Free topology construction remains a Network Sandbox feature.
 
 ## Modes and prompts
 
@@ -94,6 +103,7 @@ A logical subinterface has no independent cable. Its operational state depends o
 - `src/core/network/cli-simulator.ts` owns parsing, typed state transitions, route/path derivation, ping evidence, and VLAN reachability.
 - `src/features/cli/cli-lab-definitions.ts` owns fixed lab states and state-based objectives.
 - `src/features/cli/components/cli-lab.tsx` owns mobile interaction, transcript/history/snapshots, assistance, and completion.
+- `src/features/cli/components/cli-topology-view.tsx` renders responsive fixed topology, read-only device inspection, and ping path evidence.
 - `src/features/practice/lab-registry.tsx` registers the four stable CLI lab IDs.
 
 Unfinished CLI state is intentionally session-only. Existing lab completion persists, along with the `cli-guide-v1` acknowledgement represented by the store’s `cliGuideSeen` flag.

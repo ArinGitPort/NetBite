@@ -1,8 +1,10 @@
 import { fireEvent, render } from '@testing-library/react-native';
 import { StyleSheet } from 'react-native';
 
+import { simulatePing } from '@/core/network/cli-simulator';
 import { CliLab } from '@/features/cli/components/cli-lab';
-import { cliLabDefinitions } from '@/features/cli/cli-lab-definitions';
+import { createCliVisualTrace } from '@/features/cli/components/cli-topology-view';
+import { cliLabDefinitions, createRoutingState, requiredStaticRoutes } from '@/features/cli/cli-lab-definitions';
 import { useGameStore } from '@/store/use-game-store';
 
 jest.mock('expo-router', () => ({ router: { dismissTo: jest.fn() } }));
@@ -14,6 +16,14 @@ jest.mock('expo-sqlite/kv-store', () => ({
 
 describe('CliLab', () => {
   beforeEach(() => useGameStore.setState({ completedLabIds: [], cliGuideSeen: true }));
+
+  test.each(['ping-diagnostic-desk', 'static-route-board', 'vlan-port-desk', 'inter-vlan-routing-desk'])('renders the fixed interactive topology for %s', async (labId) => {
+    const definition = cliLabDefinitions[labId];
+    const screen = await render(<CliLab definition={definition} />);
+    await fireEvent.press(screen.getByRole('tab', { name: 'TOPOLOGY' }));
+    expect(screen.getByTestId('cli-topology-canvas')).toBeTruthy();
+    definition.createState().devices.forEach((device) => expect(screen.getAllByRole('button', { name: new RegExp(device.name, 'i') }).length).toBeGreaterThan(0));
+  });
 
   test('persists the first-run guide acknowledgement and keeps Help available', async () => {
     useGameStore.setState({ cliGuideSeen: false });
@@ -112,6 +122,15 @@ describe('CliLab', () => {
     expect(StyleSheet.flatten(screen.getByTestId('cli-footer-actions').props.style).width).toBe('100%');
   });
 
+  test('recomposes the fixed topology between compact and wide layouts', async () => {
+    const screen = await render(<CliLab definition={cliLabDefinitions['static-route-board']} />);
+    await fireEvent(screen.getByTestId('cli-layout'), 'layout', { persist: jest.fn(), nativeEvent: { layout: { width: 390, height: 760, x: 0, y: 0 } } });
+    await fireEvent.press(screen.getByRole('tab', { name: 'TOPOLOGY' }));
+    expect(StyleSheet.flatten(screen.getByTestId('cli-topology-canvas').props.style).height).toBe(600);
+    await fireEvent(screen.getByTestId('cli-layout'), 'layout', { persist: jest.fn(), nativeEvent: { layout: { width: 1400, height: 900, x: 0, y: 0 } } });
+    expect(StyleSheet.flatten(screen.getByTestId('cli-topology-canvas').props.style).height).toBe(230);
+  });
+
   test('shows accepted route state, supports history, Undo, and Reset', async () => {
     const screen = await render(<CliLab definition={cliLabDefinitions['static-route-board']} />);
     await fireEvent.press(screen.getByRole('button', { name: /objective status/i }));
@@ -148,6 +167,51 @@ describe('CliLab', () => {
     expect(screen.getAllByText('F0/24 ACCESS')).toHaveLength(2);
     await fireEvent.press(screen.getByRole('tab', { name: 'NB-SW-B' }));
     expect(screen.getByLabelText('Command for NB-SW-B')).toBeTruthy();
+  });
+
+  test('switches to a live topology, inspects a device, and returns to its CLI', async () => {
+    const screen = await render(<CliLab definition={cliLabDefinitions['static-route-board']} />);
+    await fireEvent.press(screen.getByRole('tab', { name: 'TOPOLOGY' }));
+    expect(screen.getByLabelText(/PC-A connects through NB-R1, NB-R2, and NB-R3 to PC-C/i)).toBeTruthy();
+    await fireEvent.press(screen.getByRole('button', { name: /NB-R2, router, 2 interfaces/i }));
+    expect(screen.getByText('NB-R2 / ROUTER')).toBeTruthy();
+    expect(screen.getAllByText(/10\.0\.12\.2\/30/i).length).toBeGreaterThan(0);
+    await fireEvent.press(screen.getByRole('button', { name: /open cli on nb-r2/i }));
+    expect(screen.getByLabelText('Command for NB-R2')).toBeTruthy();
+    expect(screen.getByRole('tab', { name: 'CLI' }).props.accessibilityState.selected).toBe(true);
+  });
+
+  test('keeps non-console endpoints inspectable without widening guided CLI scope', async () => {
+    const screen = await render(<CliLab definition={cliLabDefinitions['vlan-port-desk']} />);
+    await fireEvent.press(screen.getByRole('tab', { name: 'TOPOLOGY' }));
+    await fireEvent.press(screen.getByRole('button', { name: /PC-A, host/i }));
+    expect(screen.getByText('PC-A / PC')).toBeTruthy();
+    expect(screen.getByText(/inspection only/i)).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /open cli on pc-a/i })).toBeNull();
+  });
+
+  test('shows a color-independent stopped ping path and clears it after Reset', async () => {
+    const screen = await render(<CliLab definition={cliLabDefinitions['static-route-board']} />);
+    await fireEvent.press(screen.getByRole('tab', { name: 'PC-A' }));
+    await fireEvent.changeText(screen.getByLabelText('Command for PC-A'), 'ping 192.168.30.10');
+    await fireEvent.press(screen.getByText(/run command/i));
+    await fireEvent.press(screen.getByRole('tab', { name: 'TOPOLOGY' }));
+    expect(screen.getByText('PING PATH STOPPED')).toBeTruthy();
+    expect(screen.getByText(/FORWARD \/ PC-A → NB-R1/i)).toBeTruthy();
+    expect(screen.getByText(/forward path stopped: no route/i)).toBeTruthy();
+    await fireEvent.press(screen.getByLabelText('Reset CLI lab'));
+    await fireEvent.press(screen.getByText(/^reset lab$/i));
+    expect(screen.queryByText('PING PATH STOPPED')).toBeNull();
+    expect(screen.getByRole('tab', { name: 'CLI' }).props.accessibilityState.selected).toBe(true);
+  });
+
+  test('expands a successful routed ping into complete forward and return visual paths', () => {
+    const network = createRoutingState();
+    requiredStaticRoutes.forEach((required) => network.devices.find((device) => device.id === required.deviceId)!.routes.push({ prefix: required.prefix, prefixLength: required.prefixLength, nextHop: required.nextHop, exitInterface: '', source: 'static' }));
+    const trace = createCliVisualTrace(network, simulatePing(network, 'pc-a', '192.168.30.10'), '192.168.30.10');
+    expect(trace.success).toBe(true);
+    expect(trace.forwardDeviceIds).toEqual(['pc-a', 'r1', 'r2', 'r3', 'pc-c']);
+    expect(trace.reverseDeviceIds).toEqual(['pc-c', 'r3', 'r2', 'r1', 'pc-a']);
   });
 
   test('renders the inter-VLAN lab and exposes logical-interface configuration without clipping controls', async () => {

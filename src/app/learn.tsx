@@ -1,37 +1,43 @@
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { chapters } from '@/content/chapters';
+import { canEnterOperations, getCourse, getCourseChapters } from '@/content/courses';
+import type { CourseId } from '@/content/types';
 import { getNextChapterActivity } from '@/content/next-activity';
 import { getChapterProgress, isChapterComplete } from '@/content/progress';
 import { canAccessChapter } from '@/core/account/access';
+import { canOpenChapter } from '@/core/learning/course-access';
 import { useAuth } from '@/features/account/auth-context';
 import { AppButton } from '@/shared/components/app-button';
 import { ActionCard } from '@/shared/components/action-card';
 import { AppIcon } from '@/shared/components/app-icon';
 import { IconButton } from '@/shared/components/icon-button';
 import { Text } from '@/shared/components/console-text';
-import { ContextualGuide } from '@/shared/components/contextual-guide';
 import { ProgressBar } from '@/shared/components/progress-bar';
 import { Screen } from '@/shared/components/screen';
 import { AppRoutes } from '@/shared/routes';
 import { Fonts, Palette, Radius, Space } from '@/shared/theme';
 import { useGameStore } from '@/store/use-game-store';
-import { returnToMenu } from '@/shared/navigation';
 import { useResearchStore } from '@/store/use-research-store';
 
 export default function LearningHomeScreen() {
-  const { hasContentAccess } = useAuth();
+  const { courseId: routeCourseId } = useLocalSearchParams<{ courseId?: string }>();
+  const courseId: CourseId = routeCourseId === 'network-operations' ? 'network-operations' : 'network-foundations';
+  const course = getCourse(courseId)!;
+  const chapters = getCourseChapters(courseId);
+  const { hasContentAccess, presentationActive, testProEnabled } = useAuth();
+  const accessBypass = presentationActive || testProEnabled;
   const completedLessonIds = useGameStore((state) => state.completedLessonIds);
   const completedLabIds = useGameStore((state) => state.completedLabIds);
   const quizScores = useGameStore((state) => state.quizScores);
   const quizContentVersions = useGameStore((state) => state.quizContentVersions);
   const reviewedFlashcardChapterIds = useGameStore((state) => state.reviewedFlashcardChapterIds);
   const flashcardContentVersions = useGameStore((state) => state.flashcardContentVersions);
+  const readinessScores = useGameStore((state) => state.readinessScores);
   const recordResearchEvent = useResearchStore((state) => state.recordEvent);
-  const learningProgress = { completedLessonIds, completedLabIds, quizScores, quizContentVersions, reviewedFlashcardChapterIds, flashcardContentVersions };
-  const currentChapter = chapters.find((chapter) => canAccessChapter(chapter.id, hasContentAccess) && !isChapterComplete(chapter, learningProgress))
-    ?? [...chapters].reverse().find((chapter) => canAccessChapter(chapter.id, hasContentAccess))
+  const learningProgress = { completedLessonIds, completedLabIds, quizScores, quizContentVersions, reviewedFlashcardChapterIds, flashcardContentVersions, readinessScores };
+  const currentChapter = chapters.find((chapter) => canAccessChapter(chapter.id, hasContentAccess) && canOpenChapter(chapter, learningProgress, accessBypass) && !isChapterComplete(chapter, learningProgress))
+    ?? [...chapters].reverse().find((chapter) => canAccessChapter(chapter.id, hasContentAccess) && canOpenChapter(chapter, learningProgress, accessBypass))
     ?? chapters[0];
   const { completed: completedSteps, total: totalSteps } = getChapterProgress(currentChapter, learningProgress);
   const progress = completedSteps / totalSteps;
@@ -48,13 +54,12 @@ export default function LearningHomeScreen() {
   return (
     <Screen>
       <View style={styles.topRow}>
-        <IconButton accessibilityLabel="Back to main menu" icon="arrow-left" label="MENU" onPress={returnToMenu} />
-        <Text variant="label" style={styles.brand}>NETBITE / LEARN</Text>
+        <IconButton accessibilityLabel="Back to course library" icon="arrow-left" label="COURSES" onPress={() => router.replace(AppRoutes.courses)} />
+        <Text variant="label" style={styles.brand}>NETBITE / {course.shortTitle.toUpperCase()}</Text>
       </View>
-      <ContextualGuide id="learn-v1" eyebrow="LEARNING PATH GUIDE" steps={[{ title: 'Follow the current marker', detail: 'The highlighted chapter is the recommended continuation point. Completed and locked chapters remain visible.' }, { title: 'Completion is not mastery', detail: 'Progress & Review shows activity completion, quiz mastery, and weak topics separately.' }]} />
       <View style={styles.hero}>
-        <Text variant="screenTitle" style={styles.title}>LEARN NETWORKING BY BUILDING</Text>
-        <Text variant="body" style={styles.subtitle}>Short lessons and focused labs for your first network.</Text>
+        <Text variant="screenTitle" style={styles.title}>{course.title.toUpperCase()}</Text>
+        <Text variant="body" style={styles.subtitle}>{course.summary}</Text>
       </View>
       <View style={styles.continueCard}>
         <View style={styles.cardTop}>
@@ -80,13 +85,16 @@ export default function LearningHomeScreen() {
         <View style={styles.pathRail} />
         {chapters.map((chapter, index) => {
           const chapterComplete = isChapterComplete(chapter, learningProgress);
-          const locked = !canAccessChapter(chapter.id, hasContentAccess);
+          const locked = !canAccessChapter(chapter.id, hasContentAccess) || !canOpenChapter(chapter, learningProgress, accessBypass);
+          const simulatorPending = chapter.courseId === 'network-operations' && chapter.simulationReleaseState !== 'released';
           const current = chapter.id === currentChapter.id;
+          const previous = index > 0 ? chapters[index - 1] : undefined;
+          const lockTarget = !canAccessChapter(chapter.id, hasContentAccess) ? AppRoutes.pro : simulatorPending ? { pathname: '/chapter/[chapterId]', params: { chapterId: chapter.id } } as const : !canEnterOperations(learningProgress) ? AppRoutes.readiness : previous ? { pathname: '/chapter/[chapterId]', params: { chapterId: previous.id } } as const : AppRoutes.readiness;
           return (
-            <Pressable key={chapter.id} accessibilityHint={locked ? 'Opens NetBite Pro access details' : current ? 'Opens your current chapter' : 'Opens this chapter'} accessibilityLabel={`Chapter ${chapter.numberLabel}, ${chapter.title}${locked ? ', locked, NetBite Pro required' : current ? ', current chapter' : chapterComplete ? ', complete' : ''}`} accessibilityRole="button" onPress={() => { if (chapter.numberLabel === '05') recordResearchEvent('opened-subnetting'); if (locked) router.push(AppRoutes.pro); else router.push({ pathname: '/chapter/[chapterId]', params: { chapterId: chapter.id } }); }} style={({ pressed }) => [styles.pathRow, index === chapters.length - 1 && styles.lastPathRow, current && styles.currentPathRow, chapterComplete && !current && styles.completedPathRow, locked && styles.lockedRow, pressed && styles.pressed]}>
+            <Pressable key={chapter.id} accessibilityHint={locked ? 'Opens the requirement needed for this module' : current ? 'Opens your current module' : 'Opens this module'} accessibilityLabel={`${courseId === 'network-operations' ? 'Module' : 'Chapter'} ${chapter.numberLabel}, ${chapter.title}${locked ? ', locked' : current ? ', current' : chapterComplete ? ', complete' : ''}`} accessibilityRole="button" onPress={() => { if (chapter.numberLabel === '05') recordResearchEvent('opened-subnetting'); if (locked) router.push(lockTarget); else router.push({ pathname: '/chapter/[chapterId]', params: { chapterId: chapter.id } }); }} style={({ pressed }) => [styles.pathRow, index === chapters.length - 1 && styles.lastPathRow, current && styles.currentPathRow, chapterComplete && !current && styles.completedPathRow, locked && styles.lockedRow, pressed && styles.pressed]}>
               <View style={[styles.circuitNode, locked ? styles.lockedNode : chapterComplete ? styles.completedNode : current ? styles.currentNode : styles.activeNode]} />
               <View style={styles.pathCopy}>
-                <Text variant="label" style={[styles.pathLabel, current && styles.currentPathLabel, chapterComplete && !current && styles.completedPathLabel]}>CHAPTER {chapter.numberLabel}{locked ? ' / PRO LOCKED' : current ? ' / CURRENT' : chapterComplete ? ' / COMPLETE' : ''}</Text>
+                <Text variant="label" style={[styles.pathLabel, current && styles.currentPathLabel, chapterComplete && !current && styles.completedPathLabel]}>{courseId === 'network-operations' ? 'MODULE' : 'CHAPTER'} {chapter.numberLabel}{simulatorPending ? ` / ${chapter.simulationReleaseState === 'validation' ? 'SIMULATOR IN VALIDATION' : 'COMING SOON'}` : locked ? ' / LOCKED' : current ? ' / CURRENT' : chapterComplete ? ' / COMPLETE' : ''}</Text>
                 <Text variant="sectionHeading" style={styles.pathTitle}>{chapter.title}</Text>
                 <Text variant="technical" style={styles.muted}>{String(chapter.lessons.length).padStart(2, '0')} LESSONS / 01 LAB / {String(chapter.quiz.length).padStart(2, '0')} QUESTIONS</Text>
               </View>

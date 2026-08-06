@@ -4,7 +4,12 @@ import type { ChapterDefinition, Flashcard, QuizQuestion } from '@/content/types
 export type QuestionSeed = Omit<QuizQuestion, 'id'>;
 
 export function createAdvancedChapter(input: {
-  id: number;
+  id: number | string;
+  courseId?: ChapterDefinition['courseId'];
+  courseOrder?: number;
+  accessTier?: ChapterDefinition['accessTier'];
+  prerequisiteChapterIds?: string[];
+  numberLabel?: string;
   contentVersion?: number;
   title: string;
   summary: string;
@@ -19,10 +24,10 @@ export function createAdvancedChapter(input: {
   const lessons = buildLessons(chapterId, input.lessons);
   const quiz: QuizQuestion[] = input.questions.map((question, index) => ({
     ...question,
-    id: `ch${input.id}-q${index + 1}`,
+    id: `${chapterId}-q${index + 1}`,
   }));
   const flashcards: Flashcard[] = input.cards.map(([lessonId, prompt, answer, explanation], index) => ({
-    id: `ch${input.id}-card-${index + 1}`,
+    id: `${chapterId}-card-${index + 1}`,
     lessonId,
     prompt,
     answer,
@@ -31,9 +36,13 @@ export function createAdvancedChapter(input: {
 
   return {
     id: chapterId,
+    courseId: input.courseId,
+    courseOrder: input.courseOrder,
+    accessTier: input.accessTier,
+    prerequisiteChapterIds: input.prerequisiteChapterIds,
     contentVersion: input.contentVersion ?? 2,
     flashcardVersion: input.flashcardVersion ?? 2,
-    numberLabel: chapterId.padStart(2, '0'),
+    numberLabel: input.numberLabel ?? chapterId.padStart(2, '0'),
     title: input.title,
     summary: input.summary,
     lessons,

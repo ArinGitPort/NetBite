@@ -2,7 +2,8 @@ import { Image } from 'expo-image';
 import { Redirect } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 
-import { chapters } from '@/content/chapters';
+import { foundationChapters, operationsChapters } from '@/content/chapters';
+import { canEnterOperations, isCourseComplete } from '@/content/courses';
 import { getNextChapterActivity } from '@/content/next-activity';
 import { getChapterProgress, isChapterComplete } from '@/content/progress';
 import { canAccessChapter } from '@/core/account/access';
@@ -27,9 +28,13 @@ export default function MainMenuScreen() {
   const quizContentVersions = useGameStore((state) => state.quizContentVersions);
   const reviewedFlashcardChapterIds = useGameStore((state) => state.reviewedFlashcardChapterIds);
   const flashcardContentVersions = useGameStore((state) => state.flashcardContentVersions);
+  const readinessScores = useGameStore((state) => state.readinessScores);
   const sandboxDeviceCount = useSandboxStore((state) => state.workspace.devices.length);
   const recordResearchEvent = useResearchStore((state) => state.recordEvent);
-  const progress = { completedLessonIds, completedLabIds, quizScores, quizContentVersions, reviewedFlashcardChapterIds, flashcardContentVersions };
+  const progress = { completedLessonIds, completedLabIds, quizScores, quizContentVersions, reviewedFlashcardChapterIds, flashcardContentVersions, readinessScores };
+  const foundationsComplete = isCourseComplete('network-foundations', progress);
+  const operationsReady = canEnterOperations(progress);
+  const chapters = foundationsComplete && operationsReady && hasContentAccess ? operationsChapters : foundationChapters;
   const currentChapter = chapters.find((chapter) => canAccessChapter(chapter.id, hasContentAccess) && !isChapterComplete(chapter, progress))
     ?? chapters.findLast((chapter) => canAccessChapter(chapter.id, hasContentAccess))
     ?? chapters[0];
@@ -37,7 +42,8 @@ export default function MainMenuScreen() {
   const nextActivity = getNextChapterActivity(currentChapter, progress);
   const chapterProgress = getChapterProgress(currentChapter, progress);
   const progressRatio = chapterProgress.total ? chapterProgress.completed / chapterProgress.total : 0;
-  const nextTitle = nextActivity.type === 'lesson'
+  const needsOperationsHandoff = foundationsComplete && (!operationsReady || !hasContentAccess);
+  const nextTitle = needsOperationsHandoff ? 'Network Operations readiness' : nextActivity.type === 'lesson'
     ? currentChapter.lessons.find((lesson) => lesson.id === nextActivity.id)?.title ?? 'Next lesson'
     : nextActivity.type === 'lab'
       ? currentChapter.lab.title
@@ -53,6 +59,7 @@ export default function MainMenuScreen() {
 
   const continueLearning = () => {
     recordResearchEvent('continued-learning');
+    if (needsOperationsHandoff) { navigateOnce(AppRoutes.courses); return; }
     const activity = nextActivity;
     if (activity.type === 'lesson') navigateOnce({ pathname: '/lesson/[lessonId]', params: { lessonId: activity.id } });
     else if (activity.type === 'lab') navigateOnce({ pathname: '/lab/[labId]', params: { labId: activity.id } });
@@ -82,12 +89,12 @@ export default function MainMenuScreen() {
           icon="learn"
           priority="primary"
           progress={progressRatio}
-          status={`CHAPTER ${currentChapter.numberLabel} / ${nextActivity.type.toUpperCase()}`}
-          title={started ? 'CONTINUE LEARNING' : 'START LEARNING'}
+          status={`${currentChapter.courseId === 'network-operations' ? 'OPERATIONS MODULE' : 'CHAPTER'} ${currentChapter.numberLabel} / ${needsOperationsHandoff ? 'NEXT COURSE' : nextActivity.type.toUpperCase()}`}
+          title={needsOperationsHandoff ? 'OPEN COURSE LIBRARY' : started ? 'CONTINUE LEARNING' : 'START LEARNING'}
           tone="learning"
           onPress={continueLearning}
           testID="primary-learning-action"
-          footer={<AppButton accessibilityHint="Opens the complete learning path" label="Browse all chapters" variant="utility" onPress={() => navigateOnce('/learn')} />}
+          footer={<AppButton accessibilityHint="Opens the course library" label="Browse courses" variant="utility" onPress={() => navigateOnce(AppRoutes.courses)} />}
         />
         <ContextualGuide id="menu-v1" eyebrow="FIRST SESSION" steps={[{ title: 'Continue is your next step', detail: 'The first panel always opens the next unfinished learning activity.' }, { title: 'Build when you are ready', detail: 'Network Sandbox is a separate tool for experimentation, while Account and Settings remain utilities.' }]} />
 
@@ -110,7 +117,7 @@ export default function MainMenuScreen() {
           icon="account"
           loading={status === 'authenticated' && syncStatus === 'syncing'}
           priority="utility"
-          status={testProEnabled ? 'LOCAL TEST PRO' : hasPro ? 'PRO ACTIVE' : status === 'authenticated' ? 'FREE ACCOUNT' : 'GUEST / LOCAL'}
+          status={testProEnabled ? 'TEST ACCESS ACTIVE' : hasPro ? 'PRO ACTIVE' : status === 'authenticated' ? 'FREE ACCOUNT' : 'GUEST / LOCAL'}
           title={status === 'authenticated' ? (profile?.displayName?.toUpperCase() || 'MY ACCOUNT') : 'SIGN IN / REGISTER'}
           onPress={() => navigateOnce(status === 'authenticated' ? AppRoutes.account : AppRoutes.auth)}
         />

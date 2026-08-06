@@ -15,6 +15,16 @@ NetBite does not emulate a production network operating system or run real netwo
 - Router-on-a-stick inter-VLAN forwarding through logical 802.1Q subinterfaces
 - A documented Cisco-like CLI subset for Chapters 8–10 and 12
 - A standalone, port-aware Network Sandbox for bounded Ethernet, IPv4, static-route, ARP, ICMP Echo, VLAN, and inter-VLAN experimentation
+- TCP and UDP endpoint-state exchanges without real sockets or congestion timing
+- DHCP pool allocation, exclusions, exhaustion, renewal steps, and router relay decisions
+- DNS hierarchy, authoritative records, caching, and learner-controlled logical TTL
+- Ordered bounded IPv4 ACL evaluation and implicit deny
+- Static NAT and PAT tuple creation and deterministic return matching
+- IPv6 parsing, scope, Neighbor Discovery, router discovery, SLAAC/DAD decisions, and static routing
+- Single-VLAN spanning-tree election and port roles without real convergence timing
+- LACP member compatibility and logical port-channel state
+- Connected, static, and OSPF route-source comparison using prefix, administrative distance, and metric
+- Fixed single-area OSPFv2 neighbor graphs, synchronized topology state, and SPF path calculation
 
 The CLI supports only the commands listed in `CLI_SIMULATION_GUIDE.md`. Familiar syntax is used for learning transfer, but NetBite does not claim Cisco IOS compatibility and its output is original NetBite text.
 
@@ -22,9 +32,9 @@ Router-on-a-stick is a bounded deterministic model. One physical router link may
 
 ## Outside the current model
 
-- Dynamic routing, OSPF, BGP, and MPLS
-- STP, DTP, VTP, native-VLAN behavior, and Layer 3 switch SVI configuration
-- ACLs, NAT, DHCP, and DNS configuration
+- BGP, MPLS, route redistribution, multi-area OSPF, OSPF authentication, and OSPFv3
+- DTP, VTP, native-VLAN edge behavior, MST, PVST+, spanning-tree timers, and Layer 3 switch SVI configuration
+- DHCPv6, DNSSEC implementation, advanced NAT variants, reflexive/time-based ACLs, and IPv6 ACLs
 - TCP congestion and packet fragmentation
 - Real sockets, packet capture, or protocol timing
 - Queues, loss, jitter, collisions, or electrical behavior

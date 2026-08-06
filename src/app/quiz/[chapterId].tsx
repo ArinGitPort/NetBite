@@ -5,8 +5,10 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { getChapter } from '@/content/chapters';
 import { getQuizMasteryScore } from '@/content/progress';
 import { canAccessChapter } from '@/core/account/access';
+import { canOpenChapter, getChapterLockReason } from '@/core/learning/course-access';
 import { useAuth } from '@/features/account/auth-context';
 import { PremiumLockedScreen } from '@/features/account/components/premium-locked-screen';
+import { CourseLockedScreen } from '@/features/account/components/course-locked-screen';
 import { AppButton } from '@/shared/components/app-button';
 import { AppIcon } from '@/shared/components/app-icon';
 import { ContentNotFound } from '@/shared/components/content-not-found';
@@ -20,7 +22,9 @@ import { useGameStore } from '@/store/use-game-store';
 import { returnToOwningChapter } from '@/shared/navigation';
 
 export default function QuizScreen() {
-  const { hasContentAccess } = useAuth();
+  const { hasContentAccess, presentationActive, testProEnabled } = useAuth();
+  const accessBypass = presentationActive || testProEnabled;
+  const progress = useGameStore();
   const { chapterId } = useLocalSearchParams<{ chapterId: string }>();
   const saveQuizScore = useGameStore((state) => state.saveQuizScore);
   const recordReviewResult = useGameStore((state) => state.recordReviewResult);
@@ -34,6 +38,7 @@ export default function QuizScreen() {
 
   if (!chapter) return <ContentNotFound label="Quiz" />;
   if (!canAccessChapter(chapter.id, hasContentAccess)) return <PremiumLockedScreen label={`CHAPTER ${chapter.numberLabel} QUIZ`} />;
+  if (!canOpenChapter(chapter, progress, accessBypass)) return <CourseLockedScreen reason={getChapterLockReason(chapter, progress) ?? 'Complete the prior requirement.'} />;
   const question = chapter.quiz[questionIndex];
   const masteryScore = getQuizMasteryScore(chapter);
   const mastered = score >= masteryScore;

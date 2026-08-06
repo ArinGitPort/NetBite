@@ -1,4 +1,4 @@
-import { chapters } from '@/content/chapters';
+import { foundationChapters as chapters } from '@/content/chapters';
 import { getQuizMasteryScore } from '@/content/progress';
 import { calculateSubnetRange } from '@/core/network/advanced-networking';
 import { educationalIllustrations } from '@/features/lessons/educational-illustration-registry';

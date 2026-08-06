@@ -1,4 +1,4 @@
-import { chapters } from '@/content/chapters';
+import { foundationChapters as chapters } from '@/content/chapters';
 import {
   educationalIllustrations,
   OSI_LAYERS,

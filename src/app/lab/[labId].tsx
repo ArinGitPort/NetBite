@@ -5,9 +5,11 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { chapterOneLab } from '@/content/chapter-one';
 import { chapters } from '@/content/chapters';
 import { canAccessChapter } from '@/core/account/access';
+import { canOpenChapter, getChapterLockReason } from '@/core/learning/course-access';
 import type { LabValidationResult } from '@/core/network/models';
 import { useAuth } from '@/features/account/auth-context';
 import { PremiumLockedScreen } from '@/features/account/components/premium-locked-screen';
+import { CourseLockedScreen } from '@/features/account/components/course-locked-screen';
 import { TopologyCanvas } from '@/features/topology/components/topology-canvas';
 import { createLabRegistry } from '@/features/practice/lab-registry';
 import { AppButton } from '@/shared/components/app-button';
@@ -152,13 +154,16 @@ function FirstNetworkLab() {
 }
 
 export default function LabScreen() {
-  const { hasContentAccess } = useAuth();
+  const { hasContentAccess, presentationActive, testProEnabled } = useAuth();
+  const accessBypass = presentationActive || testProEnabled;
+  const progress = useGameStore();
   const { labId } = useLocalSearchParams<{ labId: string }>();
   const labs = createLabRegistry(FirstNetworkLab);
   const LabComponent = labId ? labs[labId] : undefined;
   const chapter = chapters.find((item) => item.lab.id === labId);
   const labGuideSeen = useExperienceStore((state) => Boolean(state.seenGuides['lab-v1']));
   if (chapter && !canAccessChapter(chapter.id, hasContentAccess)) return <PremiumLockedScreen label={`CHAPTER ${chapter.numberLabel} LAB`} />;
+  if (chapter && !canOpenChapter(chapter, progress, accessBypass)) return <CourseLockedScreen reason={getChapterLockReason(chapter, progress) ?? 'Complete the prior requirement.'} />;
   if (LabComponent && !labGuideSeen) return <Screen><IconButton accessibilityLabel="Back to chapter" icon="arrow-left" label="BACK / CHAPTER" onPress={() => labId && returnToOwningChapter('lab', labId)} /><View style={{ marginTop: Space.xl }}><ContextualGuide id="lab-v1" eyebrow="FIRST MINI LAB" steps={[{ title: 'Act on the current goal', detail: 'The objective panel states the one result this practice checks. Other controls support that task.' }, { title: 'Predict, test, then explain', detail: 'Incorrect work stays editable. Hints reveal reasoning gradually, and Why This Happened explains deterministic results.' }]} /></View></Screen>;
   return LabComponent ? <LabComponent /> : <ContentNotFound label="Lab" />;
 }

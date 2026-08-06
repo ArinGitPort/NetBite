@@ -70,10 +70,10 @@ export default function SettingsScreen() {
         {status === 'authenticated' ? <AppButton disabled={manualSyncBusy || syncStatus === 'syncing' || presentationActive || researchActive} label={manualSyncBusy || syncStatus === 'syncing' ? 'Syncing...' : syncStatus === 'action-needed' ? 'Retry cloud sync' : 'Sync now'} variant="secondary" onPress={() => void runManualSync()} /> : null}
       </View>
       {testProAvailable ? <View style={[styles.section, styles.testAccessSection]}>
-        <Text variant="sectionHeading" style={styles.heading}>LOCAL PRO TEST ACCESS</Text>
+        <Text variant="sectionHeading" style={styles.heading}>DEVELOPMENT TEST ACCESS</Text>
         <Text variant="label" style={testProEnabled ? styles.syncLabel : styles.syncWarning}>{testProEnabled ? 'ENABLED / NOT PURCHASED' : 'DISABLED / DEVELOPMENT ONLY'}</Text>
-        <Text variant="bodySmall" style={styles.detail}>Unlocks Chapters 5–12 and Network Sandbox on this development installation. It does not create a purchase or Supabase entitlement and cannot exist in a release build.</Text>
-        <AppButton label={testProEnabled ? 'Disable test Pro' : 'Enable test Pro'} variant={testProEnabled ? 'secondary' : 'primary'} onPress={() => setTestProEnabled(!testProEnabled)} />
+        <Text variant="bodySmall" style={styles.detail}>Unlocks all Foundation chapters, every Network Operations module, the Operations capstone, and Network Sandbox on this development installation. It bypasses course prerequisites and module order without creating a purchase or Supabase entitlement.</Text>
+        <AppButton label={testProEnabled ? 'Disable test access' : 'Enable test access'} variant={testProEnabled ? 'secondary' : 'primary'} onPress={() => setTestProEnabled(!testProEnabled)} />
       </View> : null}
       <Text variant="label" style={styles.groupLabel}>PREFERENCES</Text>
       <View style={styles.section}>

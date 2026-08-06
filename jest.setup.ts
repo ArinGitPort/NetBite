@@ -1,4 +1,8 @@
 jest.mock('expo-sqlite/localStorage/install', () => ({}));
+jest.mock('expo-image', () => {
+  const { Image } = jest.requireActual('react-native');
+  return { Image };
+});
 
 {
   const values = new Map<string, string>();

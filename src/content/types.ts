@@ -32,7 +32,14 @@ export type LessonIllustration =
   | 'inter-vlan-forwarding' | 'inter-vlan-config' | 'inter-vlan-troubleshooting'
   | 'model-purpose' | 'osi-stack' | 'tcp-ip-stack' | 'concept-layer-map'
   | 'osi-physical' | 'osi-data-link' | 'osi-network' | 'osi-transport'
-  | 'osi-session' | 'osi-presentation' | 'osi-application';
+  | 'osi-session' | 'osi-presentation' | 'osi-application'
+  | 'transport-endpoints' | 'dhcp-exchange' | 'dns-resolution' | 'acl-evaluation'
+  | 'nat-translation' | 'ipv6-addressing' | 'ipv6-neighbor-delivery'
+  | 'spanning-tree' | 'etherchannel' | 'dynamic-route-selection' | 'ospf-topology';
+
+export type CourseId = 'network-foundations' | 'network-operations';
+export type ContentAccessTier = 'free' | 'pro';
+export type ModuleReleaseState = 'released' | 'validation' | 'comingSoon';
 
 export type LessonSection = {
   heading: string;
@@ -121,6 +128,11 @@ export interface ChapterLabSummary {
 
 export interface ChapterDefinition {
   id: string;
+  courseId?: CourseId;
+  courseOrder?: number;
+  accessTier?: ContentAccessTier;
+  prerequisiteChapterIds?: string[];
+  simulationReleaseState?: ModuleReleaseState;
   contentVersion: number;
   flashcardVersion: number;
   numberLabel: string;
@@ -135,4 +147,30 @@ export interface ChapterDefinition {
     learned: string;
     next: string;
   };
+}
+
+export interface CourseCapstoneDefinition {
+  id: string;
+  title: string;
+  detail: string;
+}
+
+export interface CourseAchievement {
+  courseId: CourseId;
+  awardedAt: string;
+  title: string;
+}
+
+export interface CourseDefinition {
+  id: CourseId;
+  version: number;
+  title: string;
+  shortTitle: string;
+  summary: string;
+  accessTier: ContentAccessTier;
+  prerequisiteCourseId?: CourseId;
+  prerequisitePolicy?: { diagnosticId: string; questionCount: number; masteryScore: number };
+  chapterIds: string[];
+  capstone?: CourseCapstoneDefinition;
+  certificateTitle: string;
 }
