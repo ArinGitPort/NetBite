@@ -1,4 +1,4 @@
-import { allocateDhcpLease, buildOspfTopology, calculateOspfRoutes, calculateSpanningTree, evaluateIpv4Acl, negotiateEtherChannel, parseIPv6Address, resolveDnsQuery, resolveIPv6Neighbor, selectRouteSource, simulateTransportExchange, traceIPv6Path, translateNatFlow, validateOperationsCapstone } from '@/core/network/operations-simulation';
+import { allocateDhcpLease, buildOspfTopology, calculateOspfRoutes, calculateSpanningTree, evaluateIpv4Acl, inspectDhcpPool, negotiateEtherChannel, parseIPv6Address, releaseDhcpLease, resolveDnsQuery, resolveIPv6Neighbor, selectRouteSource, simulateTransportExchange, traceIPv6Path, translateNatFlow, validateOperationsCapstone } from '@/core/network/operations-simulation';
 
 describe('Network Operations deterministic engines', () => {
   test('models TCP state and rejects a mismatched service port without mutation', () => {
@@ -16,6 +16,17 @@ describe('Network Operations deterministic engines', () => {
     const exhausted = allocateDhcpLease(first.state, 'B');
     expect(exhausted.mutated).toBe(false);
     expect(exhausted.explanation.observation).toMatch(/available/i);
+  });
+
+  test('renews and releases DHCP bindings without inventing addresses', () => {
+    const initial = { pool: { network: '192.168.10.0', prefix: 24, start: '192.168.10.100', end: '192.168.10.102', excluded: ['192.168.10.100'] }, leases: [] };
+    const first = allocateDhcpLease(initial, 'PC-A');
+    const renewed = allocateDhcpLease(first.state, 'PC-A');
+    expect(renewed.state.leases).toHaveLength(1);
+    expect(renewed.events).toEqual(['DHCPREQUEST', 'DHCPACK']);
+    const released = releaseDhcpLease(renewed.state, 'PC-A');
+    expect(released.state.leases).toHaveLength(0);
+    expect(inspectDhcpPool(released.state).firstAvailable).toBe('192.168.10.101');
   });
 
   test('resolves DNS authority once and then uses deterministic cache state', () => {

@@ -39,7 +39,7 @@ export const chapterNine = createAdvancedChapter({
       ],
       example: { label: 'STATIC ENTRY', setup: '192.168.30.0/24 via 10.0.12.2 out P2.', result: 'Traffic matching the destination /24 is sent toward neighboring router 10.0.12.2 through interface P2.' },
       takeaway: 'Read destination, prefix, source, next hop, and exit interface as one forwarding instruction.',
-      checkpoint: { prompt: 'Which field defines the address range a route can match?', correctChoiceId: 'prefix', choices: [
+      checkpoint: { prompt: 'A router compares 192.168.20.25 with several route entries. Which route field defines the destination range each entry can match?', correctChoiceId: 'prefix', choices: [
         { id: 'prefix', label: 'DESTINATION PREFIX', feedback: 'Correct. The prefix describes the matching network range.' },
         { id: 'exit', label: 'EXIT INTERFACE', feedback: 'The exit says where traffic leaves after a route is selected.' },
         { id: 'name', label: 'ROUTER HOSTNAME', feedback: 'A hostname does not define the matching IPv4 range.' },

@@ -55,4 +55,31 @@ describe('Operations guided simulator', () => {
     expect(useOperationsLabStore.getState().sessions[definition.id].stageIndex).toBe(1);
     expect(useOperationsLabStore.getState().sessions[definition.id].completedObjectiveIds).toContain('endpoint');
   });
+
+  test('teaches the DHCP setup and renders inspectable devices with cables', async () => {
+    const dhcp = operationsLabDefinitions['dhcp-lease-desk'];
+    const screen = await render(<OperationsGuidedLab definition={dhcp} />);
+    expect(screen.getByText('LEARN THE SETUP')).toBeTruthy();
+    expect(screen.getByText('HOW TO READ THE POOL SETTINGS')).toBeTruthy();
+    expect(screen.getByTestId('operations-topology-canvas')).toBeTruthy();
+    await fireEvent.press(screen.getByLabelText(/DHCP-1, SERVER/i));
+    expect(await screen.findByText('SELECTED / DHCP-1')).toBeTruthy();
+    expect(screen.getByText('POOL / POOL NOT CONFIGURED')).toBeTruthy();
+    expect(screen.getByText(/The first remaining address the server may offer is 192.168.20.101/)).toBeTruthy();
+    expect(screen.getByText('INFORMATION PROVIDED')).toBeTruthy();
+    expect(screen.getByText(/The \/24 means the prefix length is 24/)).toBeTruthy();
+    expect(screen.getByText(/The pool must match the clients, not the remote server/)).toBeTruthy();
+  });
+
+  test('accepts a slash-prefixed DHCP prefix after explaining the required inputs', async () => {
+    const dhcp = operationsLabDefinitions['dhcp-lease-desk'];
+    const screen = await render(<OperationsGuidedLab definition={dhcp} />);
+    await fireEvent.changeText(screen.getByLabelText('Pool network'), '192.168.20.0');
+    await fireEvent.changeText(screen.getByLabelText('Prefix length'), '/24');
+    await fireEvent.changeText(screen.getByLabelText('First pool address'), '192.168.20.100');
+    await fireEvent.changeText(screen.getByLabelText('Last pool address'), '192.168.20.102');
+    await fireEvent.changeText(screen.getByLabelText('Reserved address to exclude'), '192.168.20.100');
+    await fireEvent.press(screen.getByText('Save configuration'));
+    expect(useOperationsLabStore.getState().sessions[dhcp.id].configuration).toMatchObject({ 'dhcp.prefix': 24 });
+  });
 });

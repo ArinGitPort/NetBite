@@ -2,6 +2,8 @@ import { foundationChapters, operationsChapters } from '@/content/chapters';
 import { canEnterOperations, courses, getCourseChapters, isCourseComplete } from '@/content/courses';
 import { getQuizMasteryScore } from '@/content/progress';
 import { operationsLabDefinitions } from '@/features/operations/operations-lab-definitions';
+import { educationalIllustrations } from '@/features/lessons/educational-illustration-registry';
+import { operationsCheckpointLessonIds, operationsLabPrerequisiteLessonIds } from '@/content/operations-learning-map';
 
 const emptyProgress = { completedLessonIds: [], completedLabIds: [], quizScores: {}, quizContentVersions: {}, reviewedFlashcardChapterIds: [], flashcardContentVersions: {}, completedCapstoneIds: [], readinessScores: {} };
 
@@ -20,6 +22,40 @@ describe('Network Operations course', () => {
     operationsChapters.forEach((chapter, index) => expect(chapter.prerequisiteChapterIds).toEqual(index ? [operationsChapters[index - 1].id] : []));
   });
 
+  test('uses the plain-English worked-example structure for every Operations lesson', () => {
+    operationsChapters.flatMap(({ lessons }) => lessons).forEach((lesson) => {
+      expect(lesson.body).not.toContain('The model is deliberately bounded');
+      expect(lesson.sections?.[0]?.heading).toMatch(/^HOW .+ WORKS$/);
+      expect(lesson.sections?.[1]?.heading).toBe('WHAT NOT TO ASSUME');
+      expect(lesson.example?.label).toContain('WORKED EXAMPLE /');
+      expect(lesson.example?.presentation).toBe('guided');
+      expect(lesson.example?.steps?.length).toBeGreaterThanOrEqual(3);
+      expect(lesson.example?.steps?.length).toBeLessThanOrEqual(5);
+      if (operationsCheckpointLessonIds.has(lesson.id)) {
+        expect(lesson.checkpoint?.prompt).toContain('what result is supported?');
+        expect(lesson.checkpoint?.presentation).toBe('pause-and-apply');
+        expect(lesson.checkpoint?.reviewIdentity).toBe(lesson.id);
+        expect(lesson.checkpoint?.choices).toHaveLength(2);
+        expect(lesson.checkpoint?.choices.map(({ label }) => label).join(' ')).not.toContain('starting condition is already the final result');
+      } else {
+        expect(lesson.checkpoint).toBeUndefined();
+      }
+      const illustration = educationalIllustrations[lesson.illustration];
+      expect(illustration).toBeDefined();
+      expect(lesson.example?.visual?.stageIds).toEqual(lesson.example?.steps?.map(({ id }) => id));
+      lesson.example?.visual?.stageIds.forEach((id) => expect(illustration.stages?.some((stage) => stage.id === id)).toBe(true));
+    });
+  });
+
+  test('requires checkpoints only for the 35 lessons linked from module labs', () => {
+    const operationsCheckpoints = operationsChapters.flatMap(({ lessons }) => lessons.filter(({ checkpoint }) => checkpoint).map(({ id }) => id));
+    expect(operationsCheckpointLessonIds.size).toBe(35);
+    expect(new Set(operationsCheckpoints)).toEqual(operationsCheckpointLessonIds);
+    Object.entries(operationsLabPrerequisiteLessonIds).forEach(([labId, lessonIds]) => {
+      expect(operationsLabDefinitions[labId].briefing.lessonIds).toEqual([...lessonIds]);
+    });
+  });
+
   test('uses the planned scenario assessment sizes and mastery', () => {
     expect(operationsChapters.map(({ quiz }) => quiz.length)).toEqual([8,8,8,8,8,8,8,8,7,7,8]);
     expect(operationsChapters.map(getQuizMasteryScore)).toEqual([7,7,7,7,7,7,7,7,6,6,7]);
@@ -35,8 +71,12 @@ describe('Network Operations course', () => {
     operationsChapters.forEach((chapter) => {
       const lab = operationsLabDefinitions[chapter.lab.id];
       expect(lab).toBeDefined();
-      expect(lab.stages).toHaveLength(4);
+      expect(lab.stages.length).toBeGreaterThanOrEqual(4);
       expect(lab.limitations.length).toBeGreaterThan(20);
+      expect(lab.visualTopology.nodes.length).toBeGreaterThanOrEqual(2);
+      expect(lab.visualTopology.links.length).toBeGreaterThanOrEqual(1);
+      expect(lab.briefing.workedExample.steps.length).toBeGreaterThanOrEqual(4);
+      expect(lab.briefing.taskChecklist).toHaveLength(lab.stages.length);
       lab.stages.forEach((stage) => {
         expect(stage.evidence.length).toBeGreaterThan(0);
         expect(stage.hint.length).toBeGreaterThan(20);
@@ -45,6 +85,10 @@ describe('Network Operations course', () => {
       });
     });
     expect(operationsLabDefinitions['network-operations-capstone'].stages).toHaveLength(8);
+    const dhcp = operationsLabDefinitions['dhcp-lease-desk'];
+    expect(dhcp.stages).toHaveLength(6);
+    expect(dhcp.visualTopology.nodes.map(({ label }) => label)).toEqual(['PC-A', 'PC-B', 'SW-1', 'R-1', 'DHCP-1']);
+    expect(dhcp.visualTopology.links.map(({ aPort, bPort }) => `${aPort}-${bPort}`)).toContain('F0/24-G0/0');
   });
 
   test('allows readiness by Foundation completion or 10/12 diagnostic only', () => {

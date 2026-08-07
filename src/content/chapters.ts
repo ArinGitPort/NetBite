@@ -34,6 +34,11 @@ const foundationSource: ChapterDefinition[] = [
 
 export const foundationChapters: ChapterDefinition[] = foundationSource.map((chapter, index) => ({
   ...chapter,
+  checkpointVersion: chapter.checkpointVersion ?? 1,
+  lessons: chapter.lessons.map((lesson) => lesson.checkpoint ? {
+    ...lesson,
+    checkpoint: { ...lesson.checkpoint, presentation: 'pause-and-apply', reviewIdentity: lesson.id },
+  } : lesson),
   courseId: 'network-foundations',
   courseOrder: index + 1,
   accessTier: Number(chapter.id) <= 4 ? 'free' : 'pro',

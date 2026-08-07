@@ -1,8 +1,8 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { BackHandler, Platform, StyleSheet, View } from 'react-native';
 
-import { getLesson } from '@/content/chapters';
+import { chapters, getLesson } from '@/content/chapters';
 import { canAccessChapter } from '@/core/account/access';
 import { canOpenChapter, getChapterLockReason } from '@/core/learning/course-access';
 import { useAuth } from '@/features/account/auth-context';
@@ -23,20 +23,39 @@ import { Screen } from '@/shared/components/screen';
 import { selectionHaptic, successHaptic } from '@/shared/haptics';
 import { Fonts, Palette, Radius, Space } from '@/shared/theme';
 import { useGameStore } from '@/store/use-game-store';
-import { returnToOwningChapter } from '@/shared/navigation';
+import { resolveLessonLabOrigin, returnToOriginatingLab, returnToOwningChapter } from '@/shared/navigation';
+import { labRoute, lessonRoute } from '@/shared/routes';
 
 export default function LessonScreen() {
   const { hasContentAccess, presentationActive, testProEnabled } = useAuth();
   const accessBypass = presentationActive || testProEnabled;
   const progress = useGameStore();
-  const { lessonId } = useLocalSearchParams<{ lessonId: string }>();
+  const { lessonId, fromLabId } = useLocalSearchParams<{ lessonId: string; fromLabId?: string }>();
   const completeLesson = useGameStore((state) => state.completeLesson);
   const completedLessonIds = useGameStore((state) => state.completedLessonIds);
   const saveLearningItem = useGameStore((state) => state.saveLearningItem);
+  const recordReviewResult = useGameStore((state) => state.recordReviewResult);
   const savedLearningItems = useGameStore((state) => state.savedLearningItems);
   const lessonResult = getLesson(lessonId);
+  const originCandidate = resolveLessonLabOrigin(fromLabId);
+  const originChapter = chapters.find((item) => item.lab.id === originCandidate);
+  const originatingLabId = originCandidate
+    && originChapter
+    && canAccessChapter(originChapter.id, hasContentAccess)
+    && canOpenChapter(originChapter, progress, accessBypass)
+    ? originCandidate
+    : undefined;
   const [completionVisible, setCompletionVisible] = useState(false);
   const [checkpointResult, setCheckpointResult] = useState<{ lessonId: string; passed: boolean }>({ lessonId: '', passed: false });
+
+  useEffect(() => {
+    if (Platform.OS !== 'android' || !originatingLabId) return;
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      returnToOriginatingLab(originatingLabId);
+      return true;
+    });
+    return () => subscription.remove();
+  }, [originatingLabId]);
 
   if (!lessonResult) {
     return <ContentNotFound label="Lesson" />;
@@ -54,13 +73,21 @@ export default function LessonScreen() {
   const lessonSaved = savedLearningItems[`lesson:${lesson.id}`];
   const illustrationKey = `${lesson.id}:${lesson.illustration}`;
   const illustrationSaved = savedLearningItems[`illustration:${illustrationKey}`];
+  const checkpointReviewInput = {
+    kind: 'checkpoint' as const,
+    contentId: lesson.checkpoint?.reviewIdentity ?? lesson.id,
+    lessonId: lesson.id,
+    chapterId: chapter.id,
+    contentVersion: chapter.checkpointVersion ?? 1,
+  };
+  const checkpointRule = lesson.sections?.[0] ?? { heading: 'KEY IDEA', body: lesson.takeaway };
 
   const finish = () => {
     completeLesson(lesson.id);
     const nextLesson = chapter.lessons[index + 1];
     if (nextLesson) {
       selectionHaptic();
-      router.replace({ pathname: '/lesson/[lessonId]', params: { lessonId: nextLesson.id } });
+      router.replace(lessonRoute(nextLesson.id, { fromLabId: originatingLabId }));
     } else {
       successHaptic();
       setCompletionVisible(true);
@@ -70,13 +97,23 @@ export default function LessonScreen() {
   const goToPreviousLesson = () => {
     if (!previousLesson) return;
     selectionHaptic();
-    router.replace({ pathname: '/lesson/[lessonId]', params: { lessonId: previousLesson.id } });
+    router.replace(lessonRoute(previousLesson.id, { fromLabId: originatingLabId }));
+  };
+
+  const closeLesson = () => {
+    if (originatingLabId) returnToOriginatingLab(originatingLabId);
+    else returnToOwningChapter('lesson', lesson.id);
   };
 
   return (
     <Screen>
       <View style={styles.headerRow}>
-        <IconButton accessibilityLabel="Close lessons and return to chapter" icon="close" onPress={() => returnToOwningChapter('lesson', lesson.id)} />
+        <IconButton
+          accessibilityLabel={originatingLabId ? 'Back to the originating lab' : 'Close lessons and return to chapter'}
+          icon={originatingLabId ? 'arrow-left' : 'close'}
+          label={originatingLabId ? 'BACK / LAB' : undefined}
+          onPress={closeLesson}
+        />
         <View style={styles.progress}><ProgressBar progress={(index + 1) / chapter.lessons.length} /></View>
         <Text variant="label" style={styles.count}>{index + 1}/{chapter.lessons.length}</Text>
       </View>
@@ -107,7 +144,17 @@ export default function LessonScreen() {
         <Text variant="body" style={styles.takeawayText}>{lesson.takeaway}</Text>
       </View>
       {lesson.checkpoint && checkpointRequired ? (
-        <LessonCheckpoint checkpoint={lesson.checkpoint} onCorrect={() => setCheckpointResult({ lessonId: lesson.id, passed: true })} />
+        <LessonCheckpoint
+          key={lesson.id}
+          checkpoint={lesson.checkpoint}
+          reviewLabel={checkpointRule.heading}
+          reviewText={checkpointRule.body}
+          onIncorrect={() => recordReviewResult(checkpointReviewInput, false)}
+          onCorrect={({ hadIncorrectAttempt }) => {
+            setCheckpointResult({ lessonId: lesson.id, passed: true });
+            if (!hadIncorrectAttempt) recordReviewResult(checkpointReviewInput, true);
+          }}
+        />
       ) : null}
       <View style={styles.spacer} />
       <View style={styles.navigationActions}>
@@ -134,8 +181,12 @@ export default function LessonScreen() {
         detail="The chapter screen identifies the lesson connected to this practice. You can start now or return later."
         icon="check"
         onRequestClose={() => setCompletionVisible(false)}
-        secondaryAction={{ label: 'Back to chapter', leadingIcon: 'arrow-left', variant: 'secondary', onPress: () => returnToOwningChapter('lesson', lesson.id) }}
-        primaryAction={{ label: 'Start mini lab', trailingIcon: 'arrow-right', onPress: () => router.replace({ pathname: '/lab/[labId]', params: { labId: chapter.lab.id } }) }}
+        secondaryAction={originatingLabId
+          ? { label: 'Keep reviewing', variant: 'secondary', onPress: () => setCompletionVisible(false) }
+          : { label: 'Back to chapter', leadingIcon: 'arrow-left', variant: 'secondary', onPress: closeLesson }}
+        primaryAction={originatingLabId
+          ? { label: 'Return to lab', leadingIcon: 'arrow-left', onPress: closeLesson }
+          : { label: 'Start mini lab', trailingIcon: 'arrow-right', onPress: () => router.replace(labRoute(chapter.lab.id)) }}
       />
     </Screen>
   );

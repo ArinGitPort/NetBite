@@ -22,7 +22,8 @@ if (!deviceLine) {
   const avd = process.env.NETBITE_ANDROID_AVD || available[0];
   if (!avd) fail('No Android Virtual Device is configured.', 'Create one in Android Studio Device Manager, then retry.');
   console.log(`Starting Android emulator ${avd}...`);
-  spawn(emulatorPath, ['-avd', avd], { detached: true, stdio: 'ignore' }).unref();
+  const dnsServers = process.env.NETBITE_ANDROID_DNS || '8.8.8.8,1.1.1.1';
+  spawn(emulatorPath, ['-avd', avd, '-dns-server', dnsServers], { detached: true, stdio: 'ignore' }).unref();
   for (let attempt = 0; attempt < 90 && !deviceLine; attempt += 1) {
     await delay(1_000);
     deviceLine = (run(['devices']) ?? '').split(/\r?\n/).find((line) => /^emulator-\d+\s+device$/.test(line));

@@ -19,7 +19,7 @@ export default function ProgressScreen() {
   const { hasContentAccess } = useAuth();
   const state = useGameStore();
   const accessible = new Set(chapters.filter((chapter) => canAccessChapter(chapter.id, hasContentAccess)).map((chapter) => chapter.id));
-  const versions = Object.fromEntries(chapters.map((chapter) => [chapter.id, { quiz: chapter.contentVersion, flashcard: chapter.flashcardVersion }]));
+  const versions = Object.fromEntries(chapters.map((chapter) => [chapter.id, { quiz: chapter.contentVersion, flashcard: chapter.flashcardVersion, checkpoint: chapter.checkpointVersion ?? 1 }]));
   const reviewQueue = getActiveReviewQueue(state.reviewSignals, versions, accessible);
   const savedCount = Object.values(state.savedLearningItems).filter((item) => !item.deletedAt).length;
   const learningProgress = state;

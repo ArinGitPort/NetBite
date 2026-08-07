@@ -28,7 +28,7 @@ export const chapterSeven = createAdvancedChapter({
       ], result: 'The broadcast discovers the unknown local owner without confusing the Ethernet destination with the still-unknown ARP target hardware address.' },
       takeaway: 'An ARP Request uses Ethernet broadcast FF:FF:FF:FF:FF:FF to ask who owns one local IPv4 address.',
       termNote: { term: 'FFFF.FFFF.FFFF', definition: 'Cisco-style dotted display of the same 48-bit Ethernet broadcast address written in NetBite as FF:FF:FF:FF:FF:FF.' },
-      checkpoint: { prompt: 'Why is the first ARP request broadcast?', correctChoiceId: 'unknown', choices: [
+      checkpoint: { prompt: 'PC-A knows PC-B’s IPv4 address but not its MAC address. Why does PC-A send its first ARP Request to FF:FF:FF:FF:FF:FF?', correctChoiceId: 'unknown', choices: [
         { id: 'unknown', label: 'TARGET MAC IS UNKNOWN', feedback: 'Correct. Broadcasting lets the unknown local owner receive the question.' },
         { id: 'remote', label: 'TARGET IS ALWAYS REMOTE', feedback: 'ARP resolves a local next hop, not an always-remote target.' },
         { id: 'damaged', label: 'THE FRAME IS DAMAGED', feedback: 'Broadcasting is the discovery method, not an error response.' },

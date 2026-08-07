@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 
 import type { OperationsLabDefinition } from '@/features/operations/operations-lab-definitions';
+import { OperationsLabBriefing } from '@/features/operations/components/operations-lab-briefing';
+import { OperationsLabTopology } from '@/features/operations/components/operations-lab-topology';
 import {
   applySimulationConfiguration,
   emptyOperationsSimulationSession,
@@ -27,6 +29,17 @@ import { useOperationsLabStore } from '@/store/use-operations-lab-store';
 import { useGameStore } from '@/store/use-game-store';
 
 function FieldControl({ field, value, onChange }: { field: SimulationFieldDefinition; value: SimulationValue | undefined; onChange: (value: SimulationValue) => void }) {
+  const formatLabels: Partial<Record<NonNullable<SimulationFieldDefinition['format']>, string>> = {
+    ipv4: 'IPv4 address, for example 192.168.10.10.',
+    ipv6: 'IPv6 address; compressed notation such as 2001:db8::10 is accepted.',
+    port: 'Whole-number transport port from 0 through 65535.',
+    prefix4: 'IPv4 prefix length from 0 through 32. You may enter 24 or /24.',
+    prefix6: 'IPv6 prefix length from 0 through 128. You may enter 64 or /64.',
+    positive: 'Enter a positive whole number.',
+    'csv-vlan': 'Enter VLAN IDs separated by commas, for example 10,20.',
+    text: 'Enter the named value exactly as shown in the task information.',
+  };
+  const helpText = field.helpText ?? `${field.incorrectFeedback} ${field.format ? formatLabels[field.format] ?? '' : ''}`.trim();
   if (field.kind === 'toggle') {
     const enabled = value === true;
     return <View style={styles.fieldBlock}><Text variant="technical" style={styles.fieldLabel}>{field.label}</Text><View style={styles.toggleRow}><Pressable accessibilityRole="radio" accessibilityState={{ checked: enabled }} onPress={() => onChange(true)} style={[styles.option, enabled && styles.optionSelected]}><Text variant="label" style={styles.optionText}>[ {enabled ? 'X' : ' '} ] ENABLED</Text></Pressable><Pressable accessibilityRole="radio" accessibilityState={{ checked: value === false }} onPress={() => onChange(false)} style={[styles.option, value === false && styles.optionSelected]}><Text variant="label" style={styles.optionText}>[ {value === false ? 'X' : ' '} ] DISABLED</Text></Pressable></View></View>;
@@ -34,7 +47,16 @@ function FieldControl({ field, value, onChange }: { field: SimulationFieldDefini
   if (field.kind === 'select') {
     return <View style={styles.fieldBlock}><Text variant="technical" style={styles.fieldLabel}>{field.label}</Text><View style={styles.optionGrid}>{field.options?.map((entry) => <Pressable key={String(entry.value)} accessibilityRole="radio" accessibilityState={{ checked: value === entry.value }} onPress={() => onChange(entry.value)} style={[styles.option, value === entry.value && styles.optionSelected]}><Text variant="label" style={styles.optionText}>{entry.label}</Text></Pressable>)}</View></View>;
   }
-  return <View style={styles.fieldBlock}><Text variant="technical" style={styles.fieldLabel}>{field.label}</Text><TextInput accessibilityLabel={field.label} autoCapitalize="none" autoCorrect={false} keyboardType={field.kind === 'number' ? 'number-pad' : 'default'} onChangeText={(next) => onChange(field.kind === 'number' ? Number(next) : next)} placeholder={field.placeholder ?? `ENTER ${field.label.toUpperCase()}`} placeholderTextColor={Palette.textMuted} selectionColor={Palette.orange} style={styles.input} value={value === undefined || Number.isNaN(value) ? '' : String(value)} /></View>;
+  const changeText = (next: string) => {
+    if (field.kind !== 'number') return onChange(next);
+    const normalized = field.format === 'prefix4' || field.format === 'prefix6' ? next.trim().replace(/^\//, '') : next;
+    onChange(normalized === '' ? Number.NaN : Number(normalized));
+  };
+  return <View style={styles.fieldBlock}>
+    <Text variant="technical" style={styles.fieldLabel}>{field.label}</Text>
+    <Text variant="bodySmall" style={styles.fieldHelp}>{helpText}</Text>
+    <TextInput accessibilityHint={helpText} accessibilityLabel={field.label} autoCapitalize="none" autoCorrect={false} keyboardType={field.kind === 'number' ? 'number-pad' : 'default'} onChangeText={changeText} placeholder={field.placeholder ?? `EXAMPLE / ${String(field.expected)}`} placeholderTextColor={Palette.textMuted} selectionColor={Palette.orange} style={styles.input} value={value === undefined || Number.isNaN(value) ? '' : String(value)} />
+  </View>;
 }
 
 export function OperationsGuidedLab({ definition, onComplete }: { definition: OperationsLabDefinition; onComplete?: () => void }) {
@@ -58,8 +80,8 @@ export function OperationsGuidedLab({ definition, onComplete }: { definition: Op
   const [cliInput, setCliInput] = useState('');
   const [cliOutput, setCliOutput] = useState<string>();
   const [resetVisible, setResetVisible] = useState(false);
+  const [briefingOpen, setBriefingOpen] = useState(session.stageIndex === 0);
   const { mode, onLayout } = useMeasuredResponsiveLayout();
-  const compact = mode === 'compact';
   const priorStageRef = useRef(session.stageIndex);
 
   useEffect(() => {
@@ -101,6 +123,7 @@ export function OperationsGuidedLab({ definition, onComplete }: { definition: Op
       traceIndex: 0,
       stageIndex: result.passed ? session.stageIndex + 1 : session.stageIndex,
       completedObjectiveIds: result.passed && !session.completedObjectiveIds.includes(current.id) ? [...session.completedObjectiveIds, current.id] : session.completedObjectiveIds,
+      protocolState: result.protocolState ?? session.protocolState,
     };
     save(definition.id, next);
   };
@@ -130,18 +153,21 @@ export function OperationsGuidedLab({ definition, onComplete }: { definition: Op
 
       {recoveryCopy ? <View style={styles.recovery}><Text variant="label" style={styles.warningTitle}>PREVIOUS LAB FORMAT SAVED</Text><Text variant="bodySmall" style={styles.line}>An unfinished choice-based session could not safely become device configuration. Its recovery copy was preserved; this simulator starts from a clean modeled state.</Text><AppButton label="Dismiss notice" variant="utility" onPress={() => dismissRecovery(definition.id)} /></View> : null}
 
-      <View accessibilityLabel={`Fixed topology: ${definition.topology.join(', then ')}`} accessible style={styles.topology}><Text variant="label" style={styles.panelTitle}>FIXED MODELED TOPOLOGY</Text><View style={[styles.topologyRow, compact && styles.topologyColumn]}>{definition.topology.map((node, index) => <View key={node} style={[styles.topologyUnit, compact && styles.topologyUnitCompact]}>{index > 0 ? <Text variant="technical" style={styles.connector}>{compact ? '↓' : '→'}</Text> : null}<View style={styles.node}><Text variant="technical" style={styles.nodeText}>{node}</Text><Text variant="technical" style={styles.nodeState}>{finished ? 'VERIFIED' : 'MODELED'}</Text></View></View>)}</View></View>
+      <OperationsLabBriefing labId={definition.id} briefing={definition.briefing} expanded={briefingOpen} onToggle={() => setBriefingOpen((value) => !value)} />
+      <OperationsLabTopology definition={definition} finished={finished} mode={mode} session={session} stageId={current?.id} />
 
       <View style={styles.panel}><Text variant="label" style={styles.panelTitle}>PREREQUISITES</Text>{definition.prerequisites.map((item) => <Text key={item} variant="bodySmall" style={styles.line}>[X] {item}</Text>)}</View>
 
       {!finished ? <>
-        <View style={styles.objective}><Text variant="label" style={styles.panelTitle}>CURRENT OBJECTIVE</Text><Text variant="sectionHeading" style={styles.objectiveTitle}>{authored.objective}</Text><Text variant="body" style={styles.line}>{authored.prompt}</Text></View>
-        <View style={styles.inspector}><Text variant="label" style={styles.inspectorTitle}>DEVICE / PROTOCOL INSPECTOR</Text><Text variant="bodySmall" style={styles.line}>Enter a valid configuration, save it, then run the objective test. Valid mistakes remain editable.</Text>{current.fields.map((field) => <FieldControl key={field.id} field={field} value={effectiveDraft[field.id]} onChange={(value) => { setDraft((state) => ({ ...state, [field.id]: value })); setValidationError(undefined); }} />)}
+        <View style={styles.objective}><Text variant="label" style={styles.panelTitle}>CURRENT OBJECTIVE</Text><Text variant="sectionHeading" style={styles.objectiveTitle}>{authored.objective}</Text><Text variant="body" style={styles.line}>{authored.prompt}</Text><Text variant="bodySmall" style={styles.objectiveHelp}>NEED THE METHOD? OPEN “LEARN THE SETUP” ABOVE OR REVEAL A HINT BELOW.</Text></View>
+        <View style={styles.inspector}><Text variant="label" style={styles.inspectorTitle}>DEVICE / PROTOCOL INSPECTOR</Text><Text variant="bodySmall" style={styles.line}>Use the provided task information below. Save the configuration, then run the test. A valid mistake stays editable so you can correct it.</Text>
+          {current.providedFacts?.length ? <View accessibilityLabel="Information provided for this objective" style={styles.providedFacts}><Text variant="label" style={styles.providedTitle}>INFORMATION PROVIDED</Text>{current.providedFacts.map((fact) => <Text key={fact} variant="bodySmall" style={styles.providedFact}>• {fact}</Text>)}</View> : null}
+          {current.fields.map((field) => <FieldControl key={field.id} field={field} value={effectiveDraft[field.id]} onChange={(value) => { setDraft((state) => ({ ...state, [field.id]: value })); setValidationError(undefined); }} />)}
           {validationError ? <Text accessibilityLiveRegion="assertive" variant="bodySmall" style={styles.error}>{validationError}</Text> : null}
           {!configured ? <AppButton label="Save configuration" onPress={applyConfiguration} /> : <AppButton label={current.actionLabel} leadingIcon="check" onPress={verify} />}
         </View>
 
-        {simulator.cliEnabled ? <View style={styles.cliPanel}><Pressable accessibilityRole="button" accessibilityState={{ expanded: cliOpen }} onPress={() => setCliOpen((value) => !value)} style={styles.disclosure}><Text variant="label" style={styles.cliTitle}>OPTIONAL NETBITE CLI</Text><Text variant="label">{cliOpen ? 'HIDE' : 'OPEN'}</Text></Pressable>{cliOpen ? <><Text variant="technical" style={styles.line}>BOUNDED COMMAND MODE / SAME STATE AS INSPECTOR</Text><View style={styles.suggestions}>{suggestions.map((suggestion) => <Pressable key={suggestion} accessibilityRole="button" onPress={() => setCliInput(suggestion)} style={styles.suggestion}><Text variant="technical">{suggestion}</Text></Pressable>)}</View><TextInput accessibilityLabel="Operations CLI command" autoCapitalize="none" autoCorrect={false} onChangeText={setCliInput} onSubmitEditing={runCli} placeholder="ENTER SUPPORTED COMMAND" placeholderTextColor={Palette.textMuted} selectionColor={Palette.orange} style={styles.input} value={cliInput} /><AppButton disabled={!cliInput.trim()} label="Run command" onPress={runCli} />{cliOutput ? <Text accessibilityLiveRegion="polite" variant="technical" style={styles.cliOutput}>{cliOutput}</Text> : null}</> : null}</View> : null}
+        {simulator.cliEnabled ? <View style={styles.cliPanel}><Pressable accessibilityRole="button" accessibilityState={{ expanded: cliOpen }} onPress={() => setCliOpen((value) => !value)} style={styles.disclosure}><Text variant="label" style={styles.cliTitle}>OPTIONAL NETBITE CLI</Text><Text variant="label">{cliOpen ? 'HIDE' : 'OPEN'}</Text></Pressable>{cliOpen ? <><Text variant="technical" style={styles.line}>GUIDED COMMAND PRACTICE / SAME CONFIGURATION AS THE INSPECTOR</Text><View style={styles.suggestions}>{suggestions.map((suggestion) => <Pressable key={suggestion} accessibilityRole="button" onPress={() => setCliInput(suggestion)} style={styles.suggestion}><Text variant="technical">{suggestion}</Text></Pressable>)}</View><TextInput accessibilityLabel="Operations CLI command" autoCapitalize="none" autoCorrect={false} onChangeText={setCliInput} onSubmitEditing={runCli} placeholder="ENTER SUPPORTED COMMAND" placeholderTextColor={Palette.textMuted} selectionColor={Palette.orange} style={styles.input} value={cliInput} /><AppButton disabled={!cliInput.trim()} label="Run command" onPress={runCli} />{cliOutput ? <Text accessibilityLiveRegion="polite" variant="technical" style={styles.cliOutput}>{cliOutput}</Text> : null}</> : null}</View> : null}
       </> : <View style={styles.complete}><Text variant="label" style={styles.panelTitle}>ALL OBJECTIVES VERIFIED</Text><Text variant="body">Completion came from the final modeled configuration and its evidence. Reset remains available for another run without removing earned completion.</Text></View>}
 
       <View style={styles.panel}><Text variant="label" style={styles.panelTitle}>{definition.tableTitle}</Text>{(session.tables?.[definition.tableTitle] ?? []).length ? session.tables[definition.tableTitle].map((row, index) => <Text key={`${index}-${row}`} variant="technical" style={styles.tableRow}>{row}</Text>) : <Text variant="technical" style={styles.line}>NO CURRENT STATE / RUN THE OBJECTIVE TEST</Text>}</View>
@@ -165,8 +191,8 @@ const styles = StyleSheet.create({
   header: { minHeight: 44, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: Space.sm, marginBottom: Space.lg },
   saveStatus: { color: Palette.green }, eyebrow: { color: Palette.orange }, title: { color: Palette.text, fontFamily: Fonts.semibold, marginTop: Space.sm }, subtitle: { color: Palette.textMuted, marginVertical: Space.sm }, status: { color: Palette.green, marginVertical: Space.md },
   topology: { borderWidth: 1, borderColor: Palette.border, padding: Space.lg, marginBottom: Space.md, gap: Space.md }, topologyRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: Space.xs }, topologyColumn: { flexDirection: 'column', alignItems: 'stretch' }, topologyUnit: { flexDirection: 'row', alignItems: 'center', flexGrow: 1, minWidth: 110, gap: Space.xs }, topologyUnitCompact: { flexDirection: 'column', minWidth: 0, width: '100%' }, connector: { color: Palette.orange }, node: { minHeight: 56, flex: 1, minWidth: 90, padding: Space.sm, borderWidth: 1, borderColor: Palette.green, justifyContent: 'center' }, nodeText: { color: Palette.text, textAlign: 'center' }, nodeState: { color: Palette.green, textAlign: 'center', marginTop: Space.xs },
-  panel: { borderWidth: 1, borderColor: Palette.border, padding: Space.lg, marginBottom: Space.md, gap: Space.sm }, panelTitle: { color: Palette.green, fontFamily: Fonts.semibold }, warningTitle: { color: Palette.orange, fontFamily: Fonts.semibold }, objective: { borderLeftWidth: 3, borderColor: Palette.orange, backgroundColor: Palette.surfaceRaised, padding: Space.lg, gap: Space.sm, marginBottom: Space.md }, objectiveTitle: { color: Palette.text }, line: { color: Palette.textMuted },
-  inspector: { borderWidth: 1, borderColor: Palette.orange, padding: Space.lg, gap: Space.md, marginBottom: Space.md }, inspectorTitle: { color: Palette.orange, fontFamily: Fonts.semibold }, fieldBlock: { gap: Space.xs }, fieldLabel: { color: Palette.textMuted }, input: { minHeight: 48, borderWidth: 1, borderColor: Palette.border, borderRadius: Radius.sm, color: Palette.text, fontFamily: Fonts.regular, fontSize: 14, paddingHorizontal: Space.md, paddingVertical: Space.sm }, optionGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Space.sm }, toggleRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Space.sm }, option: { minHeight: 48, minWidth: 120, flexGrow: 1, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: Palette.border, padding: Space.sm }, optionSelected: { borderColor: Palette.orange, backgroundColor: Palette.orangeSoft }, optionText: { color: Palette.text, textAlign: 'center' }, error: { color: Palette.danger, borderWidth: 1, borderColor: Palette.danger, padding: Space.md },
+  panel: { borderWidth: 1, borderColor: Palette.border, padding: Space.lg, marginBottom: Space.md, gap: Space.sm }, panelTitle: { color: Palette.green, fontFamily: Fonts.semibold }, warningTitle: { color: Palette.orange, fontFamily: Fonts.semibold }, objective: { borderLeftWidth: 3, borderColor: Palette.orange, backgroundColor: Palette.surfaceRaised, padding: Space.lg, gap: Space.sm, marginBottom: Space.md }, objectiveTitle: { color: Palette.text }, objectiveHelp: { color: Palette.orange, marginTop: Space.xs }, line: { color: Palette.textMuted },
+  inspector: { borderWidth: 1, borderColor: Palette.orange, padding: Space.lg, gap: Space.md, marginBottom: Space.md }, inspectorTitle: { color: Palette.orange, fontFamily: Fonts.semibold }, providedFacts: { minWidth: 0, gap: Space.sm, borderLeftWidth: 3, borderLeftColor: Palette.green, backgroundColor: Palette.greenSoft, padding: Space.md }, providedTitle: { color: Palette.green, fontFamily: Fonts.semibold }, providedFact: { color: Palette.text }, fieldBlock: { minWidth: 0, gap: Space.xs }, fieldLabel: { color: Palette.text, fontFamily: Fonts.medium }, fieldHelp: { color: Palette.textMuted, marginBottom: Space.xs }, input: { minHeight: 48, borderWidth: 1, borderColor: Palette.border, borderRadius: Radius.sm, color: Palette.text, fontFamily: Fonts.regular, fontSize: 14, paddingHorizontal: Space.md, paddingVertical: Space.sm }, optionGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Space.sm }, toggleRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Space.sm }, option: { minHeight: 48, minWidth: 120, flexGrow: 1, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: Palette.border, padding: Space.sm }, optionSelected: { borderColor: Palette.orange, backgroundColor: Palette.orangeSoft }, optionText: { color: Palette.text, textAlign: 'center' }, error: { color: Palette.danger, borderWidth: 1, borderColor: Palette.danger, padding: Space.md },
   cliPanel: { borderWidth: 1, borderColor: Palette.border, backgroundColor: Palette.background, padding: Space.md, gap: Space.md, marginBottom: Space.md }, disclosure: { minHeight: 44, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: Space.md }, cliTitle: { color: Palette.text }, suggestions: { flexDirection: 'row', flexWrap: 'wrap', gap: Space.xs }, suggestion: { minHeight: 44, justifyContent: 'center', borderWidth: 1, borderColor: Palette.border, paddingHorizontal: Space.sm }, cliOutput: { color: Palette.green, padding: Space.sm, borderLeftWidth: 2, borderColor: Palette.green },
   evidence: { color: Palette.text, minHeight: 44, paddingVertical: Space.sm }, tableRow: { color: Palette.text, borderBottomWidth: 1, borderBottomColor: Palette.border, paddingVertical: Space.sm }, warningText: { color: Palette.orange }, traceCount: { color: Palette.textMuted }, traceActions: { flexDirection: 'row', flexWrap: 'wrap', gap: Space.sm }, feedback: { borderWidth: 1, padding: Space.lg, gap: Space.sm, marginBottom: Space.md }, feedbackSuccess: { borderColor: Palette.green }, feedbackWarning: { borderColor: Palette.orange }, why: { borderLeftWidth: 3, borderColor: Palette.orange, backgroundColor: Palette.surfaceRaised, padding: Space.lg, gap: Space.sm, marginBottom: Space.md }, hints: { borderWidth: 1, borderColor: Palette.orange, padding: Space.lg, gap: Space.sm, marginBottom: Space.md }, recovery: { borderWidth: 1, borderColor: Palette.orange, padding: Space.lg, gap: Space.sm, marginBottom: Space.md }, complete: { borderWidth: 1, borderColor: Palette.green, backgroundColor: Palette.greenSoft, padding: Space.lg, gap: Space.sm, marginVertical: Space.lg }, tools: { borderTopWidth: 1, borderColor: Palette.border, gap: Space.sm, marginTop: Space.xl, paddingTop: Space.lg }, toolsTitle: { color: Palette.textMuted }, limit: { color: Palette.textMuted, marginVertical: Space.xl },
 });

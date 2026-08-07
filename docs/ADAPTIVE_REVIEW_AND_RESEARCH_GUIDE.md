@@ -6,15 +6,15 @@ NetBite reports three independent learning states:
 
 - Activity completion records which lessons, labs, quizzes, and flashcard reviews were finished.
 - Quiz mastery compares the learner's best current-version score with that chapter's published requirement.
-- Adaptive review contains unresolved current-version quiz misses and flashcards marked `Review Again`.
+- Adaptive review contains unresolved current-version quiz misses, checkpoint misses, and flashcards marked `Review Again`.
 
 These states must never be combined into an invented grade, XP value, or mastery percentage.
 
 ## Adaptive review
 
-An incorrect quiz response immediately creates or updates a due signal keyed by question and content version. A correct response resolves the current signal without discarding its historical miss count. Flashcards use the same rule through `Review Again` and `Got It`.
+An incorrect quiz response immediately creates or updates a due signal keyed by question and content version. A lesson checkpoint records only the first miss in one visit; correcting it unlocks the lesson while leaving the topic due. A later successful checkpoint retry resolves it. A correct first checkpoint attempt may also resolve an older signal. Flashcards use the same rule through `Review Again` and `Got It`.
 
-The mixed review session preserves the original interaction: scenarios remain multiple choice and flashcards remain reveal-first active recall. Incorrect items move behind the other due items. The session has no score or penalty. Signals from obsolete content versions remain historical and are excluded from the active queue.
+The mixed review session preserves the original interaction: quiz and checkpoint scenarios require a think-before-choices step, while flashcards remain reveal-first active recall. Incorrect items move behind the other due items. The session has no score or penalty. Quiz, flashcard, and checkpoint versions are independent; obsolete signals remain historical and are excluded from the active queue.
 
 ## Saved learning
 

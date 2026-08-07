@@ -26,7 +26,7 @@ export const chapterTwoLessons = buildLessons('2', [
       { id: 'check', label: 'ADD THE FCS', explanation: 'The sender calculates an error-detection value that the receiver checks after transmission.' },
     ], result: 'The completed frame is then represented as signals on copper or fiber; the frame is not the signal itself.' },
     takeaway: 'An Ethernet frame packages local-link delivery information, payload data, and an error check.',
-    checkpoint: { prompt: 'Which frame field identifies where the frame should go on the local link?', correctChoiceId: 'destination', choices: [
+    checkpoint: { prompt: 'PC-A sends an Ethernet frame to PC-B. Which field identifies PC-B as the intended receiver on this local link?', correctChoiceId: 'destination', choices: [
       { id: 'destination', label: 'DESTINATION MAC', feedback: 'Correct. The destination MAC identifies the intended local-link interface.' },
       { id: 'source', label: 'SOURCE MAC', feedback: 'The source identifies the sender. It does not name the intended receiver.' },
       { id: 'check', label: 'ERROR CHECK', feedback: 'The check helps detect damage; it is not the delivery address.' },

@@ -29,7 +29,7 @@ export const chapterThreeLessons = buildLessons('3', [
       { id: 'act', label: 'CHOOSE AN OUTPUT', explanation: 'A known destination uses its learned port; an unknown one is flooded to other eligible ports.' },
     ], result: 'Source learning and destination forwarding are two ordered decisions with different address roles.' },
     takeaway: 'Switches learn from the source MAC and make forwarding decisions from the destination MAC.',
-    checkpoint: { prompt: 'Which field teaches the switch where the sender is connected?', correctChoiceId: 'source', choices: [
+    checkpoint: { prompt: 'A frame from PC-A enters switch port 3. Which field lets the switch learn that PC-A is reachable through port 3?', correctChoiceId: 'source', choices: [
       { id: 'source', label: 'SOURCE MAC', feedback: 'Correct. The source arrived through the ingress port, so the switch can map that address to the port.' },
       { id: 'destination', label: 'DESTINATION MAC', feedback: 'The destination guides forwarding; it does not prove where that interface is connected.' },
       { id: 'payload', label: 'PAYLOAD', feedback: 'The payload carries upper-layer data, not the switch’s source-to-port learning identity.' },

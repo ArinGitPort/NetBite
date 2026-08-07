@@ -13,8 +13,15 @@ describe('adaptive learning', () => {
 
   it('excludes obsolete versions and inaccessible chapters', () => {
     const signals = updateReviewSignals({}, quizInput, false);
-    expect(getActiveReviewQueue(signals, { '1': { quiz: 3, flashcard: 1 } }, new Set(['1']))).toHaveLength(0);
-    expect(getActiveReviewQueue(signals, { '1': { quiz: 2, flashcard: 1 } }, new Set(['2']))).toHaveLength(0);
+    expect(getActiveReviewQueue(signals, { '1': { quiz: 3, flashcard: 1, checkpoint: 1 } }, new Set(['1']))).toHaveLength(0);
+    expect(getActiveReviewQueue(signals, { '1': { quiz: 2, flashcard: 1, checkpoint: 1 } }, new Set(['2']))).toHaveLength(0);
+  });
+
+  it('queues checkpoint misses independently from quiz and flashcard versions', () => {
+    const checkpointInput = { kind: 'checkpoint' as const, contentId: 'lesson-1', lessonId: 'lesson-1', chapterId: '1', contentVersion: 2 };
+    const signals = updateReviewSignals({}, checkpointInput, false);
+    expect(getActiveReviewQueue(signals, { '1': { quiz: 9, flashcard: 8, checkpoint: 2 } })).toMatchObject([{ kind: 'checkpoint', contentId: 'lesson-1' }]);
+    expect(getActiveReviewQueue(signals, { '1': { quiz: 9, flashcard: 8, checkpoint: 3 } })).toHaveLength(0);
   });
 
   it('keeps saved notes as deletion tombstones and caps history at fifty', () => {

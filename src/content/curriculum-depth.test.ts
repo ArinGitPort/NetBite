@@ -97,8 +97,10 @@ describe('expanded curriculum depth', () => {
 
   test('keeps every checkpoint deterministic and retryable', () => {
     const checkpoints = chapters.flatMap(({ lessons }) => lessons.flatMap(({ checkpoint }) => checkpoint ? [checkpoint] : []));
-    expect(checkpoints.length).toBeGreaterThanOrEqual(20);
+    expect(checkpoints).toHaveLength(27);
     checkpoints.forEach((checkpoint) => {
+      expect(checkpoint.presentation).toBe('pause-and-apply');
+      expect(checkpoint.reviewIdentity).toBeTruthy();
       expect(new Set(checkpoint.choices.map(({ id }) => id)).size).toBe(checkpoint.choices.length);
       expect(checkpoint.choices.some(({ id }) => id === checkpoint.correctChoiceId)).toBe(true);
       checkpoint.choices.forEach(({ feedback }) => expect(feedback.length).toBeGreaterThan(20));

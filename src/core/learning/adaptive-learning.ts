@@ -1,4 +1,4 @@
-export type ReviewKind = 'quiz' | 'flashcard';
+export type ReviewKind = 'quiz' | 'flashcard' | 'checkpoint';
 export type SavedTargetType = 'lesson' | 'illustration' | 'flashcard' | 'cli-command';
 export type ActivityType = 'lesson' | 'lab' | 'quiz' | 'flashcards' | 'review';
 
@@ -62,7 +62,9 @@ export function updateReviewSignals(signals: Record<string, ReviewSignal>, input
   return { ...signals, [key]: { key, ...input, missCount: (current?.missCount ?? 0) + Number(!correct), due: !correct, updatedAt } };
 }
 
-export function getActiveReviewQueue(signals: Record<string, ReviewSignal>, versions: Record<string, { quiz: number; flashcard: number }>, accessibleChapterIds?: Set<string>): ReviewQueueItem[] {
+export type ReviewContentVersions = Record<string, { quiz: number; flashcard: number; checkpoint: number }>;
+
+export function getActiveReviewQueue(signals: Record<string, ReviewSignal>, versions: ReviewContentVersions, accessibleChapterIds?: Set<string>): ReviewQueueItem[] {
   return Object.values(signals)
     .filter((signal) => signal.due && (accessibleChapterIds?.has(signal.chapterId) ?? true))
     .filter((signal) => signal.contentVersion === versions[signal.chapterId]?.[signal.kind])

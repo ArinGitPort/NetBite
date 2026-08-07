@@ -2,7 +2,7 @@ import { router, type Href } from 'expo-router';
 import { Platform } from 'react-native';
 
 import { chapters } from '@/content/chapters';
-import { AppRoutes, chapterRoute } from '@/shared/routes';
+import { AppRoutes, chapterRoute, labRoute } from '@/shared/routes';
 
 export type ActivityRouteKind = 'lesson' | 'lab' | 'quiz' | 'flashcards';
 
@@ -30,6 +30,18 @@ export function resolveActivityDestination(kind: ActivityRouteKind, activityId: 
       ? chapters.find((item) => item.lab.id === activityId)
       : chapters.find((item) => item.id === activityId);
   return chapter ? { chapterId: chapter.id, chapterHref: chapterRoute(chapter.id) } : undefined;
+}
+
+/** Accept only registered chapter labs as lesson origins. */
+export function resolveLessonLabOrigin(fromLabId?: string | string[]) {
+  const candidate = Array.isArray(fromLabId) ? fromLabId[0] : fromLabId;
+  if (!candidate) return undefined;
+  return chapters.some((chapter) => chapter.lab.id === candidate) ? candidate : undefined;
+}
+
+/** Return to the mounted lab when possible, or reopen its autosaved route. */
+export function returnToOriginatingLab(fromLabId: string) {
+  router.dismissTo(labRoute(fromLabId));
 }
 
 /** Navigate back when a native stack entry exists, otherwise open a known-safe route. */

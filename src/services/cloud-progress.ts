@@ -29,7 +29,7 @@ function reviewSignalRecord(value: unknown) {
   const records = objectRecord<unknown>(value);
   return Object.fromEntries(Object.entries(records).filter((entry): entry is [string, ReviewSignal] => {
     const item = entry[1];
-    return isRecord(item) && item.key === entry[0] && (item.kind === 'quiz' || item.kind === 'flashcard')
+    return isRecord(item) && item.key === entry[0] && (item.kind === 'quiz' || item.kind === 'flashcard' || item.kind === 'checkpoint')
       && typeof item.contentId === 'string' && typeof item.lessonId === 'string' && typeof item.chapterId === 'string'
       && Number.isInteger(item.contentVersion) && Number.isFinite(item.missCount) && typeof item.due === 'boolean' && typeof item.updatedAt === 'string';
   }));

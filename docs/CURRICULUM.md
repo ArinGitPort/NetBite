@@ -39,6 +39,8 @@ Mechanism lessons follow a consistent beginner sequence: trigger → known infor
 
 ## Course 2 — Network Operations
 
+Course 2 uses a plain-English teaching layer around exact networking vocabulary. Each of its 82 lessons introduces the problem, defines the important term, follows the device decision, works one complete example, states what the result proves, and ends with active recall. Its guided labs show and teach the setup before asking for configuration.
+
 Course 2 is unlocked by completing Network Foundations or passing the 12-question prerequisite diagnostic at 10/12. Modules unlock in order. Each practical activity is a fixed-topology, configuration-driven mini-simulator backed by a pure deterministic engine. Valid mistakes remain editable, malformed input does not mutate state, hints accumulate, and every activity documents its simulation boundary. Module visibility also follows an explicit released/validation/coming-soon quality state.
 
 | Module | Lessons | Guided simulation |

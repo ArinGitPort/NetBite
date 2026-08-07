@@ -6,6 +6,7 @@ import {
   executeOperationsCliCommand,
   operationsModuleReleaseStates,
   operationsSimulationDefinitions,
+  type SimulationValue,
   validateSimulationField,
 } from '@/features/operations/operations-simulator';
 import { operationsChapters } from '@/content/operations-chapters';
@@ -54,6 +55,27 @@ describe('Course 2 guided simulation framework', () => {
     const result = evaluateSimulationObjective('transport-service-desk', current, applied.session, operationsLabDefinitions['transport-service-desk'].stages[0].explanation);
     expect(result.passed).toBe(true);
     expect(result.evidence.map(({ text }) => text)).toEqual(expect.arrayContaining(['SYN', 'SYN-ACK', 'ACK']));
+  });
+
+  test('keeps DHCP bindings across DORA, renewal, exhaustion, and release', () => {
+    const simulator = operationsSimulationDefinitions['dhcp-lease-desk'];
+    const authored = operationsLabDefinitions['dhcp-lease-desk'];
+    let session = emptyOperationsSimulationSession();
+    const configurations: Record<string, SimulationValue>[] = [
+      { 'dhcp.network': '192.168.20.0', 'dhcp.prefix': 24, 'dhcp.start': '192.168.20.100', 'dhcp.end': '192.168.20.102', 'dhcp.excluded': '192.168.20.100' },
+      { 'dhcp.client': 'PC-A' },
+      { 'dhcp.renewClient': 'PC-A' },
+      { 'dhcp.requestCount': 2 },
+      { 'dhcp.releaseClient': 'PC-B' },
+    ];
+    configurations.forEach((configuration, index) => {
+      session = applySimulationConfiguration(session, simulator.stages[index], configuration).session;
+      const result = evaluateSimulationObjective('dhcp-lease-desk', simulator.stages[index], session, authored.stages[index].explanation);
+      expect(result.passed).toBe(true);
+      session = { ...session, protocolState: result.protocolState };
+    });
+    const dhcp = session.protocolState?.dhcp as { leases: { clientId: string; address: string }[] };
+    expect(dhcp.leases).toEqual([{ clientId: 'PC-A', address: '192.168.20.101', state: 'bound', leaseStepsRemaining: 4 }]);
   });
 
   test('CLI and inspector write the same configuration keys', () => {

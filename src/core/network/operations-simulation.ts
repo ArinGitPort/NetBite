@@ -45,6 +45,13 @@ export interface DhcpPool { network: string; prefix: number; start: string; end:
 export interface DhcpLease { clientId: string; address: string; state: 'offered' | 'bound'; leaseStepsRemaining: number }
 export interface DhcpState { pool: DhcpPool; leases: DhcpLease[] }
 
+export function inspectDhcpPool(state: DhcpState) {
+  const eligible = enumeratePool(state.pool);
+  const used = new Set(state.leases.map(({ address }) => address));
+  const available = eligible.filter((address) => !used.has(address));
+  return { eligible, available, firstAvailable: available[0], exhausted: eligible.length > 0 && available.length === 0 };
+}
+
 export function allocateDhcpLease(state: DhcpState, clientId: string): SimulationResult<DhcpState> {
   const addresses = enumeratePool(state.pool);
   if (!clientId.trim() || addresses.length === 0) return result(false, false, state, [], 'The DHCP pool or client identity is invalid.', 'A pool must contain usable addresses inside its configured network.', 'No lease state changed.', 'Verify the pool boundaries and client ID.');
@@ -58,6 +65,12 @@ export function allocateDhcpLease(state: DhcpState, clientId: string): Simulatio
   if (!address) return result(true, false, state, ['DHCPDISCOVER', 'NO DHCPOFFER'], 'The configured pool has no available address.', 'A DHCP server cannot allocate outside its pool.', 'The client remains unconfigured.', 'Release a lease or expand the valid pool.');
   const lease: DhcpLease = { clientId, address, state: 'bound', leaseStepsRemaining: 4 };
   return result(true, true, { ...state, leases: [...state.leases, lease] }, ['DHCPDISCOVER', `DHCPOFFER ${address}`, `DHCPREQUEST ${address}`, `DHCPACK ${address}`], `${clientId} received ${address}/${state.pool.prefix}.`, 'Discover, Offer, Request, and ACK commit one available address and its options.', 'The server binding table now contains the client.');
+}
+
+export function releaseDhcpLease(state: DhcpState, clientId: string): SimulationResult<DhcpState> {
+  const lease = state.leases.find((candidate) => candidate.clientId === clientId);
+  if (!lease) return result(Boolean(clientId.trim()), false, state, ['DHCPRELEASE NOT APPLIED'], `${clientId || 'The client'} has no current binding to release.`, 'A release can remove only a binding that exists.', 'The binding table did not change.', 'Inspect the client identifier and current bindings.');
+  return result(true, true, { ...state, leases: state.leases.filter((candidate) => candidate.clientId !== clientId) }, [`DHCPRELEASE ${lease.address}`, `ADDRESS ${lease.address} AVAILABLE`], `${clientId} released ${lease.address}.`, 'Removing a binding returns its address to the configured pool.', `${lease.address} can be offered to a later client.`);
 }
 
 export function relayDhcpMessage(input: { clientNetwork: string; relayAddress?: string; serverReachable: boolean }) {

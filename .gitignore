@@ -11,6 +11,7 @@ node_modules/
 .expo-plan-web/
 .expo-export-android/
 .expo-export-web/
+.expo-export-check-*/
 dist/
 web-build/
 /.tmp/

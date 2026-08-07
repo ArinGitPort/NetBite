@@ -30,4 +30,13 @@ describe('cloud progress records', () => {
     expect(result.activityHistory).toEqual([]);
     expect(result.updatedAt).toBe('1970-01-01T00:00:00.000Z');
   });
+
+  test('accepts a valid checkpoint review signal without changing older records', () => {
+    const checkpoint = {
+      key: 'checkpoint:lesson-a:v1', kind: 'checkpoint', contentId: 'lesson-a', lessonId: 'lesson-a',
+      chapterId: '1', contentVersion: 1, missCount: 1, due: true, updatedAt: '2026-08-07T00:00:00.000Z',
+    };
+    const result = deserializeCloudProgress({ review_signals: { [checkpoint.key]: checkpoint } });
+    expect(result.reviewSignals[checkpoint.key]).toEqual(checkpoint);
+  });
 });

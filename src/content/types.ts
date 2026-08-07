@@ -1,4 +1,5 @@
 export type LessonIllustration =
+  | `ops-visual-${string}`
   | 'network'
   | 'device-types'
   | 'purpose'
@@ -33,7 +34,9 @@ export type LessonIllustration =
   | 'model-purpose' | 'osi-stack' | 'tcp-ip-stack' | 'concept-layer-map'
   | 'osi-physical' | 'osi-data-link' | 'osi-network' | 'osi-transport'
   | 'osi-session' | 'osi-presentation' | 'osi-application'
-  | 'transport-endpoints' | 'dhcp-exchange' | 'dns-resolution' | 'acl-evaluation'
+  | 'transport-endpoints' | 'dhcp-exchange' | 'dhcp-settings' | 'dhcp-ports'
+  | 'dhcp-discover' | 'dhcp-offer' | 'dhcp-request-ack' | 'dhcp-pool' | 'dhcp-relay'
+  | 'dns-resolution' | 'acl-evaluation'
   | 'nat-translation' | 'ipv6-addressing' | 'ipv6-neighbor-delivery'
   | 'spanning-tree' | 'etherchannel' | 'dynamic-route-selection' | 'ospf-topology';
 
@@ -76,6 +79,8 @@ export interface LessonCheckpoint {
   choices: LessonCheckpointChoice[];
   correctChoiceId: string;
   hints?: string[];
+  presentation?: 'pause-and-apply';
+  reviewIdentity?: string;
 }
 
 export interface LessonCallout {
@@ -135,6 +140,7 @@ export interface ChapterDefinition {
   simulationReleaseState?: ModuleReleaseState;
   contentVersion: number;
   flashcardVersion: number;
+  checkpointVersion?: number;
   numberLabel: string;
   title: string;
   summary: string;

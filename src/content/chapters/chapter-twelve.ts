@@ -55,7 +55,7 @@ export const chapterTwelve = createAdvancedChapter({
       body: 'A router subinterface is a logical child of a physical interface. G0/0.10 uses 802.1Q VLAN 10 and address 192.168.10.1/24. G0/0.20 uses VLAN 20 and address 192.168.20.1/24. The subinterface number is a readable convention here; the encapsulation command is what associates the logical interface with a VLAN.',
       sections: [
         { heading: 'The physical parent stays active', body: 'G0/0 owns the cable and must be enabled. The logical subinterfaces inherit that physical link rather than receiving separate cables.' },
-        { heading: 'Tags must be unique on the parent', body: 'Two subinterfaces on G0/0 cannot both terminate VLAN 10 in this bounded model because the arriving tag would not identify one unambiguous Layer 3 interface.' },
+        { heading: 'Tags must be unique on the parent', body: 'Two subinterfaces on G0/0 cannot both use VLAN 10. An arriving frame with a VLAN 10 tag must match one clear Layer 3 subinterface.' },
       ],
       example: { label: 'BUILD TWO LOGICAL INTERFACES', setup: 'R-1 begins with enabled physical interface G0/0 and no IPv4 address on that parent.', presentation: 'guided', visual: { illustration: 'router-subinterface', stageIds: ['select', 'tag', 'address', 'enable'] }, steps: [
         { id: 'select', label: 'SELECT THE LOGICAL INTERFACE', explanation: 'Enter interface G0/0.10 so VLAN 10 receives a logical Layer 3 attachment.' },

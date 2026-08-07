@@ -1,7 +1,7 @@
 import { router } from 'expo-router';
 
 import { chapters } from '@/content/chapters';
-import { goBackOrReplace, navigateOnce, resolveActivityDestination } from '@/shared/navigation';
+import { goBackOrReplace, navigateOnce, resolveActivityDestination, resolveLessonLabOrigin, returnToOriginatingLab } from '@/shared/navigation';
 
 jest.mock('expo-router', () => ({
   router: {
@@ -60,5 +60,16 @@ describe('activity ownership', () => {
   test('rejects stale or malformed activity identifiers', () => {
     expect(resolveActivityDestination('lesson', 'missing')).toBeUndefined();
     expect(resolveActivityDestination('lab', '')).toBeUndefined();
+  });
+
+  test('validates only registered lesson lab origins', () => {
+    expect(resolveLessonLabOrigin('first-network')).toBe('first-network');
+    expect(resolveLessonLabOrigin(['ethernet-cables'])).toBe('ethernet-cables');
+    expect(resolveLessonLabOrigin('missing-lab')).toBeUndefined();
+  });
+
+  test('dismisses to a mounted lab or reopens the same route without history', () => {
+    returnToOriginatingLab('first-network');
+    expect(mockedRouter.dismissTo).toHaveBeenCalledWith({ pathname: '/lab/[labId]', params: { labId: 'first-network' } });
   });
 });

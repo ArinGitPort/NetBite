@@ -43,7 +43,7 @@ export const chapterEleven = createAdvancedChapter({
       ],
       example: { label: 'LAYER 2 DECISION', setup: 'A switch knows the destination MAC on VLAN 10 port 3.', result: 'It forwards the Ethernet frame through that local Layer 2 port.' },
       takeaway: 'Data Link handles local frames, MAC delivery, switching, and Layer 2 domains.',
-      checkpoint: { prompt: 'Where do Ethernet frames and MAC learning belong?', correctChoiceId: 'l2', choices: [
+      checkpoint: { prompt: 'A switch reads an Ethernet frame and learns its source MAC. Which OSI layer owns these responsibilities?', correctChoiceId: 'l2', choices: [
         { id: 'l2', label: 'LAYER 2 / DATA LINK', feedback: 'Correct. These are local Ethernet delivery responsibilities.' },
         { id: 'l1', label: 'LAYER 1 / PHYSICAL', feedback: 'Physical carries signals but does not interpret MAC frame fields.' },
         { id: 'l3', label: 'LAYER 3 / NETWORK', feedback: 'Network handles logical addressing and routing rather than local MAC learning.' },
@@ -68,7 +68,7 @@ export const chapterEleven = createAdvancedChapter({
       ],
       example: { label: 'SAME SERVER / DIFFERENT SERVICE', setup: 'One server address offers web and another application service.', result: 'Transport port information helps deliver incoming data to the intended service process.' },
       takeaway: 'Transport provides end-to-end application communication services, commonly through TCP or UDP and ports.',
-      checkpoint: { prompt: 'Which item belongs at Transport?', correctChoiceId: 'tcp', choices: [
+      checkpoint: { prompt: 'An application needs ports and reliable ordered delivery between two hosts. Which item supplies that Transport-layer service?', correctChoiceId: 'tcp', choices: [
         { id: 'tcp', label: 'TCP AND UDP', feedback: 'Correct. Both are transport protocols.' },
         { id: 'mac', label: 'MAC TABLE', feedback: 'MAC switching is a Data Link responsibility.' },
         { id: 'fiber', label: 'FIBER SIGNAL', feedback: 'Signals and media belong at Physical.' },
@@ -129,7 +129,7 @@ export const chapterEleven = createAdvancedChapter({
         { id: 'physical', label: 'PHYSICAL SIGNAL', explanation: 'The copper medium carries bits as signals without interpreting the frame or application meaning.' },
       ], result: 'One communication uses several responsibility groups without turning the OSI model into a literal seven-program machine.' },
       takeaway: 'Classify each concept by responsibility, then map the responsibility group between models.',
-      checkpoint: { prompt: 'Which mapping is correct?', correctChoiceId: 'map', choices: [
+      checkpoint: { prompt: 'A learner maps familiar network concepts to OSI responsibilities. Which complete mapping keeps each concept at the layer that handles it?', correctChoiceId: 'map', choices: [
         { id: 'map', label: 'OSI NETWORK → TCP/IP INTERNET', feedback: 'Correct. Both group IP logical addressing and routing responsibilities.' },
         { id: 'wrong1', label: 'OSI PHYSICAL → TCP/IP APPLICATION', feedback: 'Physical maps into the TCP/IP Network Access / Link group.' },
         { id: 'wrong2', label: 'OSI TRANSPORT → TCP/IP INTERNET', feedback: 'OSI Transport maps to TCP/IP Transport.' },

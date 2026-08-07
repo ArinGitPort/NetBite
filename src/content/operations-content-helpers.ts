@@ -1,4 +1,5 @@
 import { buildLessons } from '@/content/lesson-builder';
+import { operationsCheckpointLessonIds } from '@/content/operations-learning-map';
 import type { ChapterDefinition, LessonIllustration } from '@/content/types';
 
 export type OperationsConcept = {
@@ -9,7 +10,22 @@ export type OperationsConcept = {
   example: string;
   result: string;
   misconception: string;
+  illustration?: LessonIllustration;
+  keyTerm?: string;
 };
+
+function sentences(value: string) {
+  return value.match(/[^.!?]+[.!?]+|[^.!?]+$/g)?.map((item) => item.trim()).filter(Boolean) ?? [value];
+}
+
+function workedSteps(concept: OperationsConcept) {
+  const mechanism = sentences(concept.mechanism);
+  return [
+    { id: 'start', label: 'Read the starting facts', explanation: concept.example },
+    ...mechanism.slice(0, 3).map((explanation, index) => ({ id: `decision-${index + 1}`, label: index === 0 ? `Apply ${concept.keyTerm ?? concept.title}` : 'Follow the next device action', explanation })),
+    { id: 'result', label: 'State only what this proves', explanation: concept.result },
+  ].slice(0, 5);
+}
 
 export function createOperationsChapter(input: {
   id: string;
@@ -21,32 +37,40 @@ export function createOperationsChapter(input: {
   lab: [id: string, title: string, detail: string];
   recap: [built: string, learned: string, next: string];
 }): ChapterDefinition {
-  const lessons = buildLessons(input.id, input.concepts.map((concept) => ({
+  const lessons = buildLessons(input.id, input.concepts.map((concept) => {
+    const illustration = concept.illustration ?? `ops-visual-${concept.id}` as LessonIllustration;
+    const steps = workedSteps(concept);
+    return {
     id: concept.id,
     title: concept.title,
-    illustration: input.illustration,
-    body: `${concept.idea} This lesson follows the information a device actually has, the decision it makes, and the state that changes. The model is deliberately bounded so the visible result is evidence rather than a decorative animation.`,
+    illustration,
+    body: concept.idea,
     sections: [
-      { heading: 'HOW THE DECISION HAPPENS', body: concept.mechanism },
-      { heading: 'WHAT TO CHECK', body: `Inspect the relevant configuration and state before changing unrelated settings. ${concept.misconception}` },
+      { heading: `HOW ${concept.keyTerm ?? concept.title} WORKS`, body: concept.mechanism },
+      { heading: 'WHAT NOT TO ASSUME', body: concept.misconception },
     ],
     example: {
-      label: 'WORKED NETWORK STATE',
+      label: `WORKED EXAMPLE / ${concept.title}`,
       setup: concept.example,
+      presentation: 'guided' as const,
+      steps,
+      visual: { illustration, stageIds: steps.map(({ id }) => id) },
       result: concept.result,
     },
     takeaway: concept.result,
-    checkpoint: {
-      prompt: `Which conclusion correctly applies to ${concept.title.toLowerCase()}?`,
+    termNote: concept.keyTerm ? { term: concept.keyTerm, definition: concept.idea } : undefined,
+    checkpoint: operationsCheckpointLessonIds.has(concept.id) ? {
+      prompt: `${concept.example} Based on the process above, what result is supported?`,
       correctChoiceId: 'correct',
-      hints: [`Start with the trigger and inspect only the state described in the example.`, concept.mechanism],
+      presentation: 'pause-and-apply' as const,
+      reviewIdentity: concept.id,
+      hints: [`Start with the supplied facts: ${concept.example}`, concept.mechanism],
       choices: [
         { id: 'correct', label: concept.result, feedback: `Correct. ${concept.mechanism}` },
-        { id: 'misconception', label: concept.misconception, feedback: `That conclusion does not follow from the modeled state. ${concept.idea}` },
-        { id: 'unrelated', label: 'CHANGE AN UNRELATED LAYER FIRST', feedback: `Changing another layer hides the first known decision. ${concept.mechanism}` },
+        { id: 'misconception', label: concept.misconception, feedback: `That conclusion conflicts with this rule: ${concept.mechanism}` },
       ],
-    },
-  })));
+    } : undefined,
+  }; }));
 
   const quizCount = input.concepts.length >= 7 ? 8 : 7;
   const quiz = Array.from({ length: quizCount }, (_, index) => {
@@ -55,11 +79,11 @@ export function createOperationsChapter(input: {
       id: `${input.id}-q${index + 1}`,
       lessonId: concept.id,
       prompt: index < input.concepts.length
-        ? `A learner observes this state: ${concept.example} What conclusion is supported?`
-        : `Which check best protects against the main misconception in ${concept.title.toLowerCase()}?`,
+        ? `${concept.example} What happens next?`
+        : `${concept.example} Which evidence should you inspect before changing the configuration?`,
       answers: index < input.concepts.length
-        ? [concept.result, concept.misconception, 'The result proves every network layer is healthy']
-        : [concept.mechanism, concept.misconception, 'Replace every address and cable'],
+        ? [concept.result, concept.misconception, `The starting facts alone prove the process is complete: ${concept.example}`]
+        : [concept.mechanism, concept.misconception, `Treat the starting condition as proof: ${concept.example}`],
       correctAnswerIndex: 0,
       explanation: `${concept.result} ${concept.mechanism}`,
     };
@@ -72,8 +96,8 @@ export function createOperationsChapter(input: {
       id: `${input.id}-card-${index + 1}`,
       lessonId: concept.id,
       prompt: index < input.concepts.length
-        ? `How does ${concept.title.toLowerCase()} work in the modeled network?`
-        : `What should be checked first when reasoning about ${concept.title.toLowerCase()}?`,
+        ? `In simple steps, how does ${concept.title.toLowerCase()} work?`
+        : `What should you check first for ${concept.title.toLowerCase()}?`,
       answer: index < input.concepts.length ? concept.mechanism : concept.result,
       explanation: `${concept.idea} ${concept.misconception}`,
     };
@@ -86,8 +110,9 @@ export function createOperationsChapter(input: {
     accessTier: 'pro',
     prerequisiteChapterIds: input.order === 1 ? [] : [`ops-${String(input.order - 1).padStart(2, '0')}`],
     simulationReleaseState: 'released',
-    contentVersion: 1,
-    flashcardVersion: 1,
+    contentVersion: 2,
+    flashcardVersion: 2,
+    checkpointVersion: 1,
     numberLabel: String(input.order).padStart(2, '0'),
     title: input.title,
     summary: input.summary,

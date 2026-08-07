@@ -23,7 +23,10 @@ export const AppRoutes = {
 };
 
 export const chapterRoute = (chapterId: string) => ({ pathname: '/chapter/[chapterId]', params: { chapterId } }) as Href;
-export const lessonRoute = (lessonId: string) => ({ pathname: '/lesson/[lessonId]', params: { lessonId } }) as Href;
+export const lessonRoute = (lessonId: string, options?: { fromLabId?: string }) => ({
+  pathname: '/lesson/[lessonId]',
+  params: options?.fromLabId ? { lessonId, fromLabId: options.fromLabId } : { lessonId },
+}) as Href;
 export const labRoute = (labId: string) => ({ pathname: '/lab/[labId]', params: { labId } }) as Href;
 export const quizRoute = (chapterId: string) => ({ pathname: '/quiz/[chapterId]', params: { chapterId } }) as Href;
 export const flashcardsRoute = (chapterId: string) => ({ pathname: '/flashcards/[chapterId]', params: { chapterId } }) as Href;

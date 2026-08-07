@@ -1,5 +1,6 @@
 import {
   allocateDhcpLease,
+  inspectDhcpPool,
   buildOspfTopology,
   calculateOspfRoutes,
   calculateSpanningTree,
@@ -7,6 +8,7 @@ import {
   negotiateEtherChannel,
   parseIPv6Address,
   relayDhcpMessage,
+  releaseDhcpLease,
   resolveDnsQuery,
   resolveIPv6Neighbor,
   selectRouteSource,
@@ -15,6 +17,7 @@ import {
   translateNatFlow,
   validateOperationsCapstone,
   type SimulationExplanation,
+  type DhcpState,
 } from '@/core/network/operations-simulation';
 import type { ModuleReleaseState } from '@/content/types';
 
@@ -35,6 +38,7 @@ export interface SimulationFieldDefinition {
   placeholder?: string;
   options?: SimulationFieldOption[];
   format?: 'ipv4' | 'ipv6' | 'port' | 'prefix4' | 'prefix6' | 'positive' | 'csv-vlan' | 'text';
+  helpText?: string;
   incorrectFeedback: string;
 }
 
@@ -43,6 +47,7 @@ export interface GuidedSimulationStage {
   actionLabel: string;
   fields: SimulationFieldDefinition[];
   hints: string[];
+  providedFacts?: string[];
 }
 
 export interface GuidedSimulationDefinition {
@@ -65,6 +70,7 @@ export interface ObjectiveResult {
   evidence: SimulationEvidence[];
   tableRows: string[];
   explanation: SimulationExplanation;
+  protocolState?: Record<string, unknown>;
 }
 
 export interface OperationsSimulationSession {
@@ -77,6 +83,7 @@ export interface OperationsSimulationSession {
   traceIndex: number;
   hints: string[];
   lastResult?: ObjectiveResult;
+  protocolState?: Record<string, unknown>;
   updatedAt: string;
 }
 
@@ -85,19 +92,38 @@ const text = (id: string, label: string, expected: string, format: SimulationFie
 const number = (id: string, label: string, expected: number, format: SimulationFieldDefinition['format'], incorrectFeedback: string): SimulationFieldDefinition => ({ id, label, kind: 'number', expected, format, incorrectFeedback });
 const toggle = (id: string, expected: boolean, incorrectFeedback: string, command?: string): SimulationFieldDefinition => ({ id, label: id.split('.').at(-1)?.replace(/([A-Z])/g, ' $1').toUpperCase() ?? id, kind: 'toggle', expected, incorrectFeedback, options: command ? [{ label: expected ? 'ENABLE' : 'DISABLE', value: expected, command }] : undefined });
 const option = (label: string, value: SimulationValue, command?: string): SimulationFieldOption => ({ label, value, command });
-const stage = (id: string, actionLabel: string, fields: SimulationFieldDefinition[], hints: string[]): GuidedSimulationStage => ({ id, actionLabel, fields, hints });
+const stage = (id: string, actionLabel: string, fields: SimulationFieldDefinition[], hints: string[], providedFacts?: string[]): GuidedSimulationStage => ({
+  id,
+  actionLabel,
+  fields,
+  hints,
+  providedFacts: providedFacts ?? (hints[0] ? [hints[0]] : []),
+});
 
 const definitions: GuidedSimulationDefinition[] = [
   { labId: 'transport-service-desk', releaseState: 'released', cliEnabled: false, stages: [
     stage('endpoint', 'Save endpoint configuration', [select('transport.protocol', 'Transport protocol', 'tcp', [option('TCP', 'tcp'), option('UDP', 'udp')], 'HTTPS in this exercise listens with TCP.'), number('transport.sourcePort', 'Client source port', 49152, 'port', 'Use a valid ephemeral client port.'), number('transport.destinationPort', 'Server destination port', 443, 'port', 'The destination port must identify the HTTPS service.'), number('transport.listeningPort', 'Server listening port', 443, 'port', 'The server must listen on the same destination port.')], ['A socket endpoint combines an IP address, transport protocol, and port.', 'HTTPS is modeled on TCP destination port 443; the client may use ephemeral port 49152.']),
-    stage('handshake', 'Initiate TCP handshake', [select('transport.event', 'Next transport event', 'handshake', [option('Send SYN / SYN-ACK / ACK', 'handshake'), option('Send application data immediately', 'data-first')], 'TCP must establish connection state before this modeled application data.')], ['The client begins by synchronizing sequence state.', 'The bounded exchange is SYN, SYN-ACK, then ACK.']),
+    stage('handshake', 'Initiate TCP handshake', [select('transport.event', 'Next transport event', 'handshake', [option('Send SYN / SYN-ACK / ACK', 'handshake'), option('Send application data immediately', 'data-first')], 'TCP must establish connection state before this modeled application data.')], ['The client begins by synchronizing sequence state.', 'The guided exchange is SYN, SYN-ACK, then ACK.']),
     stage('recovery', 'Recover missing data', [toggle('transport.drop', true, 'Inject the missing segment before testing TCP recovery.'), select('transport.recovery', 'Recovery action', 'retransmit', [option('Retransmit unacknowledged data', 'retransmit'), option('Open another server port', 'new-port')], 'A missing TCP segment is recovered from acknowledgment state, not by changing the service port.')], ['Inspect which data remains unacknowledged.', 'Retransmit the unacknowledged segment and then observe its ACK.']),
     stage('udp', 'Send UDP datagram', [select('transport.protocol', 'Transport protocol', 'udp', [option('UDP', 'udp'), option('TCP', 'tcp')], 'The final comparison must use UDP.'), number('transport.destinationPort', 'DNS-style destination port', 53, 'port', 'This comparison uses destination port 53.'), number('transport.listeningPort', 'Server listening port', 53, 'port', 'The UDP service must listen on the selected destination port.'), select('transport.udpConclusion', 'No-reply conclusion', 'no-confirmation', [option('No transport delivery confirmation', 'no-confirmation'), option('The server is definitely offline', 'offline')], 'No UDP reply does not prove one universal failure cause.')], ['UDP has no TCP handshake or acknowledgment state.', 'Conclude only that this datagram has no transport-layer delivery confirmation.']),
   ]},
   { labId: 'dhcp-lease-desk', releaseState: 'released', cliEnabled: false, stages: [
-    stage('pool', 'Save DHCP pool', [text('dhcp.network', 'Pool network', '192.168.10.0', 'ipv4', 'The pool must describe the client subnet.'), number('dhcp.prefix', 'Prefix', 24, 'prefix4', 'Use the /24 client subnet.'), text('dhcp.start', 'First pool address', '192.168.10.100', 'ipv4', 'Start the bounded pool at 192.168.10.100.'), text('dhcp.end', 'Last pool address', '192.168.10.102', 'ipv4', 'End the bounded pool at 192.168.10.102.'), text('dhcp.excluded', 'Excluded address', '192.168.10.100', 'ipv4', 'Exclude the gateway-reserved first pool address.')], ['Pool boundaries must be usable addresses inside the configured network.', 'With 192.168.10.100 excluded, the first offer is 192.168.10.101.']),
+    stage('pool', 'Save DHCP pool', [
+      { ...text('dhcp.network', 'Pool network', '192.168.20.0', 'ipv4', 'Use the client network ID shown in the task.', '192.168.20.0'), helpText: 'The pool must match the clients, not the remote server. Enter the client network ID 192.168.20.0.' },
+      { ...number('dhcp.prefix', 'Prefix length', 24, 'prefix4', 'Use the /24 client subnet.'), placeholder: '24', helpText: 'The /24 in 192.168.20.0/24 is the prefix. Enter 24; the slash is optional.' },
+      { ...text('dhcp.start', 'First pool address', '192.168.20.100', 'ipv4', 'Start the assigned pool at 192.168.20.100.', '192.168.20.100'), helpText: 'This is the first address inside the small range DHCP-1 is allowed to manage.' },
+      { ...text('dhcp.end', 'Last pool address', '192.168.20.102', 'ipv4', 'End the assigned pool at 192.168.20.102.', '192.168.20.102'), helpText: 'This is the final address included in the server pool.' },
+      { ...text('dhcp.excluded', 'Reserved address to exclude', '192.168.20.100', 'ipv4', 'Exclude the reserved first pool address.', '192.168.20.100'), helpText: 'An exclusion is inside the pool range but must not be leased. Reserve 192.168.20.100.' },
+    ], ['The pool network must match the subnet where the clients live.', 'With 192.168.20.100 excluded, the first offer is 192.168.20.101.'], [
+      'PC-A and PC-B are clients in subnet 192.168.20.0/24.',
+      'The /24 means the prefix length is 24. In the Prefix field, enter 24 (with or without the slash).',
+      'DHCP-1 may lease only 192.168.20.100 through 192.168.20.102 for this task.',
+      '192.168.20.100 is reserved, so add it as the excluded address.',
+    ]),
     stage('dora', 'Request client lease', [text('dhcp.client', 'Client identifier', 'PC-A', 'text', 'Use the fixed client PC-A so its binding can be inspected.')], ['The client starts without an IPv4 lease.', 'Run Discover, Offer, Request, and ACK for PC-A.']),
+    stage('renew', 'Renew client lease', [text('dhcp.renewClient', 'Client to renew', 'PC-A', 'text', 'Renew the existing PC-A binding.')], ['A known client can request its current address again.', 'Renew PC-A and inspect the refreshed binding rather than allocating another address.']),
     stage('exhaust', 'Request until exhausted', [number('dhcp.requestCount', 'Additional client requests', 2, 'positive', 'Two more requests demonstrate one final binding followed by exhaustion.')], ['Only two usable pool addresses remain after the exclusion.', 'PC-A uses one; another client uses the second; the following request receives no offer.']),
+    stage('release', 'Release one binding', [text('dhcp.releaseClient', 'Client to release', 'PC-B', 'text', 'Release PC-B so its address returns to the pool.')], ['A released binding no longer reserves its address.', 'Release PC-B and verify that 192.168.20.102 becomes available again.']),
     stage('relay', 'Verify DHCP relay', [text('dhcp.relay', 'Relay interface address', '192.168.20.1', 'ipv4', 'The relay must identify the remote client subnet gateway.'), toggle('dhcp.serverReachable', true, 'A relay cannot reach an unavailable DHCP server.')], ['A router does not forward the original client broadcast unchanged.', 'Configure 192.168.20.1 as relay context and verify a routed server path.']),
   ]},
   { labId: 'dns-resolution-desk', releaseState: 'released', cliEnabled: false, stages: [
@@ -145,7 +171,7 @@ const definitions: GuidedSimulationDefinition[] = [
   { labId: 'route-source-desk', releaseState: 'released', cliEnabled: false, stages: [
     stage('sources', 'Load route candidates', [toggle('route.connected', true, 'Include connected routes as one source.'), toggle('route.static', true, 'Include the static candidate.'), toggle('route.ospf', true, 'Include the OSPF candidate.')], ['Route source describes how a candidate was learned.', 'Load connected, static, and OSPF candidates before comparing them.']),
     stage('prefix', 'Run prefix matching', [text('route.destination', 'Destination', '192.168.20.20', 'ipv4', 'Use the target host in the remote /24.'), number('route.prefix', 'Specific route prefix', 24, 'prefix4', 'The /24 is more specific than the default route.')], ['Destination matching occurs before route-source preference.', 'Compare 192.168.20.0/24 with 0.0.0.0/0 for 192.168.20.20.']),
-    stage('ad', 'Resolve equal-prefix sources', [number('route.staticAd', 'Static administrative distance', 1, 'positive', 'The bounded static candidate uses AD 1.'), number('route.ospfAd', 'OSPF administrative distance', 110, 'positive', 'The bounded OSPF candidate uses AD 110.')], ['Administrative distance compares different sources for the same prefix.', 'For equal /24 candidates, AD 1 is preferred over AD 110.']),
+    stage('ad', 'Resolve equal-prefix sources', [number('route.staticAd', 'Static administrative distance', 1, 'positive', 'The supplied static candidate uses AD 1.'), number('route.ospfAd', 'OSPF administrative distance', 110, 'positive', 'The supplied OSPF candidate uses AD 110.')], ['Administrative distance compares different sources for the same prefix.', 'For equal /24 candidates, AD 1 is preferred over AD 110.']),
     stage('withdraw', 'Withdraw preferred route', [toggle('route.staticAvailable', false, 'Withdraw the preferred static candidate to expose the fallback.')], ['The table is recalculated from currently eligible candidates.', 'Remove the static /24 and verify that the OSPF /24 becomes installed.']),
   ]},
   { labId: 'ospf-area-desk', releaseState: 'released', cliEnabled: true, stages: [
@@ -248,13 +274,54 @@ export function applySimulationConfiguration(session: OperationsSimulationSessio
   return { accepted: true, session: { ...session, configuration: { ...session.configuration, ...draft }, lastResult: undefined, evidence: [], traceIndex: 0 }, error: undefined };
 }
 
+function savedDhcpState(session: OperationsSimulationSession): DhcpState {
+  const saved = session.protocolState?.dhcp;
+  if (saved && typeof saved === 'object' && Array.isArray((saved as DhcpState).leases)) return saved as DhcpState;
+  return { pool: { network: String(session.configuration['dhcp.network'] ?? '192.168.20.0'), prefix: Number(session.configuration['dhcp.prefix'] ?? 24), start: String(session.configuration['dhcp.start'] ?? '192.168.20.100'), end: String(session.configuration['dhcp.end'] ?? '192.168.20.102'), excluded: [String(session.configuration['dhcp.excluded'] ?? '')] }, leases: [] };
+}
+
+function dhcpRows(state: DhcpState) {
+  const availability = inspectDhcpPool(state);
+  return [...state.leases.map((lease) => `${lease.clientId} / ${lease.address} / ${lease.state.toUpperCase()}`), `AVAILABLE / ${availability.available.join(', ') || 'NONE'}`];
+}
+
+function dhcpObjective(stageDefinition: GuidedSimulationStage, session: OperationsSimulationSession, explanation: SimulationExplanation): ObjectiveResult {
+  let state = savedDhcpState(session);
+  let events: string[] = [];
+  let message = 'Objective satisfied from the current DHCP state.';
+  let derivedExplanation = explanation;
+  if (stageDefinition.id === 'pool') {
+    state = { pool: { network: String(session.configuration['dhcp.network']), prefix: Number(session.configuration['dhcp.prefix']), start: String(session.configuration['dhcp.start']), end: String(session.configuration['dhcp.end']), excluded: [String(session.configuration['dhcp.excluded'])] }, leases: [] };
+    const pool = inspectDhcpPool(state);
+    events = [`NETWORK ${state.pool.network}/${state.pool.prefix}`, `POOL ${state.pool.start}–${state.pool.end}`, `EXCLUDED ${state.pool.excluded?.join(', ')}`, `FIRST AVAILABLE ${pool.firstAvailable ?? 'NONE'}`];
+    if (pool.firstAvailable !== '192.168.20.101') return { accepted: true, passed: false, message: 'The saved pool does not produce the required first available address.', evidence: events.map((text, index) => ({ id: `pool-${index}`, text, tone: 'warning' })), tableRows: dhcpRows(state), explanation: { ...explanation, observation: `The first available address is ${pool.firstAvailable ?? 'none'}.`, nextCheck: 'Check the client subnet, pool limits, and exclusions in that order.' }, protocolState: { dhcp: state } };
+  } else if (stageDefinition.id === 'dora' || stageDefinition.id === 'renew') {
+    const client = String(session.configuration[stageDefinition.id === 'dora' ? 'dhcp.client' : 'dhcp.renewClient']);
+    const allocation = allocateDhcpLease(state, client); state = allocation.state; events = allocation.events; derivedExplanation = allocation.explanation;
+    if (!allocation.mutated) message = allocation.explanation.observation;
+  } else if (stageDefinition.id === 'exhaust') {
+    const clients = ['PC-B', 'PC-C'].slice(0, Number(session.configuration['dhcp.requestCount']));
+    for (const client of clients) { const allocation = allocateDhcpLease(state, client); state = allocation.state; events.push(...allocation.events.map((event) => `${client} / ${event}`)); }
+    const availability = inspectDhcpPool(state);
+    if (!availability.exhausted) return { accepted: true, passed: false, message: 'The pool is not exhausted yet.', evidence: events.map((text, index) => ({ id: `exhaust-${index}`, text, tone: 'warning' })), tableRows: dhcpRows(state), explanation: { ...explanation, observation: `${availability.available.length} address remains available.`, nextCheck: 'Request enough leases to use every non-excluded pool address.' }, protocolState: { dhcp: state } };
+  } else if (stageDefinition.id === 'release') {
+    const released = releaseDhcpLease(state, String(session.configuration['dhcp.releaseClient'])); state = released.state; events = released.events; derivedExplanation = released.explanation;
+  } else if (stageDefinition.id === 'relay') {
+    const relay = relayDhcpMessage({ clientNetwork: '192.168.20.0/24', relayAddress: String(session.configuration['dhcp.relay']), serverReachable: Boolean(session.configuration['dhcp.serverReachable']) });
+    events = [`CLIENT BROADCAST / VLAN 20`, `R-1 RELAY / ${session.configuration['dhcp.relay']}`, `DHCP-1 PATH / ${relay.forwarded ? 'FORWARDED' : 'STOPPED'}`, relay.reason];
+    if (!relay.forwarded) return { accepted: true, passed: false, message: relay.reason, evidence: events.map((text, index) => ({ id: `relay-${index}`, text, tone: 'warning' })), tableRows: dhcpRows(state), explanation: { ...explanation, observation: relay.reason }, protocolState: { dhcp: state } };
+  }
+  const evidence = events.map((text, index) => ({ id: `${stageDefinition.id}-${index}`, text, tone: 'success' as const }));
+  return { accepted: true, passed: true, message, evidence, tableRows: dhcpRows(state), explanation: derivedExplanation, protocolState: { dhcp: state } };
+}
+
 function engineEvidence(labId: string, configuration: Record<string, SimulationValue>): string[] {
   if (labId === 'transport-service-desk') {
     const result = simulateTransportExchange({ protocol: String(configuration['transport.protocol'] ?? 'tcp') as 'tcp' | 'udp', source: { address: '192.168.10.10', port: Number(configuration['transport.sourcePort'] ?? 49152) }, destination: { address: '192.168.10.20', port: Number(configuration['transport.destinationPort'] ?? 443) }, listeningPorts: [Number(configuration['transport.listeningPort'] ?? 443)], dropDataUnit: Boolean(configuration['transport.drop']) });
     return result.events;
   }
   if (labId === 'dhcp-lease-desk') {
-    const state = { pool: { network: String(configuration['dhcp.network'] ?? '192.168.10.0'), prefix: Number(configuration['dhcp.prefix'] ?? 24), start: String(configuration['dhcp.start'] ?? '192.168.10.100'), end: String(configuration['dhcp.end'] ?? '192.168.10.102'), excluded: [String(configuration['dhcp.excluded'] ?? '')] }, leases: [] };
+    const state = { pool: { network: String(configuration['dhcp.network'] ?? '192.168.20.0'), prefix: Number(configuration['dhcp.prefix'] ?? 24), start: String(configuration['dhcp.start'] ?? '192.168.20.100'), end: String(configuration['dhcp.end'] ?? '192.168.20.102'), excluded: [String(configuration['dhcp.excluded'] ?? '')] }, leases: [] };
     const first = allocateDhcpLease(state, String(configuration['dhcp.client'] ?? 'PC-A'));
     const relay = relayDhcpMessage({ clientNetwork: '192.168.20.0/24', relayAddress: String(configuration['dhcp.relay'] ?? ''), serverReachable: Boolean(configuration['dhcp.serverReachable']) });
     return [...first.events, `RELAY ${relay.forwarded ? 'FORWARDED' : 'STOPPED'} / ${relay.reason}`];
@@ -312,6 +379,7 @@ export function evaluateSimulationObjective(labId: string, stageDefinition: Guid
   const missing = stageDefinition.fields.find((field) => session.configuration[field.id] === undefined);
   if (missing) return { accepted: false, passed: false, message: `Save ${missing.label.toLowerCase()} before verification.`, evidence: [], tableRows: [], explanation };
   const incorrect = stageDefinition.fields.find((field) => session.configuration[field.id] !== field.expected);
+  if (labId === 'dhcp-lease-desk' && !incorrect) return dhcpObjective(stageDefinition, session, explanation);
   const evidence = engineEvidence(labId, session.configuration).map((line, index) => ({ id: `${stageDefinition.id}-${index}`, text: line, tone: incorrect ? 'warning' as const : 'success' as const }));
   return incorrect
     ? { accepted: true, passed: false, message: incorrect.incorrectFeedback, evidence, tableRows: evidence.map(({ text }) => text), explanation: { ...explanation, observation: evidence[0]?.text ?? 'The current configuration does not satisfy the objective.', nextCheck: `Inspect ${incorrect.label}.` } }

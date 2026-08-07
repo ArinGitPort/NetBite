@@ -1,4 +1,5 @@
 import type { LessonIllustration } from '@/content/types';
+import { operationsChapters } from '@/content/operations-chapters';
 
 export type EducationAssetName =
   | 'server-terminal' | 'ethernet-frame' | 'ipv4-datagram' | 'arp-request' | 'arp-reply'
@@ -113,6 +114,39 @@ const legacy = (id: LessonIllustration, title: string, accessibilityLabel: strin
 });
 
 const spec = (definition: EducationalIllustrationSpec) => definition;
+const basicLessonStages: EducationalIllustrationStage[] = [
+  { id: 'start', accessibilityLabel: 'Starting state.', activeIndices: [0] },
+  { id: 'decision-1', accessibilityLabel: 'First protocol or device decision.', activeIndices: [1] },
+  { id: 'decision-2', accessibilityLabel: 'Next protocol or device decision.', activeIndices: [1] },
+  { id: 'decision-3', accessibilityLabel: 'Final intermediate decision.', activeIndices: [1] },
+  { id: 'result', accessibilityLabel: 'Supported result.', activeIndices: [2] },
+];
+
+const operationTokens: Record<string, [VisualToken, VisualToken, VisualToken]> = {
+  'ops-01': ['pc', 'transport-channel', 'server-terminal'],
+  'ops-03': ['pc', 'server-terminal', 'server-terminal'],
+  'ops-04': ['pc', 'router', 'server-terminal'],
+  'ops-05': ['pc', 'router', 'server-terminal'],
+  'ops-06': ['pc', 'ipv4-datagram', 'pc'],
+  'ops-07': ['pc', 'router', 'pc'],
+  'ops-08': ['switch', 'switch', 'switch'],
+  'ops-09': ['switch', 'transport-channel', 'switch'],
+  'ops-10': ['pc', 'route-table', 'router'],
+  'ops-11': ['router', 'router', 'router'],
+};
+const operationSources: Record<string, string[]> = {
+  'ops-01': ['RFC-9293', 'RFC-768', 'IANA-PORTS'], 'ops-03': ['RFC-1034', 'RFC-1035'], 'ops-04': ['CISCO-IP-ACL'], 'ops-05': ['RFC-1918', 'RFC-3022'], 'ops-06': ['RFC-8200', 'RFC-4291', 'RFC-5952'], 'ops-07': ['RFC-4861', 'RFC-4862'], 'ops-08': ['IEEE-802.1Q', 'CISCO-STP'], 'ops-09': ['IEEE-802.1AX', 'CISCO-ETHERCHANNEL'], 'ops-10': ['RFC-1812', 'CISCO-ROUTING'], 'ops-11': ['RFC-2328', 'CISCO-OSPF'],
+};
+const firstSentence = (value: string) => value.match(/^.*?[.!?](?:\s|$)/)?.[0]?.trim() ?? value;
+const operationsLessonIllustrations = Object.fromEntries(operationsChapters.flatMap((chapter) => chapter.lessons.filter(({ illustration }) => illustration.startsWith('ops-visual-')).map((lesson) => {
+  const tokens = operationTokens[chapter.id] ?? ['pc', 'router', 'server-terminal'];
+  const mechanism = lesson.sections?.find(({ heading }) => heading === 'HOW IT WORKS')?.body ?? lesson.body;
+  return [lesson.illustration, spec({ id: lesson.illustration, family: 'sequence', title: lesson.title.toUpperCase(), accessibilityLabel: `${lesson.example?.setup ?? lesson.body} ${lesson.takeaway}`, sourceIds: operationSources[chapter.id] ?? ['RFC-1812'], nodes: [
+    { label: 'STARTING STATE', detail: firstSentence(lesson.example?.setup ?? lesson.body), token: tokens[0], tone: 'blue' },
+    { label: 'DEVICE OR PROTOCOL RULE', detail: firstSentence(mechanism), token: tokens[1], tone: 'orange' },
+    { label: 'SUPPORTED RESULT', detail: firstSentence(lesson.takeaway), token: tokens[2], tone: 'sage' },
+  ], stages: lesson.example?.steps?.map((step) => ({ id: step.id, title: step.label, accessibilityLabel: step.explanation, activeIndices: step.id === 'start' ? [0] : step.id === 'result' ? [2] : [1] })) })];
+}))) as Record<string, EducationalIllustrationSpec>;
 const guidedStages = (labels: Record<string, string>): EducationalIllustrationStage[] =>
   Object.entries(labels).map(([id, title]) => ({
     id,
@@ -137,7 +171,7 @@ export const TCP_IP_LAYERS: DiagramSegment[] = [
   { label: '1', value: 'NETWORK ACCESS / LINK', detail: 'Ethernet, MAC, media, and signals', tone: 'sage' },
 ];
 
-export const educationalIllustrations: Record<LessonIllustration, EducationalIllustrationSpec> = {
+export const educationalIllustrations: Record<string, EducationalIllustrationSpec> = {
   network: legacy('network', 'ONE LOCAL NETWORK', 'Two PCs connected through one switch to form a local network.', ['C1-CISCO-NETWORK']),
   purpose: legacy('purpose', 'NETWORKS SHARE SERVICES', 'Two computers communicate through network infrastructure to share information and services.', ['C1-CISCO-NETWORK']),
   devices: legacy('devices', 'COMMON NETWORK DEVICES', 'A PC, switch, and router shown as distinct network device roles.', ['C1-CISCO-DEVICES']),
@@ -440,6 +474,27 @@ export const educationalIllustrations: Record<LessonIllustration, EducationalIll
   'dhcp-exchange': spec({ id: 'dhcp-exchange', family: 'sequence', title: 'DHCP ADDRESS ALLOCATION', accessibilityLabel: 'A DHCP client discovers a server, receives an offer, requests one address, and installs it only after acknowledgment.', sourceIds: ['RFC-2131', 'RFC-2132'], nodes: [
     { label: 'DISCOVER', detail: 'CLIENT UDP 68 TO SERVER UDP 67', token: 'pc', tone: 'blue' }, { label: 'OFFER', detail: 'PROPOSE ADDRESS + OPTIONS', token: 'server-terminal', tone: 'orange' }, { label: 'REQUEST', detail: 'SELECT SERVER + ADDRESS', token: 'pc', tone: 'gold' }, { label: 'ACK', detail: 'COMMIT LEASE', token: 'server-terminal', tone: 'sage' },
   ] }),
+  'dhcp-settings': spec({ id: 'dhcp-settings', family: 'table', title: 'SETTINGS SUPPLIED BY DHCP', accessibilityLabel: 'A DHCP server can supply a client address, prefix, default gateway, DNS server, and lease time.', sourceIds: ['RFC-2131', 'RFC-2132'], stages: basicLessonStages, headers: ['SETTING', 'EXAMPLE', 'WHY IT IS NEEDED'], rows: [
+    ['IPV4 ADDRESS', '192.168.10.101', 'IDENTIFIES THIS INTERFACE'], ['PREFIX', '/24', 'IDENTIFIES THE LOCAL NETWORK'], ['DEFAULT GATEWAY', '192.168.10.1', 'REACHES REMOTE NETWORKS'], ['DNS SERVER', '192.168.10.5', 'RESOLVES NAMES'], ['LEASE', '60 MINUTES', 'LIMITS THIS ASSIGNMENT'],
+  ] }),
+  'dhcp-ports': spec({ id: 'dhcp-ports', family: 'sequence', title: 'DHCP UDP ENDPOINTS', accessibilityLabel: 'A DHCP client sends from UDP port 68 toward a DHCP server on UDP port 67.', sourceIds: ['RFC-2131', 'RFC-2132'], stages: basicLessonStages, nodes: [
+    { label: 'DHCP CLIENT', detail: 'UDP SOURCE 68', token: 'pc', tone: 'blue' }, { label: 'LOCAL NETWORK', detail: 'EARLY MESSAGE MAY BE BROADCAST', token: 'switch', tone: 'orange' }, { label: 'DHCP SERVER', detail: 'UDP DESTINATION 67', token: 'server-terminal', tone: 'sage' },
+  ], footer: 'CLIENT 68 → SERVER 67' }),
+  'dhcp-discover': spec({ id: 'dhcp-discover', family: 'topology', title: 'DISCOVER STAYS IN THE LOCAL VLAN', accessibilityLabel: 'PC-A broadcasts DHCP Discover. SW-1 floods it inside VLAN 10. R-1 does not forward the original broadcast without relay service.', sourceIds: ['RFC-2131', 'IEEE-802.1Q'], stages: basicLessonStages, nodes: [
+    { label: 'PC-A', detail: 'DHCPDISCOVER / BROADCAST', token: 'pc', tone: 'blue' }, { label: 'SW-1', detail: 'FLOOD INSIDE VLAN 10', token: 'switch', tone: 'orange' }, { label: 'R-1', detail: 'BROADCAST BOUNDARY', token: 'router', tone: 'red' },
+  ], footer: 'A DHCP RELAY IS REQUIRED WHEN THE SERVER IS ON ANOTHER NETWORK' }),
+  'dhcp-offer': spec({ id: 'dhcp-offer', family: 'table', title: 'SERVER CHOOSES A FREE ADDRESS', accessibilityLabel: 'The server checks its configured pool, exclusions, and existing bindings before proposing the first available address.', sourceIds: ['RFC-2131', 'RFC-2132'], stages: basicLessonStages, headers: ['ADDRESS', 'SERVER STATE', 'RESULT'], rows: [
+    ['192.168.10.100', 'EXCLUDED', 'SKIP'], ['192.168.10.101', 'FREE', 'OFFER'], ['192.168.10.102', 'FREE', 'KEEP AVAILABLE'],
+  ] }),
+  'dhcp-request-ack': spec({ id: 'dhcp-request-ack', family: 'sequence', title: 'THE CLIENT SELECTS / THE SERVER CONFIRMS', accessibilityLabel: 'After receiving an offer, PC-A sends DHCP Request for 192.168.10.101. DHCP-1 replies with DHCP Acknowledge, allowing the client to install the settings.', sourceIds: ['RFC-2131', 'RFC-2132'], stages: basicLessonStages, nodes: [
+    { label: 'OFFER RECEIVED', detail: '192.168.10.101 PROPOSED', token: 'pc', tone: 'orange' }, { label: 'DHCPREQUEST', detail: 'CLIENT SELECTS THE OFFER', token: 'transport-channel', tone: 'gold' }, { label: 'DHCPACK', detail: 'SERVER COMMITS THE LEASE', token: 'server-terminal', tone: 'sage' }, { label: 'PC-A', detail: 'INSTALLS THE SETTINGS', token: 'pc', tone: 'blue' },
+  ] }),
+  'dhcp-pool': spec({ id: 'dhcp-pool', family: 'table', title: 'POOL AVAILABILITY', accessibilityLabel: 'A two-address DHCP pool has both addresses leased, so PC-C cannot receive an offer until an address is released or the pool changes.', sourceIds: ['RFC-2131', 'RFC-2132'], stages: basicLessonStages, headers: ['ADDRESS', 'BINDING', 'AVAILABLE'], rows: [
+    ['192.168.10.101', 'PC-A', 'NO'], ['192.168.10.102', 'PC-B', 'NO'], ['NEXT REQUEST', 'PC-C', 'POOL EXHAUSTED'],
+  ] }),
+  'dhcp-relay': spec({ id: 'dhcp-relay', family: 'topology', title: 'DHCP RELAY PATH', accessibilityLabel: 'PC-B broadcasts on the 192.168.20.0 slash 24 client network. SW-1 delivers it to R-1, which relays it to DHCP-1 on 192.168.10.0 slash 24.', sourceIds: ['RFC-2131', 'RFC-2132'], stages: basicLessonStages, nodes: [
+    { label: 'PC-B', detail: '192.168.20.0/24 CLIENT', token: 'pc', tone: 'blue' }, { label: 'SW-1', detail: 'CLIENT VLAN', token: 'switch', tone: 'orange' }, { label: 'R-1 RELAY', detail: '192.168.20.1', token: 'router', tone: 'gold' }, { label: 'DHCP-1', detail: 'SELECT 192.168.20.0/24 POOL', token: 'server-terminal', tone: 'sage' },
+  ] }),
   'dns-resolution': spec({ id: 'dns-resolution', family: 'sequence', title: 'DNS RESOLUTION PATH', accessibilityLabel: 'A host stub resolver asks a recursive resolver, which follows referrals to an authoritative server and caches the returned record for its TTL.', sourceIds: ['RFC-1034', 'RFC-1035'], nodes: [
     { label: 'STUB RESOLVER', detail: 'NAME + RECORD TYPE', token: 'pc', tone: 'blue' }, { label: 'RECURSIVE RESOLVER', detail: 'CACHE OR FOLLOW REFERRALS', token: 'server-terminal', tone: 'orange' }, { label: 'AUTHORITATIVE SERVER', detail: 'ZONE RECORD', token: 'server-terminal', tone: 'sage' },
   ] }),
@@ -461,10 +516,12 @@ export const educationalIllustrations: Record<LessonIllustration, EducationalIll
   'ospf-topology': spec({ id: 'ospf-topology', family: 'sequence', title: 'SINGLE-AREA OSPF STATE', accessibilityLabel: 'Three area zero routers form compatible neighbors, synchronize link-state information, calculate shortest paths, and offer routes to the routing table.', sourceIds: ['RFC-2328', 'CISCO-OSPF'], nodes: [
     { label: 'R1 / 1.1.1.1', detail: 'HELLO + LSDB', token: 'router', tone: 'blue' }, { label: 'R2 / 2.2.2.2', detail: 'AREA 0 TRANSIT', token: 'router', tone: 'orange' }, { label: 'R3 / 3.3.3.3', detail: 'ADVERTISE 192.168.30.0/24', token: 'router', tone: 'sage' },
   ] }),
+  ...operationsLessonIllustrations,
 };
 
 export const educationalIllustrationIds = Object.keys(educationalIllustrations) as LessonIllustration[];
 
 export function isEducationalIllustration(id: LessonIllustration) {
-  return educationalIllustrations[id].family !== 'legacy';
+  const illustration = educationalIllustrations[id];
+  return Boolean(illustration && illustration.family !== 'legacy');
 }

@@ -48,7 +48,7 @@ export const practiceConfigs: Record<string, PracticeConfig> = {
   },
   'arp-resolution-desk': {
     id: 'arp-resolution-desk', chapterId: '7', eyebrow: 'GUIDED PRACTICE / ARP DESK', title: 'RESOLVE THE NEXT HOP',
-    objective: 'Choose the local IPv4 target to resolve and reuse learned cache entries.', scopeNote: 'DETERMINISTIC CACHE STEPS / NO AGING TIMER',
+    objective: 'Choose the local IPv4 target to resolve and reuse learned cache entries.', scopeNote: 'GUIDED CACHE STEPS / NO AGING TIMER',
     stages: [
       stage('local', 'A SENDS TO LOCAL B / CACHE EMPTY', 'Which Ethernet destination carries the ARP Request?', ['FF:FF:FF:FF:FF:FF', 'B MAC / ALREADY KNOWN', 'GATEWAY MAC'], 0, 'B is the local next hop, but its MAC is unknown. Ethernet broadcast carries the ARP question within the VLAN.', 'ETHERTYPE 0x0806 / WHO HAS B?'),
       stage('reply', 'B OWNS THE TARGET IPv4 / A ADDRESS WAS IN REQUEST', 'What follows normally?', ['B UNICASTS REPLY / A CACHES B', 'EVERY HOST REPLIES', 'B BROADCASTS THE DATA FRAME'], 0, 'B can address A from the request fields, normally unicasts its mapping, and A caches the result.', 'B MAPPING CACHED'),
