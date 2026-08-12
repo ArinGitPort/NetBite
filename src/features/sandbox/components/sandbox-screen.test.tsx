@@ -138,7 +138,28 @@ describe('sandbox screen', () => {
     expect(screen.queryByText('DEVICE INSPECTOR')).toBeNull();
     await fireEvent.press(screen.getByRole('button', { name: /^configure$/i }));
     expect(screen.getByText('DEVICE INSPECTOR')).toBeTruthy();
+    expect(screen.getByText('DEVICE RECORD')).toBeTruthy();
+    expect(screen.getByText('READ / STORED LOCALLY')).toBeTruthy();
     expect(screen.getByText('INTERFACE ADDRESSING')).toBeTruthy();
+  });
+
+  test('renames and deletes a device with explicit CRUD feedback', async () => {
+    useSandboxStore.setState({ guideSeen: true });
+    const screen = await render(<SandboxScreen />);
+    await fireEvent.press(screen.getByRole('button', { name: /^add$/i }));
+    await fireEvent.press(screen.getByRole('button', { name: /^pc$/i }));
+    expect(screen.getByText(/DEVICE CREATED \/ PC-1 \/ SAVED LOCALLY/i)).toBeTruthy();
+    await fireEvent.press(screen.getByRole('button', { name: /^configure$/i }));
+    await fireEvent.changeText(screen.getByLabelText('NAME'), 'Office_PC');
+    await fireEvent.press(screen.getByRole('button', { name: /save name/i }));
+    expect(useSandboxStore.getState().workspace.devices[0]).toMatchObject({ id: 'pc-1', name: 'Office_PC' });
+    expect(screen.getByText(/DEVICE UPDATED \/ Office_PC \/ SAVED LOCALLY/i)).toBeTruthy();
+    await fireEvent.press(screen.getByRole('button', { name: /^remove device$/i }));
+    expect(screen.getByText('Delete Office_PC?')).toBeTruthy();
+    expect(screen.getByText(/0 attached cables/i)).toBeTruthy();
+    await fireEvent.press(screen.getByRole('button', { name: /^delete device$/i }));
+    expect(useSandboxStore.getState().workspace.devices).toHaveLength(0);
+    expect(screen.getByText(/DEVICE DELETED \/ Office_PC \/ SAVED LOCALLY/i)).toBeTruthy();
   });
 
   test('saves addressing and keeps it when another interface property changes', async () => {

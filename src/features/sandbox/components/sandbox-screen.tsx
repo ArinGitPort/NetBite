@@ -98,6 +98,9 @@ export function SandboxScreen() {
 
   const selectedDevice = workspace.devices.find((device) => device.id === selectedDeviceId);
   const selectedLink = workspace.links.find((link) => link.id === selectedLinkId);
+  const selectedDeviceLinkCount = selectedDevice
+    ? workspace.links.filter((link) => link.a.deviceId === selectedDevice.id || link.b.deviceId === selectedDevice.id).length
+    : 0;
   const issues = useMemo(() => validateSandboxTopology(workspace), [workspace]);
   const endpoints = workspace.devices.filter((device) => device.type !== 'switch');
   const configuredPingTargets = endpoints.flatMap((device) => device.interfaces
@@ -196,7 +199,7 @@ export function SandboxScreen() {
     commitWorkspaceChange(result.state);
     setSelectedDeviceId(result.device.id);
     setSelectedLinkId(undefined);
-    setNotice(`${result.device.name} added. Connect it or open Configure to edit it.`);
+    setNotice(`DEVICE CREATED / ${result.device.name} / SAVED LOCALLY. Connect it or open Configure to edit it.`);
     selectionHaptic();
   };
 
@@ -334,7 +337,7 @@ export function SandboxScreen() {
         warningHaptic();
       }
     }
-    if (confirmation === 'remove-device' && selectedDevice) { commitWorkspaceChange(removeSandboxDevice(workspace, selectedDevice.id)); setSelectedDeviceId(undefined); setActiveTool(undefined); setNotice(`${selectedDevice.name} removed.`); }
+    if (confirmation === 'remove-device' && selectedDevice) { commitWorkspaceChange(removeSandboxDevice(workspace, selectedDevice.id)); setSelectedDeviceId(undefined); setActiveTool(undefined); setNotice(`DEVICE DELETED / ${selectedDevice.name} / SAVED LOCALLY.`); }
     if (confirmation === 'remove-link' && selectedLink) { commitWorkspaceChange(removeSandboxLink(workspace, selectedLink.id)); setSelectedLinkId(undefined); setNotice('Link removed.'); }
     setConfirmation(undefined);
   };
@@ -420,6 +423,7 @@ export function SandboxScreen() {
         <SandboxInspector
           key={selectedDevice.id}
           device={selectedDevice}
+          connectedInterfaceCount={selectedDevice.interfaces.filter((item) => workspace.links.some((link) => [link.a, link.b].some((endpoint) => endpoint.deviceId === selectedDevice.id && endpoint.interfaceId === item.id))).length}
           issues={issues}
           onConfigure={configure}
           onCreateSubinterface={(parentInterfaceId, number) => {
@@ -492,7 +496,17 @@ export function SandboxScreen() {
 
       <SandboxCli visible={Boolean(cliDeviceId)} workspace={workspace} initialDeviceId={cliDeviceId ?? ''} onClose={() => setCliDeviceId(undefined)} onCommit={commitWorkspaceChange} />
       <FeedbackModal visible={guideVisible} eyebrow="FIRST SANDBOX SESSION" title="How do you want to begin?" message="Explore a complete routed network, or build a smaller switched LAN yourself." detail="The routed preset includes valid addresses, gateways, two switches, one router, a working ping, and CLI experiments." primaryAction={{ label: 'Explore routed network', onPress: () => { markGuideSeen(); markExperienceGuideSeen('sandbox-v1'); setGuideVisible(false); loadReadyNetwork(false); } }} secondaryAction={{ label: 'Build it myself', variant: 'secondary', onPress: () => { markGuideSeen(); markExperienceGuideSeen('sandbox-v1'); replaceWorkspace(createGuidedSandboxWorkspace()); setGuideVisible(false); setGuideActive(true); } }} onRequestClose={() => { markGuideSeen(); markExperienceGuideSeen('sandbox-v1'); setGuideVisible(false); }} />
-      <FeedbackModal visible={Boolean(confirmation)} tone="warning" eyebrow="CONFIRM SANDBOX ACTION" title={confirmation === 'new' ? 'Create a new network?' : confirmation === 'clear' ? 'Clear learned state?' : confirmation === 'preset' ? 'Load the routed preset?' : confirmation === 'inter-vlan-preset' ? 'Load the inter-VLAN demo?' : confirmation === 'beginner-lan' ? 'Apply beginner addresses?' : confirmation === 'remove-device' ? 'Remove this device?' : 'Remove this link?'} message={confirmation === 'new' ? 'All devices, links, and configuration in the autosaved workspace will be erased.' : confirmation === 'clear' ? 'MAC and ARP tables plus the current trace will be cleared. Topology and configuration remain.' : confirmation === 'preset' ? 'The current workspace will be replaced by a five-device, two-LAN routed example. You can undo this afterward.' : confirmation === 'inter-vlan-preset' ? 'The current workspace will be replaced by a configured VLAN 10 and VLAN 20 router-on-a-stick example.' : confirmation === 'beginner-lan' ? beginnerLanSetup?.changes.map((change) => `${change.deviceName}: ${change.before} → ${change.after}`).join('\n') ?? 'The beginner setup is no longer available.' : confirmation === 'remove-device' ? 'Connected links will also be removed.' : 'The two endpoint interfaces will become available.'} detail={confirmation === 'beginner-lan' ? `${beginnerLanSetup?.overwritesExistingConfiguration ? 'Existing addressing or switchport settings shown above will be replaced. ' : ''}Both PCs will use VLAN 1 and require no default gateway.` : undefined} primaryAction={{ label: confirmation === 'preset' ? 'Load routed preset' : confirmation === 'inter-vlan-preset' ? 'Load inter-VLAN demo' : confirmation === 'beginner-lan' ? 'Apply setup' : confirmation === 'new' ? 'Erase and start new' : confirmation === 'clear' ? 'Clear learned state' : confirmation === 'remove-device' ? 'Remove device' : confirmation === 'remove-link' ? 'Remove link' : 'Confirm action', variant: confirmation === 'new' || confirmation === 'clear' || confirmation === 'remove-device' || confirmation === 'remove-link' ? 'danger' : 'primary', onPress: confirmAction }} secondaryAction={{ label: 'Keep working', variant: 'secondary', onPress: () => setConfirmation(undefined) }} onRequestClose={() => setConfirmation(undefined)} />
+      <FeedbackModal
+        visible={Boolean(confirmation)}
+        tone="warning"
+        eyebrow="CONFIRM SANDBOX ACTION"
+        title={confirmation === 'new' ? 'Create a new network?' : confirmation === 'clear' ? 'Clear learned state?' : confirmation === 'preset' ? 'Load the routed preset?' : confirmation === 'inter-vlan-preset' ? 'Load the inter-VLAN demo?' : confirmation === 'beginner-lan' ? 'Apply beginner addresses?' : confirmation === 'remove-device' ? `Delete ${selectedDevice?.name ?? 'this device'}?` : 'Remove this link?'}
+        message={confirmation === 'new' ? 'All devices, links, and configuration in the autosaved workspace will be erased.' : confirmation === 'clear' ? 'MAC and ARP tables plus the current trace will be cleared. Topology and configuration remain.' : confirmation === 'preset' ? 'The current workspace will be replaced by a five-device, two-LAN routed example. You can undo this afterward.' : confirmation === 'inter-vlan-preset' ? 'The current workspace will be replaced by a configured VLAN 10 and VLAN 20 router-on-a-stick example.' : confirmation === 'beginner-lan' ? beginnerLanSetup?.changes.map((change) => `${change.deviceName}: ${change.before} → ${change.after}`).join('\n') ?? 'The beginner setup is no longer available.' : confirmation === 'remove-device' ? `${selectedDevice?.name ?? 'This device'} and ${selectedDeviceLinkCount} attached ${selectedDeviceLinkCount === 1 ? 'cable' : 'cables'} will be deleted from the saved workspace.` : 'The two endpoint interfaces will become available.'}
+        detail={confirmation === 'beginner-lan' ? `${beginnerLanSetup?.overwritesExistingConfiguration ? 'Existing addressing or switchport settings shown above will be replaced. ' : ''}Both PCs will use VLAN 1 and require no default gateway.` : confirmation === 'remove-device' ? 'You can undo this deletion during the current session.' : undefined}
+        primaryAction={{ label: confirmation === 'preset' ? 'Load routed preset' : confirmation === 'inter-vlan-preset' ? 'Load inter-VLAN demo' : confirmation === 'beginner-lan' ? 'Apply setup' : confirmation === 'new' ? 'Erase and start new' : confirmation === 'clear' ? 'Clear learned state' : confirmation === 'remove-device' ? 'Delete device' : confirmation === 'remove-link' ? 'Remove link' : 'Confirm action', variant: confirmation === 'new' || confirmation === 'clear' || confirmation === 'remove-device' || confirmation === 'remove-link' ? 'danger' : 'primary', onPress: confirmAction }}
+        secondaryAction={{ label: 'Keep working', variant: 'secondary', onPress: () => setConfirmation(undefined) }}
+        onRequestClose={() => setConfirmation(undefined)}
+      />
     </Screen>
   );
 }

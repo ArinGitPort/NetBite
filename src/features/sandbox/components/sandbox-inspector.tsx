@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 
 import { calculateSubnetRange, parseIPv4Address, type RouteEntry } from '@/core/network/advanced-networking';
@@ -15,8 +15,9 @@ function SelectButton({ label, selected, onPress }: { label: string; selected: b
   return <Pressable accessibilityRole="button" accessibilityState={{ selected }} onPress={onPress} style={[styles.select, selected && styles.selectActive]}><Text variant="technical" style={[styles.selectText, selected && styles.selectTextActive]}>{label}</Text></Pressable>;
 }
 
-export function SandboxInspector({ device, issues, onConfigure, onCreateSubinterface, onRemoveSubinterface, onRemove, onOpenCli }: {
+export function SandboxInspector({ device, connectedInterfaceCount, issues, onConfigure, onCreateSubinterface, onRemoveSubinterface, onRemove, onOpenCli }: {
   device: SandboxDevice;
+  connectedInterfaceCount: number;
   issues: SandboxValidationIssue[];
   onConfigure: (patch: SandboxDevicePatch) => { ok: boolean; message?: string };
   onCreateSubinterface?: (parentInterfaceId: string, subinterfaceNumber: number) => { ok: boolean; message?: string };
@@ -24,6 +25,7 @@ export function SandboxInspector({ device, issues, onConfigure, onCreateSubinter
   onRemove: () => void;
   onOpenCli: () => void;
 }) {
+  const [name, setName] = useState(device.name);
   const [interfaceId, setInterfaceId] = useState(device.interfaces[0]?.id ?? '');
   const selected = device.interfaces.find((item) => item.id === interfaceId) ?? device.interfaces[0];
   const [ip, setIp] = useState(selected?.ipv4 ?? '');
@@ -38,6 +40,8 @@ export function SandboxInspector({ device, issues, onConfigure, onCreateSubinter
   const [subinterfaceNumber, setSubinterfaceNumber] = useState('');
   const [encapsulationVlan, setEncapsulationVlan] = useState(selected?.encapsulationVlan?.toString() ?? '');
 
+  useEffect(() => setName(device.name), [device.name]);
+
   const deviceIssues = useMemo(() => issues.filter((issue) => issue.deviceIds.includes(device.id)), [device.id, issues]);
   const chooseInterface = (id: string) => {
     const item = device.interfaces.find((candidate) => candidate.id === id) ?? device.interfaces[0];
@@ -51,6 +55,10 @@ export function SandboxInspector({ device, issues, onConfigure, onCreateSubinter
     if (!address && numericPrefix !== undefined) { setFeedback('Enter an IPv4 address or clear the prefix.'); return; }
     const result = onConfigure({ interfaceId: selected.id, interface: { ipv4: address, prefix: numericPrefix }, ...(device.type === 'pc' ? { defaultGateway: gatewayAddress } : {}) });
     setFeedback(result.ok ? `${selected.id} saved${address ? ` as ${address}/${numericPrefix}` : ' with no IPv4 address'}.` : result.message);
+  };
+  const saveName = () => {
+    const result = onConfigure({ name });
+    setFeedback(result.ok ? `DEVICE UPDATED / ${name.trim()} / SAVED LOCALLY` : result.message);
   };
   const saveVlans = () => {
     const list = vlans.trim() ? vlans.split(',').map((value) => Number(value.trim())) : [];
@@ -79,6 +87,22 @@ export function SandboxInspector({ device, issues, onConfigure, onCreateSubinter
     <View style={styles.panel}>
       <View style={styles.header}><View style={styles.headerCopy}><Text variant="label" style={styles.eyebrow}>DEVICE INSPECTOR</Text><Text variant="sectionHeading" style={styles.title}>{device.name} / {device.type.toUpperCase()}</Text></View>{device.type !== 'pc' ? <AppButton label="Open CLI" variant="secondary" onPress={onOpenCli} /> : null}</View>
       <Text variant="technical" style={styles.boundary}>CHANGES AFFECT THIS AUTOSAVED WORKSPACE.</Text>
+      <View style={styles.recordPanel}>
+        <Text variant="label" style={styles.recordHeading}>DEVICE RECORD</Text>
+        <View style={styles.recordGrid}>
+          <View style={styles.recordCell}><Text variant="technical" style={styles.fieldLabel}>RECORD ID</Text><Text variant="bodySmall" style={styles.recordValue}>{device.id}</Text></View>
+          <View style={styles.recordCell}><Text variant="technical" style={styles.fieldLabel}>NAME</Text><Text variant="bodySmall" style={styles.recordValue}>{device.name}</Text></View>
+          <View style={styles.recordCell}><Text variant="technical" style={styles.fieldLabel}>TYPE</Text><Text variant="bodySmall" style={styles.recordValue}>{device.type.toUpperCase()}</Text></View>
+          <View style={styles.recordCell}><Text variant="technical" style={styles.fieldLabel}>INTERFACES</Text><Text variant="bodySmall" style={styles.recordValue}>{device.interfaces.length}</Text></View>
+          <View style={styles.recordCell}><Text variant="technical" style={styles.fieldLabel}>CONNECTED</Text><Text variant="bodySmall" style={styles.recordValue}>{connectedInterfaceCount}</Text></View>
+        </View>
+        <Text variant="technical" style={styles.savedBadge}>READ / STORED LOCALLY</Text>
+      </View>
+      <View style={styles.formBlock}>
+        <Text variant="label" style={styles.blockTitle}>DEVICE NAME</Text>
+        <Text variant="bodySmall" style={styles.savedState}>Use 1–24 letters, numbers, spaces, hyphens, or underscores.</Text>
+        <View style={styles.row}><Field label="NAME" value={name} placeholder="EXAMPLE / OFFICE-PC" onChangeText={setName} /><AppButton label="Save name" style={styles.flexButton} onPress={saveName} /></View>
+      </View>
       <View style={styles.interfacePicker}>{device.interfaces.map((item) => <SelectButton key={item.id} label={`${item.id}${item.adminUp ? '' : ' / DOWN'}`} selected={item.id === selected.id} onPress={() => chooseInterface(item.id)} />)}</View>
       {device.type === 'router' ? <View style={styles.formBlock}>
         <Text variant="label" style={styles.blockTitle}>ROUTER SUBINTERFACES</Text>
@@ -118,7 +142,7 @@ export function SandboxInspector({ device, issues, onConfigure, onCreateSubinter
       {device.macTable.length || device.arpTable.length ? <View style={styles.formBlock}><Text variant="label" style={styles.blockTitle}>LEARNED STATE</Text>{device.macTable.map((entry) => <Text key={`${entry.macAddress}-${entry.vlan}`} variant="technical" style={styles.recordText}>MAC / VLAN {entry.vlan} / {entry.macAddress} / {entry.interfaceId}</Text>)}{device.arpTable.map((entry) => <Text key={entry.ip} variant="technical" style={styles.recordText}>ARP / {entry.ip} / {entry.macAddress}</Text>)}</View> : null}
       {deviceIssues.map((issue) => <Text key={issue.code + issue.message} accessibilityLiveRegion="polite" variant="bodySmall" style={styles.warning}>{issue.level.toUpperCase()} / {issue.message}</Text>)}
       {feedback ? <Text accessibilityLiveRegion="polite" variant="bodySmall" style={styles.feedback}>{feedback}</Text> : null}
-      <AppButton label="Remove device" variant="secondary" onPress={onRemove} />
+      <AppButton accessibilityHint="Opens a confirmation before deleting this device and its connected cables" label="Remove device" variant="danger" onPress={onRemove} />
     </View>
   );
 }
@@ -130,6 +154,12 @@ const styles = StyleSheet.create({
   eyebrow: { color: Palette.green },
   title: { color: Palette.text, fontFamily: Fonts.semibold, marginTop: Space.xs },
   boundary: { color: Palette.textMuted },
+  recordPanel: { borderWidth: 1, borderColor: Palette.green, backgroundColor: Palette.greenSoft, padding: Space.md, gap: Space.sm },
+  recordHeading: { color: Palette.green },
+  recordGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Space.sm },
+  recordCell: { flexGrow: 1, minWidth: 112, gap: Space.xs },
+  recordValue: { color: Palette.text },
+  savedBadge: { color: Palette.green },
   interfacePicker: { flexDirection: 'row', flexWrap: 'wrap', gap: Space.sm },
   select: { minHeight: 44, minWidth: 88, flexGrow: 1, borderWidth: 1, borderColor: Palette.border, padding: Space.sm, alignItems: 'center', justifyContent: 'center' },
   selectActive: { borderColor: Palette.orange, backgroundColor: Palette.orangeSoft },

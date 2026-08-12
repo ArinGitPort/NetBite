@@ -19,6 +19,7 @@ export const AppRoutes = {
   review: '/review' as Href,
   saved: '/saved' as Href,
   diagnostics: '/diagnostics' as Href,
+  standards: '/standards' as Href,
   research: '/research' as Href,
 };
 

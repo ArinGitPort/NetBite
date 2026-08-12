@@ -571,7 +571,18 @@ export function applyBeginnerLanSetup(state: SandboxWorkspace) {
   return { ok: true as const, state: next, preview };
 }
 
-export type SandboxDevicePatch = Partial<Pick<SandboxDevice, 'defaultGateway' | 'vlans' | 'routes'>> & {
+export function validateSandboxDeviceName(state: SandboxWorkspace, deviceId: string, value: string) {
+  const name = value.trim();
+  if (!name) return { ok: false as const, message: 'Device name is required.' };
+  if (name.length > 24) return { ok: false as const, message: 'Device name must contain 24 characters or fewer.' };
+  if (!/^[A-Za-z0-9 _-]+$/.test(name)) return { ok: false as const, message: 'Use letters, numbers, spaces, hyphens, or underscores only.' };
+  if (state.devices.some((device) => device.id !== deviceId && device.name.toLocaleLowerCase() === name.toLocaleLowerCase())) {
+    return { ok: false as const, message: 'Each device name must be unique.' };
+  }
+  return { ok: true as const, name };
+}
+
+export type SandboxDevicePatch = Partial<Pick<SandboxDevice, 'name' | 'defaultGateway' | 'vlans' | 'routes'>> & {
   interfaceId?: string;
   interface?: Partial<Omit<SandboxInterface, 'id' | 'name' | 'macAddress'>>;
 };
@@ -579,6 +590,11 @@ export type SandboxDevicePatch = Partial<Pick<SandboxDevice, 'defaultGateway' | 
 export function configureSandboxDevice(state: SandboxWorkspace, deviceId: string, patch: SandboxDevicePatch) {
   const next = cloneWorkspace(state); const device = findDevice(next, deviceId);
   if (!device) return { ok: false as const, state, message: 'Device not found.' };
+  if (patch.name !== undefined) {
+    const result = validateSandboxDeviceName(state, deviceId, patch.name);
+    if (!result.ok) return { ok: false as const, state, message: result.message };
+    device.name = result.name;
+  }
   const normalizedGateway = patch.defaultGateway?.trim();
   if (patch.defaultGateway !== undefined && normalizedGateway !== '' && !parseIPv4Address(normalizedGateway!)) return { ok: false as const, state, message: 'Enter a valid IPv4 default gateway.' };
   if (patch.routes) device.routes = patch.routes.map((route) => ({ ...route }));

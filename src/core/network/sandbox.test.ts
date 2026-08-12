@@ -16,6 +16,7 @@ import {
   processSandboxFrame,
   simulateSandboxPing,
   validateSandboxTopology,
+  validateSandboxDeviceName,
 } from '@/core/network/sandbox';
 
 function switchedLan() {
@@ -33,6 +34,24 @@ function switchedLan() {
 }
 
 describe('sandbox domain', () => {
+  test('validates and safely applies unique device display names', () => {
+    let state = createGuidedSandboxWorkspace();
+    expect(validateSandboxDeviceName(state, 'pc-1', '  Office_PC-1  ')).toEqual({ ok: true, name: 'Office_PC-1' });
+    const renamed = configureSandboxDevice(state, 'pc-1', { name: '  Office_PC-1  ' });
+    expect(renamed).toMatchObject({ ok: true });
+    state = renamed.state;
+    expect(state.devices.find((device) => device.id === 'pc-1')?.name).toBe('Office_PC-1');
+    expect(state.devices.find((device) => device.id === 'pc-1')?.id).toBe('pc-1');
+
+    const beforeDuplicate = state;
+    const duplicate = configureSandboxDevice(state, 'pc-2', { name: 'office_pc-1' });
+    expect(duplicate).toMatchObject({ ok: false, message: expect.stringContaining('unique') });
+    expect(duplicate.state).toBe(beforeDuplicate);
+    expect(configureSandboxDevice(state, 'pc-2', { name: 'bad/name' })).toMatchObject({ ok: false });
+    expect(configureSandboxDevice(state, 'pc-2', { name: ' '.repeat(3) })).toMatchObject({ ok: false });
+    expect(configureSandboxDevice(state, 'pc-2', { name: 'x'.repeat(25) })).toMatchObject({ ok: false });
+  });
+
   test('separates ping form readiness from simulated network failures', () => {
     const unconfigured = createGuidedSandboxWorkspace();
     expect(getSandboxPingReadiness(unconfigured, undefined, '')).toMatchObject({

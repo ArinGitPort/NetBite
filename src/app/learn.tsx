@@ -79,6 +79,7 @@ export default function LearningHomeScreen() {
       <View style={styles.learningUtilities}>
         <ActionCard detail="Completion, quiz mastery, weak topics, and recent activity." icon="quiz" priority="utility" status="LEARNING STATUS" title="PROGRESS & REVIEW" onPress={() => router.push(AppRoutes.progress)} />
         <ActionCard detail="Bookmarks and personal notes." icon="lesson" priority="utility" status="PERSONAL REFERENCE" title="SAVED LEARNING" onPress={() => router.push(AppRoutes.saved)} />
+        <ActionCard detail="Retrieve official RFC metadata from the IETF Datatracker." icon="lesson" priority="utility" status="OFFICIAL IETF API" title="NETWORK STANDARDS" onPress={() => router.push(AppRoutes.standards)} />
       </View>
       <Text variant="sectionHeading" style={styles.sectionTitle}>LEARNING PATH</Text>
       <View style={styles.circuit}>
