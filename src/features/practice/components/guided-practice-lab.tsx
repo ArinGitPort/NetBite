@@ -2,10 +2,11 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import type { PracticeConfig } from '@/features/practice/practice-configs';
+import { LabSetupSupport } from '@/features/practice/components/foundation-lab-support';
 import { AppButton } from '@/shared/components/app-button';
 import { Text } from '@/shared/components/console-text';
 import { FeedbackModal } from '@/shared/components/feedback-modal';
-import { IconButton } from '@/shared/components/icon-button';
+import { PageHeader } from '@/shared/components/page-header';
 import { ProgressBar } from '@/shared/components/progress-bar';
 import { Screen } from '@/shared/components/screen';
 import { selectionHaptic, successHaptic, warningHaptic } from '@/shared/haptics';
@@ -58,11 +59,7 @@ export function GuidedPracticeLab({ config }: { config: PracticeConfig }) {
   };
 
   return (
-    <Screen>
-      <View style={styles.header}>
-        <IconButton accessibilityLabel={`Back to Chapter ${config.chapterId}`} icon="arrow-left" label="BACK / CHAPTER" onPress={() => returnToOwningChapter('lab', config.id)} />
-        <IconButton accessibilityLabel="Reset practice" icon="reset" label="RESET" onPress={() => setResetVisible(true)} />
-      </View>
+    <Screen header={<PageHeader leading={{ accessibilityLabel: `Back to Chapter ${config.chapterId}`, icon: 'arrow-left', label: 'BACK / CHAPTER', onPress: () => returnToOwningChapter('lab', config.id) }} trailing={[{ accessibilityLabel: 'Reset practice', icon: 'reset', label: 'RESET', onPress: () => setResetVisible(true) }]} />}>
       <Text variant="label" style={styles.eyebrow}>{config.eyebrow}</Text>
       <Text variant="screenTitle" style={styles.title}>{config.title}</Text>
       <View style={styles.objective}>
@@ -70,6 +67,7 @@ export function GuidedPracticeLab({ config }: { config: PracticeConfig }) {
         <Text variant="body" style={styles.objectiveText}>{config.objective}</Text>
       </View>
       <Text variant="technical" style={styles.scope}>{config.scopeNote}</Text>
+      <LabSetupSupport labId={config.id} />
       <ProgressBar progress={(stageIndex + (resolved ? 1 : 0)) / config.stages.length} />
 
       <View style={styles.stage} accessibilityLiveRegion="polite">

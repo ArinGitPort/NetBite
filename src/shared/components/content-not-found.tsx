@@ -1,6 +1,7 @@
 import { StyleSheet, View } from 'react-native';
 
 import { AppButton } from '@/shared/components/app-button';
+import { PageHeader } from '@/shared/components/page-header';
 import { Text } from '@/shared/components/console-text';
 import { Screen } from '@/shared/components/screen';
 import { Fonts, Palette, Space } from '@/shared/theme';
@@ -8,7 +9,7 @@ import { returnToLearningPath, returnToMenu } from '@/shared/navigation';
 
 export function ContentNotFound({ label = 'Content' }: { label?: string }) {
   return (
-    <Screen>
+    <Screen header={<PageHeader leading={{ accessibilityLabel: 'Back to learning path', icon: 'arrow-left', label: 'BACK / LEARN', onPress: returnToLearningPath }} />}>
       <View style={styles.content}>
         <Text variant="label" style={styles.eyebrow}>NOT AVAILABLE</Text>
         <Text variant="screenTitle" style={styles.title}>{label} not found</Text>

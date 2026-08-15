@@ -30,16 +30,17 @@ import { SandboxInspector } from '@/features/sandbox/components/sandbox-inspecto
 import { AppButton } from '@/shared/components/app-button';
 import { DisclosureSection } from '@/shared/components/disclosure-section';
 import { FeedbackModal } from '@/shared/components/feedback-modal';
-import { IconButton } from '@/shared/components/icon-button';
+import { PageHeader } from '@/shared/components/page-header';
 import { SemanticIcon, type SemanticIconName } from '@/shared/components/semantic-icon';
+import { StatusRow } from '@/shared/components/status-row';
 import { WhyExplanation } from '@/shared/components/why-explanation';
 import { Text } from '@/shared/components/console-text';
 import { Screen } from '@/shared/components/screen';
 import { selectionHaptic, successHaptic, warningHaptic } from '@/shared/haptics';
 import { Fonts, Palette, Space, Typography } from '@/shared/theme';
 import { useSandboxStore } from '@/store/use-sandbox-store';
-import { useExperienceStore } from '@/store/use-experience-store';
-import { returnToMenu } from '@/shared/navigation';
+import { navigateOnce, returnToMenu } from '@/shared/navigation';
+import { AppRoutes } from '@/shared/routes';
 import { useResearchStore } from '@/store/use-research-store';
 
 type Confirmation = 'new' | 'clear' | 'preset' | 'inter-vlan-preset' | 'beginner-lan' | 'remove-device' | 'remove-link';
@@ -65,7 +66,6 @@ function ToolButton({ label, icon, selected, onPress }: { label: string; icon: S
 export function SandboxScreen() {
   const screenRef = useRef<ScrollView>(null);
   const workspace = useSandboxStore((state) => state.workspace);
-  const guideSeen = useSandboxStore((state) => state.guideSeen);
   const pastCount = useSandboxStore((state) => state.past.length);
   const futureCount = useSandboxStore((state) => state.future.length);
   const commitWorkspace = useSandboxStore((state) => state.commitWorkspace);
@@ -73,9 +73,6 @@ export function SandboxScreen() {
   const undo = useSandboxStore((state) => state.undo);
   const redo = useSandboxStore((state) => state.redo);
   const newNetwork = useSandboxStore((state) => state.newNetwork);
-  const markGuideSeen = useSandboxStore((state) => state.markGuideSeen);
-  const [guideVisible, setGuideVisible] = useState(!guideSeen);
-  const markExperienceGuideSeen = useExperienceStore((state) => state.markGuideSeen);
   const researchActive = useResearchStore((state) => state.active);
   const recordResearchEvent = useResearchStore((state) => state.recordEvent);
   const [guideActive, setGuideActive] = useState(false);
@@ -283,9 +280,8 @@ export function SandboxScreen() {
   const loadReadyNetwork = (keepUndo: boolean) => {
     const preset = createReadyRoutedSandboxWorkspace();
     if (keepUndo) commitWorkspace(preset); else replaceWorkspace(preset);
-    markGuideSeen();
     setGuideActive(false);
-    setPresetGuideActive(true);
+    setPresetGuideActive(false);
     setSelectedDeviceId('pc-1');
     setSelectedLinkId(undefined);
     setConnectionStartId(undefined);
@@ -295,7 +291,7 @@ export function SandboxScreen() {
     setPingTarget('192.168.20.20');
     setTrace(undefined);
     setActiveTool(undefined);
-    setNotice('Ready routed network loaded. Follow the guide, then change anything you want.');
+    setNotice('Ready routed network loaded. Inspect it or change anything you want.');
     successHaptic();
   };
 
@@ -343,18 +339,13 @@ export function SandboxScreen() {
   };
 
   const finishGuide = () => {
-    markGuideSeen();
     setGuideActive(false);
     setNotice('Guided build complete. The workspace is now unrestricted.');
     successHaptic();
   };
 
   return (
-    <Screen scrollRef={screenRef}>
-      <View style={styles.header}>
-        <IconButton accessibilityLabel="Back to main menu" icon="arrow-left" label="BACK / MENU" onPress={returnToMenu} />
-        <AppButton label={activeTool === 'workspace' ? 'Close tools' : 'More tools'} variant="utility" onPress={() => chooseTool('workspace')} />
-      </View>
+    <Screen scrollRef={screenRef} header={<PageHeader leading={{ accessibilityLabel: 'Back to main menu', icon: 'arrow-left', label: 'BACK / MENU', onPress: returnToMenu }} trailingContent={<AppButton label={activeTool === 'workspace' ? 'Close tools' : 'More tools'} variant="utility" onPress={() => chooseTool('workspace')} />} />}>
       <Text variant="label" style={styles.eyebrow}>FREE PLAY / DETERMINISTIC STATE MODEL</Text>
       <Text variant="screenTitle" style={styles.title}>NETWORK SANDBOX</Text>
       <Text variant="bodySmall" style={styles.subtitle}>Build, configure, and test a bounded Ethernet and IPv4 network. Results explain only what this modeled state proves.</Text>
@@ -464,8 +455,8 @@ export function SandboxScreen() {
             </View> : null}
             <View accessibilityLiveRegion="polite" style={styles.readinessPanel}>
               <Text variant="label" style={styles.readinessTitle}>PING READINESS</Text>
-              <Text variant="bodySmall" style={sourceReadinessIssue ? styles.readinessMissing : styles.readinessReady}>{sourceReadinessIssue ? '[ ]' : '[X]'} SOURCE / {sourceReadinessIssue?.message ?? `${selectedSource?.name}${selectedSourceInterface ? ` ${selectedSourceInterface.id}` : ''} / ${pingReadiness.sourceAddress}${selectedSourceInterface?.prefix !== undefined ? `/${selectedSourceInterface.prefix}` : ''}`}</Text>
-              <Text variant="bodySmall" style={destinationReadinessIssue ? styles.readinessMissing : styles.readinessReady}>{destinationReadinessIssue ? '[ ]' : '[X]'} DESTINATION / {destinationReadinessIssue?.message ?? pingTarget.trim()}</Text>
+              <StatusRow label="SOURCE" state={sourceReadinessIssue ? 'attention' : 'complete'} description={sourceReadinessIssue?.message ?? `${selectedSource?.name}${selectedSourceInterface ? ` ${selectedSourceInterface.id}` : ''} / ${pingReadiness.sourceAddress}${selectedSourceInterface?.prefix !== undefined ? `/${selectedSourceInterface.prefix}` : ''}`} />
+              <StatusRow label="DESTINATION" state={destinationReadinessIssue ? 'attention' : 'complete'} description={destinationReadinessIssue?.message ?? pingTarget.trim()} />
               {unconfiguredPcs.map((device) => <AppButton key={device.id} label={`Configure ${device.name}`} variant="secondary" onPress={() => configureDeviceFromTest(device.id)} />)}
             </View>
             {availablePingTargets.length ? <View style={styles.optionRow}>{availablePingTargets.map((item) => <Option key={`${item.deviceId}-${item.interfaceId}`} label={`${item.deviceName} / ${item.address}`} selected={pingTarget === item.address} onPress={() => choosePingTarget(item.address)} />)}</View> : <Text variant="bodySmall" style={styles.noTarget}>No other configured device address is available yet. Configure another PC or enter a valid address manually.</Text>}
@@ -480,6 +471,14 @@ export function SandboxScreen() {
         <View style={styles.actionPanel}>
           <Text variant="label" style={styles.actionEyebrow}>WORKSPACE TOOLS</Text>
           <Text variant="bodySmall" style={styles.actionCopy}>Open only the group you need. Device-specific commands remain under Configure.</Text>
+          <DisclosureSection summary="Open help only when you want it." title="GUIDE / STARTING NETWORKS">
+            <Text variant="bodySmall" style={styles.actionCopy}>Start a guided two-PC build, inspect the routed walkthrough, or open the general app guide.</Text>
+            <View style={styles.controlGrid}>
+              <AppButton label="Start guided LAN" variant="secondary" onPress={() => { replaceWorkspace(createGuidedSandboxWorkspace()); setGuideActive(true); setPresetGuideActive(false); setActiveTool(undefined); setNotice('Guided build ready. Connect both PCs to the switch.'); }} />
+              <AppButton label="Show routed walkthrough" variant="utility" onPress={() => { setPresetGuideActive(true); setActiveTool(undefined); }} />
+              <AppButton label="Open app guide" variant="utility" onPress={() => navigateOnce(AppRoutes.guide)} />
+            </View>
+          </DisclosureSection>
           <DisclosureSection defaultExpanded summary="Load a complete example to inspect or modify." title="EXAMPLE NETWORKS">
             <View style={styles.controlGrid}><AppButton label="Load routed preset" variant="secondary" onPress={() => workspace.devices.length ? setConfirmation('preset') : loadReadyNetwork(true)} /><AppButton label="Load inter-VLAN demo" variant="secondary" onPress={() => workspace.devices.length ? setConfirmation('inter-vlan-preset') : loadInterVlanNetwork()} /></View>
           </DisclosureSection>
@@ -495,7 +494,6 @@ export function SandboxScreen() {
       ) : null}
 
       <SandboxCli visible={Boolean(cliDeviceId)} workspace={workspace} initialDeviceId={cliDeviceId ?? ''} onClose={() => setCliDeviceId(undefined)} onCommit={commitWorkspaceChange} />
-      <FeedbackModal visible={guideVisible} eyebrow="FIRST SANDBOX SESSION" title="How do you want to begin?" message="Explore a complete routed network, or build a smaller switched LAN yourself." detail="The routed preset includes valid addresses, gateways, two switches, one router, a working ping, and CLI experiments." primaryAction={{ label: 'Explore routed network', onPress: () => { markGuideSeen(); markExperienceGuideSeen('sandbox-v1'); setGuideVisible(false); loadReadyNetwork(false); } }} secondaryAction={{ label: 'Build it myself', variant: 'secondary', onPress: () => { markGuideSeen(); markExperienceGuideSeen('sandbox-v1'); replaceWorkspace(createGuidedSandboxWorkspace()); setGuideVisible(false); setGuideActive(true); } }} onRequestClose={() => { markGuideSeen(); markExperienceGuideSeen('sandbox-v1'); setGuideVisible(false); }} />
       <FeedbackModal
         visible={Boolean(confirmation)}
         tone="warning"
@@ -552,8 +550,6 @@ const styles = StyleSheet.create({
   setupChange: { color: Palette.text },
   readinessPanel: { borderWidth: 1, borderColor: Palette.border, backgroundColor: Palette.background, padding: Space.md, gap: Space.sm },
   readinessTitle: { color: Palette.textMuted },
-  readinessReady: { color: Palette.green },
-  readinessMissing: { color: Palette.orange },
   noTarget: { color: Palette.orange },
   pickerLabel: { color: Palette.textMuted },
   optionRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Space.sm },

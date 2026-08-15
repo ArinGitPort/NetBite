@@ -121,3 +121,15 @@ Saturated color communicates state. It is not general decoration.
 - Dense framing should organize the lesson, never compete with it.
 
 The final interface should resemble a small piece of training hardware: compact at first glance, predictable after one interaction, and comfortable throughout a lesson.
+
+## Standard Screen Pattern
+
+- Every navigable route uses `Screen` with a `PageHeader`. Back or Close stays in the physical safe-area corner rather than moving with the centered content column.
+- Forms use a visible label, short purpose or accepted-format guidance, and adjacent validation. Placeholder text is an example, never the only instruction.
+- Mutually exclusive settings and tabs use semantic circle selection controls. Status is written in text and never represented by bracket characters.
+- Routine saved, loading, offline, warning, and success messages use compact inline feedback. Modals are reserved for confirmations and results that block progress.
+- Specialized canvases may handle gestures directly, but their inspectors, actions, errors, and navigation use the same shared semantics as the rest of the app.
+
+## Diagram Palette
+
+Educational diagrams use the typed `DiagramPalette`, separate from ordinary application controls. Its colors distinguish protocol roles and paths, but exact labels and accessible descriptions always carry the technical meaning.

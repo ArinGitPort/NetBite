@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { AccessibilityInfo, findNodeHandle, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { chapters } from '@/content/chapters';
 import { canAccessChapter } from '@/core/account/access';
 import { getActiveReviewQueue, type ReviewQueueItem } from '@/core/learning/adaptive-learning';
 import { useAuth } from '@/features/account/auth-context';
 import { AppButton } from '@/shared/components/app-button';
-import { IconButton } from '@/shared/components/icon-button';
+import { PageHeader } from '@/shared/components/page-header';
 import { Screen } from '@/shared/components/screen';
 import { Text } from '@/shared/components/console-text';
 import { returnToLearningPath } from '@/shared/navigation';
@@ -41,10 +41,9 @@ export default function ReviewScreen() {
   const resolved = current ? resolveItem(current) : undefined;
 
   useEffect(() => {
-    if (!currentKey || Platform.OS === 'web') return;
+    if (!currentKey) return;
     const timer = setTimeout(() => {
-      const node = findNodeHandle(reviewItemRef.current);
-      if (node) AccessibilityInfo.setAccessibilityFocus(node);
+      (reviewItemRef.current as (View & { focus?: () => void }) | null)?.focus?.();
     }, 50);
     return () => clearTimeout(timer);
   }, [currentKey]);
@@ -63,7 +62,7 @@ export default function ReviewScreen() {
     setCheckpointChoicesVisible(false);
   };
 
-  if (!current || !resolved) return <Screen><IconButton accessibilityLabel="Back to learning path" icon="arrow-left" label="BACK / LEARN" onPress={returnToLearningPath} /><View style={styles.empty}><Text variant="label" style={styles.success}>REVIEW QUEUE CLEAR</Text><Text variant="screenTitle" style={styles.title}>NO WEAK TOPICS DUE</Text><Text variant="body" style={styles.muted}>Missed quiz or checkpoint scenarios and cards marked Review Again will appear here.</Text><AppButton label="Back to learning" onPress={returnToLearningPath} /></View></Screen>;
+  if (!current || !resolved) return <Screen header={<PageHeader leading={{ accessibilityLabel: 'Back to learning path', icon: 'arrow-left', label: 'BACK / LEARN', onPress: returnToLearningPath }} />}><View style={styles.empty}><Text variant="label" style={styles.success}>REVIEW QUEUE CLEAR</Text><Text variant="screenTitle" style={styles.title}>NO WEAK TOPICS DUE</Text><Text variant="body" style={styles.muted}>Missed quiz or checkpoint scenarios and cards marked Review Again will appear here.</Text></View></Screen>;
 
   const quiz = resolved.kind === 'quiz' ? resolved.quiz : undefined;
   const card = resolved.kind === 'flashcard' ? resolved.card : undefined;
@@ -76,9 +75,8 @@ export default function ReviewScreen() {
       ? checkpoint.choices[selected ?? -1]?.id === checkpoint.correctChoiceId
       : false;
 
-  return <Screen>
-    <View style={styles.header}><IconButton accessibilityLabel="Close weak-topic review" icon="close" onPress={returnToLearningPath} /><Text variant="label" style={styles.count}>{queue.length} DUE</Text></View>
-    <View accessible accessibilityLabel={`Chapter ${resolved.chapter.numberLabel}. ${current.kind === 'flashcard' ? 'Active recall' : 'Scenario retry'}. Review weak topics.`} ref={reviewItemRef}><Text variant="label" style={styles.eyebrow}>CHAPTER {resolved.chapter.numberLabel} / {current.kind === 'flashcard' ? 'ACTIVE RECALL' : current.kind === 'checkpoint' ? 'CHECKPOINT RETRY' : 'SCENARIO RETRY'}</Text><Text variant="screenTitle" style={styles.title}>REVIEW WEAK TOPICS</Text></View>
+  return <Screen header={<PageHeader leading={{ accessibilityLabel: 'Close weak-topic review', icon: 'close', label: 'CLOSE', onPress: returnToLearningPath }} status={`${queue.length} DUE`} />}>
+    <View accessible focusable accessibilityLabel={`Chapter ${resolved.chapter.numberLabel}. ${current.kind === 'flashcard' ? 'Active recall' : 'Scenario retry'}. Review weak topics.`} ref={reviewItemRef}><Text variant="label" style={styles.eyebrow}>CHAPTER {resolved.chapter.numberLabel} / {current.kind === 'flashcard' ? 'ACTIVE RECALL' : current.kind === 'checkpoint' ? 'CHECKPOINT RETRY' : 'SCENARIO RETRY'}</Text><Text variant="screenTitle" style={styles.title}>REVIEW WEAK TOPICS</Text></View>
     {quiz ? <>
       <Text variant="sectionHeading" style={styles.prompt}>{quiz.prompt}</Text>
       <View style={styles.answers}>{quiz.answers.map((answer, index) => <Pressable key={answer} accessibilityRole="radio" accessibilityState={{ checked: selected === index, disabled: answered }} disabled={answered} onPress={() => setSelected(index)} style={[styles.answer, selected === index && styles.selectedAnswer, answered && index === quiz.correctAnswerIndex && styles.correctAnswer]}><Text variant="body" style={styles.answerText}>{String.fromCharCode(65 + index)} / {answer}</Text></Pressable>)}</View>

@@ -1,57 +1,79 @@
 import { useState } from 'react';
-import { StyleSheet, TextInput, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
+import { chapters } from '@/content/chapters';
+import { getCourse } from '@/content/courses';
 import { canAccessChapter } from '@/core/account/access';
 import type { SavedLearningItem } from '@/core/learning/adaptive-learning';
 import { useAuth } from '@/features/account/auth-context';
 import { AppButton } from '@/shared/components/app-button';
 import { FeedbackModal } from '@/shared/components/feedback-modal';
 import { IconButton } from '@/shared/components/icon-button';
+import { PageHeader } from '@/shared/components/page-header';
 import { Screen } from '@/shared/components/screen';
+import { SemanticIcon, type SemanticIconName } from '@/shared/components/semantic-icon';
 import { Text } from '@/shared/components/console-text';
 import { navigateOnce, returnToLearningPath } from '@/shared/navigation';
 import { AppRoutes } from '@/shared/routes';
-import { Fonts, Palette, Space, Typography } from '@/shared/theme';
+import { Fonts, Palette, Space } from '@/shared/theme';
 import { useGameStore } from '@/store/use-game-store';
+
+function describeSavedItem(item: SavedLearningItem) {
+  const chapter = chapters.find((candidate) => candidate.id === item.chapterId);
+  const course = getCourse(chapter?.courseId);
+  const source = chapter ? `${course?.shortTitle.toUpperCase() ?? 'COURSE'} / CHAPTER ${chapter.numberLabel}` : 'NETWORK SANDBOX';
+  if (item.targetType === 'lesson') {
+    const index = chapter?.lessons.findIndex((lesson) => lesson.id === item.targetId) ?? -1;
+    return { icon: 'lesson' as SemanticIconName, source, location: index >= 0 ? `LESSON ${index + 1} OF ${chapter?.lessons.length}` : 'LESSON', context: chapter?.title ?? 'Saved lesson', openLabel: 'Open lesson' };
+  }
+  if (item.targetType === 'flashcard') {
+    const index = chapter?.flashcards.findIndex((card) => card.id === item.targetId) ?? -1;
+    return { icon: 'flashcards' as SemanticIconName, source, location: index >= 0 ? `FLASHCARD ${index + 1} OF ${chapter?.flashcards.length}` : 'FLASHCARD', context: chapter?.title ?? 'Active-recall deck', openLabel: 'Open flashcards' };
+  }
+  return { icon: 'configure' as SemanticIconName, source: 'NETWORK SANDBOX', location: 'CLI COMMAND', context: 'Reusable command reference', openLabel: 'Open Sandbox' };
+}
 
 export default function SavedScreen() {
   const { hasContentAccess } = useAuth();
   const items = useGameStore((state) => state.savedLearningItems);
-  const saveItem = useGameStore((state) => state.saveLearningItem);
   const removeItem = useGameStore((state) => state.removeLearningItem);
   const clearItems = useGameStore((state) => state.clearSavedLearningItems);
   const [removeKey, setRemoveKey] = useState<string>();
   const [clearVisible, setClearVisible] = useState(false);
-  const active = Object.values(items).filter((item) => !item.deletedAt).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+  const active = Object.values(items).filter((item) => !item.deletedAt && item.targetType !== 'illustration').sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
   const itemLocked = (item: SavedLearningItem) => item.targetType === 'cli-command' ? !hasContentAccess : !canAccessChapter(item.chapterId, hasContentAccess);
 
   const openItem = (item: SavedLearningItem) => {
     if (itemLocked(item)) { navigateOnce(AppRoutes.pro); return; }
     if (item.targetType === 'lesson') navigateOnce({ pathname: '/lesson/[lessonId]', params: { lessonId: item.targetId } });
-    else if (item.targetType === 'illustration') navigateOnce({ pathname: '/lesson/[lessonId]', params: { lessonId: item.targetId.split(':')[0] } });
     else if (item.targetType === 'flashcard') navigateOnce({ pathname: '/flashcards/[chapterId]', params: { chapterId: item.chapterId } });
     else navigateOnce(AppRoutes.sandbox);
   };
 
-  const requestRemove = (item: SavedLearningItem) => item.note.trim() ? setRemoveKey(item.key) : removeItem(item.key);
+  const requestRemove = (item: SavedLearningItem) => setRemoveKey(item.key);
   const selected = removeKey ? items[removeKey] : undefined;
 
-  return <Screen>
-    <IconButton accessibilityLabel="Back to progress and review" icon="arrow-left" label="BACK / PROGRESS" onPress={() => navigateOnce(AppRoutes.progress)} />
+  return <Screen header={<PageHeader
+    leading={{ accessibilityLabel: 'Back to progress and review', icon: 'arrow-left', label: 'BACK / PROGRESS', onPress: () => navigateOnce(AppRoutes.progress) }}
+    trailingContent={active.length ? <IconButton accessibilityHint="Opens the protected option to clear all bookmarks." accessibilityLabel="Manage saved bookmarks" label="MANAGE" onPress={() => setClearVisible(true)} semanticIcon="more" /> : null}
+  />}>
     <Text variant="label" style={styles.eyebrow}>PERSONAL REFERENCE</Text><Text variant="screenTitle" style={styles.title}>SAVED LEARNING</Text>
-    {active.length ? active.map((item) => <View key={item.key} style={styles.card}>
-      <View style={styles.meta}><Text variant="label" style={styles.type}>{item.targetType.replace('-', ' ').toUpperCase()}</Text>{itemLocked(item) ? <Text variant="technical" style={styles.warning}>PRO SOURCE LOCKED</Text> : null}</View>
-      <Text variant="sectionHeading" style={styles.itemTitle}>{item.title}</Text>
-      <TextInput accessibilityLabel={`Personal note for ${item.title}`} maxLength={1000} multiline onChangeText={(note) => saveItem({ targetType: item.targetType, targetId: item.targetId, chapterId: item.chapterId, title: item.title, note })} placeholder="ADD A SHORT PERSONAL NOTE" placeholderTextColor={Palette.textMuted} selectionColor={Palette.orange} style={styles.note} value={item.note} />
-      <Text variant="technical" style={styles.count}>{item.note.length}/1000</Text>
-      <View style={styles.actions}><AppButton label="Open source" variant="secondary" onPress={() => openItem(item)} /><AppButton label="Remove saved item" variant="danger" onPress={() => requestRemove(item)} /></View>
-    </View>) : <View style={styles.empty}><Text variant="sectionHeading" style={styles.itemTitle}>NOTHING SAVED YET</Text><Text variant="bodySmall" style={styles.muted}>Save a lesson, visual, flashcard, or CLI reference while learning.</Text><AppButton label="Back to learning" onPress={returnToLearningPath} /></View>}
-    {active.length ? <View style={styles.dangerZone}><Text variant="label" style={styles.warning}>DESTRUCTIVE SAVED DATA</Text><AppButton label="Delete all saved items" variant="danger" onPress={() => setClearVisible(true)} /></View> : null}
-    <FeedbackModal visible={Boolean(selected)} tone="warning" eyebrow="PERSONAL NOTE ATTACHED" title="Remove this saved item?" message="The bookmark and its personal note will be deleted." secondaryAction={{ label: 'Keep item', variant: 'secondary', onPress: () => setRemoveKey(undefined) }} primaryAction={{ label: 'Remove item', variant: 'danger', onPress: () => { if (removeKey) removeItem(removeKey); setRemoveKey(undefined); } }} onRequestClose={() => setRemoveKey(undefined)} />
-    <FeedbackModal visible={clearVisible} tone="warning" eyebrow="PERMANENT LOCAL ACTION" title="Delete every saved item?" message="All bookmarks and personal notes will be removed. Learning completion and quiz results remain." secondaryAction={{ label: 'Keep saved items', variant: 'secondary', onPress: () => setClearVisible(false) }} primaryAction={{ label: 'Delete saved items', variant: 'danger', onPress: () => { clearItems(); setClearVisible(false); } }} onRequestClose={() => setClearVisible(false)} />
+    {active.length ? active.map((item) => {
+      const description = describeSavedItem(item);
+      return <View key={item.key} style={styles.card}>
+      <View style={styles.cardHeading}>
+        <View style={styles.iconPlate}><SemanticIcon color={Palette.orange} name={description.icon} size={24} /></View>
+        <View style={styles.cardCopy}><Text variant="technical" style={styles.source}>{description.source}</Text><Text variant="sectionHeading" style={styles.itemTitle}>{item.title}</Text><Text variant="bodySmall" style={styles.context}>{description.context}</Text></View>
+      </View>
+      <View style={styles.meta}><Text variant="label" style={styles.location}>{description.location}</Text>{itemLocked(item) ? <Text variant="technical" style={styles.warning}>PRO SOURCE LOCKED</Text> : null}</View>
+      <View style={styles.actions}><AppButton label={description.openLabel} trailingIcon="arrow-right" onPress={() => openItem(item)} /><AppButton accessibilityHint={`Requires confirmation before removing ${item.title}.`} label="Remove bookmark" variant="utility" onPress={() => requestRemove(item)} /></View>
+    </View>;
+    }) : <View style={styles.empty}><Text variant="sectionHeading" style={styles.itemTitle}>NOTHING SAVED YET</Text><Text variant="bodySmall" style={styles.muted}>Bookmark a lesson, flashcard, or CLI reference for quick access.</Text><AppButton label="Back to learning" onPress={returnToLearningPath} /></View>}
+    <FeedbackModal visible={Boolean(selected)} tone="warning" eyebrow="REMOVE BOOKMARK" title={selected ? `Remove “${selected.title}”?` : 'Remove this bookmark?'} message="This removes it from Saved Learning. Your lesson completion and review progress will not change." secondaryAction={{ label: 'Keep bookmark', variant: 'secondary', onPress: () => setRemoveKey(undefined) }} primaryAction={{ label: 'Remove bookmark', variant: 'danger', onPress: () => { if (removeKey) removeItem(removeKey); setRemoveKey(undefined); } }} onRequestClose={() => setRemoveKey(undefined)} />
+    <FeedbackModal visible={clearVisible} tone="warning" eyebrow="MANAGE SAVED LEARNING" title="Remove every bookmark?" message={`This clears ${active.length} saved ${active.length === 1 ? 'bookmark' : 'bookmarks'} only. Lesson completion, quiz results, and review progress remain.`} secondaryAction={{ label: 'Keep bookmarks', variant: 'secondary', onPress: () => setClearVisible(false) }} primaryAction={{ label: 'Clear all bookmarks', variant: 'danger', onPress: () => { clearItems(); setClearVisible(false); } }} onRequestClose={() => setClearVisible(false)} />
   </Screen>;
 }
 
 const styles = StyleSheet.create({
-  eyebrow: { color: Palette.orange, marginTop: Space.xl }, title: { color: Palette.text, fontFamily: Fonts.semibold, marginTop: Space.sm, marginBottom: Space.xl }, card: { borderWidth: 1, borderColor: Palette.border, backgroundColor: Palette.surface, padding: Space.lg, gap: Space.sm, marginBottom: Space.lg }, meta: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: Space.sm }, type: { color: Palette.accentBright }, itemTitle: { color: Palette.text }, note: { minHeight: 112, borderWidth: 1, borderColor: Palette.border, backgroundColor: Palette.background, color: Palette.white, padding: Space.md, textAlignVertical: 'top', fontFamily: Fonts.regular, ...Typography.bodySmall }, count: { color: Palette.textMuted, textAlign: 'right' }, actions: { gap: Space.sm }, warning: { color: Palette.danger }, muted: { color: Palette.textMuted }, empty: { borderWidth: 1, borderColor: Palette.border, padding: Space.xl, gap: Space.lg }, dangerZone: { borderWidth: 1, borderColor: Palette.danger, padding: Space.lg, gap: Space.md, marginTop: Space.xl },
+  eyebrow: { color: Palette.orange, marginTop: Space.xl }, title: { color: Palette.text, fontFamily: Fonts.semibold, marginTop: Space.sm, marginBottom: Space.xl }, card: { borderWidth: 1, borderColor: Palette.border, backgroundColor: Palette.surface, padding: Space.lg, gap: Space.md, marginBottom: Space.lg }, cardHeading: { flexDirection: 'row', alignItems: 'flex-start', gap: Space.md }, iconPlate: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: Palette.orange, backgroundColor: Palette.orangeSoft }, cardCopy: { minWidth: 0, flex: 1 }, source: { color: Palette.orange, marginBottom: Space.xs }, itemTitle: { color: Palette.text }, context: { color: Palette.textMuted, marginTop: Space.xs }, meta: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: Space.sm, borderTopWidth: 1, borderTopColor: Palette.border, paddingTop: Space.md }, location: { color: Palette.green }, actions: { gap: Space.sm }, warning: { color: Palette.danger }, muted: { color: Palette.textMuted }, empty: { borderWidth: 1, borderColor: Palette.border, padding: Space.xl, gap: Space.lg },
 });

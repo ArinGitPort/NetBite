@@ -15,8 +15,11 @@ import {
   type SimulationValue,
 } from '@/features/operations/operations-simulator';
 import { AppButton } from '@/shared/components/app-button';
+import { CliConsoleShell, type CliConsoleLine } from '@/shared/components/cli-console-shell';
 import { FeedbackModal } from '@/shared/components/feedback-modal';
-import { IconButton } from '@/shared/components/icon-button';
+import { PageHeader } from '@/shared/components/page-header';
+import { StatusRow } from '@/shared/components/status-row';
+import { SelectionControl } from '@/shared/components/selection-control';
 import { Text } from '@/shared/components/console-text';
 import { ProgressBar } from '@/shared/components/progress-bar';
 import { Screen } from '@/shared/components/screen';
@@ -42,7 +45,7 @@ function FieldControl({ field, value, onChange }: { field: SimulationFieldDefini
   const helpText = field.helpText ?? `${field.incorrectFeedback} ${field.format ? formatLabels[field.format] ?? '' : ''}`.trim();
   if (field.kind === 'toggle') {
     const enabled = value === true;
-    return <View style={styles.fieldBlock}><Text variant="technical" style={styles.fieldLabel}>{field.label}</Text><View style={styles.toggleRow}><Pressable accessibilityRole="radio" accessibilityState={{ checked: enabled }} onPress={() => onChange(true)} style={[styles.option, enabled && styles.optionSelected]}><Text variant="label" style={styles.optionText}>[ {enabled ? 'X' : ' '} ] ENABLED</Text></Pressable><Pressable accessibilityRole="radio" accessibilityState={{ checked: value === false }} onPress={() => onChange(false)} style={[styles.option, value === false && styles.optionSelected]}><Text variant="label" style={styles.optionText}>[ {value === false ? 'X' : ' '} ] DISABLED</Text></Pressable></View></View>;
+    return <View style={styles.fieldBlock}><Text variant="technical" style={styles.fieldLabel}>{field.label}</Text><View accessibilityLabel={field.label} accessibilityRole="radiogroup" style={styles.toggleRow}><SelectionControl label="Enabled" selected={enabled} onPress={() => onChange(true)} /><SelectionControl label="Disabled" selected={value === false} onPress={() => onChange(false)} /></View></View>;
   }
   if (field.kind === 'select') {
     return <View style={styles.fieldBlock}><Text variant="technical" style={styles.fieldLabel}>{field.label}</Text><View style={styles.optionGrid}>{field.options?.map((entry) => <Pressable key={String(entry.value)} accessibilityRole="radio" accessibilityState={{ checked: value === entry.value }} onPress={() => onChange(entry.value)} style={[styles.option, value === entry.value && styles.optionSelected]}><Text variant="label" style={styles.optionText}>{entry.label}</Text></Pressable>)}</View></View>;
@@ -76,9 +79,9 @@ export function OperationsGuidedLab({ definition, onComplete }: { definition: Op
   const authored = definition.stages[currentIndex];
   const [draft, setDraft] = useState<Record<string, SimulationValue>>({});
   const [validationError, setValidationError] = useState<string>();
-  const [cliOpen, setCliOpen] = useState(false);
+  const [cliVisible, setCliVisible] = useState(false);
   const [cliInput, setCliInput] = useState('');
-  const [cliOutput, setCliOutput] = useState<string>();
+  const [cliLines, setCliLines] = useState<CliConsoleLine[]>([]);
   const [resetVisible, setResetVisible] = useState(false);
   const [briefingOpen, setBriefingOpen] = useState(session.stageIndex === 0);
   const { mode, onLayout } = useMeasuredResponsiveLayout();
@@ -89,7 +92,6 @@ export function OperationsGuidedLab({ definition, onComplete }: { definition: Op
       priorStageRef.current = session.stageIndex;
       setDraft({});
       setValidationError(undefined);
-      setCliOutput(undefined);
     }
   }, [session.stageIndex]);
 
@@ -135,16 +137,17 @@ export function OperationsGuidedLab({ definition, onComplete }: { definition: Op
 
   const runCli = () => {
     const result = executeOperationsCliCommand(simulator, session, cliInput);
-    setCliOutput(result.output);
+    const command = cliInput.trim();
+    if (!command) return;
+    setCliLines((lines) => [...lines, { id: `${Date.now()}-command`, text: `NETBITE> ${command}` }, { id: `${Date.now()}-output`, text: result.output, tone: result.accepted ? 'success' as const : 'warning' as const }].slice(-200));
     if (result.accepted) save(definition.id, { ...session, configuration: result.configuration, lastResult: undefined, evidence: [] });
     setCliInput('');
   };
 
-  if (!simulator) return <Screen><Text variant="screenTitle">SIMULATOR UNAVAILABLE</Text><AppButton label="Back to course" onPress={() => router.replace(AppRoutes.courses)} /></Screen>;
+  if (!simulator) return <Screen header={<PageHeader leading={{ accessibilityLabel: 'Back to course library', icon: 'arrow-left', label: 'BACK / COURSES', onPress: () => router.replace(AppRoutes.courses) }} />}><Text variant="screenTitle">SIMULATOR UNAVAILABLE</Text></Screen>;
 
-  return <Screen>
+  return <Screen header={<PageHeader leading={{ accessibilityLabel: 'Back from guided simulator', icon: 'arrow-left', label: definition.id === 'network-operations-capstone' ? 'BACK / COURSES' : 'BACK / MODULE', onPress: () => definition.id === 'network-operations-capstone' ? router.dismissTo(AppRoutes.courses) : returnToOwningChapter('lab', definition.id) }} status="LOCAL AUTOSAVE / V2" />}>
     <View onLayout={onLayout}>
-      <View style={styles.header}><IconButton accessibilityLabel="Back from guided simulator" icon="arrow-left" label={definition.id === 'network-operations-capstone' ? 'BACK / COURSES' : 'BACK / MODULE'} onPress={() => definition.id === 'network-operations-capstone' ? router.dismissTo(AppRoutes.courses) : returnToOwningChapter('lab', definition.id)} /><Text variant="technical" style={styles.saveStatus}>LOCAL AUTOSAVE / V2</Text></View>
       <Text variant="label" style={styles.eyebrow}>GUIDED MINI-SIMULATOR</Text>
       <Text variant="screenTitle" style={styles.title}>{definition.title}</Text>
       <Text variant="technical" style={styles.subtitle}>{definition.subtitle}</Text>
@@ -156,7 +159,7 @@ export function OperationsGuidedLab({ definition, onComplete }: { definition: Op
       <OperationsLabBriefing labId={definition.id} briefing={definition.briefing} expanded={briefingOpen} onToggle={() => setBriefingOpen((value) => !value)} />
       <OperationsLabTopology definition={definition} finished={finished} mode={mode} session={session} stageId={current?.id} />
 
-      <View style={styles.panel}><Text variant="label" style={styles.panelTitle}>PREREQUISITES</Text>{definition.prerequisites.map((item) => <Text key={item} variant="bodySmall" style={styles.line}>[X] {item}</Text>)}</View>
+      <View style={styles.panel}><Text variant="label" style={styles.panelTitle}>PREREQUISITES</Text>{definition.prerequisites.map((item) => <StatusRow key={item} label={item} state="complete" variant="bodySmall" showStateLabel={false} />)}</View>
 
       {!finished ? <>
         <View style={styles.objective}><Text variant="label" style={styles.panelTitle}>CURRENT OBJECTIVE</Text><Text variant="sectionHeading" style={styles.objectiveTitle}>{authored.objective}</Text><Text variant="body" style={styles.line}>{authored.prompt}</Text><Text variant="bodySmall" style={styles.objectiveHelp}>NEED THE METHOD? OPEN “LEARN THE SETUP” ABOVE OR REVEAL A HINT BELOW.</Text></View>
@@ -167,7 +170,7 @@ export function OperationsGuidedLab({ definition, onComplete }: { definition: Op
           {!configured ? <AppButton label="Save configuration" onPress={applyConfiguration} /> : <AppButton label={current.actionLabel} leadingIcon="check" onPress={verify} />}
         </View>
 
-        {simulator.cliEnabled ? <View style={styles.cliPanel}><Pressable accessibilityRole="button" accessibilityState={{ expanded: cliOpen }} onPress={() => setCliOpen((value) => !value)} style={styles.disclosure}><Text variant="label" style={styles.cliTitle}>OPTIONAL NETBITE CLI</Text><Text variant="label">{cliOpen ? 'HIDE' : 'OPEN'}</Text></Pressable>{cliOpen ? <><Text variant="technical" style={styles.line}>GUIDED COMMAND PRACTICE / SAME CONFIGURATION AS THE INSPECTOR</Text><View style={styles.suggestions}>{suggestions.map((suggestion) => <Pressable key={suggestion} accessibilityRole="button" onPress={() => setCliInput(suggestion)} style={styles.suggestion}><Text variant="technical">{suggestion}</Text></Pressable>)}</View><TextInput accessibilityLabel="Operations CLI command" autoCapitalize="none" autoCorrect={false} onChangeText={setCliInput} onSubmitEditing={runCli} placeholder="ENTER SUPPORTED COMMAND" placeholderTextColor={Palette.textMuted} selectionColor={Palette.orange} style={styles.input} value={cliInput} /><AppButton disabled={!cliInput.trim()} label="Run command" onPress={runCli} />{cliOutput ? <Text accessibilityLiveRegion="polite" variant="technical" style={styles.cliOutput}>{cliOutput}</Text> : null}</> : null}</View> : null}
+        {simulator.cliEnabled ? <View style={styles.cliPanel}><Text variant="label" style={styles.cliTitle}>OPTIONAL NETBITE CLI</Text><Text variant="bodySmall" style={styles.line}>The console changes the same modeled configuration as the inspector.</Text><AppButton label="Open full-screen CLI" variant="secondary" onPress={() => setCliVisible(true)} /></View> : null}
       </> : <View style={styles.complete}><Text variant="label" style={styles.panelTitle}>ALL OBJECTIVES VERIFIED</Text><Text variant="body">Completion came from the final modeled configuration and its evidence. Reset remains available for another run without removing earned completion.</Text></View>}
 
       <View style={styles.panel}><Text variant="label" style={styles.panelTitle}>{definition.tableTitle}</Text>{(session.tables?.[definition.tableTitle] ?? []).length ? session.tables[definition.tableTitle].map((row, index) => <Text key={`${index}-${row}`} variant="technical" style={styles.tableRow}>{row}</Text>) : <Text variant="technical" style={styles.line}>NO CURRENT STATE / RUN THE OBJECTIVE TEST</Text>}</View>
@@ -183,7 +186,8 @@ export function OperationsGuidedLab({ definition, onComplete }: { definition: Op
       <View style={styles.tools}><Text variant="label" style={styles.toolsTitle}>SESSION TOOLS</Text><AppButton disabled={undoCount === 0} label="Undo latest change" variant="utility" onPress={() => { undo(definition.id); setValidationError(undefined); setDraft({}); }} /><AppButton label="Reset simulator" variant="danger" onPress={() => setResetVisible(true)} /></View>
       <Text variant="technical" style={styles.limit}>MODEL BOUNDARY / {definition.limitations}</Text>
     </View>
-    <FeedbackModal visible={resetVisible} tone="warning" eyebrow="CONFIRM SIMULATOR RESET" title="Reset this simulator?" message="Configuration, evidence, trace position, undo history, and hints for this lab will be removed." detail="Earned course completion is retained." onRequestClose={() => setResetVisible(false)} secondaryAction={{ label: 'Keep working', variant: 'secondary', onPress: () => setResetVisible(false) }} primaryAction={{ label: 'Reset simulator', variant: 'danger', onPress: () => { reset(definition.id); setResetVisible(false); setDraft({}); setValidationError(undefined); } }} />
+    {simulator.cliEnabled ? <CliConsoleShell accessibilityLabel={`${definition.title} full-screen CLI`} boundary="BOUNDED EDUCATIONAL COMMAND SET / SAME STATE AS INSPECTOR" eyebrow="NETWORK OPERATIONS / CLI" input={cliInput} lines={cliLines} onClose={() => setCliVisible(false)} onInputChange={setCliInput} onSubmit={runCli} prompt="NETBITE>" suggestions={suggestions} testID="operations-cli-modal" title={definition.title} visible={cliVisible} /> : null}
+    <FeedbackModal visible={resetVisible} tone="warning" eyebrow="CONFIRM SIMULATOR RESET" title="Reset this simulator?" message="Configuration, evidence, trace position, undo history, and hints for this lab will be removed." detail="Earned course completion is retained." onRequestClose={() => setResetVisible(false)} secondaryAction={{ label: 'Keep working', variant: 'secondary', onPress: () => setResetVisible(false) }} primaryAction={{ label: 'Reset simulator', variant: 'danger', onPress: () => { reset(definition.id); setResetVisible(false); setCliVisible(false); setCliLines([]); setDraft({}); setValidationError(undefined); } }} />
   </Screen>;
 }
 

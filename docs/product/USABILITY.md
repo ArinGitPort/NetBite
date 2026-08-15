@@ -49,3 +49,11 @@
 - Normal text must meet a 4.5:1 contrast ratio against its actual surface.
 - Test screens with large system font sizes before release.
 - Technical uppercase labels may remain compact; educational sentences remain sentence case.
+
+## Navigation and command consistency
+
+- Back and Close occupy the physical top-left safe area on phones, tablets, and web. They do not align to the center of a capped content column.
+- A task presents one primary action. Help, Reset, Save, Undo, history, and advanced inspection remain secondary or utility controls.
+- CLI labs begin with the objective, setup support, topology, and selected-device inspector. Opening a console is deliberate and always uses the shared full-screen CLI.
+- Closing a console returns to the same overview, device, transcript, evidence, and configuration state.
+- Routed topology cables display the derived network and prefix in a midpoint lane. Endpoint port labels stay beside their devices; addresses never return to device cards.

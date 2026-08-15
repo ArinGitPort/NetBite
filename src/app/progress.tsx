@@ -6,7 +6,7 @@ import { canAccessChapter } from '@/core/account/access';
 import { getActiveReviewQueue } from '@/core/learning/adaptive-learning';
 import { useAuth } from '@/features/account/auth-context';
 import { ActionCard } from '@/shared/components/action-card';
-import { IconButton } from '@/shared/components/icon-button';
+import { PageHeader } from '@/shared/components/page-header';
 import { ProgressBar } from '@/shared/components/progress-bar';
 import { Screen } from '@/shared/components/screen';
 import { Text } from '@/shared/components/console-text';
@@ -24,13 +24,12 @@ export default function ProgressScreen() {
   const savedCount = Object.values(state.savedLearningItems).filter((item) => !item.deletedAt).length;
   const learningProgress = state;
 
-  return <Screen>
-    <View style={styles.header}><IconButton accessibilityLabel="Back to learning path" icon="arrow-left" label="BACK / LEARN" onPress={returnToLearningPath} /></View>
+  return <Screen header={<PageHeader leading={{ accessibilityLabel: 'Back to learning path', icon: 'arrow-left', label: 'BACK / LEARN', onPress: returnToLearningPath }} />}>
     <Text variant="label" style={styles.eyebrow}>LEARNING STATUS</Text>
     <Text variant="screenTitle" style={styles.title}>PROGRESS & REVIEW</Text>
     <ActionCard badge={`${reviewQueue.length} DUE`} detail="Retry missed scenarios and difficult recall cards without a score." icon="flashcards" priority={reviewQueue.length ? 'primary' : 'secondary'} status="ADAPTIVE RECALL" title={reviewQueue.length ? 'REVIEW WEAK TOPICS' : 'REVIEW QUEUE CLEAR'} tone="learning" onPress={() => navigateOnce(AppRoutes.review)} />
     <View style={styles.utilityRow}>
-      <ActionCard badge={`${savedCount}`} detail="Bookmarks and personal notes." icon="lesson" priority="utility" status="SAVED" title="SAVED LEARNING" onPress={() => navigateOnce(AppRoutes.saved)} />
+      <ActionCard badge={`${savedCount}`} detail="Quick access to bookmarked learning sources." icon="lesson" priority="utility" status="SAVED" title="SAVED LEARNING" onPress={() => navigateOnce(AppRoutes.saved)} />
     </View>
     <Text variant="sectionHeading" style={styles.sectionTitle}>CHAPTER STATUS</Text>
     {chapters.filter((chapter) => accessible.has(chapter.id)).map((chapter) => {
@@ -52,7 +51,7 @@ export default function ProgressScreen() {
 }
 
 const styles = StyleSheet.create({
-  header: { minHeight: 44, marginBottom: Space.lg }, eyebrow: { color: Palette.orange }, title: { color: Palette.text, fontFamily: Fonts.semibold, marginVertical: Space.sm, marginBottom: Space.xl },
+  eyebrow: { color: Palette.orange }, title: { color: Palette.text, fontFamily: Fonts.semibold, marginVertical: Space.sm, marginBottom: Space.xl },
   utilityRow: { marginTop: Space.md }, sectionTitle: { color: Palette.text, fontFamily: Fonts.semibold, marginTop: Space.xxl, marginBottom: Space.md },
   chapterCard: { borderWidth: 1, borderColor: Palette.border, backgroundColor: Palette.surface, padding: Space.lg, gap: Space.sm, marginBottom: Space.md }, row: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: Space.sm }, chapterLabel: { color: Palette.accentBright }, chapterTitle: { color: Palette.text, textTransform: 'uppercase' }, muted: { color: Palette.textMuted }, success: { color: Palette.green }, history: { borderWidth: 1, borderColor: Palette.border, backgroundColor: Palette.surface }, historyRow: { flexDirection: 'row', gap: Space.md, padding: Space.md, borderBottomWidth: 1, borderBottomColor: Palette.border }, historyType: { color: Palette.orange, width: 88 }, historyCopy: { flex: 1, minWidth: 0 }, historyText: { color: Palette.text },
 });

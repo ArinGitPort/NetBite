@@ -26,6 +26,9 @@ It is not Cisco IOS, a terminal emulator, or a live packet simulator. Commands u
 - Tapping a CLI-enabled device selects its console. Fixed endpoints that are outside a lab's command scope remain inspectable without gaining unrelated commands.
 - The inspector shows current interfaces, addressing, routes, VLANs, trunks, MAC entries, and physical endpoints where relevant. Missing values are labeled `NOT CONFIGURED`.
 - The latest ping is shown as a color-independent forward/return path with a written result. Configuration changes, Undo, scenario changes, and Reset clear stale path evidence.
+- Each lab uses an authored network diagram rather than evenly distributing devices: routing and diagnostics follow the left-to-right path, VLAN endpoints branch from their switches, and router-on-a-stick keeps the router above the switch.
+- A narrow screen pans the readable fixed-size diagram horizontally and centers the selected device. The surrounding lab page continues to scroll vertically.
+- Every cable shows its two modeled interface names. Detailed subnet, VLAN, trunk, and mismatch context remains available on demand through `LINK DETAILS` instead of cluttering the diagram.
 - Devices and links cannot be moved or rewired. Free topology construction remains a Network Sandbox feature.
 
 ## Modes and prompts
@@ -109,3 +112,11 @@ A logical subinterface has no independent cable. Its operational state depends o
 Unfinished CLI state is intentionally session-only. Existing lab completion persists, along with the `cli-guide-v1` acknowledgement represented by the store’s `cliGuideSeen` flag.
 
 Technical references and modeled boundaries are recorded in `references/CLI_SIMULATION_SOURCES.md`.
+
+## Console and topology presentation
+
+- Foundation CLI labs, Sandbox device consoles, and CLI-enabled Operations labs share one full-screen console shell.
+- The lab overview remains topology-first. Select a device, inspect its current state, then use `OPEN CLI` when configuration or evidence commands are needed.
+- Closing the console restores the exact overview and selected device without discarding transcript, history, hints, evidence, Undo state, or configuration.
+- Routed links derive subnet captions from the current endpoint addresses and prefixes. A correct link shows values such as `192.168.10.0/24`; addressed endpoints in different networks show `SUBNET MISMATCH`.
+- VLAN-only links retain endpoint port labels but omit IP captions. Current VLAN and trunk state remains available through the inspector and `LINK DETAILS`.

@@ -32,11 +32,80 @@ export interface CliDeviceState {
 }
 export interface CliLink { aDeviceId: string; aInterface: string; bDeviceId: string; bInterface: string }
 export interface CliNetworkState { devices: CliDeviceState[]; links: CliLink[] }
+export type CliLinkContextKind = 'network' | 'mismatch' | 'vlan' | 'trunk' | 'operational' | 'ethernet';
+export interface CliLinkContext {
+  kind: CliLinkContextKind;
+  label: string;
+  tone: 'normal' | 'success' | 'warning';
+  networkLabel?: string;
+}
 export interface CliLabDefinition {
   id: string;
   chapterId: string;
   title: string;
   createState: () => CliNetworkState;
+}
+
+function linkedInterface(state: CliNetworkState, deviceId: string, interfaceName: string) {
+  const device = state.devices.find((item) => item.id === deviceId);
+  return { device, interfaceState: device?.interfaces.find((item) => item.name === interfaceName) };
+}
+
+export function deriveCliLinkContext(state: CliNetworkState, link: CliLink): CliLinkContext {
+  const a = linkedInterface(state, link.aDeviceId, link.aInterface);
+  const b = linkedInterface(state, link.bDeviceId, link.bInterface);
+  if (!a.interfaceState || !b.interfaceState) return { kind: 'operational', label: 'INTERFACE NOT FOUND', tone: 'warning' };
+
+  let routedContext: CliLinkContext | undefined;
+  if (a.interfaceState.ipv4 && a.interfaceState.prefix !== undefined && b.interfaceState.ipv4 && b.interfaceState.prefix !== undefined) {
+    const aRange = calculateSubnetRange(a.interfaceState.ipv4, a.interfaceState.prefix);
+    const bRange = calculateSubnetRange(b.interfaceState.ipv4, b.interfaceState.prefix);
+    routedContext = aRange && bRange && aRange.network === bRange.network && a.interfaceState.prefix === b.interfaceState.prefix
+      ? { kind: 'network', label: `${aRange.network}/${a.interfaceState.prefix}`, tone: 'normal' }
+      : { kind: 'mismatch', label: 'SUBNET MISMATCH', tone: 'warning' };
+  }
+
+  if (![a.interfaceState, b.interfaceState].every((item) => item.adminUp && item.linkUp)) {
+    return { kind: 'operational', label: 'LINK DOWN', networkLabel: routedContext?.kind === 'network' ? routedContext.label : undefined, tone: 'warning' };
+  }
+
+  if (routedContext) return routedContext;
+
+  const switchEndpoints = [a, b].filter((item) => item.device?.type === 'switch');
+  if (switchEndpoints.length === 2) {
+    const [left, right] = switchEndpoints.map((item) => item.interfaceState!);
+    if (left.switchportMode !== 'trunk' || right.switchportMode !== 'trunk') return { kind: 'trunk', label: 'NOT TRUNKED', tone: 'warning' };
+    const rightVlans = new Set(right.allowedVlans ?? []);
+    const commonVlans = [...new Set(left.allowedVlans ?? [])].filter((vlan) => rightVlans.has(vlan)).sort((x, y) => x - y);
+    return commonVlans.length
+      ? { kind: 'trunk', label: `TRUNK / VLAN ${commonVlans.join(',')}`, tone: 'success' }
+      : { kind: 'trunk', label: 'NO COMMON VLANs', tone: 'warning' };
+  }
+
+  const switchEndpoint = switchEndpoints[0];
+  if (switchEndpoint) {
+    const port = switchEndpoint.interfaceState!;
+    const otherEndpoint = switchEndpoint === a ? b : a;
+    if (otherEndpoint.device?.type === 'router') {
+      if (port.switchportMode !== 'trunk') return { kind: 'trunk', label: 'NOT TRUNKED', tone: 'warning' };
+      const routerVlans = otherEndpoint.device.interfaces
+        .filter((item) => item.parentInterface === otherEndpoint.interfaceState?.name && item.encapsulationVlan !== undefined)
+        .map((item) => item.encapsulationVlan!);
+      const routerVlanSet = new Set(routerVlans);
+      const commonVlans = [...new Set(port.allowedVlans ?? [])].filter((vlan) => routerVlanSet.has(vlan)).sort((x, y) => x - y);
+      return commonVlans.length
+        ? { kind: 'trunk', label: `TRUNK / VLAN ${commonVlans.join(',')}`, tone: 'success' }
+        : { kind: 'trunk', label: 'NO COMMON VLANs', tone: 'warning' };
+    }
+    if (port.switchportMode === 'trunk') {
+      return port.allowedVlans?.length
+        ? { kind: 'trunk', label: `TRUNK / VLAN ${[...new Set(port.allowedVlans)].sort((x, y) => x - y).join(',')}`, tone: 'success' }
+        : { kind: 'trunk', label: 'TRUNK / NO VLANs', tone: 'warning' };
+    }
+    return { kind: 'vlan', label: `ACCESS / VLAN ${port.accessVlan ?? 1}`, tone: 'normal' };
+  }
+
+  return { kind: 'ethernet', label: 'ETHERNET LINK', tone: 'normal' };
 }
 
 export type CliCommand =

@@ -29,6 +29,21 @@ export const Palette = {
   line: '#3A3F3D',
 } as const;
 
+// Educational diagrams occasionally need additional semantic hues to keep
+// protocol fields and model layers distinguishable. Keeping them separate
+// prevents those colors from becoming ordinary application chrome.
+export const DiagramPalette = {
+  neutral: { border: '#62666A', fill: '#303136', text: '#E0DEE0' },
+  red: { border: '#A24B52', fill: '#4A292E', text: '#F1DADB' },
+  orange: { border: '#B77449', fill: '#4A3326', text: '#F0DDCF' },
+  sage: { border: '#71958B', fill: '#263C38', text: '#D7E6E2' },
+  blue: { border: '#6689A3', fill: '#273A49', text: '#D9E7F0' },
+  violet: { border: '#8E77A0', fill: '#392E41', text: '#E8DDED' },
+  gold: { border: '#A28C54', fill: '#443B26', text: '#EDE4CC' },
+} as const;
+
+export type DiagramTone = keyof typeof DiagramPalette;
+
 export const Space = {
   xs: 8,
   sm: 8,

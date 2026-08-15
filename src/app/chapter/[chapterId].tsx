@@ -14,7 +14,7 @@ import { AppIcon } from '@/shared/components/app-icon';
 import { SemanticIcon, type SemanticIconName } from '@/shared/components/semantic-icon';
 import { ContentNotFound } from '@/shared/components/content-not-found';
 import { Text } from '@/shared/components/console-text';
-import { IconButton } from '@/shared/components/icon-button';
+import { PageHeader } from '@/shared/components/page-header';
 import { ProgressBar } from '@/shared/components/progress-bar';
 import { Screen } from '@/shared/components/screen';
 import { Fonts, Palette, Radius, Space } from '@/shared/theme';
@@ -68,7 +68,7 @@ export default function ChapterScreen() {
 
   if (!chapter) return <ContentNotFound label="Chapter" />;
   if (!canAccessChapter(chapter.id, hasContentAccess)) return <PremiumLockedScreen label={`CHAPTER ${chapter.numberLabel}`} />;
-  if (!canOpenChapter(chapter, progress, accessBypass)) return <Screen><Text variant="label" style={styles.chapterLabel}>MODULE LOCKED</Text><Text variant="screenTitle" style={styles.title}>{chapter.title}</Text><Text variant="body" style={styles.subtitle}>{getChapterLockReason(chapter, progress)}</Text><AppButton label="Open requirement" onPress={() => router.replace(chapter.courseId === 'network-operations' ? AppRoutes.readiness : AppRoutes.courses)} /><AppButton label="Course library" variant="secondary" onPress={() => router.replace(AppRoutes.courses)} /></Screen>;
+  if (!canOpenChapter(chapter, progress, accessBypass)) return <Screen header={<PageHeader leading={{ accessibilityLabel: 'Back to course library', icon: 'arrow-left', label: 'BACK / COURSES', onPress: () => router.replace(AppRoutes.courses) }} />}><Text variant="label" style={styles.chapterLabel}>MODULE LOCKED</Text><Text variant="screenTitle" style={styles.title}>{chapter.title}</Text><Text variant="body" style={styles.subtitle}>{getChapterLockReason(chapter, progress)}</Text><AppButton label="Open requirement" onPress={() => router.replace(chapter.courseId === 'network-operations' ? AppRoutes.readiness : AppRoutes.courses)} /><AppButton label="Course library" variant="secondary" onPress={() => router.replace(AppRoutes.courses)} /></Screen>;
   const { completed, total } = getChapterProgress(chapter, progress);
   const labComplete = completedLabIds.includes(chapter.lab.id);
   const quizScore = quizScores[chapter.id];
@@ -77,23 +77,20 @@ export default function ChapterScreen() {
   const quizDetail = quizScore === undefined
     ? `${chapter.quiz.length} beginner questions`
     : !quizVersionCurrent
-      ? `Content updated â€¢ retake ${chapter.quiz.length} questions`
+      ? `Content updated • retake ${chapter.quiz.length} questions`
     : quizMastered
-      ? `Mastered â€¢ ${quizScore}/${chapter.quiz.length}`
-      : `Attempted â€¢ ${quizScore}/${chapter.quiz.length} â€¢ Reach ${getQuizMasteryScore(chapter)}/${chapter.quiz.length}`;
+      ? `Mastered • ${quizScore}/${chapter.quiz.length}`
+      : `Attempted • ${quizScore}/${chapter.quiz.length} • Reach ${getQuizMasteryScore(chapter)}/${chapter.quiz.length}`;
   const flashcardsReviewed = isFlashcardsReviewed(chapter, progress);
   const flashcardsPreviouslyReviewed = reviewedFlashcardChapterIds.includes(chapter.id);
   const flashcardDetail = flashcardsPreviouslyReviewed && !flashcardsReviewed
-    ? `Content updated â€¢ review ${chapter.flashcards.length} cards`
+    ? `Content updated • review ${chapter.flashcards.length} cards`
     : `${chapter.flashcards.length} cards`;
   const chapterComplete = completed === total;
   const nextActivity = getNextChapterActivity(chapter, progress);
 
   return (
-    <Screen>
-      <View style={styles.back}>
-        <IconButton accessibilityLabel="Back to learning path" icon="arrow-left" label="BACK / LEARN" onPress={() => router.dismissTo({ pathname: '/learn', params: { courseId: chapter.courseId ?? 'network-foundations' } })} />
-      </View>
+    <Screen header={<PageHeader leading={{ accessibilityLabel: 'Back to learning path', icon: 'arrow-left', label: 'BACK / LEARN', onPress: () => router.dismissTo({ pathname: '/learn', params: { courseId: chapter.courseId ?? 'network-foundations' } }) }} />}>
       <View style={styles.hero}>
         <Text variant="label" style={styles.chapterLabel}>CHAPTER {chapter.numberLabel}</Text>
         <Text variant="screenTitle" style={styles.title}>{chapter.title}</Text>

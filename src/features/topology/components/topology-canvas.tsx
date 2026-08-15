@@ -6,7 +6,6 @@ import Animated, {
   cancelAnimation,
   useAnimatedStyle,
   useSharedValue,
-  withDelay,
   withSequence,
   withTiming,
 } from 'react-native-reanimated';
@@ -26,7 +25,8 @@ import { useGameStore } from '@/store/use-game-store';
 const NODE_SIZE = 88;
 const CANVAS_HEIGHT = 350;
 const PACKET_SIZE = 48;
-const PACKET_LEG_DURATION = 700;
+const PACKET_LEG_DURATION = 850;
+const PACKET_DESTINATION_DWELL = 700;
 const MAX_DEVICES = 12;
 
 interface DraggableDeviceProps {
@@ -142,7 +142,6 @@ export function TopologyCanvas({ connectionMode }: TopologyCanvasProps) {
   const reducedMotion = useAppReducedMotion();
   const packetX = useSharedValue(0);
   const packetY = useSharedValue(0);
-  const packetOpacity = useSharedValue(0);
 
   const findDevice = useCallback(
     (id: string) => topology.devices.find((device) => device.id === id),
@@ -166,9 +165,16 @@ export function TopologyCanvas({ connectionMode }: TopologyCanvasProps) {
     ? selectedPacketDestinationId
     : packetDestinations[0]?.id;
   const packetPath = findPacketDemoPath(topology, packetSourceId, packetDestinationId);
+  const queuedPacketPosition = packetPath
+    ? {
+        x: packetPath.source.position.x + NODE_SIZE / 2 +
+          (packetPath.intermediary.position.x - packetPath.source.position.x) * 0.28 - PACKET_SIZE / 2,
+        y: packetPath.source.position.y + NODE_SIZE / 2 +
+          (packetPath.intermediary.position.y - packetPath.source.position.y) * 0.28 - PACKET_SIZE / 2,
+      }
+    : undefined;
 
   const packetStyle = useAnimatedStyle(() => ({
-    opacity: packetOpacity.value,
     transform: [{ translateX: packetX.value }, { translateY: packetY.value }],
   }));
 
@@ -275,10 +281,9 @@ export function TopologyCanvas({ connectionMode }: TopologyCanvasProps) {
 
     cancelAnimation(packetX);
     cancelAnimation(packetY);
-    cancelAnimation(packetOpacity);
     packetX.set(source.x);
     packetY.set(source.y);
-    packetOpacity.set(1);
+    setPacketStage('sending');
     packetX.set(withSequence(
       withTiming(intermediary.x, { duration: legDuration }),
       withTiming(destination.x, { duration: legDuration }),
@@ -287,23 +292,23 @@ export function TopologyCanvas({ connectionMode }: TopologyCanvasProps) {
       withTiming(intermediary.y, { duration: legDuration }),
       withTiming(destination.y, { duration: legDuration }),
     ));
-    packetOpacity.set(withDelay(legDuration * 2, withTiming(0, { duration: reducedMotion ? 0 : 150 })));
-
     if (reducedMotion) {
+      packetX.set(destination.x);
+      packetY.set(destination.y);
       setPacketStage('received');
       successHaptic();
-      packetTimers.current = [setTimeout(() => setPacketStage('idle'), 900)];
+      packetTimers.current = [setTimeout(() => {
+        setPacketStage('idle');
+      }, 1200)];
       return;
     }
-
-    setPacketStage('sending');
     packetTimers.current = [
       setTimeout(() => setPacketStage('forwarding'), PACKET_LEG_DURATION),
       setTimeout(() => {
         setPacketStage('received');
         successHaptic();
       }, PACKET_LEG_DURATION * 2),
-      setTimeout(() => setPacketStage('idle'), PACKET_LEG_DURATION * 2 + 900),
+      setTimeout(() => setPacketStage('idle'), PACKET_LEG_DURATION * 2 + PACKET_DESTINATION_DWELL + 300),
     ];
   };
 
@@ -320,8 +325,6 @@ export function TopologyCanvas({ connectionMode }: TopologyCanvasProps) {
   const choosePacketSource = (sourceId: string) => {
     cancelAnimation(packetX);
     cancelAnimation(packetY);
-    cancelAnimation(packetOpacity);
-    packetOpacity.set(0);
     setSelectedPacketSourceId(sourceId);
     const destinationStillReachable = selectedPacketDestinationId &&
       findPacketDemoPath(topology, sourceId, selectedPacketDestinationId);
@@ -334,8 +337,6 @@ export function TopologyCanvas({ connectionMode }: TopologyCanvasProps) {
   const choosePacketDestination = (destinationId: string) => {
     cancelAnimation(packetX);
     cancelAnimation(packetY);
-    cancelAnimation(packetOpacity);
-    packetOpacity.set(0);
     setSelectedPacketDestinationId(destinationId);
     setPacketStage('idle');
     clearPacketTimers();
@@ -405,14 +406,35 @@ export function TopologyCanvas({ connectionMode }: TopologyCanvasProps) {
             onSelect={selectDeviceForActions}
           />
         ))}
-        <Animated.View accessible={false} style={[styles.packet, styles.noPointerEvents, packetStyle]}>
-          <Image
-            accessible={false}
-            contentFit="contain"
-            source={require('@/assets/images/packets/packet-mobile.png')}
-            style={styles.packetImage}
-          />
-        </Animated.View>
+        {packetPath && packetStage === 'idle' && queuedPacketPosition ? (
+          <View
+            accessible
+            accessibilityLabel={`Demo packet ready to travel from ${packetPath.source.name} through ${packetPath.intermediary.name} to ${packetPath.destination.name}.`}
+            style={[
+              styles.packet,
+              styles.packetReady,
+              styles.noPointerEvents,
+              { transform: [{ translateX: queuedPacketPosition.x }, { translateY: queuedPacketPosition.y }] },
+            ]}
+            testID="ready-demo-packet">
+            <Image
+              accessible={false}
+              contentFit="contain"
+              source={require('@/assets/images/packets/packet-mobile.png')}
+              style={styles.packetImage}
+            />
+          </View>
+        ) : null}
+        {packetStage !== 'idle' ? (
+          <Animated.View accessible={false} style={[styles.packet, styles.noPointerEvents, packetStyle]} testID="moving-demo-packet">
+            <Image
+              accessible={false}
+              contentFit="contain"
+              source={require('@/assets/images/packets/packet-mobile.png')}
+              style={styles.packetImage}
+            />
+          </Animated.View>
+        ) : null}
       </View>
 
       <Text variant="label" style={styles.canvasHint}>Tap a device or cable to select it. Drag devices to arrange the network.</Text>
@@ -441,7 +463,13 @@ export function TopologyCanvas({ connectionMode }: TopologyCanvasProps) {
       ) : null}
 
       <View style={styles.packetDemo}>
-        <Text variant="label" style={styles.packetDemoLabel}>MESSAGE PATH DEMO</Text>
+        <View style={styles.packetDemoHeading}>
+          <Image accessible={false} contentFit="contain" source={require('@/assets/images/packets/packet-mobile.png')} style={styles.packetPreview} testID="demo-packet-preview" />
+          <View style={styles.packetDemoHeadingCopy}>
+            <Text variant="label" style={styles.packetDemoLabel}>DEMO PACKET TOKEN</Text>
+            <Text variant="technical" style={styles.packetDemoNote}>THE TOKEN MOVES ON THE CANVAS WHEN SENT.</Text>
+          </View>
+        </View>
         <Text variant="technical" style={styles.packetDemoNote}>A CONCEPTUAL PATH ONLY. ETHERNET FRAMES BEGIN IN CHAPTER 2.</Text>
         <Text variant="label" accessibilityLiveRegion="polite" style={[styles.packetDemoCopy, packetStage !== 'idle' && styles.packetStageActive]}>{packetStageCopy}</Text>
         {packetPCs.length > 2 ? (
@@ -534,7 +562,20 @@ const styles = StyleSheet.create({
   node: { flex: 1, borderRadius: Radius.md, backgroundColor: Palette.surfaceRaised, borderWidth: 1, borderColor: Palette.border, alignItems: 'center', justifyContent: 'center', gap: Space.sm },
   selectedConnectionNode: { borderWidth: 2, borderColor: Palette.orange, backgroundColor: Palette.orangeSoft },
   selectedNode: { borderWidth: 2, borderColor: Palette.accent, backgroundColor: Palette.accentSoft },
-  packet: { position: 'absolute', left: 0, top: 0, width: PACKET_SIZE, height: PACKET_SIZE, zIndex: 3 },
+  packet: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    width: PACKET_SIZE,
+    height: PACKET_SIZE,
+    zIndex: 20,
+    elevation: 8,
+    padding: 3,
+    backgroundColor: Palette.background,
+    borderWidth: 1,
+    borderColor: Palette.orange,
+  },
+  packetReady: { borderStyle: 'dashed' },
   noPointerEvents: { pointerEvents: 'none' },
   packetImage: { width: '100%', height: '100%' },
   nodeLabel: { width: '100%', textAlign: 'center', color: Palette.text, fontFamily: Fonts.medium, textTransform: 'uppercase', paddingHorizontal: Space.xs },
@@ -544,6 +585,9 @@ const styles = StyleSheet.create({
   selectionLabel: { color: Palette.accentBright, fontFamily: Fonts.medium },
   selectionDescription: { color: Palette.text },
   packetDemo: { gap: Space.sm, marginTop: Space.lg, padding: Space.md, backgroundColor: Palette.surface, borderWidth: 1, borderColor: Palette.border },
+  packetDemoHeading: { minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: Space.sm },
+  packetDemoHeadingCopy: { minWidth: 0, flex: 1 },
+  packetPreview: { width: 44, height: 44 },
   packetDemoLabel: { color: Palette.orange, fontFamily: Fonts.medium },
   packetDemoNote: { color: Palette.textMuted },
   packetDemoCopy: { color: Palette.textMuted, textTransform: 'uppercase' },

@@ -2,7 +2,11 @@
 
 ## API purpose
 
-NetBite’s **Network Standards** screen connects lessons to official standards metadata. It retrieves public RFC information from the Internet Engineering Task Force (IETF) Datatracker, then presents the result in a readable mobile interface.
+The **Internet Engineering Task Force (IETF)** is an international technical community that develops and publishes many of the specifications used by internet technologies. These technical documents are commonly published as **Requests for Comments (RFCs)**. For example, RFC 826 documents ARP, RFC 2131 documents DHCP, and RFC 9293 specifies TCP.
+
+NetBite’s **Network Standards** screen connects lessons to these official documents. The IETF Datatracker API returns information about an RFC: its number, title, authors, abstract, publication state, standard level, page count, publication history, and official link. NetBite validates the returned JSON and formats it as a readable reference.
+
+The API does not create the lesson explanation and does not operate the simulator. NetBite supplies the beginner-friendly teaching, while the API gives learners and instructors an authoritative record that can be used to verify the topic’s official source. It therefore provides more than a citation without attempting to reproduce the complete RFC.
 
 The integration uses no API key, Supabase session, or Pro entitlement.
 

@@ -1,13 +1,31 @@
 import { router } from 'expo-router';
-import { useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
-import type { ChapterDefinition } from '@/content/types';
-import { AppButton } from '@/shared/components/app-button';
+import { getChapterByLabId } from '@/content/chapters';
 import { Text } from '@/shared/components/console-text';
+import { DisclosureSection } from '@/shared/components/disclosure-section';
 import { lessonRoute } from '@/shared/routes';
+import { NumberedStepRow, StatusRow } from '@/shared/components/status-row';
 import { Fonts, Palette, Space } from '@/shared/theme';
+
+export const labSetupSupportIds = [
+  'first-network',
+  'ethernet-cables',
+  'switch-decision-desk',
+  'ipv4-configurator',
+  'subnet-range-desk',
+  'gateway-forwarding-desk',
+  'arp-resolution-desk',
+  'ping-diagnostic-desk',
+  'static-route-board',
+  'vlan-port-desk',
+  'layer-sorting-desk',
+  'inter-vlan-routing-desk',
+  'transport-service-desk',
+] as const;
+
+const supportedLabIds = new Set<string>(labSetupSupportIds);
 
 const authoredFacts: Record<string, string[]> = {
   'first-network': ['Two PCs need separate links to the same switch.', 'A router is not required for this one-LAN task.'],
@@ -25,44 +43,32 @@ const authoredFacts: Record<string, string[]> = {
   'transport-service-desk': ['Hosts process transport ports; the intermediate router forwards using IP information.', 'TCP establishes state before this exercise sends application data.'],
 };
 
-export function FoundationLabSupport({ chapter, labId }: { chapter: ChapterDefinition; labId: string }) {
-  const [visible, setVisible] = useState(false);
-  const lessonIds = useMemo(() => chapter.lessons.slice(0, Math.min(4, chapter.lessons.length)).map(({ id }) => id), [chapter.lessons]);
+export function LabSetupSupport({ labId }: { labId: string }) {
+  if (!supportedLabIds.has(labId)) return null;
+  const chapter = getChapterByLabId(labId);
+  if (!chapter) return null;
+  const lessonIds = chapter.lessons.slice(0, Math.min(4, chapter.lessons.length)).map(({ id }) => id);
   const facts = authoredFacts[labId] ?? [chapter.lab.detail, 'Use the current objective, supplied values, and resulting evidence in that order.'];
 
-  return <>
-    <View style={styles.bar}>
-      <Text variant="bodySmall" style={styles.barCopy}>Need the method or supplied facts?</Text>
-      <AppButton label="Learn the setup" variant="utility" onPress={() => setVisible(true)} />
-    </View>
-    <Modal animationType="fade" onRequestClose={() => setVisible(false)} transparent visible={visible}>
-      <View style={styles.backdrop}>
-        <View accessibilityViewIsModal style={styles.panel}>
-          <ScrollView contentContainerStyle={styles.content}>
-            <Text variant="label" style={styles.orange}>LEARN THE SETUP</Text>
-            <Text variant="screenTitle">{chapter.lab.title}</Text>
-            <Group label="GOAL"><Text variant="body">{chapter.lab.detail}</Text></Group>
-            <Group label="STARTING FACTS">{facts.map((fact) => <Text key={fact} variant="bodySmall">• {fact}</Text>)}</Group>
-            <Group label="WORKED METHOD">
-              <Text variant="bodySmall">1. Read every supplied address, port, VLAN, or device role before entering anything.</Text>
-              <Text variant="bodySmall">2. Apply the lesson rule to one device decision at a time.</Text>
-              <Text variant="bodySmall">3. Save or submit once, then inspect the table, trace, or validation message.</Text>
-              <Text variant="bodySmall">4. Correct only the value contradicted by the evidence.</Text>
-            </Group>
-            <Group label="TASK CHECKLIST">
-              <Text variant="bodySmall">[ ] Identify the device making the decision.</Text>
-              <Text variant="bodySmall">[ ] Use the complete supplied values and accepted format.</Text>
-              <Text variant="bodySmall">[ ] Run the check and explain what the result proves.</Text>
-            </Group>
-            <Group label="REVIEW THE LESSONS">
-              <View style={styles.links}>{lessonIds.map((lessonId) => <Pressable key={lessonId} accessibilityRole="link" accessibilityHint="Returns to this lab when you leave the lesson" onPress={() => { setVisible(false); router.push(lessonRoute(lessonId, { fromLabId: labId })); }} style={styles.link}><Text variant="label">OPEN {lessonId.replaceAll('-', ' ').toUpperCase()}</Text></Pressable>)}</View>
-            </Group>
-            <AppButton label="Return to lab" onPress={() => setVisible(false)} />
-          </ScrollView>
-        </View>
-      </View>
-    </Modal>
-  </>;
+  return <DisclosureSection title="LEARN THE SETUP" summary="Goal, supplied facts, worked method, and prerequisite lessons.">
+    <Text variant="sectionHeading">{chapter.lab.title}</Text>
+    <Group label="GOAL"><Text variant="body">{chapter.lab.detail}</Text></Group>
+    <Group label="STARTING FACTS">{facts.map((fact) => <StatusRow key={fact} label={fact} state="info" variant="bodySmall" showStateLabel={false} />)}</Group>
+    <Group label="WORKED METHOD">
+      <Text variant="bodySmall">1. Read every supplied address, port, VLAN, or device role before entering anything.</Text>
+      <Text variant="bodySmall">2. Apply the lesson rule to one device decision at a time.</Text>
+      <Text variant="bodySmall">3. Save or submit once, then inspect the table, trace, or validation message.</Text>
+      <Text variant="bodySmall">4. Correct only the value contradicted by the evidence.</Text>
+    </Group>
+    <Group label="TASK CHECKLIST">
+      <NumberedStepRow number={1}>Identify the device making the decision.</NumberedStepRow>
+      <NumberedStepRow number={2}>Use the complete supplied values and accepted format.</NumberedStepRow>
+      <NumberedStepRow number={3}>Run the check and explain what the result proves.</NumberedStepRow>
+    </Group>
+    <Group label="REVIEW THE LESSONS">
+      <View style={styles.links}>{lessonIds.map((lessonId) => <Pressable key={lessonId} accessibilityRole="link" accessibilityHint="Returns to this lab when you leave the lesson" onPress={() => router.push(lessonRoute(lessonId, { fromLabId: labId }))} style={styles.link}><Text variant="label">OPEN {lessonId.replaceAll('-', ' ').toUpperCase()}</Text></Pressable>)}</View>
+    </Group>
+  </DisclosureSection>;
 }
 
 function Group({ label, children }: { label: string; children: ReactNode }) {
@@ -70,13 +76,7 @@ function Group({ label, children }: { label: string; children: ReactNode }) {
 }
 
 const styles = StyleSheet.create({
-  bar: { minHeight: 52, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: Space.sm, paddingHorizontal: Space.lg, paddingVertical: Space.xs, borderBottomWidth: 1, borderBottomColor: Palette.border, backgroundColor: Palette.surface },
-  barCopy: { color: Palette.textMuted, flexShrink: 1 },
-  backdrop: { flex: 1, justifyContent: 'center', padding: Space.lg, backgroundColor: 'rgba(0,0,0,0.78)' },
-  panel: { width: '100%', maxWidth: 720, maxHeight: '90%', alignSelf: 'center', borderWidth: 1, borderColor: Palette.orange, backgroundColor: Palette.background },
-  content: { gap: Space.lg, padding: Space.lg },
   group: { gap: Space.sm, borderTopWidth: 1, borderTopColor: Palette.border, paddingTop: Space.md },
-  orange: { color: Palette.orange, fontFamily: Fonts.semibold },
   green: { color: Palette.green, fontFamily: Fonts.semibold },
   links: { gap: Space.sm },
   link: { minHeight: 44, justifyContent: 'center', borderWidth: 1, borderColor: Palette.border, padding: Space.md },

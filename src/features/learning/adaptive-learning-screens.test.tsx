@@ -33,11 +33,22 @@ describe('adaptive learning screens', () => {
     expect(screen.getByText('NO WEAK TOPICS DUE')).toBeTruthy();
   });
 
-  test('requires confirmation before removing a saved item with a note', async () => {
+  test('shows source context and confirms every bookmark removal without note fields', async () => {
     useGameStore.getState().saveLearningItem({ targetType: 'lesson', targetId: 'network-definition', chapterId: '1', title: 'What is a network?', note: 'Personal note' });
     const screen = await render(<SavedScreen />);
-    await fireEvent.press(screen.getByText('Remove saved item'));
-    expect(screen.getByText('Remove this saved item?')).toBeTruthy();
-    expect(screen.getByText(/personal note will be deleted/i)).toBeTruthy();
+    expect(screen.getByText('FOUNDATIONS / CHAPTER 01')).toBeTruthy();
+    expect(screen.queryByPlaceholderText('ADD A SHORT PERSONAL NOTE')).toBeNull();
+    await fireEvent.press(screen.getByText('Remove bookmark'));
+    expect(screen.getByText('Remove “What is a network?”?')).toBeTruthy();
+    expect(screen.getByText(/lesson completion and review progress will not change/i)).toBeTruthy();
+  });
+
+  test('keeps protected bulk clearing available from the fixed header', async () => {
+    useGameStore.getState().saveLearningItem({ targetType: 'lesson', targetId: 'network-definition', chapterId: '1', title: 'What is a network?', note: '' });
+    const screen = await render(<SavedScreen />);
+    expect(screen.queryByText('Clear all bookmarks')).toBeNull();
+    await fireEvent.press(screen.getByRole('button', { name: 'Manage saved bookmarks' }));
+    expect(screen.getByText('Clear all bookmarks')).toBeTruthy();
+    expect(screen.getByText(/clears 1 saved bookmark only/i)).toBeTruthy();
   });
 });

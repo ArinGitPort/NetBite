@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
 import { gameStorage } from '@/store/game-storage';
-import { appendActivity, tombstoneSavedLearningItem, updateReviewSignals, upsertSavedLearningItem, type ActivityEvent, type ReviewResultInput, type ReviewSignal, type SavedLearningItem } from '@/core/learning/adaptive-learning';
+import { appendActivity, migrateIllustrationBookmarks, tombstoneSavedLearningItem, updateReviewSignals, upsertSavedLearningItem, type ActivityEvent, type ReviewResultInput, type ReviewSignal, type SavedLearningItem } from '@/core/learning/adaptive-learning';
 import type { CourseAchievement, CourseId } from '@/content/types';
 
 import {
@@ -30,6 +30,7 @@ export interface GameState {
   reviewedFlashcardChapterIds: string[];
   flashcardContentVersions: Record<string, number>;
   flashcardPositions: Record<string, number>;
+  flashcardStudySessions: Record<string, FlashcardStudySession>;
   completedLabIds: string[];
   readinessScores: Record<string, number>;
   completedCapstoneIds: string[];
@@ -55,6 +56,8 @@ export interface GameState {
   markFlashcardsReviewed: (chapterId: string, contentVersion: number) => void;
   saveFlashcardPosition: (chapterId: string, index: number) => void;
   clearFlashcardPosition: (chapterId: string) => void;
+  saveFlashcardStudySession: (chapterId: string, contentVersion: number, studiedCardIds: string[]) => void;
+  clearFlashcardStudySession: (chapterId: string) => void;
   completeLab: (labId: string) => void;
   saveReadinessScore: (courseId: string, score: number) => void;
   completeCapstone: (capstoneId: string) => void;
@@ -67,6 +70,11 @@ export interface GameState {
   setHapticsEnabled: (enabled: boolean) => void;
   setMotionPreference: (preference: 'system' | 'reduced') => void;
   resetLearningProgress: () => void;
+}
+
+export interface FlashcardStudySession {
+  contentVersion: number;
+  studiedCardIds: string[];
 }
 
 function buildDevice(type: DeviceType, name: string, position: Position): DeviceNode {
@@ -92,6 +100,7 @@ export const useGameStore = create<GameState>()(persist((set, get) => ({
   reviewedFlashcardChapterIds: [],
   flashcardContentVersions: {},
   flashcardPositions: {},
+  flashcardStudySessions: {},
   completedLabIds: [],
   readinessScores: {},
   completedCapstoneIds: [],
@@ -243,6 +252,17 @@ export const useGameStore = create<GameState>()(persist((set, get) => ({
     delete flashcardPositions[chapterId];
     return { flashcardPositions };
   }),
+  saveFlashcardStudySession: (chapterId, contentVersion, studiedCardIds) => set((state) => ({
+    flashcardStudySessions: {
+      ...state.flashcardStudySessions,
+      [chapterId]: { contentVersion, studiedCardIds: [...new Set(studiedCardIds)] },
+    },
+  })),
+  clearFlashcardStudySession: (chapterId) => set((state) => {
+    const flashcardStudySessions = { ...state.flashcardStudySessions };
+    delete flashcardStudySessions[chapterId];
+    return { flashcardStudySessions };
+  }),
   completeLab: (labId) => set((state) => ({
     completedLabIds: state.completedLabIds.includes(labId)
       ? state.completedLabIds
@@ -282,6 +302,7 @@ export const useGameStore = create<GameState>()(persist((set, get) => ({
     reviewedFlashcardChapterIds: [],
     flashcardContentVersions: {},
     flashcardPositions: {},
+    flashcardStudySessions: {},
     completedLabIds: [],
     reviewSignals: {},
     activityHistory: [],
@@ -292,7 +313,7 @@ export const useGameStore = create<GameState>()(persist((set, get) => ({
 }), {
   name: 'netbite-game-state-v1',
   storage: createJSONStorage(() => gameStorage),
-  version: 8,
+  version: 10,
   skipHydration: true,
   partialize: (state) => ({
     topology: state.topology,
@@ -303,6 +324,7 @@ export const useGameStore = create<GameState>()(persist((set, get) => ({
     reviewedFlashcardChapterIds: state.reviewedFlashcardChapterIds,
     flashcardContentVersions: state.flashcardContentVersions,
     flashcardPositions: state.flashcardPositions,
+    flashcardStudySessions: state.flashcardStudySessions,
     completedLabIds: state.completedLabIds,
     readinessScores: state.readinessScores,
     completedCapstoneIds: state.completedCapstoneIds,
@@ -335,13 +357,14 @@ export const useGameStore = create<GameState>()(persist((set, get) => ({
     return {
       ...migratedState,
       flashcardPositions: migratedState.flashcardPositions ?? {},
+      flashcardStudySessions: migratedState.flashcardStudySessions ?? {},
       quizContentVersions: migratedState.quizContentVersions ?? legacyQuizVersions,
       flashcardContentVersions: migratedState.flashcardContentVersions ?? legacyFlashcardVersions,
       cliGuideSeen: migratedState.cliGuideSeen ?? false,
       hapticsEnabled: migratedState.hapticsEnabled ?? true,
       motionPreference: migratedState.motionPreference ?? 'system',
       reviewSignals: migratedState.reviewSignals ?? {},
-      savedLearningItems: migratedState.savedLearningItems ?? {},
+      savedLearningItems: version < 9 ? migrateIllustrationBookmarks(migratedState.savedLearningItems ?? {}) : migratedState.savedLearningItems ?? {},
       activityHistory: migratedState.activityHistory ?? [],
       readinessScores: migratedState.readinessScores ?? {},
       completedCapstoneIds: migratedState.completedCapstoneIds ?? [],

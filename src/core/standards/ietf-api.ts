@@ -1,16 +1,16 @@
 export const RFC_REFERENCES = [
-  { id: 'rfc768', documentName: 'rfc768', rfcNumber: 'RFC 768', topic: 'UDP' },
-  { id: 'rfc791', documentName: 'rfc791', rfcNumber: 'RFC 791', topic: 'IPv4' },
-  { id: 'rfc792', documentName: 'rfc792', rfcNumber: 'RFC 792', topic: 'ICMP' },
-  { id: 'rfc826', documentName: 'rfc826', rfcNumber: 'RFC 826', topic: 'ARP' },
-  { id: 'rfc1034', documentName: 'rfc1034', rfcNumber: 'RFC 1034', topic: 'DNS concepts' },
-  { id: 'rfc1035', documentName: 'rfc1035', rfcNumber: 'RFC 1035', topic: 'DNS messages' },
-  { id: 'rfc1812', documentName: 'rfc1812', rfcNumber: 'RFC 1812', topic: 'IPv4 routers' },
-  { id: 'rfc2131', documentName: 'rfc2131', rfcNumber: 'RFC 2131', topic: 'DHCP' },
-  { id: 'rfc2328', documentName: 'rfc2328', rfcNumber: 'RFC 2328', topic: 'OSPFv2' },
-  { id: 'rfc4861', documentName: 'rfc4861', rfcNumber: 'RFC 4861', topic: 'IPv6 Neighbor Discovery' },
-  { id: 'rfc8200', documentName: 'rfc8200', rfcNumber: 'RFC 8200', topic: 'IPv6' },
-  { id: 'rfc9293', documentName: 'rfc9293', rfcNumber: 'RFC 9293', topic: 'TCP' },
+  { id: 'rfc768', documentName: 'rfc768', rfcNumber: 'RFC 768', topic: 'UDP', plainPurpose: 'Defines how UDP sends small messages between application ports without creating a TCP connection.' },
+  { id: 'rfc791', documentName: 'rfc791', rfcNumber: 'RFC 791', topic: 'IPv4', plainPurpose: 'Defines the IPv4 packet format and the addressing information routers use to forward traffic.' },
+  { id: 'rfc792', documentName: 'rfc792', rfcNumber: 'RFC 792', topic: 'ICMP', plainPurpose: 'Defines control messages such as the Echo Request and Echo Reply used by ping.' },
+  { id: 'rfc826', documentName: 'rfc826', rfcNumber: 'RFC 826', topic: 'ARP', plainPurpose: 'Explains how a device discovers the MAC address that belongs to a local IPv4 address.' },
+  { id: 'rfc1034', documentName: 'rfc1034', rfcNumber: 'RFC 1034', topic: 'DNS concepts', plainPurpose: 'Explains the DNS hierarchy and how names are resolved through DNS servers.' },
+  { id: 'rfc1035', documentName: 'rfc1035', rfcNumber: 'RFC 1035', topic: 'DNS messages', plainPurpose: 'Defines DNS message formats and common records used to answer name queries.' },
+  { id: 'rfc1812', documentName: 'rfc1812', rfcNumber: 'RFC 1812', topic: 'IPv4 routers', plainPurpose: 'Describes how IPv4 routers should inspect, forward, and report problems with packets.' },
+  { id: 'rfc2131', documentName: 'rfc2131', rfcNumber: 'RFC 2131', topic: 'DHCP', plainPurpose: 'Defines how a client can automatically receive an IPv4 address and other network settings.' },
+  { id: 'rfc2328', documentName: 'rfc2328', rfcNumber: 'RFC 2328', topic: 'OSPFv2', plainPurpose: 'Defines how OSPF routers share link information and calculate routes inside one routing system.' },
+  { id: 'rfc4861', documentName: 'rfc4861', rfcNumber: 'RFC 4861', topic: 'IPv6 Neighbor Discovery', plainPurpose: 'Explains how IPv6 devices discover neighbors and routers without using ARP.' },
+  { id: 'rfc8200', documentName: 'rfc8200', rfcNumber: 'RFC 8200', topic: 'IPv6', plainPurpose: 'Defines the main IPv6 packet format and how IPv6 packets are processed.' },
+  { id: 'rfc9293', documentName: 'rfc9293', rfcNumber: 'RFC 9293', topic: 'TCP', plainPurpose: 'Defines how TCP creates reliable, ordered communication between application endpoints.' },
 ] as const satisfies readonly RfcReference[];
 
 export interface RfcReference {
@@ -18,6 +18,7 @@ export interface RfcReference {
   documentName: string;
   rfcNumber: string;
   topic: string;
+  plainPurpose: string;
 }
 
 export interface RfcAuthor {

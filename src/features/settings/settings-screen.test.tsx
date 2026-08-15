@@ -52,4 +52,10 @@ describe('settings reliability controls', () => {
     await fireEvent.press(screen.getByText('Enable test access'));
     expect(mockAuthState.setTestProEnabled).toHaveBeenCalledWith(true);
   });
+
+  test('opens guidance manually without resetting guide state', async () => {
+    const screen = await render(<SettingsScreen />);
+    expect(screen.getByText('Open app guide')).toBeTruthy();
+    expect(screen.queryByText('Replay contextual guides')).toBeNull();
+  });
 });

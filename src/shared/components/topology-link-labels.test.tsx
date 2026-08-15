@@ -1,0 +1,70 @@
+import { render } from '@testing-library/react-native';
+import { StyleSheet } from 'react-native';
+
+import { calculateCableEndpointLabels, calculateCableMidpointLabel, getTopologyCaptionSize, getTopologyLabelSize, TopologyLinkLabels } from '@/shared/components/topology-link-labels';
+
+const bounds = { halfWidth: 50, halfHeight: 40 };
+
+describe('topology link labels', () => {
+  test('places horizontal labels outside both device bounds', () => {
+    const positions = calculateCableEndpointLabels({ x: 100, y: 100 }, { x: 400, y: 100 }, bounds, bounds);
+    expect(positions.from.x).toBeGreaterThan(150);
+    expect(positions.from.y).toBe(100);
+    expect(positions.to.x).toBeLessThan(350);
+    expect(positions.to.y).toBe(100);
+  });
+
+  test('places vertical labels outside both device bounds', () => {
+    const positions = calculateCableEndpointLabels({ x: 100, y: 100 }, { x: 100, y: 400 }, bounds, bounds);
+    expect(positions.from.y).toBeGreaterThan(140);
+    expect(positions.from.x).toBe(100);
+    expect(positions.to.y).toBeLessThan(360);
+    expect(positions.to.x).toBe(100);
+  });
+
+  test('staggering keeps labels on short vertical links from overlapping', () => {
+    const fromSize = getTopologyLabelSize('E0');
+    const toSize = getTopologyLabelSize('G0/0.10');
+    const positions = calculateCableEndpointLabels(
+      { x: 100, y: 100 },
+      { x: 100, y: 205 },
+      bounds,
+      bounds,
+      fromSize,
+      toSize,
+    );
+    const horizontalGap = Math.abs(positions.to.x - positions.from.x);
+    expect(horizontalGap).toBeGreaterThanOrEqual((fromSize.width + toSize.width) / 2 + 8);
+  });
+
+  test('places the network caption in a separate lane above a horizontal cable', () => {
+    const caption = calculateCableMidpointLabel(
+      { x: 100, y: 100 },
+      { x: 400, y: 100 },
+      getTopologyCaptionSize('192.168.10.0/24'),
+      { perpendicular: -24 },
+      { width: 500, height: 220 },
+    );
+    expect(caption.x).toBe(250);
+    expect(caption.y).toBeLessThan(100);
+  });
+
+  test('renders exact endpoint names as horizontal application text', async () => {
+    const screen = await render(<TopologyLinkLabels accessibilityLabel="Cable from R-1 G0/0.10 to SW-1 F0/24" from={{ x: 80, y: 80 }} fromBounds={bounds} fromLabel="G0/0.10" id="route-link" to={{ x: 300, y: 80 }} toBounds={bounds} toLabel="F0/24" />);
+    expect(screen.getByText('G0/0.10')).toBeTruthy();
+    expect(screen.getByText('F0/24')).toBeTruthy();
+    expect(screen.getByLabelText('Cable from R-1 G0/0.10 to SW-1 F0/24')).toBeTruthy();
+    const style = StyleSheet.flatten(screen.getByTestId('topology-link-label-route-link-from').props.style);
+    expect(style.position).toBe('absolute');
+    expect(style.width).toBe(getTopologyLabelSize('G0/0.10').width);
+    expect(screen.queryByTestId('topology-link-label-route-link-context')).toBeNull();
+  });
+
+  test('renders a derived subnet caption separately from both endpoint plates', async () => {
+    const screen = await render(<TopologyLinkLabels accessibilityLabel="Routed cable" canvas={{ width: 500, height: 220 }} contextLabel="192.168.10.0/24" from={{ x: 80, y: 100 }} fromBounds={bounds} fromLabel="E0" id="subnet-link" to={{ x: 420, y: 100 }} toBounds={bounds} toLabel="G0/0" />);
+    const context = StyleSheet.flatten(screen.getByTestId('topology-link-label-subnet-link-context').props.style);
+    const from = StyleSheet.flatten(screen.getByTestId('topology-link-label-subnet-link-from').props.style);
+    expect(screen.getByText('192.168.10.0/24')).toBeTruthy();
+    expect(context.top).toBeLessThan(from.top);
+  });
+});

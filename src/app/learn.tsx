@@ -9,9 +9,10 @@ import { canAccessChapter } from '@/core/account/access';
 import { canOpenChapter } from '@/core/learning/course-access';
 import { useAuth } from '@/features/account/auth-context';
 import { AppButton } from '@/shared/components/app-button';
-import { ActionCard } from '@/shared/components/action-card';
 import { AppIcon } from '@/shared/components/app-icon';
-import { IconButton } from '@/shared/components/icon-button';
+import { DisclosureSection } from '@/shared/components/disclosure-section';
+import { PageHeader } from '@/shared/components/page-header';
+import { SemanticIcon, type SemanticIconName } from '@/shared/components/semantic-icon';
 import { Text } from '@/shared/components/console-text';
 import { ProgressBar } from '@/shared/components/progress-bar';
 import { Screen } from '@/shared/components/screen';
@@ -51,12 +52,14 @@ export default function LearningHomeScreen() {
     else router.push({ pathname: '/chapter/[chapterId]', params: { chapterId: activity.id } });
   };
 
+  const learningTools: { color: string; detail: string; icon: SemanticIconName; label: string; onPress: () => void; softColor: string; status: string }[] = [
+    { label: 'Progress & Review', status: 'LEARNING STATUS', detail: 'Mastery, weak topics, and recent activity', icon: 'quiz', color: Palette.accentBright, softColor: Palette.accentSoft, onPress: () => router.push(AppRoutes.progress) },
+    { label: 'Saved Learning', status: 'YOUR BOOKMARKS', detail: 'Bookmarked lessons and references', icon: 'bookmark', color: Palette.green, softColor: Palette.greenSoft, onPress: () => router.push(AppRoutes.saved) },
+    { label: 'Network Rulebook', status: 'OFFICIAL SOURCES', detail: 'See where ARP, DHCP, TCP, and other networking rules come from', icon: 'lesson', color: Palette.orange, softColor: Palette.orangeSoft, onPress: () => router.push(AppRoutes.standards) },
+  ];
+
   return (
-    <Screen>
-      <View style={styles.topRow}>
-        <IconButton accessibilityLabel="Back to course library" icon="arrow-left" label="COURSES" onPress={() => router.replace(AppRoutes.courses)} />
-        <Text variant="label" style={styles.brand}>NETBITE / {course.shortTitle.toUpperCase()}</Text>
-      </View>
+    <Screen header={<PageHeader leading={{ accessibilityLabel: 'Back to course library', icon: 'arrow-left', label: 'BACK / COURSES', onPress: () => router.replace(AppRoutes.courses) }} status={`NETBITE / ${course.shortTitle.toUpperCase()}`} />}>
       <View style={styles.hero}>
         <Text variant="screenTitle" style={styles.title}>{course.title.toUpperCase()}</Text>
         <Text variant="body" style={styles.subtitle}>{course.summary}</Text>
@@ -77,9 +80,23 @@ export default function LearningHomeScreen() {
         <AppButton label={progress === 1 ? 'Review chapter' : progress > 0 ? 'Continue learning' : 'Start learning'} trailingIcon="arrow-right" onPress={continueLearning} />
       </View>
       <View style={styles.learningUtilities}>
-        <ActionCard detail="Completion, quiz mastery, weak topics, and recent activity." icon="quiz" priority="utility" status="LEARNING STATUS" title="PROGRESS & REVIEW" onPress={() => router.push(AppRoutes.progress)} />
-        <ActionCard detail="Bookmarks and personal notes." icon="lesson" priority="utility" status="PERSONAL REFERENCE" title="SAVED LEARNING" onPress={() => router.push(AppRoutes.saved)} />
-        <ActionCard detail="Retrieve official RFC metadata from the IETF Datatracker." icon="lesson" priority="utility" status="OFFICIAL IETF API" title="NETWORK STANDARDS" onPress={() => router.push(AppRoutes.standards)} />
+        <DisclosureSection title="Learning tools" summary="Progress, bookmarks, and network standards">
+          {learningTools.map((tool) => <Pressable
+            key={tool.label}
+            accessibilityHint={`Opens ${tool.label}`}
+            accessibilityRole="button"
+            onPress={tool.onPress}
+            style={({ pressed }) => [styles.toolRow, { borderLeftColor: tool.color }, pressed && styles.pressed]}
+          >
+            <View style={[styles.toolIcon, { backgroundColor: tool.softColor, borderColor: tool.color }]}><SemanticIcon color={tool.color} name={tool.icon} size={22} /></View>
+            <View style={styles.toolCopy}>
+              <Text variant="technical" style={[styles.toolStatus, { color: tool.color }]}>{tool.status}</Text>
+              <Text variant="label" style={styles.toolTitle}>{tool.label}</Text>
+              <Text variant="bodySmall" style={styles.toolDetail}>{tool.detail}</Text>
+            </View>
+            <AppIcon name="arrow-right" size={18} />
+          </Pressable>)}
+        </DisclosureSection>
       </View>
       <Text variant="sectionHeading" style={styles.sectionTitle}>LEARNING PATH</Text>
       <View style={styles.circuit}>
@@ -109,7 +126,6 @@ export default function LearningHomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  topRow: { minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: Space.md, marginBottom: Space.xl },
   brand: { color: Palette.textMuted },
   hero: { marginBottom: Space.xxl },
   title: { color: Palette.text, fontFamily: Fonts.semibold },
@@ -125,7 +141,13 @@ const styles = StyleSheet.create({
   muted: { color: Palette.textMuted },
   progressPercent: { color: Palette.accentBright },
   sectionTitle: { color: Palette.text, fontFamily: Fonts.semibold, marginTop: Space.xxl, marginBottom: Space.lg },
-  learningUtilities: { gap: Space.sm, marginTop: Space.md },
+  learningUtilities: { marginTop: Space.md },
+  toolRow: { minHeight: 72, flexDirection: 'row', alignItems: 'center', gap: Space.md, padding: Space.md, borderWidth: 1, borderLeftWidth: 4, borderColor: Palette.border, backgroundColor: Palette.background },
+  toolIcon: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
+  toolCopy: { flex: 1, minWidth: 0 },
+  toolStatus: { fontFamily: Fonts.medium, marginBottom: Space.xs },
+  toolTitle: { color: Palette.text, fontFamily: Fonts.semibold, textTransform: 'uppercase' },
+  toolDetail: { color: Palette.textMuted, marginTop: Space.xs },
   pressed: { opacity: 0.7 },
   circuit: { position: 'relative', borderWidth: 1, borderColor: Palette.border, backgroundColor: Palette.surface, paddingVertical: Space.sm },
   pathRail: { position: 'absolute', left: 21, top: 0, bottom: 0, width: 1, backgroundColor: Palette.border },

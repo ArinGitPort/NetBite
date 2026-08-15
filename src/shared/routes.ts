@@ -20,6 +20,7 @@ export const AppRoutes = {
   saved: '/saved' as Href,
   diagnostics: '/diagnostics' as Href,
   standards: '/standards' as Href,
+  guide: '/guide' as Href,
   research: '/research' as Href,
 };
 

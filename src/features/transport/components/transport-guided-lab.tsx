@@ -18,6 +18,7 @@ import { restoreProtocolState, type GuidedProtocolAdapter } from '@/features/pro
 import { GuidedProtocolLabShell } from '@/features/protocol-labs/components/guided-protocol-lab-shell';
 import { AppButton } from '@/shared/components/app-button';
 import { FeedbackModal } from '@/shared/components/feedback-modal';
+import { SelectionControl } from '@/shared/components/selection-control';
 import { Text } from '@/shared/components/console-text';
 import { useMeasuredResponsiveLayout } from '@/shared/responsive-layout';
 import { returnToOwningChapter } from '@/shared/navigation';
@@ -151,6 +152,7 @@ export function TransportGuidedLab() {
   return (
     <GuidedProtocolLabShell
       autosaveLabel="LOCAL AUTOSAVE / TRANSPORT V1"
+      labId={LAB_ID}
       objectiveLabel={result.complete ? 'SIMULATION COMPLETE' : `OBJECTIVE ${state.objectiveIndex + 1} OF ${objectives.length}`}
       onBack={() => returnToOwningChapter('lab', LAB_ID)}
       progress={state.objectiveIndex / objectives.length}
@@ -235,7 +237,7 @@ function DeviceInspector({ state }: { state: TransportLabState }) {
 }
 
 function ConfigurationPanel({ draft, error, onChange }: { draft: ConfigurationDraft; error?: string; onChange: (change: Partial<ConfigurationDraft>) => void }) {
-  return <View style={styles.configPanel}><Text variant="label" style={styles.orange}>ENDPOINT CONFIGURATION</Text><Text variant="bodySmall" style={styles.muted}>Valid mistakes are saved. Malformed addresses or ports are rejected without changing the simulation.</Text><View style={styles.fieldGrid}><Input label="Client IPv4" value={draft.clientAddress} onChange={(clientAddress) => onChange({ clientAddress })} /><Input label="Source port" keyboard="number-pad" value={draft.clientPort} onChange={(clientPort) => onChange({ clientPort })} /><Input label="Server IPv4" value={draft.serverAddress} onChange={(serverAddress) => onChange({ serverAddress })} /><Input label="Destination port" keyboard="number-pad" value={draft.destinationPort} onChange={(destinationPort) => onChange({ destinationPort })} /><Choice label="Client protocol" value={draft.protocol} onChange={(protocol) => onChange({ protocol })} /><Choice label="Listener protocol" value={draft.listenerProtocol} onChange={(listenerProtocol) => onChange({ listenerProtocol })} /><Input label="Listening port" keyboard="number-pad" value={draft.listenerPort} onChange={(listenerPort) => onChange({ listenerPort })} /><View style={styles.field}><Text variant="technical" style={styles.muted}>SERVICE STATE</Text><Pressable accessibilityRole="switch" accessibilityState={{ checked: draft.listenerOpen }} onPress={() => onChange({ listenerOpen: !draft.listenerOpen })} style={[styles.choice, draft.listenerOpen && styles.choiceSelected]}><Text variant="label">[ {draft.listenerOpen ? 'X' : ' '} ] {draft.listenerOpen ? 'LISTENING' : 'CLOSED'}</Text></Pressable></View></View>{error ? <Text accessibilityLiveRegion="assertive" variant="bodySmall" style={styles.error}>{error}</Text> : null}</View>;
+  return <View style={styles.configPanel}><Text variant="label" style={styles.orange}>ENDPOINT CONFIGURATION</Text><Text variant="bodySmall" style={styles.muted}>Valid mistakes are saved. Malformed addresses or ports are rejected without changing the simulation.</Text><View style={styles.fieldGrid}><Input label="Client IPv4" value={draft.clientAddress} onChange={(clientAddress) => onChange({ clientAddress })} /><Input label="Source port" keyboard="number-pad" value={draft.clientPort} onChange={(clientPort) => onChange({ clientPort })} /><Input label="Server IPv4" value={draft.serverAddress} onChange={(serverAddress) => onChange({ serverAddress })} /><Input label="Destination port" keyboard="number-pad" value={draft.destinationPort} onChange={(destinationPort) => onChange({ destinationPort })} /><Choice label="Client protocol" value={draft.protocol} onChange={(protocol) => onChange({ protocol })} /><Choice label="Listener protocol" value={draft.listenerProtocol} onChange={(listenerProtocol) => onChange({ listenerProtocol })} /><Input label="Listening port" keyboard="number-pad" value={draft.listenerPort} onChange={(listenerPort) => onChange({ listenerPort })} /><View style={styles.field}><Text variant="technical" style={styles.muted}>SERVICE STATE</Text><SelectionControl accessibilityRole="switch" label={draft.listenerOpen ? 'Listening' : 'Closed'} selected={draft.listenerOpen} onPress={() => onChange({ listenerOpen: !draft.listenerOpen })} /></View></View>{error ? <Text accessibilityLiveRegion="assertive" variant="bodySmall" style={styles.error}>{error}</Text> : null}</View>;
 }
 
 function Input({ label, value, onChange, keyboard = 'default' }: { label: string; value: string; onChange: (value: string) => void; keyboard?: 'default' | 'number-pad' }) {

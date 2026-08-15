@@ -8,10 +8,11 @@ import {
   type EthernetCableType,
 } from '@/core/network/ethernet-cabling';
 import { DeviceGlyph } from '@/features/devices/components/device-glyph';
+import { LabSetupSupport } from '@/features/practice/components/foundation-lab-support';
 import { AppButton } from '@/shared/components/app-button';
 import { Text } from '@/shared/components/console-text';
 import { FeedbackModal } from '@/shared/components/feedback-modal';
-import { IconButton } from '@/shared/components/icon-button';
+import { PageHeader } from '@/shared/components/page-header';
 import { Screen } from '@/shared/components/screen';
 import { selectionHaptic, successHaptic, warningHaptic } from '@/shared/haptics';
 import { Fonts, Palette, Space } from '@/shared/theme';
@@ -46,28 +47,11 @@ export function EthernetCableLab() {
   };
 
   return (
-    <Screen>
-      <View style={styles.headerRow}>
-        <IconButton
-          accessibilityLabel="Back to Chapter 2"
-          icon="arrow-left"
-          label="BACK / CHAPTER"
-          onPress={() => returnToOwningChapter('lab', 'ethernet-cables')}
-        />
-        <IconButton
-          accessibilityLabel="Reset cable choices"
-          icon="reset"
-          label="RESET"
-          onPress={() => {
-            setSelections({});
-            setResult(undefined);
-            setResultVisible(false);
-          }}
-        />
-      </View>
+    <Screen header={<PageHeader leading={{ accessibilityLabel: 'Back to Chapter 2', icon: 'arrow-left', label: 'BACK / CHAPTER', onPress: () => returnToOwningChapter('lab', 'ethernet-cables') }} trailing={[{ accessibilityLabel: 'Reset cable choices', icon: 'reset', label: 'RESET', onPress: () => { setSelections({}); setResult(undefined); setResultVisible(false); } }]} />}>
 
       <Text variant="label" style={styles.eyebrow}>LESSON 3 PRACTICE / MANUAL MODE</Text>
       <Text variant="screenTitle" style={styles.title}>APPLY THE COPPER CABLE RULE</Text>
+      <LabSetupSupport labId={LAB_ID} />
       <View style={styles.objective}>
         <Text variant="label" style={styles.objectiveLabel}>YOUR GOAL</Text>
         <Text variant="body" style={styles.objectiveText}>Apply the manual cabling rule from Lesson 3 to each copper Ethernet link.</Text>

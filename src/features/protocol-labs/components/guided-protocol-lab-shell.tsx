@@ -1,13 +1,15 @@
 import type { PropsWithChildren, ReactNode } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet } from 'react-native';
 
-import { IconButton } from '@/shared/components/icon-button';
+import { PageHeader } from '@/shared/components/page-header';
+import { LabSetupSupport } from '@/features/practice/components/foundation-lab-support';
 import { ProgressBar } from '@/shared/components/progress-bar';
 import { Screen } from '@/shared/components/screen';
 import { Text } from '@/shared/components/console-text';
 import { Fonts, Palette, Space } from '@/shared/theme';
 
 interface GuidedProtocolLabShellProps extends PropsWithChildren {
+  labId: string;
   title: string;
   subtitle: string;
   objectiveLabel: string;
@@ -17,16 +19,13 @@ interface GuidedProtocolLabShellProps extends PropsWithChildren {
   headerAction?: ReactNode;
 }
 
-export function GuidedProtocolLabShell({ title, subtitle, objectiveLabel, progress, autosaveLabel, onBack, headerAction, children }: GuidedProtocolLabShellProps) {
+export function GuidedProtocolLabShell({ labId, title, subtitle, objectiveLabel, progress, autosaveLabel, onBack, headerAction, children }: GuidedProtocolLabShellProps) {
   return (
-    <Screen>
-      <View style={styles.header}>
-        <IconButton accessibilityLabel="Back from guided simulator" icon="arrow-left" label="BACK / MODULE" onPress={onBack} />
-        {headerAction ?? <Text variant="technical" style={styles.saved}>{autosaveLabel}</Text>}
-      </View>
+    <Screen header={<PageHeader leading={{ accessibilityLabel: 'Back from guided simulator', icon: 'arrow-left', label: 'BACK / MODULE', onPress: onBack }} status={headerAction ? undefined : autosaveLabel} trailingContent={headerAction} />}>
       <Text variant="label" style={styles.eyebrow}>GUIDED MINI-SIMULATOR</Text>
       <Text variant="screenTitle" style={styles.title}>{title}</Text>
       <Text variant="technical" style={styles.subtitle}>{subtitle}</Text>
+      <LabSetupSupport labId={labId} />
       <ProgressBar progress={progress} />
       <Text accessibilityLiveRegion="polite" variant="label" style={styles.objective}>{objectiveLabel}</Text>
       {children}

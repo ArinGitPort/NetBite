@@ -57,3 +57,6 @@ example
 
 # generated activity documents
 /deliverables/
+
+# local school activity sources and generators
+/schoolwork/

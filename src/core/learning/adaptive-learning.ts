@@ -83,6 +83,33 @@ export function tombstoneSavedLearningItem(items: Record<string, SavedLearningIt
   return current ? { ...items, [key]: { ...current, updatedAt, deletedAt: updatedAt } } : items;
 }
 
+export function migrateIllustrationBookmarks(items: Record<string, SavedLearningItem>, updatedAt = new Date().toISOString()) {
+  const migrated = { ...items };
+  Object.values(items)
+    .filter((item) => item.targetType === 'illustration' && !item.deletedAt)
+    .forEach((illustration) => {
+      const lessonId = illustration.targetId.split(':')[0];
+      if (!lessonId) return;
+      const lessonKey = savedLearningKey('lesson', lessonId);
+      const lesson = migrated[lessonKey];
+      const notes = [lesson?.deletedAt ? '' : lesson?.note, illustration.note]
+        .map((note) => note?.trim() ?? '')
+        .filter((note, index, values) => note && values.indexOf(note) === index);
+      migrated[lessonKey] = {
+        key: lessonKey,
+        targetType: 'lesson',
+        targetId: lessonId,
+        chapterId: lesson?.chapterId ?? illustration.chapterId,
+        title: lesson?.title ?? illustration.title.replace(/\s+visual$/i, ''),
+        note: notes.join('\n\n').slice(0, 1000),
+        createdAt: lesson && lesson.createdAt < illustration.createdAt ? lesson.createdAt : illustration.createdAt,
+        updatedAt,
+      };
+      migrated[illustration.key] = { ...illustration, updatedAt, deletedAt: updatedAt };
+    });
+  return migrated;
+}
+
 export function appendActivity(history: ActivityEvent[], input: Omit<ActivityEvent, 'id' | 'occurredAt'>, occurredAt = new Date().toISOString()) {
   const event = { ...input, occurredAt, id: `${occurredAt}:${input.type}:${input.targetId}` };
   return [event, ...history.filter((candidate) => candidate.id !== event.id)].slice(0, 50);

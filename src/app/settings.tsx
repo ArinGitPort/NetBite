@@ -1,24 +1,21 @@
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 import { useAuth } from '@/features/account/auth-context';
 import { AppButton } from '@/shared/components/app-button';
 import { DisclosureSection } from '@/shared/components/disclosure-section';
 import { FeedbackModal } from '@/shared/components/feedback-modal';
-import { IconButton } from '@/shared/components/icon-button';
+import { PageHeader } from '@/shared/components/page-header';
+import { SegmentedControl } from '@/shared/components/segmented-control';
 import { Text } from '@/shared/components/console-text';
 import { Screen } from '@/shared/components/screen';
 import { goBackOrReplace, navigateOnce } from '@/shared/navigation';
+import { AppRoutes } from '@/shared/routes';
 import { Fonts, Palette, Space } from '@/shared/theme';
 import { useGameStore } from '@/store/use-game-store';
 import { useSandboxStore } from '@/store/use-sandbox-store';
 import { isDemoCapabilityEnabled, usePresentationStore } from '@/store/use-presentation-store';
-import { useExperienceStore } from '@/store/use-experience-store';
 import { isResearchCapabilityEnabled, useResearchStore } from '@/store/use-research-store';
-
-function Choice({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) {
-  return <Pressable accessibilityRole="button" accessibilityState={{ selected }} onPress={onPress} style={[styles.choice, selected && styles.choiceSelected]}><Text variant="label" style={[styles.choiceText, selected && styles.choiceTextSelected]}>{selected ? '[X] ' : '[ ] '}{label}</Text></Pressable>;
-}
 
 export default function SettingsScreen() {
   const { status, configured, syncStatus, error: syncError, syncNow, testProAvailable, testProEnabled, setTestProEnabled } = useAuth();
@@ -31,7 +28,6 @@ export default function SettingsScreen() {
   const presentationActive = usePresentationStore((state) => state.active);
   const startPresentation = usePresentationStore((state) => state.startPresentation);
   const restorePresentation = usePresentationStore((state) => state.restorePresentation);
-  const resetGuides = useExperienceStore((state) => state.resetGuides);
   const researchActive = useResearchStore((state) => state.active);
   const [confirm, setConfirm] = useState<'learning' | 'sandbox' | 'presentation' | 'restore'>();
   const [manualSyncBusy, setManualSyncBusy] = useState(false);
@@ -55,8 +51,7 @@ export default function SettingsScreen() {
             : 'LOCAL / WAITING TO SYNC';
 
   return (
-    <Screen>
-      <View style={styles.header}><IconButton accessibilityLabel="Back to main menu" icon="arrow-left" label="BACK / MENU" onPress={() => goBackOrReplace('/')} /></View>
+    <Screen header={<PageHeader leading={{ accessibilityLabel: 'Back to main menu', icon: 'arrow-left', label: 'BACK / MENU', onPress: () => goBackOrReplace('/') }} />}>
       <Text variant="label" style={styles.eyebrow}>APP CONTROLS</Text>
       <Text variant="screenTitle" style={styles.title}>SETTINGS</Text>
       <View accessibilityLiveRegion="polite" style={styles.section}>
@@ -80,13 +75,13 @@ export default function SettingsScreen() {
         <View style={styles.preferenceGroup}>
           <Text variant="sectionHeading" style={styles.heading}>HAPTICS</Text>
           <Text variant="bodySmall" style={styles.detail}>Subtle feedback for selections and warnings.</Text>
-          <View style={styles.choices}><Choice label="ON" selected={hapticsEnabled} onPress={() => setHapticsEnabled(true)} /><Choice label="OFF" selected={!hapticsEnabled} onPress={() => setHapticsEnabled(false)} /></View>
+          <SegmentedControl label="Haptics preference" options={[{ id: 'on', label: 'ON' }, { id: 'off', label: 'OFF' }]} value={hapticsEnabled ? 'on' : 'off'} onChange={(value) => setHapticsEnabled(value === 'on')} />
         </View>
         <View style={styles.preferenceDivider} />
         <View style={styles.preferenceGroup}>
           <Text variant="sectionHeading" style={styles.heading}>MOTION</Text>
           <Text variant="bodySmall" style={styles.detail}>Follow the system or always reduce transitions and packet movement.</Text>
-          <View style={styles.choices}><Choice label="SYSTEM" selected={motionPreference === 'system'} onPress={() => setMotionPreference('system')} /><Choice label="REDUCED" selected={motionPreference === 'reduced'} onPress={() => setMotionPreference('reduced')} /></View>
+          <SegmentedControl label="Motion preference" options={[{ id: 'system', label: 'SYSTEM' }, { id: 'reduced', label: 'REDUCED' }]} value={motionPreference} onChange={setMotionPreference} />
         </View>
       </View>
       {isDemoCapabilityEnabled ? <View style={styles.section}>
@@ -96,8 +91,8 @@ export default function SettingsScreen() {
       </View> : null}
       <View style={styles.section}>
         <Text variant="sectionHeading" style={styles.heading}>GUIDANCE & SUPPORT</Text>
-        <Text variant="bodySmall" style={styles.detail}>Replay the short contextual guides or inspect a redacted runtime report.</Text>
-        <AppButton label="Replay contextual guides" variant="utility" onPress={() => { resetGuides(); useSandboxStore.setState({ guideSeen: false }); }} />
+        <Text variant="bodySmall" style={styles.detail}>Open guidance when you want it, or inspect a redacted runtime report.</Text>
+        <AppButton label="Open app guide" variant="utility" onPress={() => navigateOnce(AppRoutes.guide)} />
         <AppButton label="Open diagnostics" variant="utility" onPress={() => navigateOnce('/diagnostics')} />
         {isResearchCapabilityEnabled ? <AppButton label={researchActive ? 'Continue usability session' : 'Open usability toolkit'} variant="utility" onPress={() => navigateOnce('/research')} /> : null}
       </View>
@@ -112,7 +107,6 @@ export default function SettingsScreen() {
 }
 
 const styles = StyleSheet.create({
-  header: { minHeight: 44, marginBottom: Space.xl },
   eyebrow: { color: Palette.orange },
   title: { color: Palette.text, fontFamily: Fonts.semibold, marginTop: Space.sm, marginBottom: Space.xl },
   section: { borderWidth: 1, borderColor: Palette.border, backgroundColor: Palette.surface, padding: Space.lg, gap: Space.md, marginBottom: Space.lg },
@@ -128,9 +122,4 @@ const styles = StyleSheet.create({
   syncLabel: { color: Palette.green },
   syncWarning: { color: Palette.orange },
   testAccessSection: { borderColor: Palette.orange },
-  choices: { flexDirection: 'row', flexWrap: 'wrap', gap: Space.sm },
-  choice: { minWidth: 120, minHeight: 44, flexGrow: 1, borderWidth: 1, borderColor: Palette.border, alignItems: 'center', justifyContent: 'center', padding: Space.sm },
-  choiceSelected: { borderColor: Palette.orange, backgroundColor: Palette.orangeSoft },
-  choiceText: { color: Palette.textMuted },
-  choiceTextSelected: { color: Palette.orange },
 });

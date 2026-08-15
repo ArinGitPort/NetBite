@@ -52,6 +52,10 @@ export function getChapter(chapterId: string | undefined) {
   return chapters.find((chapter) => chapter.id === chapterId);
 }
 
+export function getChapterByLabId(labId: string | undefined) {
+  return chapters.find((chapter) => chapter.lab.id === labId);
+}
+
 export function getLesson(lessonId: string | undefined): { chapter: ChapterDefinition; lesson: Lesson; index: number } | undefined {
   for (const chapter of chapters) {
     const index = chapter.lessons.findIndex((lesson) => lesson.id === lessonId);

@@ -23,6 +23,7 @@ describe('game store rules', () => {
       reviewedFlashcardChapterIds: [],
       flashcardContentVersions: {},
       flashcardPositions: {},
+      flashcardStudySessions: {},
       completedLabIds: [],
       cliGuideSeen: false,
     });
@@ -62,6 +63,14 @@ describe('game store rules', () => {
     expect(useGameStore.getState().flashcardPositions['2']).toBeUndefined();
   });
 
+  test('persists and clears a versioned flashcard study session', () => {
+    useGameStore.getState().saveFlashcardStudySession('2', 4, ['one', 'one', 'two']);
+    expect(useGameStore.getState().flashcardStudySessions['2']).toEqual({ contentVersion: 4, studiedCardIds: ['one', 'two'] });
+
+    useGameStore.getState().clearFlashcardStudySession('2');
+    expect(useGameStore.getState().flashcardStudySessions['2']).toBeUndefined();
+  });
+
   test('migrates Chapter 1 progress from the single-chapter storage format', async () => {
     const migrate = useGameStore.persist.getOptions().migrate;
     const migrated = await migrate?.({
@@ -77,6 +86,7 @@ describe('game store rules', () => {
       flashcardContentVersions: { 1: 1 },
       completedLabIds: ['first-network'],
       flashcardPositions: {},
+      flashcardStudySessions: {},
     });
   });
 

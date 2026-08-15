@@ -1,14 +1,17 @@
 import type { CliDeviceState, CliLabDefinition as PublicCliLabDefinition, CliNetworkState } from '@/core/network/cli-simulator';
+import type { TopologyLinkCaptionPlacement } from '@/shared/components/topology-link-labels';
 
 export interface CliPredictionChoice { id: string; label: string; feedback: string }
 export type CliLabView = 'cli' | 'topology';
 export interface CliTopologyNodePosition { x: number; y: number }
 export interface CliTopologyLayout {
   description: string;
+  width: { compact: number; regular: number; wide: number };
   height: { compact: number; regular: number; wide: number };
   compact: Record<string, CliTopologyNodePosition>;
   regular: Record<string, CliTopologyNodePosition>;
   wide: Record<string, CliTopologyNodePosition>;
+  linkCaptions?: Record<string, Partial<Record<'compact' | 'regular' | 'wide', TopologyLinkCaptionPlacement>>>;
 }
 export interface DiagnosticScenario {
   id: string;
@@ -30,6 +33,12 @@ export interface CliLabDefinition extends PublicCliLabDefinition {
   diagnosticScenarios?: DiagnosticScenario[];
   topology: CliTopologyLayout;
 }
+
+const routedCaptionLane = {
+  compact: { perpendicular: -30 },
+  regular: { perpendicular: -28 },
+  wide: { perpendicular: -26 },
+} satisfies Partial<Record<'compact' | 'regular' | 'wide', TopologyLinkCaptionPlacement>>;
 
 const device = (input: Partial<CliDeviceState> & Pick<CliDeviceState, 'id' | 'name' | 'type'>): CliDeviceState => ({
   mode: 'user-exec', interfaces: [], routes: [], vlans: [], ...input,
@@ -124,28 +133,51 @@ export const requiredStaticRoutes = [
   { deviceId: 'r2', prefix: '192.168.10.0', prefixLength: 24, nextHop: '10.0.12.1' },
 ] as const;
 
-const linearTopology = (ids: string[], description: string): CliTopologyLayout => ({
-  description,
-  height: { compact: Math.max(380, ids.length * 120), regular: 270, wide: 230 },
-  compact: Object.fromEntries(ids.map((id, index) => [id, { x: 50, y: 10 + (index * 80) / Math.max(ids.length - 1, 1) }])),
-  regular: Object.fromEntries(ids.map((id, index) => [id, { x: 13 + (index * 74) / Math.max(ids.length - 1, 1), y: 50 }])),
-  wide: Object.fromEntries(ids.map((id, index) => [id, { x: 10 + (index * 80) / Math.max(ids.length - 1, 1), y: 50 }])),
-});
+const diagnosticTopology: CliTopologyLayout = {
+  description: 'The diagnostic path runs left to right from PC-A through the routers present in the current scenario to PC-C.',
+  width: { compact: 780, regular: 780, wide: 780 },
+  height: { compact: 250, regular: 250, wide: 250 },
+  compact: { 'pc-a': { x: 8, y: 50 }, r1: { x: 36, y: 50 }, r2: { x: 64, y: 50 }, 'pc-c': { x: 92, y: 50 } },
+  regular: { 'pc-a': { x: 8, y: 50 }, r1: { x: 36, y: 50 }, r2: { x: 64, y: 50 }, 'pc-c': { x: 92, y: 50 } },
+  wide: { 'pc-a': { x: 8, y: 50 }, r1: { x: 36, y: 50 }, r2: { x: 64, y: 50 }, 'pc-c': { x: 92, y: 50 } },
+  linkCaptions: {
+    'r1-G0/0-pc-a-E0': routedCaptionLane,
+    'r1-G0/1-r2-G0/0': routedCaptionLane,
+    'r2-G0/1-pc-c-E0': routedCaptionLane,
+  },
+};
+
+const staticRoutingTopology: CliTopologyLayout = {
+  description: 'The routed path runs left to right from PC-A through NB-R1, NB-R2, and NB-R3 to PC-C.',
+  width: { compact: 980, regular: 980, wide: 980 },
+  height: { compact: 250, regular: 250, wide: 250 },
+  compact: { 'pc-a': { x: 7, y: 50 }, r1: { x: 28.5, y: 50 }, r2: { x: 50, y: 50 }, r3: { x: 71.5, y: 50 }, 'pc-c': { x: 93, y: 50 } },
+  regular: { 'pc-a': { x: 7, y: 50 }, r1: { x: 28.5, y: 50 }, r2: { x: 50, y: 50 }, r3: { x: 71.5, y: 50 }, 'pc-c': { x: 93, y: 50 } },
+  wide: { 'pc-a': { x: 7, y: 50 }, r1: { x: 28.5, y: 50 }, r2: { x: 50, y: 50 }, r3: { x: 71.5, y: 50 }, 'pc-c': { x: 93, y: 50 } },
+  linkCaptions: {
+    'pc-a-E0-r1-G0/0': routedCaptionLane,
+    'r1-G0/1-r2-G0/0': routedCaptionLane,
+    'r2-G0/1-r3-G0/0': routedCaptionLane,
+    'r3-G0/1-pc-c-E0': routedCaptionLane,
+  },
+};
 
 const vlanTopology: CliTopologyLayout = {
   description: 'PC-A connects to NB-SW-A. NB-SW-A connects to NB-SW-B. PC-B and PC-C connect to NB-SW-B.',
-  height: { compact: 540, regular: 350, wide: 300 },
-  compact: { 'pc-a': { x: 50, y: 9 }, 'sw-a': { x: 50, y: 33 }, 'sw-b': { x: 50, y: 57 }, 'pc-b': { x: 27, y: 85 }, 'pc-c': { x: 73, y: 85 } },
-  regular: { 'pc-a': { x: 10, y: 50 }, 'sw-a': { x: 32, y: 50 }, 'sw-b': { x: 59, y: 50 }, 'pc-b': { x: 88, y: 27 }, 'pc-c': { x: 88, y: 73 } },
-  wide: { 'pc-a': { x: 9, y: 50 }, 'sw-a': { x: 31, y: 50 }, 'sw-b': { x: 59, y: 50 }, 'pc-b': { x: 89, y: 25 }, 'pc-c': { x: 89, y: 75 } },
+  width: { compact: 860, regular: 860, wide: 860 },
+  height: { compact: 330, regular: 330, wide: 330 },
+  compact: { 'pc-a': { x: 8, y: 50 }, 'sw-a': { x: 31, y: 50 }, 'sw-b': { x: 57, y: 50 }, 'pc-b': { x: 90, y: 27 }, 'pc-c': { x: 90, y: 73 } },
+  regular: { 'pc-a': { x: 8, y: 50 }, 'sw-a': { x: 31, y: 50 }, 'sw-b': { x: 57, y: 50 }, 'pc-b': { x: 90, y: 27 }, 'pc-c': { x: 90, y: 73 } },
+  wide: { 'pc-a': { x: 8, y: 50 }, 'sw-a': { x: 31, y: 50 }, 'sw-b': { x: 57, y: 50 }, 'pc-b': { x: 90, y: 27 }, 'pc-c': { x: 90, y: 73 } },
 };
 
 const interVlanTopology: CliTopologyLayout = {
   description: 'PC-A and PC-B use separate access VLANs on NB-SW-1. NB-SW-1 connects by one trunk to router NB-R1.',
-  height: { compact: 480, regular: 350, wide: 300 },
-  compact: { r1: { x: 50, y: 12 }, 'sw-1': { x: 50, y: 48 }, 'pc-a': { x: 25, y: 84 }, 'pc-b': { x: 75, y: 84 } },
-  regular: { r1: { x: 50, y: 18 }, 'sw-1': { x: 50, y: 54 }, 'pc-a': { x: 18, y: 82 }, 'pc-b': { x: 82, y: 82 } },
-  wide: { r1: { x: 50, y: 17 }, 'sw-1': { x: 50, y: 53 }, 'pc-a': { x: 17, y: 80 }, 'pc-b': { x: 83, y: 80 } },
+  width: { compact: 640, regular: 640, wide: 640 },
+  height: { compact: 370, regular: 370, wide: 370 },
+  compact: { r1: { x: 50, y: 15 }, 'sw-1': { x: 50, y: 50 }, 'pc-a': { x: 16, y: 84 }, 'pc-b': { x: 84, y: 84 } },
+  regular: { r1: { x: 50, y: 15 }, 'sw-1': { x: 50, y: 50 }, 'pc-a': { x: 16, y: 84 }, 'pc-b': { x: 84, y: 84 } },
+  wide: { r1: { x: 50, y: 15 }, 'sw-1': { x: 50, y: 50 }, 'pc-a': { x: 16, y: 84 }, 'pc-b': { x: 84, y: 84 } },
 };
 
 export function createVlanState(): CliNetworkState {
@@ -193,12 +225,12 @@ export const cliLabDefinitions: Record<string, CliLabDefinition> = {
   'ping-diagnostic-desk': {
     id: 'ping-diagnostic-desk', chapterId: '8', kind: 'diagnostic', eyebrow: 'CLI MINI LAB / DIAGNOSTICS', title: 'READ THE NETWORK EVIDENCE',
     objective: 'Run the required commands, then make only the conclusion their output supports.', scopeNote: 'DETERMINISTIC STATE / NO LIVE PACKETS OR TIMING', createState: diagnosticScenarios[0].createState, diagnosticScenarios,
-    topology: linearTopology(['pc-a', 'r1', 'r2', 'pc-c'], 'The diagnostic path runs from PC-A through the available routers to PC-C. Only devices present in the current scenario are shown.'),
+    topology: diagnosticTopology,
   },
   'static-route-board': {
     id: 'static-route-board', chapterId: '9', kind: 'routing', eyebrow: 'CLI MINI LAB / STATIC ROUTING', title: 'BUILD THE FORWARD AND RETURN PATH',
     objective: 'Configure exactly four static routes, then verify both directions between PC-A and PC-C.', scopeNote: 'FIXED THREE-ROUTER TOPOLOGY / STATE-BASED VALIDATION', createState: createRoutingState,
-    topology: linearTopology(['pc-a', 'r1', 'r2', 'r3', 'pc-c'], 'PC-A connects through NB-R1, NB-R2, and NB-R3 to PC-C.'),
+    topology: staticRoutingTopology,
   },
   'vlan-port-desk': {
     id: 'vlan-port-desk', chapterId: '10', kind: 'vlan', eyebrow: 'CLI MINI LAB / VLAN CONFIG', title: 'BUILD TWO VLAN PATHS',

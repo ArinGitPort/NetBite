@@ -1,4 +1,5 @@
 import type { CloudProgressSnapshot } from '@/core/account/types';
+import { migrateIllustrationBookmarks } from '@/core/learning/adaptive-learning';
 import type { GameState } from '@/store/use-game-store';
 
 export const CLOUD_PROGRESS_SCHEMA_VERSION = 3;
@@ -53,7 +54,7 @@ export function serializeLearningProgress(
     hapticsEnabled: state.hapticsEnabled,
     motionPreference: state.motionPreference,
     reviewSignals: { ...(state.reviewSignals ?? {}) },
-    savedLearningItems: { ...(state.savedLearningItems ?? {}) },
+    savedLearningItems: migrateIllustrationBookmarks(state.savedLearningItems ?? {}, updatedAt),
     activityHistory: [...(state.activityHistory ?? [])],
     readinessScores: { ...(state.readinessScores ?? {}) },
     completedCapstoneIds: unique(state.completedCapstoneIds ?? []),
@@ -87,7 +88,7 @@ export function mergeLearningProgress(local: CloudProgressSnapshot, cloud: Cloud
   unique([...Object.keys(local.flashcardContentVersions), ...Object.keys(cloud.flashcardContentVersions)])
     .forEach((id) => { flashcardVersions[id] = Math.max(local.flashcardContentVersions[id] ?? 1, cloud.flashcardContentVersions[id] ?? 1); });
   const reviewSignals = mergeTimestampedRecords(local.reviewSignals ?? {}, cloud.reviewSignals ?? {}, (left, right) => ({ ...right, missCount: Math.max(left.missCount, right.missCount) }));
-  const savedLearningItems = mergeTimestampedRecords(local.savedLearningItems ?? {}, cloud.savedLearningItems ?? {});
+  const savedLearningItems = migrateIllustrationBookmarks(mergeTimestampedRecords(local.savedLearningItems ?? {}, cloud.savedLearningItems ?? {}));
   const activityHistory = [...(local.activityHistory ?? []), ...(cloud.activityHistory ?? [])]
     .filter((event, index, values) => values.findIndex((candidate) => candidate.id === event.id) === index)
     .sort((a, b) => b.occurredAt.localeCompare(a.occurredAt))
@@ -143,7 +144,7 @@ export function applyLearningProgress(snapshot: CloudProgressSnapshot) {
     hapticsEnabled: snapshot.hapticsEnabled,
     motionPreference: snapshot.motionPreference,
     reviewSignals: snapshot.reviewSignals ?? {},
-    savedLearningItems: snapshot.savedLearningItems ?? {},
+    savedLearningItems: migrateIllustrationBookmarks(snapshot.savedLearningItems ?? {}, snapshot.updatedAt),
     activityHistory: snapshot.activityHistory ?? [],
     readinessScores: snapshot.readinessScores ?? {},
     completedCapstoneIds: snapshot.completedCapstoneIds ?? [],

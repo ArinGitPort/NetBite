@@ -6,7 +6,7 @@ import { useAuth } from '@/features/account/auth-context';
 import { AppButton } from '@/shared/components/app-button';
 import { Text } from '@/shared/components/console-text';
 import { FeedbackModal } from '@/shared/components/feedback-modal';
-import { IconButton } from '@/shared/components/icon-button';
+import { PageHeader } from '@/shared/components/page-header';
 import { Screen } from '@/shared/components/screen';
 import { goBackOrReplace } from '@/shared/navigation';
 import { AppRoutes } from '@/shared/routes';
@@ -17,10 +17,9 @@ export default function AccountScreen() {
   const [deleteVisible, setDeleteVisible] = useState(false);
   const [deleteError, setDeleteError] = useState<string>();
   if (status !== 'authenticated') {
-    return <Screen><Text variant="screenTitle" style={styles.title}>GUEST PROFILE</Text><Text variant="body">Sign in to back up progress and restore purchases.</Text><AppButton label="Sign in or register" onPress={() => router.replace(AppRoutes.auth)} /><AppButton label="Back" variant="quiet" onPress={() => goBackOrReplace('/')} /></Screen>;
+    return <Screen header={<PageHeader leading={{ accessibilityLabel: 'Back to main menu', icon: 'arrow-left', label: 'BACK / MENU', onPress: () => goBackOrReplace('/') }} />}><Text variant="screenTitle" style={styles.title}>GUEST PROFILE</Text><Text variant="body">Sign in to back up progress and restore purchases.</Text><AppButton label="Sign in or register" onPress={() => router.replace(AppRoutes.auth)} /></Screen>;
   }
-  return <Screen>
-    <IconButton accessibilityLabel="Back to main menu" icon="arrow-left" label="BACK / MENU" onPress={() => goBackOrReplace('/')} />
+  return <Screen header={<PageHeader leading={{ accessibilityLabel: 'Back to main menu', icon: 'arrow-left', label: 'BACK / MENU', onPress: () => goBackOrReplace('/') }} />}>
     <View style={styles.header}><Text variant="label" style={styles.eyebrow}>LEARNER ACCOUNT</Text><Text variant="screenTitle" style={styles.title}>{profile?.displayName?.toUpperCase() || 'NETBITE LEARNER'}</Text><Text variant="bodySmall" style={styles.muted}>{user?.email}</Text><Text variant="technical" style={user?.email_confirmed_at ? styles.green : styles.warning}>{user?.email_confirmed_at ? 'EMAIL VERIFIED' : 'EMAIL VERIFICATION PENDING'}</Text></View>
     <View style={styles.panel}><Text variant="sectionHeading">CLOUD PROGRESS</Text><Text variant="label" style={syncStatus === 'action-needed' ? styles.warning : styles.green}>{syncStatus.toUpperCase()}</Text>{error ? <Text variant="bodySmall" style={styles.warning}>{error}</Text> : null}<AppButton label="Sync now" variant="secondary" onPress={() => void syncNow()} /></View>
     <View style={styles.panel}><Text variant="sectionHeading">NETBITE PRO</Text><Text variant="bodySmall">{testProEnabled ? 'DEVELOPMENT TEST ACCESS / All courses and tools unlocked locally; not purchased or synced.' : hasPro ? 'ACTIVE / Premium courses and Network Sandbox unlocked.' : 'NOT ACTIVE / View the academic test checkout.'}</Text><AppButton label={hasPro || testProEnabled ? 'View access details' : 'View NetBite Pro'} onPress={() => router.push(AppRoutes.pro)} /></View>

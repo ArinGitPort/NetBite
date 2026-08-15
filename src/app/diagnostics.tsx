@@ -7,7 +7,7 @@ import { Platform, Share, StyleSheet, View } from 'react-native';
 import { useAuth } from '@/features/account/auth-context';
 import { buildDiagnosticReport } from '@/core/reliability/diagnostics';
 import { AppButton } from '@/shared/components/app-button';
-import { IconButton } from '@/shared/components/icon-button';
+import { PageHeader } from '@/shared/components/page-header';
 import { FeedbackModal } from '@/shared/components/feedback-modal';
 import { Text } from '@/shared/components/console-text';
 import { Screen } from '@/shared/components/screen';
@@ -43,7 +43,7 @@ export default function DiagnosticsScreen() {
           `experience ${useExperienceStore.persist.hasHydrated() ? 'ready' : 'pending'}`,
           `research ${useResearchStore.persist.hasHydrated() ? 'ready' : 'pending'}`,
         ].join(', '),
-        schema: `learning v7, sandbox v${workspace.schemaVersion}, experience v1, research v1`,
+        schema: `learning v7, sandbox v${workspace.schemaVersion}, experience v3, research v1`,
         internet: network.isConnected && network.isInternetReachable !== false ? 'available' : network.isConnected ? 'local connection only' : 'offline',
         cloud: configured ? 'configured; endpoint and key intentionally omitted' : 'not configured',
         authentication: status,
@@ -67,8 +67,7 @@ export default function DiagnosticsScreen() {
     catch { setNotice('Clipboard is unavailable. Use Share Report instead.'); }
   };
 
-  return <Screen>
-    <IconButton accessibilityLabel="Back to Settings" icon="arrow-left" label="BACK / SETTINGS" onPress={() => goBackOrReplace('/settings')} />
+  return <Screen header={<PageHeader leading={{ accessibilityLabel: 'Back to Settings', icon: 'arrow-left', label: 'BACK / SETTINGS', onPress: () => goBackOrReplace('/settings') }} />}>
     <Text variant="label" style={styles.eyebrow}>SUPPORT / LOCAL CHECKS</Text>
     <Text variant="screenTitle" style={styles.title}>DIAGNOSTICS</Text>
     <Text variant="body" style={styles.body}>This report describes runtime readiness without including personal content or credentials. Metro, ADB, and emulator checks remain in <Text variant="technical">npm run demo:check</Text>.</Text>

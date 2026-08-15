@@ -4,7 +4,7 @@ import { Share, StyleSheet, View } from 'react-native';
 
 import { AppButton } from '@/shared/components/app-button';
 import { FeedbackModal } from '@/shared/components/feedback-modal';
-import { IconButton } from '@/shared/components/icon-button';
+import { PageHeader } from '@/shared/components/page-header';
 import { Text } from '@/shared/components/console-text';
 import { Screen } from '@/shared/components/screen';
 import { goBackOrReplace, navigateOnce } from '@/shared/navigation';
@@ -27,7 +27,7 @@ export default function ResearchScreen() {
   const definition = researchTasks.find((task) => task.id === current?.id);
   const summary = formatResearchSummary(tasks);
 
-  if (!isResearchCapabilityEnabled) return <Screen><Text variant="screenTitle">RESEARCH MODE DISABLED</Text><Text variant="body">Set the development-only research environment flag to enable this local toolkit.</Text><AppButton label="Back to Settings" onPress={() => goBackOrReplace('/settings')} /></Screen>;
+  if (!isResearchCapabilityEnabled) return <Screen header={<PageHeader leading={{ accessibilityLabel: 'Back to Settings', icon: 'arrow-left', label: 'BACK / SETTINGS', onPress: () => goBackOrReplace('/settings') }} />}><Text variant="screenTitle">RESEARCH MODE DISABLED</Text><Text variant="body">Set the development-only research environment flag to enable this local toolkit.</Text></Screen>;
 
   const openTask = () => {
     if (!current) return;
@@ -38,8 +38,7 @@ export default function ResearchScreen() {
 
   const copy = async () => { try { await Clipboard.setStringAsync(summary); setNotice('Research summary copied.'); } catch { setNotice('Clipboard is unavailable. Use Share instead.'); } };
 
-  return <Screen>
-    <IconButton accessibilityLabel="Back to Settings" icon="arrow-left" label="BACK / SETTINGS" onPress={() => goBackOrReplace('/settings')} />
+  return <Screen header={<PageHeader leading={{ accessibilityLabel: 'Back to Settings', icon: 'arrow-left', label: 'BACK / SETTINGS', onPress: () => goBackOrReplace('/settings') }} />}>
     <Text variant="label" style={styles.eyebrow}>DEVELOPMENT / LOCAL ONLY</Text>
     <Text variant="screenTitle" style={styles.title}>USABILITY SESSION</Text>
     {!active && !tasks.some((task) => task.completedAt || task.abandonedAt) ? <View style={styles.panel}>

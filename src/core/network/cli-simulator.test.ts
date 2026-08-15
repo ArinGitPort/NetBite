@@ -1,5 +1,6 @@
 import {
   deriveConnectedRoutes,
+  deriveCliLinkContext,
   deriveVlanReachability,
   executeCliCommand,
   getCliSuggestions,
@@ -217,5 +218,49 @@ describe('configuration-derived VLAN reachability', () => {
     state = run(state, 'r1', 'interface G0/0').state;
     state = run(state, 'r1', 'shutdown').state;
     expect(simulatePing(state, 'pc-a', '192.168.20.20').success).toBe(false);
+  });
+});
+
+describe('CLI topology link context', () => {
+  test('labels routed links with their live subnet and reports mismatches or down links', () => {
+    const state = createRoutingState();
+    expect(deriveCliLinkContext(state, state.links[0])).toEqual({ kind: 'network', label: '192.168.10.0/24', tone: 'normal' });
+    expect(deriveCliLinkContext(state, state.links[1])).toEqual({ kind: 'network', label: '10.0.12.0/30', tone: 'normal' });
+
+    state.devices.find(({ id }) => id === 'r2')!.interfaces.find(({ name }) => name === 'G0/0')!.ipv4 = '10.0.99.2';
+    expect(deriveCliLinkContext(state, state.links[1])).toEqual({ kind: 'mismatch', label: 'SUBNET MISMATCH', tone: 'warning' });
+    state.devices.find(({ id }) => id === 'r1')!.interfaces.find(({ name }) => name === 'G0/1')!.adminUp = false;
+    expect(deriveCliLinkContext(state, state.links[1])).toEqual({ kind: 'operational', label: 'LINK DOWN', networkLabel: undefined, tone: 'warning' });
+  });
+
+  test('derives access and trunk context from current switch configuration', () => {
+    const state = createVlanState();
+    expect(deriveCliLinkContext(state, state.links[0])).toEqual({ kind: 'vlan', label: 'ACCESS / VLAN 1', tone: 'normal' });
+    expect(deriveCliLinkContext(state, state.links[1])).toEqual({ kind: 'trunk', label: 'NOT TRUNKED', tone: 'warning' });
+
+    const swA = state.devices.find(({ id }) => id === 'sw-a')!.interfaces.find(({ name }) => name === 'F0/24')!;
+    const swB = state.devices.find(({ id }) => id === 'sw-b')!.interfaces.find(({ name }) => name === 'F0/24')!;
+    Object.assign(swA, { switchportMode: 'trunk', allowedVlans: [20, 10] });
+    Object.assign(swB, { switchportMode: 'trunk', allowedVlans: [10, 20] });
+    expect(deriveCliLinkContext(state, state.links[1])).toEqual({ kind: 'trunk', label: 'TRUNK / VLAN 10,20', tone: 'success' });
+
+    swB.allowedVlans = [30];
+    expect(deriveCliLinkContext(state, state.links[1])).toEqual({ kind: 'trunk', label: 'NO COMMON VLANs', tone: 'warning' });
+  });
+
+  test('compares a router trunk with its currently configured subinterface VLANs', () => {
+    let state = createInterVlanState();
+    const configureDevice = (input: CliNetworkState, deviceId: string, commands: string[]) => {
+      let next = enterGlobal(input, deviceId);
+      for (const value of commands) next = run(next, deviceId, value).state;
+      return next;
+    };
+    const trunk = state.links.find(({ aDeviceId, bDeviceId }) => aDeviceId === 'sw-1' && bDeviceId === 'r1')!;
+    expect(deriveCliLinkContext(state, trunk)).toEqual({ kind: 'trunk', label: 'NOT TRUNKED', tone: 'warning' });
+
+    state = configureDevice(state, 'sw-1', ['interface F0/24', 'switchport mode trunk', 'switchport trunk allowed vlan 10,20', 'end']);
+    expect(deriveCliLinkContext(state, trunk)).toEqual({ kind: 'trunk', label: 'NO COMMON VLANs', tone: 'warning' });
+    state = configureDevice(state, 'r1', ['interface G0/0.10', 'encapsulation dot1q 10', 'ip address 192.168.10.1 255.255.255.0', 'end']);
+    expect(deriveCliLinkContext(state, trunk)).toEqual({ kind: 'trunk', label: 'TRUNK / VLAN 10', tone: 'success' });
   });
 });

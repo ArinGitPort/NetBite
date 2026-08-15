@@ -5,7 +5,7 @@ import { useAuth } from '@/features/account/auth-context';
 import { ProCheckout } from '@/features/account/components/pro-checkout';
 import { AppButton } from '@/shared/components/app-button';
 import { Text } from '@/shared/components/console-text';
-import { IconButton } from '@/shared/components/icon-button';
+import { PageHeader } from '@/shared/components/page-header';
 import { Screen } from '@/shared/components/screen';
 import { goBackOrReplace } from '@/shared/navigation';
 import { AppRoutes } from '@/shared/routes';
@@ -14,8 +14,7 @@ import { Fonts, Palette, Space } from '@/shared/theme';
 export default function ProScreen() {
   const { status, hasPro, hasContentAccess, testProEnabled } = useAuth();
   return (
-    <Screen>
-      <IconButton accessibilityLabel="Back" icon="arrow-left" label="BACK" onPress={() => goBackOrReplace('/')} />
+    <Screen header={<PageHeader leading={{ accessibilityLabel: 'Back to previous screen', icon: 'arrow-left', label: 'BACK', onPress: () => goBackOrReplace('/') }} />}>
       <View style={styles.hero}>
         <Text variant="label" style={styles.eyebrow}>PERMANENT ACADEMIC TEST ENTITLEMENT</Text>
         <Text variant="screenTitle" style={styles.title}>NETBITE PRO</Text>

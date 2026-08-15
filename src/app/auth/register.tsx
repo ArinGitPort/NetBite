@@ -6,7 +6,7 @@ import { AccountField } from '@/features/account/components/account-field';
 import { useAuth } from '@/features/account/auth-context';
 import { AppButton } from '@/shared/components/app-button';
 import { Text } from '@/shared/components/console-text';
-import { IconButton } from '@/shared/components/icon-button';
+import { PageHeader } from '@/shared/components/page-header';
 import { Screen } from '@/shared/components/screen';
 import { goBackOrReplace } from '@/shared/navigation';
 import { AppRoutes } from '@/shared/routes';
@@ -29,8 +29,7 @@ export default function RegisterScreen() {
     }
     else router.replace('/');
   };
-  return <Screen>
-    <IconButton accessibilityLabel="Back to sign in" icon="arrow-left" label="BACK / SIGN IN" onPress={() => goBackOrReplace(AppRoutes.auth)} />
+  return <Screen header={<PageHeader leading={{ accessibilityLabel: 'Back to sign in', icon: 'arrow-left', label: 'BACK / SIGN IN', onPress: () => goBackOrReplace(AppRoutes.auth) }} />}>
     <View style={styles.header}><Text variant="label" style={styles.eyebrow}>NEW LEARNER PROFILE</Text><Text variant="screenTitle" style={styles.title}>CREATE ACCOUNT</Text></View>
     {!configured ? <Text accessibilityRole="alert" variant="bodySmall" style={styles.message}>Cloud services are not configured. Return to account options and continue as a guest.</Text> : null}
     <View style={styles.form}>

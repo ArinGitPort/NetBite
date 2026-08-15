@@ -3,6 +3,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { useAuth } from '@/features/account/auth-context';
 import { AppButton } from '@/shared/components/app-button';
+import { PageHeader } from '@/shared/components/page-header';
 import { Text } from '@/shared/components/console-text';
 import { Screen } from '@/shared/components/screen';
 import { goBackOrReplace } from '@/shared/navigation';
@@ -11,7 +12,7 @@ import { Fonts, Palette, Space } from '@/shared/theme';
 
 export function PremiumLockedScreen({ label = 'THIS ACTIVITY' }: { label?: string }) {
   const { status } = useAuth();
-  return <Screen>
+  return <Screen header={<PageHeader leading={{ accessibilityLabel: 'Back to learning path', icon: 'arrow-left', label: 'BACK / LEARN', onPress: () => goBackOrReplace('/learn') }} />}>
     <View style={styles.panel}>
       <Text variant="label" style={styles.eyebrow}>NETBITE PRO</Text>
       <Text variant="screenTitle" style={styles.title}>{label} IS LOCKED</Text>
@@ -19,7 +20,6 @@ export function PremiumLockedScreen({ label = 'THIS ACTIVITY' }: { label?: strin
       <Text variant="technical" style={styles.test}>TEST MODE / NO REAL CHARGE</Text>
       <AppButton label="View NetBite Pro" onPress={() => router.replace(AppRoutes.pro)} />
       {status === 'guest' ? <AppButton label="Sign in" variant="secondary" onPress={() => router.push(AppRoutes.auth)} /> : null}
-      <AppButton label="Back" leadingIcon="arrow-left" variant="quiet" onPress={() => goBackOrReplace('/learn')} />
     </View>
   </Screen>;
 }

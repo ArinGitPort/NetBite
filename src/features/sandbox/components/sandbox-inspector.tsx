@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 
 import { calculateSubnetRange, parseIPv4Address, type RouteEntry } from '@/core/network/advanced-networking';
@@ -39,8 +39,6 @@ export function SandboxInspector({ device, connectedInterfaceCount, issues, onCo
   const [feedback, setFeedback] = useState<string>();
   const [subinterfaceNumber, setSubinterfaceNumber] = useState('');
   const [encapsulationVlan, setEncapsulationVlan] = useState(selected?.encapsulationVlan?.toString() ?? '');
-
-  useEffect(() => setName(device.name), [device.name]);
 
   const deviceIssues = useMemo(() => issues.filter((issue) => issue.deviceIds.includes(device.id)), [device.id, issues]);
   const chooseInterface = (id: string) => {

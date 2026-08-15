@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { BackHandler, Platform, StyleSheet, View } from 'react-native';
+import { AccessibilityInfo, BackHandler, Platform, StyleSheet, ToastAndroid, View } from 'react-native';
 
 import { chapters, getLesson } from '@/content/chapters';
 import { canAccessChapter } from '@/core/account/access';
@@ -18,6 +18,7 @@ import { ContentNotFound } from '@/shared/components/content-not-found';
 import { Text } from '@/shared/components/console-text';
 import { FeedbackModal } from '@/shared/components/feedback-modal';
 import { IconButton } from '@/shared/components/icon-button';
+import { PageHeader } from '@/shared/components/page-header';
 import { ProgressBar } from '@/shared/components/progress-bar';
 import { Screen } from '@/shared/components/screen';
 import { selectionHaptic, successHaptic } from '@/shared/haptics';
@@ -33,6 +34,7 @@ export default function LessonScreen() {
   const { lessonId, fromLabId } = useLocalSearchParams<{ lessonId: string; fromLabId?: string }>();
   const completeLesson = useGameStore((state) => state.completeLesson);
   const completedLessonIds = useGameStore((state) => state.completedLessonIds);
+  const removeLearningItem = useGameStore((state) => state.removeLearningItem);
   const saveLearningItem = useGameStore((state) => state.saveLearningItem);
   const recordReviewResult = useGameStore((state) => state.recordReviewResult);
   const savedLearningItems = useGameStore((state) => state.savedLearningItems);
@@ -71,8 +73,6 @@ export default function LessonScreen() {
   const exampleOwnsIllustration = lesson.example?.presentation === 'guided'
     && lesson.example.visual?.illustration === lesson.illustration;
   const lessonSaved = savedLearningItems[`lesson:${lesson.id}`];
-  const illustrationKey = `${lesson.id}:${lesson.illustration}`;
-  const illustrationSaved = savedLearningItems[`illustration:${illustrationKey}`];
   const checkpointReviewInput = {
     kind: 'checkpoint' as const,
     contentId: lesson.checkpoint?.reviewIdentity ?? lesson.id,
@@ -105,24 +105,44 @@ export default function LessonScreen() {
     else returnToOwningChapter('lesson', lesson.id);
   };
 
+  const lessonIsSaved = Boolean(lessonSaved && !lessonSaved.deletedAt);
+  const notifySaveAction = (message: string) => {
+    if (Platform.OS === 'android') ToastAndroid.show(message, ToastAndroid.SHORT);
+    else AccessibilityInfo.announceForAccessibility(message);
+  };
+  const announceRemoval = () => {
+    successHaptic();
+    notifySaveAction('Lesson unsaved');
+  };
+
+  const removeSavedLesson = () => {
+    removeLearningItem(`lesson:${lesson.id}`);
+    announceRemoval();
+  };
+
+  const toggleLessonSaved = () => {
+    if (lessonIsSaved) {
+      removeSavedLesson();
+      return;
+    }
+    saveLearningItem({ targetType: 'lesson', targetId: lesson.id, chapterId: chapter.id, title: lesson.title, note: '' });
+    successHaptic();
+    notifySaveAction('Lesson saved');
+  };
+
   return (
-    <Screen>
+    <Screen header={<PageHeader
+      leading={{ accessibilityLabel: originatingLabId ? 'Back to the originating lab' : 'Close lessons and return to chapter', icon: originatingLabId ? 'arrow-left' : 'close', label: originatingLabId ? 'BACK / LAB' : 'CLOSE', onPress: closeLesson }}
+      trailingContent={<View accessibilityLabel="Lesson save actions" style={styles.headerSaveActions}>
+        <IconButton accessibilityHint={lessonIsSaved ? 'Removes the complete lesson from Saved.' : 'Saves the complete lesson for later.'} accessibilityLabel={lessonIsSaved ? 'Unsave lesson' : 'Save lesson'} iconSize={22} label="LESSON" onPress={toggleLessonSaved} selected={lessonIsSaved} semanticIcon={lessonIsSaved ? 'saved' : 'bookmark'} />
+      </View>}
+    />}>
       <View style={styles.headerRow}>
-        <IconButton
-          accessibilityLabel={originatingLabId ? 'Back to the originating lab' : 'Close lessons and return to chapter'}
-          icon={originatingLabId ? 'arrow-left' : 'close'}
-          label={originatingLabId ? 'BACK / LAB' : undefined}
-          onPress={closeLesson}
-        />
         <View style={styles.progress}><ProgressBar progress={(index + 1) / chapter.lessons.length} /></View>
         <Text variant="label" style={styles.count}>{index + 1}/{chapter.lessons.length}</Text>
       </View>
       <Text variant="label" style={styles.eyebrow}>{lesson.eyebrow}</Text>
       <Text variant="screenTitle" style={styles.title}>{lesson.title}</Text>
-      <View style={styles.saveActions}>
-        <AppButton label={lessonSaved && !lessonSaved.deletedAt ? 'Lesson saved' : 'Save lesson'} selected={Boolean(lessonSaved && !lessonSaved.deletedAt)} variant="utility" onPress={() => saveLearningItem({ targetType: 'lesson', targetId: lesson.id, chapterId: chapter.id, title: lesson.title, note: lessonSaved?.note ?? '' })} />
-        <AppButton label={illustrationSaved && !illustrationSaved.deletedAt ? 'Visual saved' : 'Save visual'} selected={Boolean(illustrationSaved && !illustrationSaved.deletedAt)} variant="utility" onPress={() => saveLearningItem({ targetType: 'illustration', targetId: illustrationKey, chapterId: chapter.id, title: `${lesson.title} visual`, note: illustrationSaved?.note ?? '' })} />
-      </View>
       {!exampleOwnsIllustration ? <LessonIllustration type={lesson.illustration} /> : null}
       <Text variant="body" style={styles.body}>{lesson.body}</Text>
       {lesson.sections?.map((section) => (
@@ -131,7 +151,7 @@ export default function LessonScreen() {
           <Text variant="body" style={styles.sectionBody}>{section.body}</Text>
         </View>
       ))}
-      {lesson.example ? <LessonWorkedExample key={lesson.id} example={lesson.example} /> : null}
+      {lesson.example ? <LessonWorkedExample example={lesson.example} /> : null}
       {lesson.fieldNote ? <LessonFieldNote note={lesson.fieldNote} /> : null}
       {lesson.termNote ? (
         <View style={styles.termNote}>
@@ -145,7 +165,6 @@ export default function LessonScreen() {
       </View>
       {lesson.checkpoint && checkpointRequired ? (
         <LessonCheckpoint
-          key={lesson.id}
           checkpoint={lesson.checkpoint}
           reviewLabel={checkpointRule.heading}
           reviewText={checkpointRule.body}
@@ -198,7 +217,7 @@ const styles = StyleSheet.create({
   count: { width: 56, textAlign: 'right', color: Palette.textMuted },
   eyebrow: { color: Palette.accentBright, fontFamily: Fonts.medium, marginBottom: Space.sm },
   title: { color: Palette.text, fontFamily: Fonts.semibold, textTransform: 'uppercase', marginBottom: Space.xl },
-  saveActions: { flexDirection: 'row', flexWrap: 'wrap', gap: Space.sm, marginBottom: Space.lg },
+  headerSaveActions: { flexDirection: 'row', alignItems: 'center', gap: Space.xs },
   body: { color: Palette.text, marginTop: Space.xl },
   section: { marginTop: Space.lg },
   sectionHeading: { color: Palette.orange, fontFamily: Fonts.semibold, textTransform: 'uppercase', marginBottom: Space.xs },

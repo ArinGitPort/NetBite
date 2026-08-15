@@ -7,6 +7,7 @@ import {
   type SwitchDecision,
 } from '@/core/network/switching';
 import { DeviceGlyph } from '@/features/devices/components/device-glyph';
+import { LabSetupSupport } from '@/features/practice/components/foundation-lab-support';
 import {
   SWITCH_DESK_ENDPOINTS,
   SWITCH_DESK_PORTS,
@@ -17,7 +18,7 @@ import {
 import { AppButton } from '@/shared/components/app-button';
 import { Text } from '@/shared/components/console-text';
 import { FeedbackModal } from '@/shared/components/feedback-modal';
-import { IconButton } from '@/shared/components/icon-button';
+import { PageHeader } from '@/shared/components/page-header';
 import { Screen } from '@/shared/components/screen';
 import { selectionHaptic, successHaptic, warningHaptic } from '@/shared/haptics';
 import { Fonts, Palette, Space } from '@/shared/theme';
@@ -105,11 +106,7 @@ export function SwitchDecisionLab() {
   };
 
   return (
-    <Screen>
-      <View style={styles.headerRow}>
-        <IconButton accessibilityLabel="Back to Chapter 3" icon="arrow-left" label="BACK / CHAPTER" onPress={() => returnToOwningChapter('lab', 'switch-decision-desk')} />
-        <IconButton accessibilityLabel="Reset switch desk" icon="reset" label="RESET" onPress={() => setResetVisible(true)} />
-      </View>
+    <Screen header={<PageHeader leading={{ accessibilityLabel: 'Back to Chapter 3', icon: 'arrow-left', label: 'BACK / CHAPTER', onPress: () => returnToOwningChapter('lab', 'switch-decision-desk') }} trailing={[{ accessibilityLabel: 'Reset switch desk', icon: 'reset', label: 'RESET', onPress: () => setResetVisible(true) }]} />}>
 
       <Text variant="label" style={styles.eyebrow}>GUIDED PRACTICE / SWITCH DESK</Text>
       <Text variant="screenTitle" style={styles.title}>PREDICT THE SWITCH DECISION</Text>
@@ -118,6 +115,7 @@ export function SwitchDecisionLab() {
         <Text variant="body" style={styles.objectiveText}>Process four frames. Predict the output before the switch updates its MAC address table.</Text>
       </View>
       <Text variant="technical" style={styles.scopeNote}>STEP MODEL ONLY / NO TIMING OR TRAFFIC SIMULATION</Text>
+      <LabSetupSupport labId={LAB_ID} />
 
       <View style={styles.topologyPanel}>
         <View style={styles.switchHeader}>

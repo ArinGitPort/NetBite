@@ -1,8 +1,10 @@
-import { Pressable, StyleSheet, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import Svg, { Line } from 'react-native-svg';
 
 import {
   deriveConnectedRoutes,
+  deriveCliLinkContext,
   type CliDeviceState,
   type CliNetworkState,
   type PingSimulation,
@@ -11,6 +13,8 @@ import type { CliTopologyLayout } from '@/features/cli/cli-lab-definitions';
 import { DeviceGlyph } from '@/features/devices/components/device-glyph';
 import { AppButton } from '@/shared/components/app-button';
 import { Text } from '@/shared/components/console-text';
+import { DisclosureSection } from '@/shared/components/disclosure-section';
+import { TopologyLinkLabels } from '@/shared/components/topology-link-labels';
 import type { ResponsiveMode } from '@/shared/responsive-layout';
 import { Fonts, Palette, Space } from '@/shared/theme';
 
@@ -128,15 +132,31 @@ export function CliTopologyView({ network, layout, mode, selectedDeviceId, cliDe
   onOpenCli: (deviceId: string) => void;
 }) {
   const positions = layout[mode];
+  const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
+  const [viewportWidth, setViewportWidth] = useState(0);
+  const horizontalScrollRef = useRef<ScrollView>(null);
   const selected = network.devices.find((device) => device.id === selectedDeviceId) ?? network.devices[0];
   const activePairs = [...tracePairs(trace?.forwardDeviceIds ?? []), ...tracePairs(trace?.reverseDeviceIds ?? [])];
   const activeIds = new Set([...(trace?.forwardDeviceIds ?? []), ...(trace?.reverseDeviceIds ?? [])]);
   const failedId = trace && !trace.success ? (trace.reverseDeviceIds.at(-1) ?? trace.forwardDeviceIds.at(-1)) : undefined;
   const isActiveLink = (a: string, b: string) => activePairs.some(([left, right]) => (left === a && right === b) || (left === b && right === a));
+  const authoredWidth = layout.width[mode];
+  const canvasWidth = Math.max(authoredWidth, viewportWidth);
+  const canPan = viewportWidth > 0 && canvasWidth > viewportWidth;
+
+  useEffect(() => {
+    const point = positions[selectedDeviceId];
+    if (!point || !viewportWidth || !canvasWidth) return;
+    const targetX = canvasWidth * point.x / 100 - viewportWidth / 2;
+    horizontalScrollRef.current?.scrollTo({ x: Math.max(0, Math.min(canvasWidth - viewportWidth, targetX)), animated: false });
+  }, [canvasWidth, positions, selectedDeviceId, viewportWidth]);
 
   return (
     <View style={styles.topologySection}>
-      <View accessibilityLabel={layout.description} style={[styles.canvas, { height: layout.height[mode] }]} testID="cli-topology-canvas">
+      {canPan ? <Text variant="technical" style={styles.panCue}>SCROLL TO FOLLOW THE NETWORK PATH</Text> : null}
+      <View onLayout={(event) => setViewportWidth(event.nativeEvent.layout.width)} style={styles.viewport} testID="cli-topology-viewport">
+      <ScrollView accessibilityLabel="Scrollable network topology" directionalLockEnabled horizontal nestedScrollEnabled ref={horizontalScrollRef} scrollEnabled={canPan} showsHorizontalScrollIndicator={canPan} style={styles.horizontalScroll} testID="cli-topology-scroll">
+      <View accessibilityLabel={layout.description} onLayout={(event) => setCanvasSize({ width: event.nativeEvent.layout.width, height: event.nativeEvent.layout.height })} style={[styles.canvas, { height: layout.height[mode], width: canvasWidth }]} testID="cli-topology-canvas">
         <Svg accessibilityElementsHidden height="100%" importantForAccessibility="no-hide-descendants" preserveAspectRatio="none" style={styles.cables} testID="cli-topology-cables" viewBox="0 0 100 100" width="100%">
           {network.links.map((link) => {
             const from = positions[link.aDeviceId]; const to = positions[link.bDeviceId];
@@ -145,18 +165,43 @@ export function CliTopologyView({ network, layout, mode, selectedDeviceId, cliDe
             return <Line key={`${link.aDeviceId}-${link.aInterface}-${link.bDeviceId}-${link.bInterface}`} stroke={active ? Palette.accentBright : Palette.accent} strokeLinecap="square" strokeOpacity={active ? 1 : 0.82} strokeWidth={active ? 1.4 : 0.85} x1={from.x} x2={to.x} y1={from.y} y2={to.y} />;
           })}
         </Svg>
+        {canvasSize.width > 0 && canvasSize.height > 0 ? network.links.map((link) => {
+          const from = positions[link.aDeviceId]; const to = positions[link.bDeviceId];
+          if (!from || !to) return null;
+          const fromName = network.devices.find((device) => device.id === link.aDeviceId)?.name ?? link.aDeviceId;
+          const toName = network.devices.find((device) => device.id === link.bDeviceId)?.name ?? link.bDeviceId;
+          const context = deriveCliLinkContext(network, link);
+          const id = `${link.aDeviceId}-${link.aInterface}-${link.bDeviceId}-${link.bInterface}`;
+          const contextLabel = context.kind === 'network' || context.kind === 'mismatch' ? context.label : context.networkLabel;
+          return <TopologyLinkLabels
+            key={`${id}-labels`}
+            accessibilityLabel={`Cable from ${fromName} ${link.aInterface} to ${toName} ${link.bInterface}. ${context.label}.`}
+            from={{ x: canvasSize.width * from.x / 100, y: canvasSize.height * from.y / 100 }}
+            fromBounds={{ halfWidth: NODE_WIDTH / 2, halfHeight: 42 }}
+            fromLabel={link.aInterface}
+            id={id}
+            canvas={canvasSize}
+            contextLabel={contextLabel}
+            contextPlacement={layout.linkCaptions?.[id]?.[mode]}
+            contextTone={context.kind === 'mismatch' ? 'warning' : 'normal'}
+            to={{ x: canvasSize.width * to.x / 100, y: canvasSize.height * to.y / 100 }}
+            toBounds={{ halfWidth: NODE_WIDTH / 2, halfHeight: 42 }}
+            toLabel={link.bInterface}
+          />;
+        }) : null}
         {network.devices.map((device) => {
           const point = positions[device.id]; if (!point) return null;
           const primary = device.interfaces.find((item) => item.ipv4);
           const detail = device.type === 'host' ? (primary?.ipv4 ? `${primary.ipv4}/${primary.prefix}` : 'IP NOT SET') : device.type === 'router' ? `${device.interfaces.length} INTERFACES` : `${device.vlans.length} VLAN${device.vlans.length === 1 ? '' : 'S'}`;
-          return <Pressable key={device.id} accessibilityHint="Shows this device's current configuration" accessibilityLabel={`${device.name}, ${device.type}, ${detail}${device.id === selected.id ? ', selected' : ''}`} accessibilityRole="button" accessibilityState={{ selected: device.id === selected.id }} onPress={() => onSelectDevice(device.id)} style={[styles.node, { left: `${point.x}%`, top: `${point.y}%` }, device.id === selected.id && styles.nodeSelected, activeIds.has(device.id) && styles.nodeTrace, failedId === device.id && styles.nodeFailed]}>
+          return <Pressable key={device.id} accessibilityHint="Shows this device's current configuration" accessibilityLabel={`${device.name}, ${device.type}, ${detail}${device.id === selected.id ? ', selected' : ''}`} accessibilityRole="button" accessibilityState={{ selected: device.id === selected.id }} onPress={() => onSelectDevice(device.id)} style={[styles.node, { left: `${point.x}%`, top: `${point.y}%` }, device.id === selected.id && styles.nodeSelected, activeIds.has(device.id) && styles.nodeTrace, failedId === device.id && styles.nodeFailed]} testID={`cli-topology-node-${device.id}`}>
             <DeviceGlyph size={52} type={device.type === 'host' ? 'pc' : device.type} />
             <Text variant="technical" style={styles.nodeName}>{device.name}</Text>
-            {device.type === 'host' && primary?.ipv4 ? <View style={styles.nodeAddress}><Text variant="technical" style={styles.nodeDetail}>{primary.ipv4}</Text><Text variant="technical" style={styles.nodePrefix}>/{primary.prefix}</Text></View> : <Text variant="technical" style={styles.nodeDetail}>{detail}</Text>}
           </Pressable>;
         })}
       </View>
-      <View style={styles.connectionList}><Text variant="label" style={styles.recordTitle}>PHYSICAL LINKS</Text>{network.links.map((link) => <Text key={`${link.aDeviceId}-${link.aInterface}-${link.bDeviceId}-${link.bInterface}`} variant="technical">{network.devices.find((item) => item.id === link.aDeviceId)?.name} {link.aInterface} ↔ {network.devices.find((item) => item.id === link.bDeviceId)?.name} {link.bInterface}</Text>)}</View>
+      </ScrollView>
+      </View>
+      <DisclosureSection title="LINK DETAILS" summary="Text list of connected device interfaces and current link state.">{network.links.map((link) => { const context = deriveCliLinkContext(network, link); return <Text key={`${link.aDeviceId}-${link.aInterface}-${link.bDeviceId}-${link.bInterface}`} variant="technical">{network.devices.find((item) => item.id === link.aDeviceId)?.name} {link.aInterface} ↔ {network.devices.find((item) => item.id === link.bDeviceId)?.name} {link.bInterface} / {context.label}</Text>; })}</DisclosureSection>
       {trace ? <View accessibilityLiveRegion="polite" style={[styles.tracePanel, trace.success ? styles.traceSuccess : styles.traceWarning]}><Text variant="label" style={trace.success ? styles.green : styles.orange}>{trace.success ? 'PING PATH VERIFIED' : 'PING PATH STOPPED'}</Text><Text variant="bodySmall">TARGET / {trace.destination}</Text><Text variant="technical">FORWARD / {trace.forwardDeviceIds.map((id) => network.devices.find((device) => device.id === id)?.name ?? id).join(' → ') || 'NO PATH'}</Text>{trace.reverseDeviceIds.length ? <Text variant="technical">RETURN / {trace.reverseDeviceIds.map((id) => network.devices.find((device) => device.id === id)?.name ?? id).join(' → ')}</Text> : null}<Text variant="bodySmall">{trace.reason}</Text></View> : null}
       <View testID="cli-device-inspector"><DeviceInspector cliAvailable={cliDeviceIds.includes(selected.id)} device={selected} network={network} onOpenCli={() => onOpenCli(selected.id)} /></View>
     </View>
@@ -166,17 +211,16 @@ export function CliTopologyView({ network, layout, mode, selectedDeviceId, cliDe
 const NODE_WIDTH = 104;
 const styles = StyleSheet.create({
   topologySection: { width: '100%', minWidth: 0, gap: Space.sm },
+  viewport: { width: '100%', minWidth: 0, overflow: 'hidden' },
+  horizontalScroll: { width: '100%' },
+  panCue: { color: Palette.orange },
   canvas: { width: '100%', minWidth: 0, position: 'relative', overflow: 'hidden', borderWidth: 1, borderColor: Palette.border, backgroundColor: Palette.surface },
   cables: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, pointerEvents: 'none' },
-  node: { position: 'absolute', width: NODE_WIDTH, minHeight: 92, marginLeft: -(NODE_WIDTH / 2), marginTop: -46, alignItems: 'center', justifyContent: 'center', padding: 4, borderWidth: 1, borderColor: Palette.border, backgroundColor: Palette.background },
+  node: { position: 'absolute', zIndex: 4, width: NODE_WIDTH, minHeight: 84, marginLeft: -(NODE_WIDTH / 2), marginTop: -42, alignItems: 'center', justifyContent: 'center', padding: 4, borderWidth: 1, borderColor: Palette.border, backgroundColor: Palette.background },
   nodeSelected: { borderColor: Palette.orange, backgroundColor: Palette.orangeSoft },
   nodeTrace: { borderColor: Palette.accentBright },
   nodeFailed: { borderColor: Palette.danger, borderWidth: 2 },
   nodeName: { color: Palette.text, fontFamily: Fonts.semibold, textAlign: 'center' },
-  nodeDetail: { color: Palette.textMuted, textAlign: 'center' },
-  nodeAddress: { maxWidth: '100%', alignItems: 'center' },
-  nodePrefix: { color: Palette.green, textAlign: 'center' },
-  connectionList: { padding: Space.sm, gap: Space.xs, borderWidth: 1, borderColor: Palette.border, backgroundColor: Palette.surface },
   inspector: { padding: Space.md, gap: Space.sm, borderWidth: 1, borderColor: Palette.green, backgroundColor: Palette.surface },
   inspectorHeading: { minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: Space.sm },
   inspectorHeadingCopy: { flex: 1, minWidth: 0 },

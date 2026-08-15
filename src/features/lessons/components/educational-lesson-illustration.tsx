@@ -19,7 +19,7 @@ import {
 } from '@/features/lessons/educational-illustration-registry';
 import { Text } from '@/shared/components/console-text';
 import { useMeasuredResponsiveLayout, type ResponsiveMode } from '@/shared/responsive-layout';
-import { Fonts, Palette, Space } from '@/shared/theme';
+import { DiagramPalette, Fonts, Palette, Space } from '@/shared/theme';
 
 const educationAssets: Record<EducationAssetName, number> = {
   'server-terminal': require('@/assets/images/education/server-terminal-mobile.png'),
@@ -38,15 +38,7 @@ const educationAssets: Record<EducationAssetName, number> = {
   'application-window': require('@/assets/images/education/application-window-mobile.png'),
 };
 
-const toneColors: Record<DiagramTone, { border: string; fill: string; text: string }> = {
-  neutral: { border: '#62666A', fill: '#303136', text: '#E0DEE0' },
-  red: { border: '#A24B52', fill: '#4A292E', text: '#F1DADB' },
-  orange: { border: '#B77449', fill: '#4A3326', text: '#F0DDCF' },
-  sage: { border: '#71958B', fill: '#263C38', text: '#D7E6E2' },
-  blue: { border: '#6689A3', fill: '#273A49', text: '#D9E7F0' },
-  violet: { border: '#8E77A0', fill: '#392E41', text: '#E8DDED' },
-  gold: { border: '#A28C54', fill: '#443B26', text: '#EDE4CC' },
-};
+const toneColors: Record<DiagramTone, { border: string; fill: string; text: string }> = DiagramPalette;
 
 function Token({ token, size = 72 }: { token: VisualToken; size?: number }) {
   if (token === 'pc' || token === 'switch' || token === 'router') return <DeviceGlyph type={token} size={size} />;

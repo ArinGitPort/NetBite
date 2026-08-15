@@ -12,18 +12,16 @@ import { PremiumLockedScreen } from '@/features/account/components/premium-locke
 import { CourseLockedScreen } from '@/features/account/components/course-locked-screen';
 import { TopologyCanvas } from '@/features/topology/components/topology-canvas';
 import { createLabRegistry } from '@/features/practice/lab-registry';
-import { FoundationLabSupport } from '@/features/practice/components/foundation-lab-support';
+import { LabSetupSupport } from '@/features/practice/components/foundation-lab-support';
 import { AppButton } from '@/shared/components/app-button';
-import { ContextualGuide } from '@/shared/components/contextual-guide';
 import { Text } from '@/shared/components/console-text';
 import { ContentNotFound } from '@/shared/components/content-not-found';
 import { FeedbackModal } from '@/shared/components/feedback-modal';
-import { IconButton } from '@/shared/components/icon-button';
+import { PageHeader } from '@/shared/components/page-header';
 import { Screen } from '@/shared/components/screen';
 import { successHaptic, warningHaptic } from '@/shared/haptics';
 import { Fonts, Palette, Radius, Space } from '@/shared/theme';
 import { useGameStore } from '@/store/use-game-store';
-import { useExperienceStore } from '@/store/use-experience-store';
 import { returnToOwningChapter } from '@/shared/navigation';
 
 function FirstNetworkLab() {
@@ -77,13 +75,10 @@ function FirstNetworkLab() {
   };
 
   return (
-    <Screen>
-      <View style={styles.headerRow}>
-        <IconButton accessibilityLabel="Back to chapter" icon="arrow-left" label="BACK / CHAPTER" onPress={() => returnToOwningChapter('lab', chapterOneLab.id)} />
-        <IconButton accessibilityLabel="Reset lab" icon="reset" label="RESET" onPress={() => setResetConfirmationVisible(true)} />
-      </View>
+    <Screen header={<PageHeader leading={{ accessibilityLabel: 'Back to chapter', icon: 'arrow-left', label: 'BACK / CHAPTER', onPress: () => returnToOwningChapter('lab', chapterOneLab.id) }} trailing={[{ accessibilityLabel: 'Reset lab', icon: 'reset', label: 'RESET', onPress: () => setResetConfirmationVisible(true) }]} />}>
       <Text variant="label" style={styles.eyebrow}>MINI LAB</Text>
       <Text variant="screenTitle" style={styles.title}>{chapterOneLab.title}</Text>
+      <LabSetupSupport labId={chapterOneLab.id} />
       <View style={styles.objective}>
         <Text variant="label" style={styles.objectiveLabel}>YOUR GOAL</Text>
         <Text variant="body" style={styles.objectiveText}>{chapterOneLab.objective}</Text>
@@ -162,21 +157,13 @@ export default function LabScreen() {
   const labs = createLabRegistry(FirstNetworkLab);
   const LabComponent = labId ? labs[labId] : undefined;
   const chapter = chapters.find((item) => item.lab.id === labId);
-  const labGuideSeen = useExperienceStore((state) => Boolean(state.seenGuides['lab-v1']));
   if (chapter && !canAccessChapter(chapter.id, hasContentAccess)) return <PremiumLockedScreen label={`CHAPTER ${chapter.numberLabel} LAB`} />;
   if (chapter && !canOpenChapter(chapter, progress, accessBypass)) return <CourseLockedScreen reason={getChapterLockReason(chapter, progress) ?? 'Complete the prior requirement.'} />;
-  if (LabComponent && !labGuideSeen) return <Screen><IconButton accessibilityLabel="Back to chapter" icon="arrow-left" label="BACK / CHAPTER" onPress={() => labId && returnToOwningChapter('lab', labId)} /><View style={{ marginTop: Space.xl }}><ContextualGuide id="lab-v1" eyebrow="FIRST MINI LAB" steps={[{ title: 'Act on the current goal', detail: 'The objective panel states the one result this practice checks. Other controls support that task.' }, { title: 'Predict, test, then explain', detail: 'Incorrect work stays editable. Hints reveal reasoning gradually, and Why This Happened explains deterministic results.' }]} /></View></Screen>;
   if (!LabComponent) return <ContentNotFound label="Lab" />;
-  const hasEmbeddedBriefing = chapter?.courseId === 'network-operations' && labId !== 'transport-service-desk';
-  return <View style={styles.labShell}>
-    {!hasEmbeddedBriefing && chapter ? <FoundationLabSupport chapter={chapter} labId={labId} /> : null}
-    <View style={styles.labBody}><LabComponent /></View>
-  </View>;
+  return <LabComponent />;
 }
 
 const styles = StyleSheet.create({
-  labShell: { flex: 1, minHeight: 0, backgroundColor: Palette.background },
-  labBody: { flex: 1, minHeight: 0 },
   headerRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: Space.sm, minHeight: 44, alignItems: 'center' },
   eyebrow: { color: Palette.green, fontFamily: Fonts.medium, marginTop: Space.md },
   title: { color: Palette.text, fontFamily: Fonts.semibold, marginTop: Space.sm, marginBottom: Space.lg },

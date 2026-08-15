@@ -23,13 +23,16 @@ describe('network standards screen', () => {
     globalThis.fetch = jest.fn().mockResolvedValue({ ok: true, status: 200, json: jest.fn().mockResolvedValue(raw) }) as jest.Mock;
   });
 
-  test('shows parsed RFC metadata and the inspectable JSON response', async () => {
+  test('shows learner-facing RFC information without assignment or raw API controls', async () => {
     const screen = await render(<NetworkStandardsScreen />);
     await waitFor(() => expect(screen.getByText('LIVE / VALIDATED')).toBeTruthy());
     expect(screen.getByText(raw.title)).toBeTruthy();
+    expect(screen.getAllByText(/how a device discovers the MAC address/i).length).toBeGreaterThan(0);
+    await fireEvent.press(screen.getByText('OFFICIAL RECORD DETAILS'));
     expect(screen.getByText('Internet Standard')).toBeTruthy();
-    await fireEvent.press(screen.getByText('JSON RESPONSE'));
-    await waitFor(() => expect(screen.getByText(/"name": "rfc826"/)).toBeTruthy());
+    expect(screen.queryByText('JSON RESPONSE')).toBeNull();
+    expect(screen.queryByText('TECHNICAL / API DETAILS')).toBeNull();
+    expect(screen.queryByText(/Week 5/i)).toBeNull();
   });
 
   test('retains valid cached content when refresh is offline', async () => {

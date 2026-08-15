@@ -13,7 +13,7 @@ import { AppButton } from '@/shared/components/app-button';
 import { AppIcon } from '@/shared/components/app-icon';
 import { ContentNotFound } from '@/shared/components/content-not-found';
 import { Text } from '@/shared/components/console-text';
-import { IconButton } from '@/shared/components/icon-button';
+import { PageHeader } from '@/shared/components/page-header';
 import { ProgressBar } from '@/shared/components/progress-bar';
 import { Screen } from '@/shared/components/screen';
 import { successHaptic, warningHaptic } from '@/shared/haptics';
@@ -81,7 +81,7 @@ export default function QuizScreen() {
       .map((lesson) => lesson.title)
       .join(', ');
     return (
-      <Screen>
+      <Screen header={<PageHeader leading={{ accessibilityLabel: 'Back to chapter', icon: 'arrow-left', label: 'BACK / CHAPTER', onPress: () => returnToOwningChapter('quiz', chapter.id) }} />}>
         <View style={styles.resultHero}>
           <View style={[styles.statusBlock, !mastered && styles.statusBlockAttempted]}><AppIcon name={mastered ? 'check' : 'reset'} size={28} /></View>
           <Text variant="label" style={[styles.resultEyebrow, !mastered && styles.resultEyebrowAttempted]}>{mastered ? 'QUIZ MASTERED' : 'ATTEMPT RECORDED'}</Text>
@@ -103,9 +103,8 @@ export default function QuizScreen() {
   }
 
   return (
-    <Screen>
+    <Screen header={<PageHeader leading={{ accessibilityLabel: 'Close quiz', icon: 'close', label: 'CLOSE', onPress: () => returnToOwningChapter('quiz', chapter.id) }} />}>
       <View style={styles.header}>
-        <IconButton accessibilityLabel="Close quiz" icon="close" onPress={() => returnToOwningChapter('quiz', chapter.id)} />
         <View style={styles.progress}><ProgressBar progress={(questionIndex + 1) / chapter.quiz.length} /></View>
         <Text variant="label" style={styles.count}>{questionIndex + 1}/{chapter.quiz.length}</Text>
       </View>

@@ -11,7 +11,6 @@ import { useAuth } from '@/features/account/auth-context';
 import { ActionCard } from '@/shared/components/action-card';
 import { AppButton } from '@/shared/components/app-button';
 import { Text } from '@/shared/components/console-text';
-import { ContextualGuide } from '@/shared/components/contextual-guide';
 import { Screen } from '@/shared/components/screen';
 import { AppRoutes } from '@/shared/routes';
 import { navigateOnce } from '@/shared/navigation';
@@ -96,8 +95,6 @@ export default function MainMenuScreen() {
           testID="primary-learning-action"
           footer={<AppButton accessibilityHint="Opens the course library" label="Browse courses" variant="utility" onPress={() => navigateOnce(AppRoutes.courses)} />}
         />
-        <ContextualGuide id="menu-v1" eyebrow="FIRST SESSION" steps={[{ title: 'Continue is your next step', detail: 'The first panel always opens the next unfinished learning activity.' }, { title: 'Build when you are ready', detail: 'Network Sandbox is a separate tool for experimentation, while Account and Settings remain utilities.' }]} />
-
         <Text variant="label" style={styles.groupLabel}>BUILD & TEST</Text>
         <ActionCard
           accessibilityHint={hasContentAccess ? 'Opens the autosaved network workspace' : 'Explains how to unlock Network Sandbox access'}

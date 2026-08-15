@@ -6,7 +6,7 @@ import { fetchRfcMetadata, RFC_REFERENCES, RfcRequestError, type RfcCacheEntry, 
 import { AppButton } from '@/shared/components/app-button';
 import { Text } from '@/shared/components/console-text';
 import { DisclosureSection } from '@/shared/components/disclosure-section';
-import { IconButton } from '@/shared/components/icon-button';
+import { PageHeader } from '@/shared/components/page-header';
 import { Screen } from '@/shared/components/screen';
 import { AppRoutes } from '@/shared/routes';
 import { Fonts, Palette, Space } from '@/shared/theme';
@@ -71,15 +71,18 @@ export default function NetworkStandardsScreen() {
   };
 
   return (
-    <Screen>
-      <View style={styles.header}>
-        <IconButton accessibilityLabel="Back to learning path" icon="arrow-left" label="LEARN" onPress={() => router.replace(AppRoutes.learningPath)} />
-        <Text variant="label" style={styles.apiBadge}>OFFICIAL IETF API</Text>
-      </View>
+    <Screen header={<PageHeader leading={{ accessibilityLabel: 'Back to learning path', icon: 'arrow-left', label: 'BACK / LEARN', onPress: () => router.replace(AppRoutes.learningPath) }} status="OFFICIAL SOURCES" />}>
 
-      <Text variant="label" style={styles.eyebrow}>REFERENCE TERMINAL</Text>
-      <Text variant="screenTitle" style={styles.title}>NETWORK STANDARDS</Text>
-      <Text variant="body" style={styles.intro}>Choose a networking topic to retrieve its official RFC metadata from the IETF Datatracker. Successful responses are saved on this device for offline reference.</Text>
+      <Text variant="label" style={styles.eyebrow}>OPTIONAL REFERENCE</Text>
+      <Text variant="screenTitle" style={styles.title}>NETWORK RULEBOOK</Text>
+      <Text variant="body" style={styles.intro}>Networking devices need shared rules so equipment from different makers can communicate. Many of those rules are published in documents called RFCs. Choose a familiar topic to see the official document behind what NetBite teaches.</Text>
+
+      <View style={styles.explainer}>
+        <Text variant="label" style={styles.panelEyebrow}>WHY WOULD I USE THIS?</Text>
+        <Text variant="bodySmall" style={styles.explainerCopy}>Use this library when you want to verify a lesson, learn what document defines a protocol, or continue studying from the original source. You do not need to read an entire RFC to complete NetBite.</Text>
+        <Text variant="technical" style={styles.definition}><Text variant="technical" style={styles.definitionTerm}>RFC</Text> / A published technical document that records an internet rule, protocol, or recommendation.</Text>
+        <Text variant="technical" style={styles.definition}><Text variant="technical" style={styles.definitionTerm}>IETF</Text> / The Internet Engineering Task Force, the community that develops and maintains many internet standards.</Text>
+      </View>
 
       <View accessibilityLabel="Curated RFC references" accessibilityRole="list" style={styles.referenceGrid}>
         {RFC_REFERENCES.map((reference) => {
@@ -93,8 +96,8 @@ export default function NetworkStandardsScreen() {
               accessibilityState={{ selected: active }}
               onPress={() => chooseReference(reference)}
               style={({ pressed }) => [styles.referenceButton, active && styles.referenceButtonActive, pressed && styles.pressed]}>
-              <Text variant="label" style={[styles.referenceNumber, active && styles.referenceActiveText]}>{reference.rfcNumber}</Text>
-              <Text variant="technical" style={styles.referenceTopic}>{reference.topic}</Text>
+              <Text variant="label" style={[styles.referenceNumber, active && styles.referenceActiveText]}>{reference.topic}</Text>
+              <Text variant="technical" style={styles.referenceTopic}>{reference.rfcNumber}</Text>
             </Pressable>
           );
         })}
@@ -103,12 +106,13 @@ export default function NetworkStandardsScreen() {
       <View style={styles.requestPanel}>
         <View style={styles.requestHeading}>
           <View style={styles.requestCopy}>
-            <Text variant="label" style={styles.panelEyebrow}>HTTP GET</Text>
-            <Text selectable variant="technical" style={styles.endpoint}>datatracker.ietf.org/doc/{selected.documentName}/doc.json</Text>
+            <Text variant="label" style={styles.panelEyebrow}>SELECTED TOPIC</Text>
+            <Text variant="sectionHeading" style={styles.selectedTopic}>{selected.topic.toUpperCase()}</Text>
+            <Text variant="bodySmall" style={styles.selectedPurpose}>{selected.plainPurpose}</Text>
           </View>
           <Text variant="technical" style={[styles.sourceBadge, source === 'live' ? styles.liveBadge : styles.cacheBadge]}>{loading ? 'LOADING' : source === 'live' ? 'LIVE / VALIDATED' : source === 'cache' ? 'CACHED' : 'NOT RETRIEVED'}</Text>
         </View>
-        <AppButton label={loading ? 'Retrieving metadata' : 'Refresh official data'} loading={loading} disabled={loading} onPress={() => void retrieve(selected)} />
+        <AppButton label={loading ? 'Checking official source' : 'Check official source'} loading={loading} disabled={loading} onPress={() => void retrieve(selected)} />
       </View>
 
       {error ? (
@@ -119,7 +123,7 @@ export default function NetworkStandardsScreen() {
         </View>
       ) : null}
 
-      {entry ? <RfcRecord entry={entry} source={source ?? 'cache'} onOpenOfficialDocument={() => void openOfficialDocument()} /> : loading ? (
+      {entry ? <RfcRecord entry={entry} reference={selected} source={source ?? 'cache'} onOpenOfficialDocument={() => void openOfficialDocument()} /> : loading ? (
         <View accessibilityLiveRegion="polite" style={styles.loadingPanel}>
           <Text variant="sectionHeading">RETRIEVING {selected.rfcNumber}</Text>
           <Text variant="bodySmall" style={styles.muted}>Waiting for the IETF Datatracker. The request stops after eight seconds.</Text>
@@ -127,14 +131,11 @@ export default function NetworkStandardsScreen() {
       ) : null}
       {linkError ? <Text accessibilityLiveRegion="polite" variant="bodySmall" style={styles.errorCopy}>{linkError}</Text> : null}
 
-      <DisclosureSection title="API METHOD NOTE" summary="Why this integration uses GET rather than POST.">
-        <Text variant="bodySmall">This feature reads public standards metadata. The IETF document endpoint is read-only, so GET is the correct request method. POST is not applicable because NetBite does not create or modify IETF records.</Text>
-      </DisclosureSection>
     </Screen>
   );
 }
 
-function RfcRecord({ entry, source, onOpenOfficialDocument }: { entry: RfcCacheEntry; source: 'live' | 'cache'; onOpenOfficialDocument: () => void }) {
+function RfcRecord({ entry, reference, source, onOpenOfficialDocument }: { entry: RfcCacheEntry; reference: RfcReference; source: 'live' | 'cache'; onOpenOfficialDocument: () => void }) {
   const { metadata } = entry;
   const published = metadata.revisions.map((revision) => revision.published).filter(Boolean).join(', ') || 'NOT LISTED';
   const authorText = metadata.authors.length
@@ -144,26 +145,28 @@ function RfcRecord({ entry, source, onOpenOfficialDocument }: { entry: RfcCacheE
     <View style={styles.record}>
       <View style={styles.recordHeader}>
         <View style={styles.requestCopy}>
-          <Text variant="label" style={styles.panelEyebrow}>{metadata.name.toUpperCase()} / {source === 'live' ? 'OFFICIAL RESPONSE' : 'CACHED RESPONSE'}</Text>
+          <Text variant="label" style={styles.panelEyebrow}>{reference.topic.toUpperCase()} / {metadata.name.toUpperCase()}</Text>
           <Text variant="sectionHeading" style={styles.recordTitle}>{metadata.title}</Text>
         </View>
         <Text variant="technical" style={source === 'live' ? styles.liveBadge : styles.cacheBadge}>{source === 'live' ? 'LIVE' : 'CACHED'}</Text>
       </View>
-      <View style={styles.fieldGrid}>
-        <MetadataField label="PUBLICATION STATE" value={metadata.state} />
-        <MetadataField label="STANDARD LEVEL" value={metadata.standardLevel ?? 'NOT CLASSIFIED'} />
-        <MetadataField label="PAGE COUNT" value={String(metadata.pageCount)} />
-        <MetadataField label="PUBLICATION HISTORY" value={published} />
-        <MetadataField label="AUTHORS" value={authorText} wide />
-        <MetadataField label="LAST RETRIEVED" value={formatTimestamp(entry.retrievedAt)} wide />
-      </View>
-      <View style={styles.abstractPanel}>
-        <Text variant="label" style={styles.panelEyebrow}>ABSTRACT</Text>
-        <Text selectable variant="bodySmall" style={styles.abstract}>{metadata.abstract}</Text>
+      <View style={styles.whyPanel}>
+        <Text variant="label" style={styles.whyLabel}>WHAT THIS DOCUMENT EXPLAINS</Text>
+        <Text variant="body" style={styles.whyCopy}>{reference.plainPurpose}</Text>
       </View>
       <AppButton label="Open official RFC" variant="secondary" trailingIcon="arrow-right" onPress={onOpenOfficialDocument} />
-      <DisclosureSection title="JSON RESPONSE" summary="Parsed response sample for inspection and assignment evidence.">
-        <Text selectable variant="technical" style={styles.json}>{JSON.stringify(metadata.rawResponse, null, 2)}</Text>
+      <DisclosureSection title="OFFICIAL RECORD DETAILS" summary="Authors, publication state, date, and page count.">
+        <View style={styles.fieldGrid}>
+          <MetadataField label="PUBLICATION STATE" value={metadata.state} />
+          <MetadataField label="STANDARD LEVEL" value={metadata.standardLevel ?? 'NOT CLASSIFIED'} />
+          <MetadataField label="PAGE COUNT" value={String(metadata.pageCount)} />
+          <MetadataField label="PUBLICATION HISTORY" value={published} />
+          <MetadataField label="AUTHORS" value={authorText} wide />
+          <MetadataField label="LAST RETRIEVED" value={formatTimestamp(entry.retrievedAt)} wide />
+        </View>
+      </DisclosureSection>
+      <DisclosureSection title="OFFICIAL SUMMARY" summary="The document author's formal summary; it may use advanced language.">
+        <Text selectable variant="bodySmall" style={styles.abstract}>{metadata.abstract}</Text>
       </DisclosureSection>
     </View>
   );
@@ -184,6 +187,10 @@ const styles = StyleSheet.create({
   eyebrow: { color: Palette.orange },
   title: { color: Palette.text, fontFamily: Fonts.semibold, marginTop: Space.xs },
   intro: { color: Palette.textMuted, marginTop: Space.md, marginBottom: Space.xl },
+  explainer: { borderWidth: 1, borderLeftWidth: 4, borderColor: Palette.green, backgroundColor: Palette.greenSoft, padding: Space.lg, gap: Space.sm, marginBottom: Space.xl },
+  explainerCopy: { color: Palette.text },
+  definition: { color: Palette.textMuted },
+  definitionTerm: { color: Palette.green, fontFamily: Fonts.semibold },
   referenceGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Space.sm, marginBottom: Space.xl },
   referenceButton: { minHeight: 64, minWidth: 118, flexGrow: 1, flexBasis: '30%', borderWidth: 1, borderColor: Palette.border, backgroundColor: Palette.surface, justifyContent: 'center', padding: Space.md },
   referenceButtonActive: { borderColor: Palette.orange, backgroundColor: Palette.orangeSoft },
@@ -195,7 +202,8 @@ const styles = StyleSheet.create({
   requestHeading: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: Space.md },
   requestCopy: { flex: 1, minWidth: 0 },
   panelEyebrow: { color: Palette.orange },
-  endpoint: { color: Palette.text, marginTop: Space.xs },
+  selectedTopic: { color: Palette.text, marginTop: Space.xs },
+  selectedPurpose: { color: Palette.textMuted, marginTop: Space.xs },
   sourceBadge: { borderWidth: 1, paddingHorizontal: Space.sm, paddingVertical: Space.xs },
   liveBadge: { color: Palette.green, borderColor: Palette.green },
   cacheBadge: { color: Palette.orange, borderColor: Palette.orange },
@@ -208,6 +216,9 @@ const styles = StyleSheet.create({
   record: { gap: Space.lg, marginBottom: Space.lg },
   recordHeader: { borderWidth: 1, borderColor: Palette.green, backgroundColor: Palette.greenSoft, padding: Space.lg, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start', gap: Space.md },
   recordTitle: { color: Palette.text, fontFamily: Fonts.semibold, marginTop: Space.xs },
+  whyPanel: { borderWidth: 1, borderLeftWidth: 4, borderColor: Palette.green, backgroundColor: Palette.surface, padding: Space.lg },
+  whyLabel: { color: Palette.green },
+  whyCopy: { color: Palette.text, marginTop: Space.sm },
   fieldGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Space.sm },
   field: { minWidth: 180, flexGrow: 1, flexBasis: '46%', borderWidth: 1, borderColor: Palette.border, backgroundColor: Palette.surface, padding: Space.md },
   fieldWide: { flexBasis: '100%' },
@@ -215,5 +226,4 @@ const styles = StyleSheet.create({
   fieldValue: { color: Palette.text, marginTop: Space.xs },
   abstractPanel: { borderWidth: 1, borderColor: Palette.border, backgroundColor: Palette.surface, padding: Space.lg },
   abstract: { color: Palette.text, marginTop: Space.sm },
-  json: { color: Palette.green, fontFamily: Fonts.mono, textTransform: 'none' },
 });

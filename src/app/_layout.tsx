@@ -17,6 +17,7 @@ import { ProgressMergeModal } from '@/features/account/components/progress-merge
 import { PresentationBanner } from '@/features/demo/presentation-banner';
 import { ResearchBanner } from '@/features/research/research-banner';
 import { AppButton } from '@/shared/components/app-button';
+import { PageHeader } from '@/shared/components/page-header';
 import { BootstrapScreen } from '@/shared/components/bootstrap-screen';
 import { Text } from '@/shared/components/console-text';
 import { Screen } from '@/shared/components/screen';
@@ -124,7 +125,7 @@ async function preserveRecoveryCopy() {
 
 export function ErrorBoundary({ retry, error }: ErrorBoundaryProps) {
   return (
-    <Screen>
+    <Screen header={<PageHeader leading={{ accessibilityLabel: 'Return to main menu', icon: 'arrow-left', label: 'MAIN MENU', onPress: () => router.replace('/') }} />}>
       <Text variant="screenTitle">SCREEN INTERRUPTED</Text>
       <Text variant="body">NetBite stopped this screen before it could affect local learning data.</Text>
       <Text variant="technical">DIAGNOSTIC / {error instanceof Error ? error.name : 'ROUTE ERROR'} / NO KEYS OR ACCOUNT DATA SHOWN</Text>

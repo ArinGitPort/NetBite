@@ -5,7 +5,7 @@ import { useAuth } from '@/features/account/auth-context';
 import { AccountField } from '@/features/account/components/account-field';
 import { AppButton } from '@/shared/components/app-button';
 import { Text } from '@/shared/components/console-text';
-import { IconButton } from '@/shared/components/icon-button';
+import { PageHeader } from '@/shared/components/page-header';
 import { Screen } from '@/shared/components/screen';
 import { goBackOrReplace } from '@/shared/navigation';
 import { AppRoutes } from '@/shared/routes';
@@ -18,8 +18,7 @@ export default function ForgotPasswordScreen() {
   const submit = async () => setMessage((await sendPasswordReset(email)) ?? 'If that account exists, a reset message has been sent.');
 
   return (
-    <Screen>
-      <IconButton accessibilityLabel="Back to sign in" icon="arrow-left" label="BACK" onPress={() => goBackOrReplace(AppRoutes.auth)} />
+    <Screen header={<PageHeader leading={{ accessibilityLabel: 'Back to sign in', icon: 'arrow-left', label: 'BACK', onPress: () => goBackOrReplace(AppRoutes.auth) }} />}>
       <View style={styles.header}>
         <Text variant="screenTitle" style={styles.title}>RESET PASSWORD</Text>
         <Text variant="bodySmall">Enter your account email. The reset link returns to NetBite.</Text>

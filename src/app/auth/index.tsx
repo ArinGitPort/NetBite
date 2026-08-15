@@ -7,7 +7,7 @@ import { GoogleSignInButton } from '@/features/account/components/google-sign-in
 import { useAuth } from '@/features/account/auth-context';
 import { AppButton } from '@/shared/components/app-button';
 import { Text } from '@/shared/components/console-text';
-import { IconButton } from '@/shared/components/icon-button';
+import { PageHeader } from '@/shared/components/page-header';
 import { Screen } from '@/shared/components/screen';
 import { goBackOrReplace } from '@/shared/navigation';
 import { AppRoutes } from '@/shared/routes';
@@ -26,8 +26,7 @@ export default function SignInScreen() {
     setBusy(false);
     if (next) setMessage(next); else router.replace('/');
   };
-  return <Screen>
-    <IconButton accessibilityLabel="Back to account options" icon="arrow-left" label="BACK" onPress={() => goBackOrReplace(AppRoutes.authWelcome)} />
+  return <Screen header={<PageHeader leading={{ accessibilityLabel: 'Back to account options', icon: 'arrow-left', label: 'BACK', onPress: () => goBackOrReplace(AppRoutes.authWelcome) }} />}>
     <View style={styles.header}><Text variant="label" style={styles.eyebrow}>RETURNING LEARNER</Text><Text variant="screenTitle" style={styles.title}>SIGN IN</Text><Text variant="bodySmall">Back up progress, use it across devices, and restore account access.</Text></View>
     {!configured ? <Text variant="bodySmall" style={styles.warning}>Cloud services are not configured yet. Guest learning remains available.</Text> : null}
     <View style={styles.form}>

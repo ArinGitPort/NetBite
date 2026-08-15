@@ -6,10 +6,7 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  TextInput,
   View,
-  type NativeSyntheticEvent,
-  type TextInputKeyPressEventData,
 } from 'react-native';
 
 import {
@@ -26,14 +23,16 @@ import {
 import {
   requiredStaticRoutes,
   type CliLabDefinition,
-  type CliLabView,
   type CliPredictionChoice,
 } from '@/features/cli/cli-lab-definitions';
 import { CliTopologyView, createCliVisualTrace, type CliVisualTrace } from '@/features/cli/components/cli-topology-view';
+import { LabSetupSupport } from '@/features/practice/components/foundation-lab-support';
 import { AppButton } from '@/shared/components/app-button';
+import { CliConsoleShell, type CliConsoleLine } from '@/shared/components/cli-console-shell';
 import { Text } from '@/shared/components/console-text';
 import { FeedbackModal } from '@/shared/components/feedback-modal';
-import { IconButton } from '@/shared/components/icon-button';
+import { PageHeader } from '@/shared/components/page-header';
+import { StatusRow } from '@/shared/components/status-row';
 import { useMeasuredResponsiveLayout } from '@/shared/responsive-layout';
 import { Screen } from '@/shared/components/screen';
 import { selectionHaptic, successHaptic, warningHaptic } from '@/shared/haptics';
@@ -93,8 +92,8 @@ function GuideModal({ visible, onClose }: { visible: boolean; onClose: () => voi
           <View style={styles.guideCard}><Text variant="sectionHeading" style={styles.guideTitle}>1 / READ THE PROMPT</Text><Text variant="bodySmall">The ending shows the mode: &gt; user, # privileged, (config)# configuration.</Text></View>
           <View style={styles.guideCard}><Text variant="sectionHeading" style={styles.guideTitle}>2 / TYPE OR TAP</Text><Text variant="bodySmall">Suggestions reduce mobile typing. You can still enter any supported command yourself.</Text></View>
           <View style={styles.guideCard}><Text variant="sectionHeading" style={styles.guideTitle}>3 / INSPECT AND CORRECT</Text><Text variant="bodySmall">Valid configuration changes remain active. Use NO commands, Undo, or Reset to correct mistakes.</Text></View>
-          <View style={styles.guideCard}><Text variant="sectionHeading" style={styles.guideTitle}>4 / VIEW THE NETWORK</Text><Text variant="bodySmall">Switch to Topology to inspect devices, links, configuration, and the latest ping path. Configuration remains in the CLI.</Text></View>
-          <AppButton label="Open the console" onPress={onClose} />
+          <View style={styles.guideCard}><Text variant="sectionHeading" style={styles.guideTitle}>4 / RETURN TO THE NETWORK</Text><Text variant="bodySmall">Close the full-screen console to inspect devices, links, configuration, and the latest ping path. Your console state is preserved.</Text></View>
+          <AppButton label="Close guide" onPress={onClose} />
         </View>
       </View>
     </Modal>
@@ -116,13 +115,11 @@ function PredictionPanel({ choices, selected, feedback, onSelect }: { choices: C
 
 export function CliLab({ definition }: { definition: CliLabDefinition }) {
   const completeLab = useGameStore((state) => state.completeLab);
-  const cliGuideSeen = useGameStore((state) => state.cliGuideSeen);
   const markCliGuideSeen = useGameStore((state) => state.markCliGuideSeen);
   const { mode: responsiveMode, onLayout } = useMeasuredResponsiveLayout();
   const compact = responsiveMode === 'compact';
   const wide = responsiveMode === 'wide';
   const [network, setNetwork] = useState(definition.createState);
-  const [labView, setLabView] = useState<CliLabView>('cli');
   const [activeDeviceId, setActiveDeviceId] = useState(() => definition.kind === 'vlan' ? 'sw-a' : definition.kind === 'inter-vlan' ? 'sw-1' : 'r1');
   const [inspectedDeviceId, setInspectedDeviceId] = useState(() => definition.kind === 'vlan' ? 'sw-a' : definition.kind === 'inter-vlan' ? 'sw-1' : 'r1');
   const [visualTrace, setVisualTrace] = useState<CliVisualTrace>();
@@ -138,14 +135,14 @@ export function CliLab({ definition }: { definition: CliLabDefinition }) {
   const [vlanPredictions, setVlanPredictions] = useState<Record<string, boolean>>({});
   const [vlanSelections, setVlanSelections] = useState<Record<string, string>>({});
   const [vlanFeedback, setVlanFeedback] = useState<Record<string, string>>({});
-  const [guideVisible, setGuideVisible] = useState(!cliGuideSeen);
+  const [guideVisible, setGuideVisible] = useState(false);
   const [statusVisible, setStatusVisible] = useState(wide);
   const [resetVisible, setResetVisible] = useState(false);
   const [completionVisible, setCompletionVisible] = useState(false);
+  const [cliVisible, setCliVisible] = useState(false);
   const [hintLevel, setHintLevel] = useState(0);
   const nextTranscriptId = useRef(1);
   const pageRef = useRef<ScrollView>(null);
-  const inputRef = useRef<TextInput>(null);
   const transcriptRef = useRef<ScrollView>(null);
   const activeDevice = network.devices.find(({ id }) => id === activeDeviceId) ?? network.devices[0];
   const scenario = definition.diagnosticScenarios?.[scenarioIndex];
@@ -227,7 +224,7 @@ export function CliLab({ definition }: { definition: CliLabDefinition }) {
     const parsed = parseCliCommand(raw);
     setHistory((current) => [...current.filter((item) => item !== raw), raw].slice(-50)); setHistoryIndex(-1); setInput('');
     if (!parsed.ok) {
-      appendTranscript(activeDevice.id, { prompt: `${prompt} ${raw}`, lines: [{ text: parsed.error, tone: 'warning' }] }); warningHaptic(); inputRef.current?.focus(); return;
+      appendTranscript(activeDevice.id, { prompt: `${prompt} ${raw}`, lines: [{ text: parsed.error, tone: 'warning' }] }); warningHaptic(); return;
     }
     const result = executeCliCommand(network, activeDevice.id, parsed.command);
     if (result.events.includes('config-change')) setSnapshots((current) => [...current, cloneCliNetwork(network)].slice(-20));
@@ -243,19 +240,12 @@ export function CliLab({ definition }: { definition: CliLabDefinition }) {
     appendTranscript(activeDevice.id, { prompt: `${prompt} ${raw}`, lines: result.output });
     if (scenario?.requiredEvents.every((required) => nextEvents.includes(required)) || (definition.kind === 'vlan' && vlanProgress(result.state).exact) || (definition.kind === 'inter-vlan' && interVlanProgress(result.state).exact)) revealLowerContent();
     if (result.accepted) selectionHaptic(); else warningHaptic();
-    inputRef.current?.focus();
   };
 
   const navigateHistory = (direction: -1 | 1) => {
     if (!history.length) return;
     const next = Math.max(-1, Math.min(history.length - 1, historyIndex + direction));
-    setHistoryIndex(next); setInput(next === -1 ? '' : history[history.length - 1 - next]); inputRef.current?.focus();
-  };
-
-  const onKeyPress = (event: NativeSyntheticEvent<TextInputKeyPressEventData>) => {
-    if (event.nativeEvent.key === 'ArrowUp') navigateHistory(1);
-    if (event.nativeEvent.key === 'ArrowDown') navigateHistory(-1);
-    if (event.nativeEvent.key === 'Tab' && suggestions[0]) setInput(suggestions[0]);
+    setHistoryIndex(next); setInput(next === -1 ? '' : history[history.length - 1 - next]);
   };
 
   const undo = () => {
@@ -267,7 +257,7 @@ export function CliLab({ definition }: { definition: CliLabDefinition }) {
   const reset = () => {
     const state = definition.kind === 'diagnostic' ? definition.diagnosticScenarios![0].createState() : definition.createState();
     const initialDeviceId = definition.kind === 'vlan' ? 'sw-a' : definition.kind === 'inter-vlan' ? 'sw-1' : 'r1';
-    setNetwork(state); setLabView('cli'); setActiveDeviceId(initialDeviceId); setInspectedDeviceId(initialDeviceId); setVisualTrace(undefined); setTranscripts({}); setHistory([]); setSnapshots([]); setEvents([]); setScenarioIndex(0); setSelectedPrediction(undefined); setPredictionFeedback(undefined); setVlanPredictions({}); setVlanSelections({}); setVlanFeedback({}); setResetVisible(false); setHintLevel(0);
+    setNetwork(state); setActiveDeviceId(initialDeviceId); setInspectedDeviceId(initialDeviceId); setVisualTrace(undefined); setTranscripts({}); setHistory([]); setSnapshots([]); setEvents([]); setScenarioIndex(0); setSelectedPrediction(undefined); setPredictionFeedback(undefined); setVlanPredictions({}); setVlanSelections({}); setVlanFeedback({}); setResetVisible(false); setCliVisible(false); setHintLevel(0);
     setTimeout(() => pageRef.current?.scrollTo({ y: 0, animated: true }), 0);
   };
 
@@ -306,15 +296,15 @@ export function CliLab({ definition }: { definition: CliLabDefinition }) {
             <View style={styles.mapRecord}><Text variant="technical" style={styles.networkNodeName}>PC-B / E0</Text><Text variant="technical">192.168.20.20/24 / GW 192.168.20.1</Text><Text variant="technical" style={styles.networkNodeDetail}>SW-1 F0/2 / ACCESS VLAN 20</Text></View>
             <View style={styles.mapRecord}><Text variant="technical" style={styles.networkNodeName}>ROUTER LINK</Text><Text variant="technical">SW-1 F0/24 ↔ R-1 G0/0</Text><Text variant="technical" style={styles.networkNodeDetail}>TRUNK MUST CARRY VLAN 10 + 20</Text></View>
           </View> : null}
-          {definition.kind === 'diagnostic' ? <><Text variant="technical">SCENARIO {scenarioIndex + 1} OF {definition.diagnosticScenarios!.length}</Text><Text variant="bodySmall">{scenario?.context}</Text><Text variant="technical" style={diagnosticEvidenceReady ? styles.complete : styles.pending}>{diagnosticEvidenceReady ? '[X] EVIDENCE COLLECTED' : '[ ] RUN THE EVIDENCE COMMANDS'}</Text></> : null}
-          {definition.kind === 'routing' ? <><Text variant="technical" style={routeState.exact ? styles.complete : styles.pending}>[{routeState.exact ? 'X' : ' '}] ROUTES {routeState.configured}/4</Text><Text variant="technical" style={forwardVerified ? styles.complete : styles.pending}>[{forwardVerified ? 'X' : ' '}] PC-A → PC-C</Text><Text variant="technical" style={reverseVerified ? styles.complete : styles.pending}>[{reverseVerified ? 'X' : ' '}] PC-C → PC-A</Text>{activeDevice.type === 'router' ? activeDevice.routes.filter(({ source }) => source === 'static').map((route) => <Text key={`${route.prefix}-${route.nextHop}`} variant="technical">S {route.prefix}/{route.prefixLength} VIA {route.nextHop}</Text>) : null}</> : null}
-          {definition.kind === 'vlan' ? <><Text variant="technical" style={vlanState.vlans ? styles.complete : styles.pending}>[{vlanState.vlans ? 'X' : ' '}] VLAN 10 + 20</Text><Text variant="technical" style={vlanState.access ? styles.complete : styles.pending}>[{vlanState.access ? 'X' : ' '}] ACCESS PORTS</Text><Text variant="technical" style={vlanState.trunks ? styles.complete : styles.pending}>[{vlanState.trunks ? 'X' : ' '}] BOTH TRUNK ENDS</Text>{activeDevice.interfaces.filter((item) => item.switchportMode === 'trunk' || item.accessVlan !== 1).length ? activeDevice.interfaces.filter((item) => item.switchportMode === 'trunk' || item.accessVlan !== 1).map((item) => <Text key={item.name} variant="technical">{item.name} / {item.switchportMode?.toUpperCase() ?? 'UNSET'}{item.switchportMode === 'access' ? ` / VLAN ${item.accessVlan}` : item.switchportMode === 'trunk' ? ` / ${item.allowedVlans?.join(',') || 'NO VLANS'}` : ''}</Text>) : <Text variant="technical" style={styles.pending}>NO PORT CHANGES ON {activeDevice.name}</Text>}</> : null}
+          {definition.kind === 'diagnostic' ? <><Text variant="technical">SCENARIO {scenarioIndex + 1} OF {definition.diagnosticScenarios!.length}</Text><Text variant="bodySmall">{scenario?.context}</Text><StatusRow label={diagnosticEvidenceReady ? 'EVIDENCE COLLECTED' : 'RUN THE EVIDENCE COMMANDS'} state={diagnosticEvidenceReady ? 'complete' : 'pending'} /></> : null}
+          {definition.kind === 'routing' ? <><StatusRow label="ROUTES" value={`${routeState.configured} OF 4`} state={routeState.exact ? 'complete' : 'pending'} /><StatusRow label="PC-A → PC-C" state={forwardVerified ? 'complete' : 'pending'} /><StatusRow label="PC-C → PC-A" state={reverseVerified ? 'complete' : 'pending'} />{activeDevice.type === 'router' ? activeDevice.routes.filter(({ source }) => source === 'static').map((route) => <Text key={`${route.prefix}-${route.nextHop}`} variant="technical">S {route.prefix}/{route.prefixLength} VIA {route.nextHop}</Text>) : null}</> : null}
+          {definition.kind === 'vlan' ? <><StatusRow label="VLAN 10 + 20" state={vlanState.vlans ? 'complete' : 'pending'} /><StatusRow label="ACCESS PORTS" state={vlanState.access ? 'complete' : 'pending'} /><StatusRow label="BOTH TRUNK ENDS" state={vlanState.trunks ? 'complete' : 'pending'} />{activeDevice.interfaces.filter((item) => item.switchportMode === 'trunk' || item.accessVlan !== 1).length ? activeDevice.interfaces.filter((item) => item.switchportMode === 'trunk' || item.accessVlan !== 1).map((item) => <Text key={item.name} variant="technical">{item.name} / {item.switchportMode?.toUpperCase() ?? 'UNSET'}{item.switchportMode === 'access' ? ` / VLAN ${item.accessVlan}` : item.switchportMode === 'trunk' ? ` / ${item.allowedVlans?.join(',') || 'NO VLANS'}` : ''}</Text>) : <StatusRow label={`NO PORT CHANGES ON ${activeDevice.name}`} state="attention" showStateLabel={false} />}</> : null}
           {definition.kind === 'inter-vlan' ? <>
-            <Text variant="technical" style={interVlanState.trunkReady ? styles.complete : styles.pending}>[{interVlanState.trunkReady ? 'X' : ' '}] F0/24 TRUNK / VLAN 10 + 20</Text>
-            <Text variant="technical" style={interVlanState.parentReady ? styles.complete : styles.pending}>[{interVlanState.parentReady ? 'X' : ' '}] G0/0 PHYSICAL PARENT UP</Text>
-            <Text variant="technical" style={interVlanState.subinterfacesReady ? styles.complete : styles.pending}>[{interVlanState.subinterfacesReady ? 'X' : ' '}] G0/0.10 + G0/0.20 GATEWAYS</Text>
-            <Text variant="technical" style={events.includes('verified-inter-vlan-forward') ? styles.complete : styles.pending}>[{events.includes('verified-inter-vlan-forward') ? 'X' : ' '}] PC-A → PC-B</Text>
-            <Text variant="technical" style={events.includes('verified-inter-vlan-reverse') ? styles.complete : styles.pending}>[{events.includes('verified-inter-vlan-reverse') ? 'X' : ' '}] PC-B → PC-A</Text>
+            <StatusRow label="F0/24 TRUNK / VLAN 10 + 20" state={interVlanState.trunkReady ? 'complete' : 'pending'} />
+            <StatusRow label="G0/0 PHYSICAL PARENT UP" state={interVlanState.parentReady ? 'complete' : 'pending'} />
+            <StatusRow label="G0/0.10 + G0/0.20 GATEWAYS" state={interVlanState.subinterfacesReady ? 'complete' : 'pending'} />
+            <StatusRow label="PC-A → PC-B" state={events.includes('verified-inter-vlan-forward') ? 'complete' : 'pending'} />
+            <StatusRow label="PC-B → PC-A" state={events.includes('verified-inter-vlan-reverse') ? 'complete' : 'pending'} />
             {activeDevice.interfaces.filter(({ parentInterface }) => parentInterface).map((item) => <Text key={item.name} variant="technical">{item.name} / VLAN {item.encapsulationVlan ?? 'UNSET'} / {item.ipv4 ? `${item.ipv4}/${item.prefix}` : 'NO IP'}</Text>)}
           </> : null}
         </View>
@@ -322,32 +312,17 @@ export function CliLab({ definition }: { definition: CliLabDefinition }) {
     </View>
   );
 
-  const terminal = (
-    <View style={[styles.terminal, compact && styles.terminalCompact]}>
-      <ScrollView ref={transcriptRef} accessibilityLabel={`${activeDevice.name} terminal transcript`} contentContainerStyle={styles.transcript} keyboardShouldPersistTaps="handled" nestedScrollEnabled testID="cli-transcript-scroll">
-        <Text variant="technical" style={styles.banner}>NETBITE CLI / EDUCATIONAL STATE SIMULATOR</Text>
-        {activeTranscript.map((entry) => <View key={entry.id} style={styles.transcriptEntry}>{entry.prompt ? <Text variant="technical" style={styles.commandLine}>{entry.prompt}</Text> : null}{entry.lines.map((line, index) => <Text key={`${entry.id}-${index}`} variant="technical" style={line.tone === 'warning' ? styles.outputWarning : line.tone === 'success' ? styles.outputSuccess : line.tone === 'muted' ? styles.outputMuted : styles.output}>{line.text}</Text>)}</View>)}
-      </ScrollView>
-      <Text accessibilityLiveRegion="polite" style={styles.liveRegion}>{activeTranscript.at(-1)?.lines.at(-1)?.text ?? ''}</Text>
-      <View style={styles.suggestions}>{suggestions.map((suggestion) => <Pressable accessibilityRole="button" key={suggestion} onPress={() => { setInput(suggestion); inputRef.current?.focus(); }} style={styles.suggestion}><Text variant="technical" style={styles.suggestionText}>{suggestion}</Text></Pressable>)}</View>
-      <View style={[styles.inputRow, compact && styles.inputRowCompact]} testID="cli-input-row">
-        <Text variant="technical" style={[styles.prompt, compact && styles.promptCompact]}>{getCliPrompt(activeDevice)}</Text>
-        <TextInput ref={inputRef} accessibilityLabel={`Command for ${activeDevice.name}`} autoCapitalize="none" autoCorrect={false} onChangeText={setInput} onKeyPress={onKeyPress} onSubmitEditing={submit} placeholder="ENTER COMMAND" placeholderTextColor={Palette.textMuted} returnKeyType="send" spellCheck={false} style={styles.input} value={input} />
-        <Pressable accessibilityLabel="Previous command" accessibilityRole="button" onPress={() => navigateHistory(1)} style={styles.historyButton}><Text variant="label">↑</Text></Pressable>
-        <Pressable accessibilityLabel="Next command" accessibilityRole="button" onPress={() => navigateHistory(-1)} style={styles.historyButton}><Text variant="label">↓</Text></Pressable>
-      </View>
-      <View style={styles.terminalActions} testID="cli-terminal-actions"><AppButton disabled={!input.trim()} label="Run command" style={[styles.actionButton, compact && styles.actionButtonStacked]} onPress={submit} /><AppButton disabled={!snapshots.length} label="Undo config" style={[styles.actionButton, compact && styles.actionButtonStacked]} variant="secondary" onPress={undo} /></View>
-    </View>
-  );
+  const consoleLines: CliConsoleLine[] = activeTranscript.flatMap((entry) => [
+    ...(entry.prompt ? [{ id: `${entry.id}-prompt`, text: entry.prompt, tone: 'normal' as const }] : []),
+    ...entry.lines.map((line, index) => ({ id: `${entry.id}-${index}`, text: line.text, tone: line.tone })),
+  ]);
 
   return (
-    <Screen scrollRef={pageRef} scrollTestID="cli-page-scroll">
+    <Screen scrollRef={pageRef} scrollTestID="cli-page-scroll" header={<PageHeader leading={{ accessibilityLabel: `Back to Chapter ${definition.chapterId}`, icon: 'arrow-left', label: compact ? 'BACK' : 'BACK / CHAPTER', onPress: () => returnToOwningChapter('lab', definition.id) }} trailing={[{ accessibilityLabel: 'Open CLI help', icon: 'check', label: 'HELP', onPress: () => setGuideVisible(true) }, { accessibilityLabel: 'Reset CLI lab', icon: 'reset', label: 'RESET', onPress: () => setResetVisible(true) }]} />}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={8} onLayout={onLayout} style={styles.screen} testID="cli-layout">
-        <View style={styles.header}><IconButton accessibilityLabel={`Back to Chapter ${definition.chapterId}`} icon="arrow-left" label={compact ? 'BACK' : 'BACK / CHAPTER'} onPress={() => returnToOwningChapter('lab', definition.id)} /><View style={styles.headerActions}><IconButton accessibilityLabel="Open CLI help" icon="check" label="HELP" onPress={() => setGuideVisible(true)} /><IconButton accessibilityLabel="Reset CLI lab" icon="reset" label="RESET" onPress={() => setResetVisible(true)} /></View></View>
         <Text variant="label" style={styles.orange}>{definition.eyebrow}</Text><Text variant="screenTitle" style={styles.title}>{definition.title}</Text><Text variant="technical" style={styles.scope}>{definition.scopeNote}</Text>
-        <View accessibilityLabel="Lab view" accessibilityRole="tablist" style={styles.viewSwitch}><Pressable accessibilityRole="tab" accessibilityState={{ selected: labView === 'cli' }} onPress={() => setLabView('cli')} style={[styles.viewOption, labView === 'cli' && styles.viewOptionActive]}><Text variant="label" style={labView === 'cli' ? styles.viewOptionTextActive : styles.deviceTabText}>CLI</Text></Pressable><Pressable accessibilityRole="tab" accessibilityState={{ selected: labView === 'topology' }} onPress={() => setLabView('topology')} style={[styles.viewOption, labView === 'topology' && styles.viewOptionActive]}><Text variant="label" style={labView === 'topology' ? styles.viewOptionTextActive : styles.deviceTabText}>TOPOLOGY</Text></Pressable></View>
-        {labView === 'cli' ? <View style={styles.deviceTabs}>{visibleDevices.map((item) => <Pressable accessibilityRole="tab" accessibilityState={{ selected: item.id === activeDevice.id }} key={item.id} onPress={() => { setActiveDeviceId(item.id); setInspectedDeviceId(item.id); setInput(''); selectionHaptic(); }} style={[styles.deviceTab, item.id === activeDevice.id && styles.deviceTabActive]}><Text variant="label" style={styles.deviceTabText}>{item.name}</Text></Pressable>)}</View> : null}
-        <View style={styles.workspace} testID="cli-workspace">{statusPanel}{labView === 'cli' ? terminal : <CliTopologyView cliDeviceIds={visibleDevices.map((item) => item.id)} layout={definition.topology} mode={responsiveMode} network={network} onOpenCli={(deviceId) => { setActiveDeviceId(deviceId); setInspectedDeviceId(deviceId); setInput(''); setLabView('cli'); selectionHaptic(); }} onSelectDevice={(deviceId) => { setInspectedDeviceId(deviceId); if (visibleDevices.some((item) => item.id === deviceId)) setActiveDeviceId(deviceId); selectionHaptic(); }} selectedDeviceId={inspectedDeviceId} trace={visualTrace} />}</View>
+        <LabSetupSupport labId={definition.id} />
+        <View style={styles.workspace} testID="cli-workspace">{statusPanel}<CliTopologyView cliDeviceIds={visibleDevices.map((item) => item.id)} layout={definition.topology} mode={responsiveMode} network={network} onOpenCli={(deviceId) => { setActiveDeviceId(deviceId); setInspectedDeviceId(deviceId); setInput(''); setCliVisible(true); selectionHaptic(); }} onSelectDevice={(deviceId) => { setInspectedDeviceId(deviceId); if (visibleDevices.some((item) => item.id === deviceId)) setActiveDeviceId(deviceId); selectionHaptic(); }} selectedDeviceId={inspectedDeviceId} trace={visualTrace} /></View>
         {definition.kind === 'diagnostic' && diagnosticEvidenceReady && scenario ? <View style={styles.assessment}><Text variant="sectionHeading">{scenario.prompt}</Text><PredictionPanel choices={scenario.choices} feedback={predictionFeedback} onSelect={chooseDiagnosticPrediction} selected={selectedPrediction} /><AppButton disabled={selectedPrediction !== scenario.correctChoiceId} label={scenarioIndex === definition.diagnosticScenarios!.length - 1 ? 'Complete diagnostics' : 'Next scenario'} onPress={advanceDiagnostic} /></View> : null}
         {definition.kind === 'vlan' && vlanState.exact ? <View style={styles.assessment}><Text variant="label" style={styles.orange}>VERIFY THE RESULT</Text><Text variant="bodySmall">Use the actual port and trunk state to predict both paths.</Text><PredictionPanel choices={[{ id: 'yes', label: 'PC-A → PC-B / REACHABLE', feedback: deriveVlanReachability(network, 'pc-a', 'pc-b').reason }, { id: 'no', label: 'PC-A → PC-B / BLOCKED', feedback: 'A matching VLAN is allowed across both configured trunk endpoints, so the switches can carry this same-VLAN path.' }]} feedback={vlanFeedback.same} selected={vlanSelections.same} onSelect={(id) => { const result = deriveVlanReachability(network, 'pc-a', 'pc-b'); const correct = id === 'yes' && result.reachable; const choice = id === 'yes' ? result.reason : 'A trunk keeps VLANs separate, but it can carry VLAN 10 between the switches.'; setVlanSelections((current) => ({ ...current, same: id })); setVlanFeedback((current) => ({ ...current, same: choice })); setVlanPredictions((current) => ({ ...current, same: correct })); if (correct) successHaptic(); else warningHaptic(); }} /><PredictionPanel choices={[{ id: 'blocked', label: 'PC-A → PC-C / ROUTING REQUIRED', feedback: deriveVlanReachability(network, 'pc-a', 'pc-c').reason }, { id: 'merged', label: 'PC-A → PC-C / TRUNK MERGES VLANS', feedback: 'A trunk carries tagged VLAN contexts; it does not merge VLAN 10 and VLAN 20 into one LAN.' }]} feedback={vlanFeedback.different} selected={vlanSelections.different} onSelect={(id) => { const result = deriveVlanReachability(network, 'pc-a', 'pc-c'); const correct = id === 'blocked' && !result.reachable; const choice = id === 'blocked' ? result.reason : 'Trunks preserve VLAN separation. Communication between VLAN 10 and VLAN 20 needs Layer 3 routing.'; setVlanSelections((current) => ({ ...current, different: id })); setVlanFeedback((current) => ({ ...current, different: choice })); setVlanPredictions((current) => ({ ...current, different: correct })); if (correct) successHaptic(); else warningHaptic(); }} /></View> : null}
         {revealedHints.length ? <View accessibilityLabel={`${revealedHints.length} of ${availableHints.length} hints revealed`} style={styles.hintPanel}>
@@ -360,6 +335,28 @@ export function CliLab({ definition }: { definition: CliLabDefinition }) {
         <View style={styles.footerActions} testID="cli-footer-actions"><AppButton disabled={!availableHints.length || allHintsShown} label={hintButtonLabel} style={[styles.actionButton, compact && styles.actionButtonStacked]} variant="utility" onPress={() => { setHintLevel((current) => Math.min(availableHints.length, current + 1)); revealLowerContent(); }} />{definition.kind === 'routing' ? <AppButton disabled={!routingComplete} label="Complete routing lab" style={[styles.actionButton, compact && styles.actionButtonStacked]} onPress={finishLab} /> : null}{definition.kind === 'vlan' ? <AppButton disabled={!vlanComplete} label="Complete VLAN lab" style={[styles.actionButton, compact && styles.actionButtonStacked]} onPress={finishLab} /> : null}{definition.kind === 'inter-vlan' ? <AppButton disabled={!interVlanComplete} label="Complete inter-VLAN lab" style={[styles.actionButton, compact && styles.actionButtonStacked]} onPress={finishLab} /> : null}</View>
       </KeyboardAvoidingView>
       <GuideModal onClose={closeGuide} visible={guideVisible} />
+      <CliConsoleShell
+        accessibilityLabel={`${activeDevice.name} full-screen CLI`}
+        boundary="CISCO-LIKE SUBSET / ORIGINAL NETBITE OUTPUT / NO LIVE DEVICE OS"
+        devices={visibleDevices.map((device) => ({ id: device.id, label: device.name }))}
+        eyebrow={definition.eyebrow}
+        footerActions={<AppButton disabled={!snapshots.length} label="Undo config" style={styles.actionButton} variant="secondary" onPress={undo} />}
+        input={input}
+        lines={consoleLines}
+        onClose={() => setCliVisible(false)}
+        onHistoryNext={() => navigateHistory(-1)}
+        onHistoryPrevious={() => navigateHistory(1)}
+        onInputChange={setInput}
+        onSelectDevice={(deviceId) => { setActiveDeviceId(deviceId); setInspectedDeviceId(deviceId); setInput(''); }}
+        onSubmit={submit}
+        prompt={getCliPrompt(activeDevice)}
+        selectedDeviceId={activeDevice.id}
+        suggestions={suggestions}
+        testID="cli-fullscreen-modal"
+        title={`${activeDevice.name} DEVICE CONSOLE`}
+        transcriptRef={transcriptRef}
+        visible={cliVisible}
+      />
       <FeedbackModal visible={resetVisible} tone="warning" eyebrow="CONFIRM ACTION" title="Reset this CLI lab?" message="Clear configuration, transcript, history, and current evidence." icon="reset" onRequestClose={() => setResetVisible(false)} secondaryAction={{ label: 'Keep working', variant: 'secondary', onPress: () => setResetVisible(false) }} primaryAction={{ label: 'Reset lab', variant: 'danger', onPress: reset }} />
       <FeedbackModal visible={completionVisible} tone="success" eyebrow="CLI LAB COMPLETE" title={definition.title} message="The required configuration and evidence checks are complete." detail="Your progress has been saved." icon="check" onRequestClose={() => setCompletionVisible(false)} secondaryAction={{ label: 'Review lab', variant: 'secondary', onPress: () => setCompletionVisible(false) }} primaryAction={{ label: 'Back to chapter', leadingIcon: 'arrow-left', onPress: () => returnToOwningChapter('lab', definition.id) }} />
     </Screen>
@@ -384,9 +381,12 @@ const styles = StyleSheet.create({
   statusHeader: { minHeight: 44, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }, statusBody: { gap: Space.xs },
   networkMap: { flexDirection: 'row', flexWrap: 'wrap', gap: Space.xs }, networkNode: { minWidth: 0, minHeight: 52, flexGrow: 1, justifyContent: 'center', padding: Space.xs, borderWidth: 1, borderColor: Palette.border, backgroundColor: Palette.background }, networkNodeStandard: { flexBasis: '29%' }, networkNodeWide: { flexBasis: '46%' }, networkNodeActive: { borderColor: Palette.orange, backgroundColor: Palette.orangeSoft }, networkNodeName: { color: Palette.text, textAlign: 'center' }, networkNodeDetail: { color: Palette.textMuted, textAlign: 'center' },
   fixedMap: { marginTop: Space.sm, gap: Space.xs }, mapRecord: { minWidth: 0, padding: Space.sm, gap: 2, borderWidth: 1, borderColor: Palette.border, backgroundColor: Palette.background },
-  complete: { color: Palette.green }, pending: { color: Palette.textMuted },
-  terminal: { width: '100%', maxWidth: '100%', flexGrow: 1, flexShrink: 0, minWidth: 0, minHeight: 360, borderWidth: 1, borderColor: Palette.border, backgroundColor: '#100E11' }, terminalCompact: { minHeight: 320 },
-  transcript: { flexGrow: 1, padding: Space.sm, gap: Space.sm }, banner: { color: Palette.textMuted }, transcriptEntry: { gap: 2 }, commandLine: { color: Palette.white },
+  terminal: { width: '100%', maxWidth: '100%', flexGrow: 1, flexShrink: 0, minWidth: 0, minHeight: 540, borderWidth: 1, borderColor: Palette.border, backgroundColor: '#100E11' }, terminalCompact: { minHeight: 520 },
+  terminalFullscreen: { width: '100%', maxWidth: 960, minHeight: 0, flex: 1, alignSelf: 'center' },
+  terminalHeader: { width: '100%', minWidth: 0, minHeight: 52, flexDirection: 'row', alignItems: 'center', gap: Space.sm, paddingHorizontal: Space.sm, borderBottomWidth: 1, borderBottomColor: Palette.border },
+  terminalHeaderCopy: { flex: 1, minWidth: 0 }, terminalModeButton: { minWidth: 132, flexGrow: 0 },
+  transcriptScroll: { minHeight: 260 }, transcriptScrollCompact: { minHeight: 220 }, transcriptFullscreen: { flex: 1, minHeight: 0 },
+  transcript: { flexGrow: 1, padding: Space.sm, gap: Space.sm }, banner: { color: Palette.text }, terminalMode: { color: Palette.textMuted }, transcriptEntry: { gap: 2 }, commandLine: { color: Palette.white },
   output: { color: Palette.text }, outputMuted: { color: Palette.textMuted }, outputSuccess: { color: Palette.green }, outputWarning: { color: Palette.orange },
   liveRegion: { position: 'absolute', width: 1, height: 1, opacity: 0 },
   suggestions: { width: '100%', minWidth: 0, flexDirection: 'row', flexWrap: 'wrap', gap: Space.xs, padding: Space.sm, borderTopWidth: 1, borderTopColor: Palette.border },
@@ -401,5 +401,6 @@ const styles = StyleSheet.create({
   hint: { padding: Space.sm, gap: Space.xs, borderWidth: 1, borderColor: Palette.border, backgroundColor: Palette.surface },
   hintNumber: { color: Palette.orange, fontFamily: Fonts.semibold },
   footerActions: { width: '100%', minWidth: 0, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'stretch', gap: Space.sm, marginTop: Space.sm },
+  fullscreenSafe: { flex: 1, backgroundColor: Palette.background }, fullscreenBody: { flex: 1, minHeight: 0, padding: Space.sm, backgroundColor: Palette.background },
   modalBackdrop: { flex: 1, justifyContent: 'center', padding: Space.lg, backgroundColor: 'rgba(10,8,10,0.88)' }, guidePanel: { width: '100%', maxWidth: 520, alignSelf: 'center', padding: Space.lg, gap: Space.md, borderWidth: 1, borderColor: Palette.green, backgroundColor: Palette.surface }, guideCard: { padding: Space.sm, borderWidth: 1, borderColor: Palette.border }, guideTitle: { color: Palette.text, marginBottom: Space.xs },
 });

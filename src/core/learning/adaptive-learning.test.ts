@@ -1,4 +1,4 @@
-import { appendActivity, getActiveReviewQueue, tombstoneSavedLearningItem, updateReviewSignals, upsertSavedLearningItem } from '@/core/learning/adaptive-learning';
+import { appendActivity, getActiveReviewQueue, migrateIllustrationBookmarks, tombstoneSavedLearningItem, updateReviewSignals, upsertSavedLearningItem } from '@/core/learning/adaptive-learning';
 
 describe('adaptive learning', () => {
   const quizInput = { kind: 'quiz' as const, contentId: 'q-1', lessonId: 'lesson-1', chapterId: '1', contentVersion: 2 };
@@ -30,5 +30,13 @@ describe('adaptive learning', () => {
     let history: ReturnType<typeof appendActivity> = [];
     for (let index = 0; index < 55; index += 1) history = appendActivity(history, { type: 'lesson', chapterId: '1', targetId: String(index), label: 'Lesson' }, new Date(index * 1000).toISOString());
     expect(history).toHaveLength(50);
+  });
+
+  it('converts legacy visual bookmarks into their owning lesson without losing notes', () => {
+    const visual = upsertSavedLearningItem({}, { targetType: 'illustration', targetId: 'lesson-1:network', chapterId: '1', title: 'Network visual', note: 'Review this diagram' }, '2026-01-01T00:00:00.000Z');
+    const migrated = migrateIllustrationBookmarks(visual, '2026-01-02T00:00:00.000Z');
+
+    expect(migrated['lesson:lesson-1']).toMatchObject({ targetType: 'lesson', targetId: 'lesson-1', title: 'Network', note: 'Review this diagram' });
+    expect(migrated['illustration:lesson-1:network'].deletedAt).toBe('2026-01-02T00:00:00.000Z');
   });
 });

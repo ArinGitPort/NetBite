@@ -8,7 +8,7 @@ import type { CourseId } from '@/content/types';
 import { useAuth } from '@/features/account/auth-context';
 import { ActionCard } from '@/shared/components/action-card';
 import { AppButton } from '@/shared/components/app-button';
-import { IconButton } from '@/shared/components/icon-button';
+import { PageHeader } from '@/shared/components/page-header';
 import { Text } from '@/shared/components/console-text';
 import { Screen } from '@/shared/components/screen';
 import { returnToMenu } from '@/shared/navigation';
@@ -29,8 +29,7 @@ export default function CourseLibraryScreen() {
     if (operationsComplete) awardCourseAchievement('network-operations', 'NetBite Network Operations');
   }, [awardCourseAchievement, foundationComplete, operationsComplete]);
 
-  return <Screen>
-    <IconButton accessibilityLabel="Back to main menu" icon="arrow-left" label="BACK / MENU" onPress={returnToMenu} />
+  return <Screen header={<PageHeader leading={{ accessibilityLabel: 'Back to main menu', icon: 'arrow-left', label: 'BACK / MENU', onPress: returnToMenu }} />}>
     <View style={styles.hero}>
       <Text variant="label" style={styles.eyebrow}>COURSE LIBRARY</Text>
       <Text variant="screenTitle" style={styles.title}>CHOOSE YOUR TRAINING PATH</Text>
