@@ -33,7 +33,7 @@ export function migrateOperationsLabState(persisted: unknown) {
     : {};
 
   for (const [labId, value] of Object.entries(rawSessions)) {
-    if (value && typeof value === 'object' && (value as { version?: number }).version === 2) sessions[labId] = { ...(value as OperationsSimulationSession), tables: (value as OperationsSimulationSession).tables ?? {} };
+    if (value && typeof value === 'object' && (value as { version?: number }).version === 3) sessions[labId] = { ...(value as OperationsSimulationSession), tables: (value as OperationsSimulationSession).tables ?? {} };
     else recoveryCopies[labId] = value;
   }
   return { sessions, history: {}, recoveryCopies };
@@ -83,7 +83,7 @@ export const useOperationsLabStore = create<OperationsLabStore>()(persist((set) 
   }),
 }), {
   name: 'netbite-operations-labs-v1',
-  version: 2,
+  version: 3,
   storage: createJSONStorage(() => gameStorage),
   skipHydration: true,
   migrate: migrateOperationsLabState,

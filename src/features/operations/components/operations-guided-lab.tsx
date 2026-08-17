@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 import type { OperationsLabDefinition } from '@/features/operations/operations-lab-definitions';
 import { OperationsLabBriefing } from '@/features/operations/components/operations-lab-briefing';
 import { OperationsLabTopology } from '@/features/operations/components/operations-lab-topology';
+import { evaluateOperationsAdapterObjective } from '@/features/operations/operations-adapters';
 import {
   applySimulationConfiguration,
   emptyOperationsSimulationSession,
@@ -58,7 +59,7 @@ function FieldControl({ field, value, onChange }: { field: SimulationFieldDefini
   return <View style={styles.fieldBlock}>
     <Text variant="technical" style={styles.fieldLabel}>{field.label}</Text>
     <Text variant="bodySmall" style={styles.fieldHelp}>{helpText}</Text>
-    <TextInput accessibilityHint={helpText} accessibilityLabel={field.label} autoCapitalize="none" autoCorrect={false} keyboardType={field.kind === 'number' ? 'number-pad' : 'default'} onChangeText={changeText} placeholder={field.placeholder ?? `EXAMPLE / ${String(field.expected)}`} placeholderTextColor={Palette.textMuted} selectionColor={Palette.orange} style={styles.input} value={value === undefined || Number.isNaN(value) ? '' : String(value)} />
+    <TextInput accessibilityHint={helpText} accessibilityLabel={field.label} autoCapitalize="none" autoCorrect={false} keyboardType={field.kind === 'number' ? 'number-pad' : 'default'} onChangeText={changeText} placeholder={field.placeholder ?? (field.kind === 'number' ? 'ENTER A NUMBER' : 'ENTER THE SUPPLIED VALUE')} placeholderTextColor={Palette.textMuted} selectionColor={Palette.orange} style={styles.input} value={value === undefined || Number.isNaN(value) ? '' : String(value)} />
   </View>;
 }
 
@@ -106,6 +107,11 @@ export function OperationsGuidedLab({ definition, onComplete }: { definition: Op
   const dirty = current.fields.some((field) => draft[field.id] !== undefined && draft[field.id] !== session.configuration[field.id]);
   const configured = current.fields.every((field) => session.configuration[field.id] !== undefined) && !dirty;
   const suggestions = getOperationsCliSuggestions(simulator, currentIndex);
+  const liveTableRows = useMemo(() => {
+    const savedRows = session.tables?.[definition.tableTitle] ?? [];
+    if (savedRows.length || finished || definition.id === 'dhcp-lease-desk') return savedRows;
+    return evaluateOperationsAdapterObjective(definition.id, current.id, session).tables.flatMap(({ title, rows }) => [title, ...rows]);
+  }, [current.id, definition.id, definition.tableTitle, finished, session]);
 
   const applyConfiguration = () => {
     const applied = applySimulationConfiguration(session, current, effectiveDraft);
@@ -146,7 +152,7 @@ export function OperationsGuidedLab({ definition, onComplete }: { definition: Op
 
   if (!simulator) return <Screen header={<PageHeader leading={{ accessibilityLabel: 'Back to course library', icon: 'arrow-left', label: 'BACK / COURSES', onPress: () => router.replace(AppRoutes.courses) }} />}><Text variant="screenTitle">SIMULATOR UNAVAILABLE</Text></Screen>;
 
-  return <Screen header={<PageHeader leading={{ accessibilityLabel: 'Back from guided simulator', icon: 'arrow-left', label: definition.id === 'network-operations-capstone' ? 'BACK / COURSES' : 'BACK / MODULE', onPress: () => definition.id === 'network-operations-capstone' ? router.dismissTo(AppRoutes.courses) : returnToOwningChapter('lab', definition.id) }} status="LOCAL AUTOSAVE / V2" />}>
+  return <Screen header={<PageHeader leading={{ accessibilityLabel: 'Back from guided simulator', icon: 'arrow-left', label: definition.id === 'network-operations-capstone' ? 'BACK / COURSES' : 'BACK / MODULE', onPress: () => definition.id === 'network-operations-capstone' ? router.dismissTo(AppRoutes.courses) : returnToOwningChapter('lab', definition.id) }} status="LOCAL AUTOSAVE / V3" />}>
     <View onLayout={onLayout}>
       <Text variant="label" style={styles.eyebrow}>GUIDED MINI-SIMULATOR</Text>
       <Text variant="screenTitle" style={styles.title}>{definition.title}</Text>
@@ -163,7 +169,7 @@ export function OperationsGuidedLab({ definition, onComplete }: { definition: Op
 
       {!finished ? <>
         <View style={styles.objective}><Text variant="label" style={styles.panelTitle}>CURRENT OBJECTIVE</Text><Text variant="sectionHeading" style={styles.objectiveTitle}>{authored.objective}</Text><Text variant="body" style={styles.line}>{authored.prompt}</Text><Text variant="bodySmall" style={styles.objectiveHelp}>NEED THE METHOD? OPEN “LEARN THE SETUP” ABOVE OR REVEAL A HINT BELOW.</Text></View>
-        <View style={styles.inspector}><Text variant="label" style={styles.inspectorTitle}>DEVICE / PROTOCOL INSPECTOR</Text><Text variant="bodySmall" style={styles.line}>Use the provided task information below. Save the configuration, then run the test. A valid mistake stays editable so you can correct it.</Text>
+        <View style={styles.inspector}><Text variant="label" style={styles.inspectorTitle}>DEVICE / PROTOCOL CONTROLS</Text><Text variant="bodySmall" style={styles.line}>Change the modeled device state, save it, then run the protocol action. Valid mistakes stay visible in the topology, tables, and trace until you correct them.</Text>
           {current.providedFacts?.length ? <View accessibilityLabel="Information provided for this objective" style={styles.providedFacts}><Text variant="label" style={styles.providedTitle}>INFORMATION PROVIDED</Text>{current.providedFacts.map((fact) => <Text key={fact} variant="bodySmall" style={styles.providedFact}>• {fact}</Text>)}</View> : null}
           {current.fields.map((field) => <FieldControl key={field.id} field={field} value={effectiveDraft[field.id]} onChange={(value) => { setDraft((state) => ({ ...state, [field.id]: value })); setValidationError(undefined); }} />)}
           {validationError ? <Text accessibilityLiveRegion="assertive" variant="bodySmall" style={styles.error}>{validationError}</Text> : null}
@@ -173,7 +179,7 @@ export function OperationsGuidedLab({ definition, onComplete }: { definition: Op
         {simulator.cliEnabled ? <View style={styles.cliPanel}><Text variant="label" style={styles.cliTitle}>OPTIONAL NETBITE CLI</Text><Text variant="bodySmall" style={styles.line}>The console changes the same modeled configuration as the inspector.</Text><AppButton label="Open full-screen CLI" variant="secondary" onPress={() => setCliVisible(true)} /></View> : null}
       </> : <View style={styles.complete}><Text variant="label" style={styles.panelTitle}>ALL OBJECTIVES VERIFIED</Text><Text variant="body">Completion came from the final modeled configuration and its evidence. Reset remains available for another run without removing earned completion.</Text></View>}
 
-      <View style={styles.panel}><Text variant="label" style={styles.panelTitle}>{definition.tableTitle}</Text>{(session.tables?.[definition.tableTitle] ?? []).length ? session.tables[definition.tableTitle].map((row, index) => <Text key={`${index}-${row}`} variant="technical" style={styles.tableRow}>{row}</Text>) : <Text variant="technical" style={styles.line}>NO CURRENT STATE / RUN THE OBJECTIVE TEST</Text>}</View>
+      <View style={styles.panel}><Text variant="label" style={styles.panelTitle}>{definition.tableTitle}</Text>{liveTableRows.length ? liveTableRows.map((row, index) => <Text key={`${index}-${row}`} variant="technical" style={styles.tableRow}>{row}</Text>) : <Text variant="technical" style={styles.line}>NO CURRENT STATE / CONFIGURE THE CURRENT OBJECTIVE</Text>}</View>
       <View style={styles.panel}><Text variant="label" style={styles.panelTitle}>EVENT TRACE</Text>{session.evidence.length ? <><Text variant="technical" style={styles.traceCount}>TRACE STEP {Math.min(session.traceIndex + 1, session.evidence.length)} OF {session.evidence.length}</Text><Text accessibilityLiveRegion="polite" variant="bodySmall" style={[styles.evidence, session.evidence[session.traceIndex]?.tone === 'warning' && styles.warningText]}>{session.evidence[session.traceIndex]?.text}</Text><View style={styles.traceActions}><AppButton disabled={session.traceIndex <= 0} label="Previous step" variant="utility" onPress={() => save(definition.id, { ...session, traceIndex: Math.max(0, session.traceIndex - 1) })} /><AppButton disabled={session.traceIndex >= session.evidence.length - 1} label="Next step" variant="utility" onPress={() => save(definition.id, { ...session, traceIndex: Math.min(session.evidence.length - 1, session.traceIndex + 1) })} /></View></> : <Text variant="technical" style={styles.line}>NO EVENTS YET / SAVE AND RUN THE CURRENT OBJECTIVE</Text>}</View>
 
       {session.lastResult ? <View style={[styles.feedback, session.lastResult.passed ? styles.feedbackSuccess : styles.feedbackWarning]}><Text variant="label" style={session.lastResult.passed ? styles.panelTitle : styles.warningTitle}>{session.lastResult.passed ? 'OBJECTIVE PASSED' : session.lastResult.accepted ? 'CONFIGURATION NEEDS WORK' : 'ACTION NEEDED'}</Text><Text variant="bodySmall" style={styles.line}>{session.lastResult.message}</Text></View> : null}

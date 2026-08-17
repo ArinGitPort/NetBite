@@ -79,6 +79,8 @@ describe('Operations guided simulator', () => {
     await fireEvent.changeText(screen.getByLabelText('First pool address'), '192.168.20.100');
     await fireEvent.changeText(screen.getByLabelText('Last pool address'), '192.168.20.102');
     await fireEvent.changeText(screen.getByLabelText('Reserved address to exclude'), '192.168.20.100');
+    await fireEvent.changeText(screen.getByLabelText('Default gateway option'), '192.168.20.1');
+    await fireEvent.changeText(screen.getByLabelText('Modeled lease duration'), '4');
     await fireEvent.press(screen.getByText('Save configuration'));
     expect(useOperationsLabStore.getState().sessions[dhcp.id].configuration).toMatchObject({ 'dhcp.prefix': 24 });
   });

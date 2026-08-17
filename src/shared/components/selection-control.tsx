@@ -9,18 +9,20 @@ interface SelectionControlProps {
   description?: string;
   selected: boolean;
   disabled?: boolean;
+  /** Keep false when the control sits in a vertical form field. */
+  grow?: boolean;
   onPress: () => void;
   accessibilityRole?: 'radio' | 'checkbox' | 'switch';
 }
 
-export function SelectionControl({ label, description, selected, disabled = false, onPress, accessibilityRole = 'radio' }: SelectionControlProps) {
+export function SelectionControl({ label, description, selected, disabled = false, grow = true, onPress, accessibilityRole = 'radio' }: SelectionControlProps) {
   return (
     <Pressable
       accessibilityRole={accessibilityRole}
       accessibilityState={{ checked: selected, disabled, selected }}
       disabled={disabled}
       onPress={onPress}
-      style={({ pressed }) => [styles.control, selected && styles.selected, pressed && styles.pressed, disabled && styles.disabled]}>
+      style={({ pressed }) => [styles.control, !grow && styles.contentHeight, selected && styles.selected, pressed && styles.pressed, disabled && styles.disabled]}>
       <SemanticIcon color={selected ? Palette.green : Palette.textMuted} name={selected ? 'status-complete' : 'status-pending'} size={20} />
       <View style={styles.copy}>
         <Text variant="label" style={[styles.label, selected && styles.selectedLabel]}>{label}</Text>
@@ -32,6 +34,7 @@ export function SelectionControl({ label, description, selected, disabled = fals
 
 const styles = StyleSheet.create({
   control: { minWidth: 0, minHeight: 44, flexGrow: 1, flexDirection: 'row', alignItems: 'center', gap: Space.sm, padding: Space.sm, borderWidth: 1, borderColor: Palette.border, backgroundColor: Palette.surface },
+  contentHeight: { flexGrow: 0, alignSelf: 'stretch' },
   selected: { borderColor: Palette.green, backgroundColor: Palette.greenSoft },
   pressed: { borderColor: Palette.orange },
   disabled: { opacity: 0.5 },

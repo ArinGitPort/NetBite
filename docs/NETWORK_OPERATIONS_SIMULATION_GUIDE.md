@@ -6,23 +6,24 @@ Network Operations is Course 2. Its labs are fixed-topology, configuration-drive
 
 ## Quality gate
 
-A learner-facing module must have a registered deterministic lab with at least four stages. Each stage supplies a current objective, editable device or protocol fields, validation, protocol evidence, two progressive hints retained in history, and a four-part explanation: observation, governing rule, supported conclusion, and next check.
+A learner-facing module must have a registered deterministic lab with at least four stages. Transport uses its dedicated step-driven engine. The remaining modules and capstone use a typed version-3 simulation adapter that owns objective evaluation, device inspection, protocol tables, state mutations, and evidence. Each stage supplies a current objective, editable device or protocol controls, validation, protocol evidence, two progressive hints retained in history, and a four-part explanation: observation, governing rule, supported conclusion, and next check.
 
-Malformed input never mutates state. Syntactically valid but logically incorrect configuration remains visible and repairable. A stage advances only when its current modeled state satisfies the objective. Optional bounded CLI commands write the same configuration keys as the inspector.
+Malformed input never mutates state. Syntactically valid but logically incorrect configuration remains visible and repairable. A stage advances only when the adapter derives a satisfied objective from the current state. Learner-facing placeholders never contain the assessed value. Optional bounded CLI commands write the same configuration keys as the inspector, and parameterized command grammars are available where command construction is part of the objective.
 
-Unfinished sessions autosave independently from learning progress. Up to 20 prior snapshots support Undo. Reset requires confirmation. Version-1 choice sessions are retained as local recovery copies and restarted cleanly because an answer transcript cannot safely become device configuration. Completion is stored separately from detailed simulator state, so cloud sync never uploads a learner's lab configuration.
+Unfinished sessions autosave independently from learning progress. Up to 20 prior snapshots support Undo. Reset requires confirmation. Incompatible version-1 and version-2 sessions are retained as local recovery copies and restarted cleanly because an old answer transcript cannot safely become version-3 protocol state. Earned completion is stored separately from detailed simulator state, so migration cannot revoke it and cloud sync never uploads a learner's lab configuration.
 
 ## Shared lab layout
 
-Every generic Operations lab begins with `LEARN THE SETUP`. It states the goal in plain English, identifies what is already configured, demonstrates the method once, lists the assessed tasks, and links to the prerequisite lessons. The briefing remains replayable after progress begins.
+Every Operations lab begins with `LEARN THE SETUP`. It states the goal in plain English, identifies what is already configured, demonstrates the method once, lists the assessed tasks, and links to the prerequisite lessons. The briefing remains replayable after progress begins.
 
 The fixed topology is an interactive inspection surface rather than a row of text labels. Existing themed PCs, switches, routers, and servers are connected by labeled modeled interfaces. Selecting a device explains its role and current visible state; learners still change configuration through the inspector or bounded CLI.
 
 The DHCP reference topology contains two clients, SW-1, relay router R-1, and DHCP-1. It separates the client broadcast domain from the routed server network and makes pool, exclusion, binding, DORA, exhaustion, and relay evidence visible without pretending to transmit live packets.
 
 - One fixed, responsive topology with vertical recomposition on compact screens
-- One current objective and one dominant Save or Verify action
-- Device/protocol inspector with full-value inputs and explicit selections
+- One current objective and one dominant configuration or protocol-event action
+- Module-specific device records and derived protocol tables
+- Device/protocol controls with full-value inputs and explicit selections
 - Optional bounded NetBite CLI for ACL, NAT/PAT, IPv6 routing, EtherChannel, OSPF, and capstone work
 - Persistent protocol table plus learner-controlled event trace
 - Accumulated hints, deterministic explanation, Undo, and confirmed Reset
@@ -49,4 +50,4 @@ The Transport lab uses deterministic initial sequence values only to make state 
 
 ## Capstone
 
-The Operations capstone has two autosaved parts. The IPv4 small office combines explicit VLAN lists, LACP modes, STP root state, DHCP bindings, DNS records, OSPF prefixes, PAT addressing, and service-specific ACL results. The IPv6 branch combines configured global/link-local identities, router and neighbor discovery, bidirectional static prefixes, and an injected down-interface fault. A part succeeds only when its required forward and return evidence is present.
+The Operations capstone has two autosaved parts that share one version-3 state envelope. The IPv4 small office derives VLAN carriage, LACP formation, STP root state, DHCP allocation, DNS resolution, OSPF route selection, PAT translation, and service-specific ACL results through their existing pure engines. Its verification stage contains no learner-supplied pass/fail fields. The IPv6 branch derives configured identities, router and neighbor discovery, bidirectional static prefixes, and repair of an injected down-interface fault. Completion requires the combined current state and forward/return evidence; no manually entered success value can complete it.

@@ -62,7 +62,7 @@ describe('Course 2 guided simulation framework', () => {
     const authored = operationsLabDefinitions['dhcp-lease-desk'];
     let session = emptyOperationsSimulationSession();
     const configurations: Record<string, SimulationValue>[] = [
-      { 'dhcp.network': '192.168.20.0', 'dhcp.prefix': 24, 'dhcp.start': '192.168.20.100', 'dhcp.end': '192.168.20.102', 'dhcp.excluded': '192.168.20.100' },
+      { 'dhcp.network': '192.168.20.0', 'dhcp.prefix': 24, 'dhcp.start': '192.168.20.100', 'dhcp.end': '192.168.20.102', 'dhcp.excluded': '192.168.20.100', 'dhcp.gateway': '192.168.20.1', 'dhcp.leaseSteps': 4 },
       { 'dhcp.client': 'PC-A' },
       { 'dhcp.renewClient': 'PC-A' },
       { 'dhcp.requestCount': 2 },
@@ -109,6 +109,13 @@ describe('Course 2 guided simulation framework', () => {
     const migrated = migrateOperationsLabState(legacy);
     expect(migrated.sessions).toEqual({});
     expect(migrated.recoveryCopies['transport-service-desk']).toEqual(legacy.sessions['transport-service-desk']);
+  });
+
+  test('archives version-2 generic sessions when moving to specialized adapters', () => {
+    const legacy = { sessions: { 'dns-resolution-desk': { version: 2, stageIndex: 2, configuration: { 'dns.name': 'old.example' }, evidence: [], hints: [] } }, history: {} };
+    const migrated = migrateOperationsLabState(legacy);
+    expect(migrated.sessions).toEqual({});
+    expect(migrated.recoveryCopies['dns-resolution-desk']).toEqual(legacy.sessions['dns-resolution-desk']);
   });
 
   test('blocks validation modules consistently while allowing presentation bypass', () => {

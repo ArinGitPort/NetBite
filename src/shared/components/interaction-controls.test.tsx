@@ -16,6 +16,11 @@ describe('shared interaction controls', () => {
     expect(onPress).toHaveBeenCalledTimes(1);
   });
 
+  test('selection controls can keep content height inside vertical form fields', async () => {
+    const screen = await render(<SelectionControl accessibilityRole="switch" grow={false} label="LISTENING" onPress={jest.fn()} selected />);
+    expect(screen.getByRole('switch', { name: 'LISTENING' })).toHaveStyle({ flexGrow: 0, alignSelf: 'stretch' });
+  });
+
   test('segmented controls provide one selected option and wrap labels', async () => {
     const onChange = jest.fn();
     const screen = await render(<SegmentedControl label="Motion" options={[{ id: 'system', label: 'SYSTEM' }, { id: 'reduced', label: 'REDUCED' }]} value="system" onChange={onChange} />);

@@ -6,6 +6,7 @@ import Svg, { Line } from 'react-native-svg';
 import { DeviceGlyph } from '@/features/devices/components/device-glyph';
 import type { OperationsLabDefinition, OperationsTopologyNode } from '@/features/operations/operations-lab-definitions';
 import type { OperationsSimulationSession } from '@/features/operations/operations-simulator';
+import { getOperationsDeviceRecord } from '@/features/operations/operations-adapters';
 import { Text } from '@/shared/components/console-text';
 import type { ResponsiveMode } from '@/shared/responsive-layout';
 import { Fonts, Palette, Space } from '@/shared/theme';
@@ -15,23 +16,11 @@ function NodeImage({ node }: { node: OperationsTopologyNode }) {
   return <DeviceGlyph size={52} type={node.kind} />;
 }
 
-function dhcpState(node: OperationsTopologyNode, session: OperationsSimulationSession) {
-  const configuration = session.configuration;
-  const leases = (session.protocolState?.dhcp as { leases?: { clientId: string; address: string }[] } | undefined)?.leases ?? [];
-  if (node.id === 'dhcp-1') {
-    const pool = configuration['dhcp.start'] && configuration['dhcp.end'] ? `${configuration['dhcp.start']}–${configuration['dhcp.end']}` : 'POOL NOT CONFIGURED';
-    return [`POOL / ${pool}`, `EXCLUDED / ${configuration['dhcp.excluded'] ?? 'NOT CONFIGURED'}`, `BINDINGS / ${leases.length ? leases.map((lease) => `${lease.clientId}=${lease.address}`).join(' / ') : 'NONE'}`];
-  }
-  if (node.id === 'r-1') return [`RELAY / ${configuration['dhcp.relay'] ?? 'NOT CONFIGURED'}`, `SERVER PATH / ${configuration['dhcp.serverReachable'] === true ? 'REACHABLE' : 'NOT VERIFIED'}`];
-  if (node.id === 'pc-a' || node.id === 'pc-b') { const lease = leases.find((item) => item.clientId === node.label); return [`CLIENT ID / ${node.label}`, `ADDRESS / ${lease?.address ?? 'NOT LEASED YET'}`]; }
-  if (node.id === 'sw-1') return ['ACCESS VLAN / 20', 'BROADCASTS STAY INSIDE VLAN 20'];
-  return [];
-}
-
 export function OperationsLabTopology({ definition, mode, session, stageId, finished }: { definition: OperationsLabDefinition; mode: ResponsiveMode; session: OperationsSimulationSession; stageId?: string; finished: boolean }) {
   const topology = definition.visualTopology;
   const [selectedId, setSelectedId] = useState(topology.nodes[0]?.id);
   const selected = topology.nodes.find((node) => node.id === selectedId) ?? topology.nodes[0];
+  const selectedRecord = selected ? getOperationsDeviceRecord(definition.id, selected.label, session) : undefined;
   const positions = Object.fromEntries(topology.nodes.map((node) => [node.id, node[mode]]));
   const compact = mode === 'compact';
   const height = compact ? Math.max(420, topology.nodes.length * 126) : 290;
@@ -45,7 +34,7 @@ export function OperationsLabTopology({ definition, mode, session, stageId, fini
       {topology.nodes.map((node) => { const point = node[mode]; const selectedNode = selected?.id === node.id; return <Pressable key={node.id} accessibilityHint="Shows this device's role and current lab state" accessibilityLabel={`${node.label}, ${node.detail}${selectedNode ? ', selected' : ''}`} accessibilityRole="button" accessibilityState={{ selected: selectedNode }} onPress={() => setSelectedId(node.id)} style={[styles.node, { left: `${point.x}%`, top: `${point.y}%` }, selectedNode && styles.nodeSelected]}><NodeImage node={node} /><Text variant="technical" style={styles.nodeLabel}>{node.label}</Text><Text variant="technical" style={styles.nodeDetail}>{node.detail}</Text></Pressable>; })}
     </View>
     <View style={styles.links}><Text variant="label" style={styles.green}>CABLES AND PORTS</Text>{topology.links.map((link) => <Text key={link.id} variant="technical" style={styles.muted}>{topology.nodes.find((node) => node.id === link.a)?.label} {link.aPort} ↔ {topology.nodes.find((node) => node.id === link.b)?.label} {link.bPort}</Text>)}</View>
-    {selected ? <View accessibilityLiveRegion="polite" style={styles.inspector}><View style={styles.inspectorHeading}><NodeImage node={selected} /><View style={styles.inspectorCopy}><Text variant="label" style={styles.orange}>SELECTED / {selected.label}</Text><Text variant="bodySmall">{selected.role}</Text></View></View>{definition.id === 'dhcp-lease-desk' ? dhcpState(selected, session).map((line) => <Text key={line} variant="technical" style={styles.state}>{line}</Text>) : <Text variant="technical" style={styles.state}>{finished ? 'LAB STATE / VERIFIED' : `CURRENT TASK / ${stageId?.replaceAll('-', ' ').toUpperCase() ?? 'INSPECT'}`}</Text>}{traceText ? <Text variant="bodySmall" style={styles.trace}>CURRENT EVIDENCE / {traceText}</Text> : null}</View> : null}
+    {selected ? <View accessibilityLiveRegion="polite" style={styles.inspector}><View style={styles.inspectorHeading}><NodeImage node={selected} /><View style={styles.inspectorCopy}><Text variant="label" style={styles.orange}>SELECTED / {selected.label}</Text><Text variant="bodySmall">{selected.role}</Text></View></View>{selectedRecord?.lines.map((line) => <Text key={line} variant="technical" style={[styles.state, selectedRecord.status === 'attention' && styles.stateAttention]}>{line}</Text>)}{traceText ? <Text variant="bodySmall" style={styles.trace}>CURRENT EVIDENCE / {traceText}</Text> : null}</View> : null}
   </View>;
 }
 
@@ -54,5 +43,5 @@ const styles = StyleSheet.create({
   section: { minWidth: 0, gap: Space.sm, padding: Space.md, borderWidth: 1, borderColor: Palette.border, marginBottom: Space.md }, green: { color: Palette.green, fontFamily: Fonts.semibold }, orange: { color: Palette.orange, fontFamily: Fonts.semibold }, muted: { color: Palette.textMuted },
   canvas: { minWidth: 0, width: '100%', position: 'relative', overflow: 'hidden', borderWidth: 1, borderColor: Palette.border, backgroundColor: Palette.surface }, cables: { position: 'absolute', inset: 0, pointerEvents: 'none' },
   node: { position: 'absolute', width: NODE_WIDTH, minHeight: 104, marginLeft: -(NODE_WIDTH / 2), marginTop: -52, padding: 4, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: Palette.border, backgroundColor: Palette.background }, nodeSelected: { borderColor: Palette.orange, backgroundColor: Palette.orangeSoft }, server: { width: 52, height: 52 }, nodeLabel: { color: Palette.text, textAlign: 'center', fontFamily: Fonts.semibold }, nodeDetail: { color: Palette.textMuted, textAlign: 'center' },
-  links: { minWidth: 0, gap: Space.xs, padding: Space.sm, borderWidth: 1, borderColor: Palette.border }, inspector: { minWidth: 0, gap: Space.sm, padding: Space.md, borderWidth: 1, borderColor: Palette.green, backgroundColor: Palette.surface }, inspectorHeading: { minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: Space.sm }, inspectorCopy: { flex: 1, minWidth: 0, gap: Space.xs }, state: { color: Palette.text, padding: Space.sm, borderWidth: 1, borderColor: Palette.border }, trace: { color: Palette.orange, borderLeftWidth: 2, borderLeftColor: Palette.orange, paddingLeft: Space.sm },
+  links: { minWidth: 0, gap: Space.xs, padding: Space.sm, borderWidth: 1, borderColor: Palette.border }, inspector: { minWidth: 0, gap: Space.sm, padding: Space.md, borderWidth: 1, borderColor: Palette.green, backgroundColor: Palette.surface }, inspectorHeading: { minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: Space.sm }, inspectorCopy: { flex: 1, minWidth: 0, gap: Space.xs }, state: { color: Palette.text, padding: Space.sm, borderWidth: 1, borderColor: Palette.border }, stateAttention: { color: Palette.orange, borderColor: Palette.orange }, trace: { color: Palette.orange, borderLeftWidth: 2, borderLeftColor: Palette.orange, paddingLeft: Space.sm },
 });

@@ -1,4 +1,4 @@
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, useWindowDimensions, View } from 'react-native';
 
 import { Text } from '@/shared/components/console-text';
 import { Fonts, Palette } from '@/shared/theme';
@@ -28,11 +28,26 @@ export interface TopologyLinkCaptionPlacement {
   perpendicular?: number;
 }
 
+export interface TopologyRect {
+  bottom: number;
+  left: number;
+  right: number;
+  top: number;
+}
+
 const LABEL_HEIGHT = 22;
 const LABEL_GAP = 5;
+const MAX_FONT_SCALE = 2;
+const CAPTION_MAX_WIDTH = 196;
 
-export function getTopologyLabelSize(label: string): TopologyLabelSize {
-  return { width: Math.max(34, Math.min(58, 12 + label.length * 7)), height: LABEL_HEIGHT };
+const normalizedFontScale = (fontScale: number) => Math.max(1, Math.min(MAX_FONT_SCALE, fontScale));
+
+export function getTopologyLabelSize(label: string, fontScale = 1): TopologyLabelSize {
+  const scale = normalizedFontScale(fontScale);
+  return {
+    width: Math.max(34, Math.min(108, 12 + label.length * 7 * scale)),
+    height: Math.ceil(5 + 17 * scale),
+  };
 }
 
 function positionOutsideNode(origin: TopologyPoint, target: TopologyPoint, bounds: TopologyNodeBounds, labelSize: TopologyLabelSize) {
@@ -81,8 +96,35 @@ export function calculateCableEndpointLabels(
   return { from: fromPosition, to: toPosition };
 }
 
-export function getTopologyCaptionSize(label: string): TopologyLabelSize {
-  return { width: Math.max(92, Math.min(176, 20 + label.length * 7)), height: 26 };
+export function getTopologyCaptionSize(label: string, fontScale = 1): TopologyLabelSize {
+  const scale = normalizedFontScale(fontScale);
+  const estimatedWidth = 20 + label.length * 7 * scale;
+  const wraps = estimatedWidth > CAPTION_MAX_WIDTH;
+  return {
+    width: Math.max(92, Math.min(CAPTION_MAX_WIDTH, estimatedWidth)),
+    height: Math.ceil(8 + 17 * scale * (wraps ? 2 : 1)),
+  };
+}
+
+export function formatTopologyCaption(label: string, fontScale = 1) {
+  if (20 + label.length * 7 * normalizedFontScale(fontScale) <= CAPTION_MAX_WIDTH) return label;
+  const slash = label.lastIndexOf('/');
+  if (slash > 0) return `${label.slice(0, slash)}\n${label.slice(slash)}`;
+  const space = label.lastIndexOf(' ', Math.ceil(label.length / 2));
+  return space > 0 ? `${label.slice(0, space)}\n${label.slice(space + 1)}` : label;
+}
+
+export function getTopologyRect(center: TopologyPoint, size: TopologyLabelSize): TopologyRect {
+  return {
+    left: center.x - size.width / 2,
+    right: center.x + size.width / 2,
+    top: center.y - size.height / 2,
+    bottom: center.y + size.height / 2,
+  };
+}
+
+export function topologyRectsOverlap(a: TopologyRect, b: TopologyRect, gap = 0) {
+  return a.left < b.right + gap && a.right > b.left - gap && a.top < b.bottom + gap && a.bottom > b.top - gap;
 }
 
 export function calculateCableMidpointLabel(
@@ -96,7 +138,11 @@ export function calculateCableMidpointLabel(
   const dy = to.y - from.y;
   const length = Math.max(1, Math.hypot(dx, dy));
   const along = placement.along ?? 0;
-  const perpendicular = placement.perpendicular ?? -36;
+  const requestedPerpendicular = placement.perpendicular ?? -36;
+  const heightCompensation = Math.max(0, labelSize.height - 26) / 2;
+  const perpendicular = requestedPerpendicular < 0
+    ? requestedPerpendicular - heightCompensation
+    : requestedPerpendicular + heightCompensation;
   const unitX = dx / length;
   const unitY = dy / length;
   let x = (from.x + to.x) / 2 + unitX * along - unitY * perpendicular;
@@ -135,11 +181,13 @@ export function TopologyLinkLabels({
   contextPlacement?: TopologyLinkCaptionPlacement;
   canvas?: { width: number; height: number };
 }) {
-  const fromSize = getTopologyLabelSize(fromLabel);
-  const toSize = getTopologyLabelSize(toLabel);
+  const { fontScale } = useWindowDimensions();
+  const fromSize = getTopologyLabelSize(fromLabel, fontScale);
+  const toSize = getTopologyLabelSize(toLabel, fontScale);
   const positions = calculateCableEndpointLabels(from, to, fromBounds, toBounds, fromSize, toSize);
-  const contextSize = contextLabel ? getTopologyCaptionSize(contextLabel) : undefined;
+  const contextSize = contextLabel ? getTopologyCaptionSize(contextLabel, fontScale) : undefined;
   const contextPosition = contextSize ? calculateCableMidpointLabel(from, to, contextSize, contextPlacement, canvas) : undefined;
+  const renderedContextLabel = contextLabel ? formatTopologyCaption(contextLabel, fontScale) : undefined;
   return (
     <>
       <View
@@ -162,7 +210,7 @@ export function TopologyLinkLabels({
         pointerEvents="none"
         style={[styles.label, styles.contextLabel, contextTone === 'warning' && styles.contextWarning, { left: contextPosition.x - contextSize.width / 2, top: contextPosition.y - contextSize.height / 2, width: contextSize.width, minHeight: contextSize.height }]}
         testID={`topology-link-label-${id}-context`}>
-        <Text accessible={false} numberOfLines={1} variant="technical" style={[styles.text, contextTone === 'warning' && styles.warningText]}>{contextLabel}</Text>
+        <Text accessible={false} numberOfLines={2} variant="technical" style={[styles.text, contextTone === 'warning' && styles.warningText]}>{renderedContextLabel}</Text>
       </View> : null}
     </>
   );

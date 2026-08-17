@@ -35,9 +35,9 @@ export interface CliLabDefinition extends PublicCliLabDefinition {
 }
 
 const routedCaptionLane = {
-  compact: { perpendicular: -30 },
-  regular: { perpendicular: -28 },
-  wide: { perpendicular: -26 },
+  compact: { perpendicular: -62 },
+  regular: { perpendicular: -62 },
+  wide: { perpendicular: -62 },
 } satisfies Partial<Record<'compact' | 'regular' | 'wide', TopologyLinkCaptionPlacement>>;
 
 const device = (input: Partial<CliDeviceState> & Pick<CliDeviceState, 'id' | 'name' | 'type'>): CliDeviceState => ({
@@ -135,8 +135,8 @@ export const requiredStaticRoutes = [
 
 const diagnosticTopology: CliTopologyLayout = {
   description: 'The diagnostic path runs left to right from PC-A through the routers present in the current scenario to PC-C.',
-  width: { compact: 780, regular: 780, wide: 780 },
-  height: { compact: 250, regular: 250, wide: 250 },
+  width: { compact: 1040, regular: 1040, wide: 1040 },
+  height: { compact: 280, regular: 280, wide: 280 },
   compact: { 'pc-a': { x: 8, y: 50 }, r1: { x: 36, y: 50 }, r2: { x: 64, y: 50 }, 'pc-c': { x: 92, y: 50 } },
   regular: { 'pc-a': { x: 8, y: 50 }, r1: { x: 36, y: 50 }, r2: { x: 64, y: 50 }, 'pc-c': { x: 92, y: 50 } },
   wide: { 'pc-a': { x: 8, y: 50 }, r1: { x: 36, y: 50 }, r2: { x: 64, y: 50 }, 'pc-c': { x: 92, y: 50 } },
@@ -149,8 +149,8 @@ const diagnosticTopology: CliTopologyLayout = {
 
 const staticRoutingTopology: CliTopologyLayout = {
   description: 'The routed path runs left to right from PC-A through NB-R1, NB-R2, and NB-R3 to PC-C.',
-  width: { compact: 980, regular: 980, wide: 980 },
-  height: { compact: 250, regular: 250, wide: 250 },
+  width: { compact: 1320, regular: 1320, wide: 1320 },
+  height: { compact: 280, regular: 280, wide: 280 },
   compact: { 'pc-a': { x: 7, y: 50 }, r1: { x: 28.5, y: 50 }, r2: { x: 50, y: 50 }, r3: { x: 71.5, y: 50 }, 'pc-c': { x: 93, y: 50 } },
   regular: { 'pc-a': { x: 7, y: 50 }, r1: { x: 28.5, y: 50 }, r2: { x: 50, y: 50 }, r3: { x: 71.5, y: 50 }, 'pc-c': { x: 93, y: 50 } },
   wide: { 'pc-a': { x: 7, y: 50 }, r1: { x: 28.5, y: 50 }, r2: { x: 50, y: 50 }, r3: { x: 71.5, y: 50 }, 'pc-c': { x: 93, y: 50 } },

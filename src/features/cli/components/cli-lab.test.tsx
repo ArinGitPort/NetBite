@@ -1,10 +1,18 @@
 import { cleanup, fireEvent, render, within } from '@testing-library/react-native';
 import { StyleSheet } from 'react-native';
 
-import { simulatePing } from '@/core/network/cli-simulator';
+import { deriveCliLinkContext, simulatePing } from '@/core/network/cli-simulator';
 import { CliLab } from '@/features/cli/components/cli-lab';
 import { createCliVisualTrace } from '@/features/cli/components/cli-topology-view';
 import { cliLabDefinitions, createRoutingState, requiredStaticRoutes } from '@/features/cli/cli-lab-definitions';
+import {
+  calculateCableEndpointLabels,
+  calculateCableMidpointLabel,
+  getTopologyCaptionSize,
+  getTopologyLabelSize,
+  getTopologyRect,
+  topologyRectsOverlap,
+} from '@/shared/components/topology-link-labels';
 import { useGameStore } from '@/store/use-game-store';
 
 jest.mock('expo-router', () => ({ router: { dismissTo: jest.fn() } }));
@@ -48,6 +56,44 @@ describe('CliLab', () => {
     });
   });
 
+  test('keeps routed caption, port, and node rectangles separate in every responsive mode and font scale', () => {
+    const routedDefinitions = [cliLabDefinitions['static-route-board'], cliLabDefinitions['ping-diagnostic-desk']];
+    routedDefinitions.forEach((definition) => {
+      const states = [definition.createState(), ...(definition.diagnosticScenarios?.map((scenario) => scenario.createState()) ?? [])];
+      states.forEach((network) => (['compact', 'regular', 'wide'] as const).forEach((mode) => [1, 1.3, 1.5, 2].forEach((fontScale) => {
+        const canvas = { width: definition.topology.width[mode], height: definition.topology.height[mode] };
+        const positions = definition.topology[mode];
+        const nodeRects = network.devices.map((device) => {
+          const point = positions[device.id];
+          return getTopologyRect({ x: canvas.width * point.x / 100, y: canvas.height * point.y / 100 }, { width: 104, height: 84 });
+        });
+        const endpointRects: ReturnType<typeof getTopologyRect>[] = [];
+        const captionRects: ReturnType<typeof getTopologyRect>[] = [];
+        network.links.forEach((link) => {
+          const fromPoint = positions[link.aDeviceId];
+          const toPoint = positions[link.bDeviceId];
+          const from = { x: canvas.width * fromPoint.x / 100, y: canvas.height * fromPoint.y / 100 };
+          const to = { x: canvas.width * toPoint.x / 100, y: canvas.height * toPoint.y / 100 };
+          const fromSize = getTopologyLabelSize(link.aInterface, fontScale);
+          const toSize = getTopologyLabelSize(link.bInterface, fontScale);
+          const endpoints = calculateCableEndpointLabels(from, to, { halfWidth: 52, halfHeight: 42 }, { halfWidth: 52, halfHeight: 42 }, fromSize, toSize);
+          endpointRects.push(getTopologyRect(endpoints.from, fromSize), getTopologyRect(endpoints.to, toSize));
+          const context = deriveCliLinkContext(network, link);
+          const label = context.kind === 'network' || context.kind === 'mismatch' ? context.label : context.networkLabel;
+          if (!label) return;
+          const id = `${link.aDeviceId}-${link.aInterface}-${link.bDeviceId}-${link.bInterface}`;
+          const size = getTopologyCaptionSize(label, fontScale);
+          const center = calculateCableMidpointLabel(from, to, size, definition.topology.linkCaptions?.[id]?.[mode], canvas);
+          captionRects.push(getTopologyRect(center, size));
+        });
+        captionRects.forEach((caption) => {
+          nodeRects.forEach((node) => expect(topologyRectsOverlap(caption, node, 2)).toBe(false));
+          endpointRects.forEach((endpoint) => expect(topologyRectsOverlap(caption, endpoint, 2)).toBe(false));
+        });
+      })));
+    });
+  });
+
   test.each(['ping-diagnostic-desk', 'static-route-board', 'vlan-port-desk', 'inter-vlan-routing-desk'])('opens with the fixed topology and no miniature terminal for %s', async (labId) => {
     const definition = cliLabDefinitions[labId];
     const screen = await render(<CliLab definition={definition} />);
@@ -73,7 +119,8 @@ describe('CliLab', () => {
     const routing = await render(<CliLab definition={cliLabDefinitions['static-route-board']} />);
     await layoutTopology(routing);
     for (const label of ['192.168.10.0/24', '10.0.12.0/30', '10.0.23.0/30', '192.168.30.0/24']) {
-      expect(routing.getByText(label)).toBeTruthy();
+      const pattern = new RegExp(label.replaceAll('.', '\\.').replace('/', '\\s*\\/'));
+      expect(routing.getAllByText(pattern).length).toBeGreaterThan(0);
     }
   });
 
@@ -165,7 +212,7 @@ describe('CliLab', () => {
     const screen = await render(<CliLab definition={cliLabDefinitions['static-route-board']} />);
     await fireEvent(screen.getByTestId('cli-layout'), 'layout', { persist: jest.fn(), nativeEvent: { layout: { width: 390, height: 760, x: 0, y: 0 } } });
     await fireEvent(screen.getByTestId('cli-topology-viewport'), 'layout', { nativeEvent: { layout: { width: 390, height: 250, x: 0, y: 0 } } });
-    expect(StyleSheet.flatten(screen.getByTestId('cli-topology-canvas').props.style)).toMatchObject({ height: 250, width: 980 });
+    expect(StyleSheet.flatten(screen.getByTestId('cli-topology-canvas').props.style)).toMatchObject({ height: 280, width: 1320 });
     expect(screen.getByTestId('cli-topology-scroll').props.scrollEnabled).toBe(true);
     expect(screen.getByText('SCROLL TO FOLLOW THE NETWORK PATH')).toBeTruthy();
   });

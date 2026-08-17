@@ -1,7 +1,16 @@
 import { render } from '@testing-library/react-native';
 import { StyleSheet } from 'react-native';
 
-import { calculateCableEndpointLabels, calculateCableMidpointLabel, getTopologyCaptionSize, getTopologyLabelSize, TopologyLinkLabels } from '@/shared/components/topology-link-labels';
+import {
+  calculateCableEndpointLabels,
+  calculateCableMidpointLabel,
+  formatTopologyCaption,
+  getTopologyCaptionSize,
+  getTopologyLabelSize,
+  getTopologyRect,
+  topologyRectsOverlap,
+  TopologyLinkLabels,
+} from '@/shared/components/topology-link-labels';
 
 const bounds = { halfWidth: 50, halfHeight: 40 };
 
@@ -49,6 +58,34 @@ describe('topology link labels', () => {
     expect(caption.y).toBeLessThan(100);
   });
 
+  test('expands technical plates with system font scale without truncating the value', () => {
+    const normalCaption = getTopologyCaptionSize('192.168.10.0/24', 1);
+    const largeCaption = getTopologyCaptionSize('192.168.10.0/24', 2);
+    expect(largeCaption.width).toBeLessThanOrEqual(196);
+    expect(largeCaption.height).toBeGreaterThan(normalCaption.height);
+    expect(formatTopologyCaption('192.168.10.0/24', 2)).toBe('192.168.10.0\n/24');
+    expect(getTopologyLabelSize('G0/0.10', 2).width).toBeGreaterThan(getTopologyLabelSize('G0/0.10', 1).width);
+  });
+
+  test('keeps a large subnet caption clear of nodes and endpoint plates', () => {
+    const from = { x: 100, y: 140 };
+    const to = { x: 384, y: 140 };
+    const fontScale = 2;
+    const fromSize = getTopologyLabelSize('E0', fontScale);
+    const toSize = getTopologyLabelSize('G0/0', fontScale);
+    const endpointPositions = calculateCableEndpointLabels(from, to, bounds, bounds, fromSize, toSize);
+    const captionSize = getTopologyCaptionSize('192.168.10.0/24', fontScale);
+    const captionPosition = calculateCableMidpointLabel(from, to, captionSize, { perpendicular: -62 }, { width: 484, height: 280 });
+    const captionRect = getTopologyRect(captionPosition, captionSize);
+    const otherRects = [
+      getTopologyRect(from, { width: 100, height: 84 }),
+      getTopologyRect(to, { width: 100, height: 84 }),
+      getTopologyRect(endpointPositions.from, fromSize),
+      getTopologyRect(endpointPositions.to, toSize),
+    ];
+    otherRects.forEach((rect) => expect(topologyRectsOverlap(captionRect, rect, 4)).toBe(false));
+  });
+
   test('renders exact endpoint names as horizontal application text', async () => {
     const screen = await render(<TopologyLinkLabels accessibilityLabel="Cable from R-1 G0/0.10 to SW-1 F0/24" from={{ x: 80, y: 80 }} fromBounds={bounds} fromLabel="G0/0.10" id="route-link" to={{ x: 300, y: 80 }} toBounds={bounds} toLabel="F0/24" />);
     expect(screen.getByText('G0/0.10')).toBeTruthy();
@@ -56,7 +93,7 @@ describe('topology link labels', () => {
     expect(screen.getByLabelText('Cable from R-1 G0/0.10 to SW-1 F0/24')).toBeTruthy();
     const style = StyleSheet.flatten(screen.getByTestId('topology-link-label-route-link-from').props.style);
     expect(style.position).toBe('absolute');
-    expect(style.width).toBe(getTopologyLabelSize('G0/0.10').width);
+    expect(style.width).toBeGreaterThanOrEqual(getTopologyLabelSize('G0/0.10').width);
     expect(screen.queryByTestId('topology-link-label-route-link-context')).toBeNull();
   });
 
@@ -64,7 +101,7 @@ describe('topology link labels', () => {
     const screen = await render(<TopologyLinkLabels accessibilityLabel="Routed cable" canvas={{ width: 500, height: 220 }} contextLabel="192.168.10.0/24" from={{ x: 80, y: 100 }} fromBounds={bounds} fromLabel="E0" id="subnet-link" to={{ x: 420, y: 100 }} toBounds={bounds} toLabel="G0/0" />);
     const context = StyleSheet.flatten(screen.getByTestId('topology-link-label-subnet-link-context').props.style);
     const from = StyleSheet.flatten(screen.getByTestId('topology-link-label-subnet-link-from').props.style);
-    expect(screen.getByText('192.168.10.0/24')).toBeTruthy();
+    expect(screen.getByText(/192\.168\.10\.0\s*\/24/)).toBeTruthy();
     expect(context.top).toBeLessThan(from.top);
   });
 });

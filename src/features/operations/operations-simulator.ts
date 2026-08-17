@@ -20,6 +20,7 @@ import {
   type DhcpState,
 } from '@/core/network/operations-simulation';
 import type { ModuleReleaseState } from '@/content/types';
+import { evaluateOperationsAdapterObjective } from '@/features/operations/operations-adapters';
 
 export type SimulationValue = string | number | boolean;
 export type SimulationFieldKind = 'text' | 'number' | 'select' | 'toggle';
@@ -74,7 +75,7 @@ export interface ObjectiveResult {
 }
 
 export interface OperationsSimulationSession {
-  version: 2;
+  version: 3;
   stageIndex: number;
   completedObjectiveIds: string[];
   configuration: Record<string, SimulationValue>;
@@ -114,11 +115,15 @@ const definitions: GuidedSimulationDefinition[] = [
       { ...text('dhcp.start', 'First pool address', '192.168.20.100', 'ipv4', 'Start the assigned pool at 192.168.20.100.', '192.168.20.100'), helpText: 'This is the first address inside the small range DHCP-1 is allowed to manage.' },
       { ...text('dhcp.end', 'Last pool address', '192.168.20.102', 'ipv4', 'End the assigned pool at 192.168.20.102.', '192.168.20.102'), helpText: 'This is the final address included in the server pool.' },
       { ...text('dhcp.excluded', 'Reserved address to exclude', '192.168.20.100', 'ipv4', 'Exclude the reserved first pool address.', '192.168.20.100'), helpText: 'An exclusion is inside the pool range but must not be leased. Reserve 192.168.20.100.' },
+      { ...text('dhcp.gateway', 'Default gateway option', '192.168.20.1', 'ipv4', 'Supply the client VLAN gateway.', '192.168.20.1'), helpText: 'DHCP gives clients the gateway inside their own subnet. For VLAN 20, use 192.168.20.1.' },
+      { ...number('dhcp.leaseSteps', 'Modeled lease duration', 4, 'positive', 'Use four learner-controlled steps for this exercise.'), placeholder: '4', helpText: 'NetBite uses learner-controlled steps instead of real clock time. Enter 4.' },
     ], ['The pool network must match the subnet where the clients live.', 'With 192.168.20.100 excluded, the first offer is 192.168.20.101.'], [
       'PC-A and PC-B are clients in subnet 192.168.20.0/24.',
       'The /24 means the prefix length is 24. In the Prefix field, enter 24 (with or without the slash).',
       'DHCP-1 may lease only 192.168.20.100 through 192.168.20.102 for this task.',
       '192.168.20.100 is reserved, so add it as the excluded address.',
+      'Clients use 192.168.20.1 as their default gateway.',
+      'The exercise represents the lease duration as four learner-controlled steps.',
     ]),
     stage('dora', 'Request client lease', [text('dhcp.client', 'Client identifier', 'PC-A', 'text', 'Use the fixed client PC-A so its binding can be inspected.')], ['The client starts without an IPv4 lease.', 'Run Discover, Offer, Request, and ACK for PC-A.']),
     stage('renew', 'Renew client lease', [text('dhcp.renewClient', 'Client to renew', 'PC-A', 'text', 'Renew the existing PC-A binding.')], ['A known client can request its current address again.', 'Renew PC-A and inspect the refreshed binding rather than allocating another address.']),
@@ -185,7 +190,7 @@ const definitions: GuidedSimulationDefinition[] = [
     stage('office-services', 'Verify office services', [text('cap.dhcp', 'DHCP first available lease', '192.168.10.101', 'ipv4', 'The excluded gateway leaves 192.168.10.101 as the first lease.'), text('cap.dns', 'server.netbite.test A record', '192.168.20.20', 'ipv4', 'The service name must resolve to the server address.')], ['Address assignment and name resolution are independent.', 'Create lease 192.168.10.101 and map server.netbite.test to 192.168.20.20.']),
     stage('office-routing', 'Verify OSPF paths', [text('cap.ospfForward', 'Installed server route', '192.168.20.0/24', 'text', 'Install the complete server prefix.'), text('cap.ospfReturn', 'Installed client route', '192.168.10.0/24', 'text', 'Install the complete client return prefix.')], ['OSPF adjacency alone does not prove the destination prefix is installed.', 'Verify 192.168.20.0/24 forward and 192.168.10.0/24 return routes.']),
     stage('office-edge', 'Verify policy and PAT', [select('cap.acl', 'HTTPS policy result', 'permit-https-deny-other', [option('Permit HTTPS / deny unauthorized', 'permit-https-deny-other', 'show access-lists'), option('Permit all traffic', 'permit-all')], 'The policy must permit the required service without opening every flow.'), text('cap.pat', 'PAT global address', '203.0.113.10', 'ipv4', 'Eligible inside traffic must translate through the configured global address.')], ['Policy selection occurs before successful translated forwarding.', 'Permit required HTTPS, deny the unauthorized tuple, and translate through 203.0.113.10.']),
-    stage('office-verify', 'Test IPv4 office', [select('cap.ipv4Forward', 'Forward service test', 'pass', [option('Pass', 'pass'), option('Fail', 'fail')], 'The required forward service path must succeed.'), select('cap.ipv4Return', 'Return service test', 'pass', [option('Pass', 'pass'), option('Fail', 'fail')], 'The reply must have a usable return path.')], ['One-way reachability is incomplete evidence.', 'Run the required service test and verify both forward and return results.']),
+    stage('office-verify', 'Run IPv4 service tests', [], ['One-way reachability is incomplete evidence.', 'NetBite derives forward and return results from the VLAN, LACP, STP, services, routes, ACL, and PAT state already configured.']),
     stage('branch-local', 'Verify IPv6 local state', [text('cap.ipv6Address', 'Branch host address', '2001:db8:10::10', 'ipv6', 'The branch host needs a valid address in the guided /64.'), text('cap.ndp', 'Learned router', 'fe80::1', 'ipv6', 'Router Discovery and NDP must resolve the local link-local next hop.')], ['IPv6 uses ICMPv6 Neighbor Discovery rather than ARP.', 'Configure 2001:db8:10::10/64 and learn FE80::1 as the local router.']),
     stage('branch-route', 'Verify IPv6 routes', [text('cap.ipv6Forward', 'Remote branch prefix', '2001:db8:20::', 'ipv6', 'Install the remote destination /64.'), text('cap.ipv6Return', 'Return branch prefix', '2001:db8:10::', 'ipv6', 'Install the reverse /64 route.')], ['One static route does not create its reverse.', 'Install 2001:db8:20::/64 forward and 2001:db8:10::/64 return.']),
     stage('branch-fault', 'Repair IPv6 branch', [select('cap.parentUp', 'Parent interface state', 'up', [option('Administratively up', 'up', 'no shutdown'), option('Shutdown', 'down', 'shutdown')], 'Enable the physical parent interface before verification.')], ['Logical forwarding cannot use a down physical parent.', 'Enable the parent, rerun NDP, and verify both IPv6 directions.']),
@@ -247,7 +252,7 @@ const boundedCliCommands: Record<string, { stageId: string; command: string; upd
 };
 
 export function emptyOperationsSimulationSession(): OperationsSimulationSession {
-  return { version: 2, stageIndex: 0, completedObjectiveIds: [], configuration: {}, evidence: [], tables: {}, traceIndex: 0, hints: [], updatedAt: new Date().toISOString() };
+  return { version: 3, stageIndex: 0, completedObjectiveIds: [], configuration: {}, evidence: [], tables: {}, traceIndex: 0, hints: [], updatedAt: new Date().toISOString() };
 }
 
 export function validateSimulationField(field: SimulationFieldDefinition, value: SimulationValue): string | undefined {
@@ -277,7 +282,7 @@ export function applySimulationConfiguration(session: OperationsSimulationSessio
 function savedDhcpState(session: OperationsSimulationSession): DhcpState {
   const saved = session.protocolState?.dhcp;
   if (saved && typeof saved === 'object' && Array.isArray((saved as DhcpState).leases)) return saved as DhcpState;
-  return { pool: { network: String(session.configuration['dhcp.network'] ?? '192.168.20.0'), prefix: Number(session.configuration['dhcp.prefix'] ?? 24), start: String(session.configuration['dhcp.start'] ?? '192.168.20.100'), end: String(session.configuration['dhcp.end'] ?? '192.168.20.102'), excluded: [String(session.configuration['dhcp.excluded'] ?? '')] }, leases: [] };
+  return { pool: { network: String(session.configuration['dhcp.network'] ?? '192.168.20.0'), prefix: Number(session.configuration['dhcp.prefix'] ?? 24), start: String(session.configuration['dhcp.start'] ?? '192.168.20.100'), end: String(session.configuration['dhcp.end'] ?? '192.168.20.102'), gateway: String(session.configuration['dhcp.gateway'] ?? ''), excluded: [String(session.configuration['dhcp.excluded'] ?? '')] }, leases: [] };
 }
 
 function dhcpRows(state: DhcpState) {
@@ -291,14 +296,16 @@ function dhcpObjective(stageDefinition: GuidedSimulationStage, session: Operatio
   let message = 'Objective satisfied from the current DHCP state.';
   let derivedExplanation = explanation;
   if (stageDefinition.id === 'pool') {
-    state = { pool: { network: String(session.configuration['dhcp.network']), prefix: Number(session.configuration['dhcp.prefix']), start: String(session.configuration['dhcp.start']), end: String(session.configuration['dhcp.end']), excluded: [String(session.configuration['dhcp.excluded'])] }, leases: [] };
+    state = { pool: { network: String(session.configuration['dhcp.network']), prefix: Number(session.configuration['dhcp.prefix']), start: String(session.configuration['dhcp.start']), end: String(session.configuration['dhcp.end']), gateway: String(session.configuration['dhcp.gateway']), excluded: [String(session.configuration['dhcp.excluded'])] }, leases: [] };
     const pool = inspectDhcpPool(state);
-    events = [`NETWORK ${state.pool.network}/${state.pool.prefix}`, `POOL ${state.pool.start}–${state.pool.end}`, `EXCLUDED ${state.pool.excluded?.join(', ')}`, `FIRST AVAILABLE ${pool.firstAvailable ?? 'NONE'}`];
-    if (pool.firstAvailable !== '192.168.20.101') return { accepted: true, passed: false, message: 'The saved pool does not produce the required first available address.', evidence: events.map((text, index) => ({ id: `pool-${index}`, text, tone: 'warning' })), tableRows: dhcpRows(state), explanation: { ...explanation, observation: `The first available address is ${pool.firstAvailable ?? 'none'}.`, nextCheck: 'Check the client subnet, pool limits, and exclusions in that order.' }, protocolState: { dhcp: state } };
+    events = [`NETWORK ${state.pool.network}/${state.pool.prefix}`, `POOL ${state.pool.start}–${state.pool.end}`, `EXCLUDED ${state.pool.excluded?.join(', ')}`, `GATEWAY ${state.pool.gateway ?? 'NONE'}`, `LEASE STEPS ${session.configuration['dhcp.leaseSteps']}`, `FIRST AVAILABLE ${pool.firstAvailable ?? 'NONE'}`];
+    if (pool.firstAvailable !== '192.168.20.101' || state.pool.gateway !== '192.168.20.1' || Number(session.configuration['dhcp.leaseSteps']) !== 4) return { accepted: true, passed: false, message: 'The saved pool options do not yet describe the supplied client network.', evidence: events.map((text, index) => ({ id: `pool-${index}`, text, tone: 'warning' })), tableRows: dhcpRows(state), explanation: { ...explanation, observation: `The first available address is ${pool.firstAvailable ?? 'none'} and the gateway option is ${state.pool.gateway ?? 'missing'}.`, nextCheck: 'Check the client subnet, pool limits, exclusions, gateway, and lease duration in that order.' }, protocolState: { dhcp: state } };
   } else if (stageDefinition.id === 'dora' || stageDefinition.id === 'renew') {
     const client = String(session.configuration[stageDefinition.id === 'dora' ? 'dhcp.client' : 'dhcp.renewClient']);
     const allocation = allocateDhcpLease(state, client); state = allocation.state; events = allocation.events; derivedExplanation = allocation.explanation;
     if (!allocation.mutated) message = allocation.explanation.observation;
+    if (stageDefinition.id === 'dora' && !state.leases.some((lease) => lease.clientId === 'PC-A' && lease.address === '192.168.20.101')) return { accepted: true, passed: false, message: 'PC-A must receive the first available address from the configured pool.', evidence: events.map((text, index) => ({ id: `dora-${index}`, text, tone: 'warning' })), tableRows: dhcpRows(state), explanation: allocation.explanation, protocolState: { dhcp: state } };
+    if (stageDefinition.id === 'renew' && client !== 'PC-A') return { accepted: true, passed: false, message: 'Renew the existing PC-A binding rather than creating another client binding.', evidence: events.map((text, index) => ({ id: `renew-${index}`, text, tone: 'warning' })), tableRows: dhcpRows(state), explanation: allocation.explanation, protocolState: { dhcp: state } };
   } else if (stageDefinition.id === 'exhaust') {
     const clients = ['PC-B', 'PC-C'].slice(0, Number(session.configuration['dhcp.requestCount']));
     for (const client of clients) { const allocation = allocateDhcpLease(state, client); state = allocation.state; events.push(...allocation.events.map((event) => `${client} / ${event}`)); }
@@ -378,16 +385,34 @@ function engineEvidence(labId: string, configuration: Record<string, SimulationV
 export function evaluateSimulationObjective(labId: string, stageDefinition: GuidedSimulationStage, session: OperationsSimulationSession, explanation: SimulationExplanation): ObjectiveResult {
   const missing = stageDefinition.fields.find((field) => session.configuration[field.id] === undefined);
   if (missing) return { accepted: false, passed: false, message: `Save ${missing.label.toLowerCase()} before verification.`, evidence: [], tableRows: [], explanation };
-  const incorrect = stageDefinition.fields.find((field) => session.configuration[field.id] !== field.expected);
-  if (labId === 'dhcp-lease-desk' && !incorrect) return dhcpObjective(stageDefinition, session, explanation);
-  const evidence = engineEvidence(labId, session.configuration).map((line, index) => ({ id: `${stageDefinition.id}-${index}`, text: line, tone: incorrect ? 'warning' as const : 'success' as const }));
-  return incorrect
-    ? { accepted: true, passed: false, message: incorrect.incorrectFeedback, evidence, tableRows: evidence.map(({ text }) => text), explanation: { ...explanation, observation: evidence[0]?.text ?? 'The current configuration does not satisfy the objective.', nextCheck: `Inspect ${incorrect.label}.` } }
-    : { accepted: true, passed: true, message: 'Objective satisfied from the current modeled state.', evidence, tableRows: evidence.map(({ text }) => text), explanation };
+  // Transport is registered through its dedicated step-driven simulator. Keep this
+  // compatibility path for archived generic sessions and framework-level tests.
+  if (labId === 'transport-service-desk') {
+    const incorrect = stageDefinition.fields.find((field) => session.configuration[field.id] !== field.expected);
+    const evidence = engineEvidence(labId, session.configuration).map((line, index) => ({ id: `${stageDefinition.id}-${index}`, text: line, tone: incorrect ? 'warning' as const : 'success' as const }));
+    return incorrect
+      ? { accepted: true, passed: false, message: incorrect.incorrectFeedback, evidence, tableRows: evidence.map(({ text }) => text), explanation }
+      : { accepted: true, passed: true, message: 'Objective satisfied from the current modeled state.', evidence, tableRows: evidence.map(({ text }) => text), explanation };
+  }
+  if (labId === 'dhcp-lease-desk') return dhcpObjective(stageDefinition, session, explanation);
+  const evaluated = evaluateOperationsAdapterObjective(labId, stageDefinition.id, session);
+  const evidence = evaluated.events.map(({ id, detail, tone }) => ({ id: `${stageDefinition.id}-${id}`, text: detail, tone }));
+  const tableRows = evaluated.tables.flatMap(({ title, rows }) => [`${title}`, ...rows]);
+  return {
+    accepted: true,
+    passed: evaluated.passed,
+    message: evaluated.message,
+    evidence,
+    tableRows,
+    explanation: { ...explanation, ...evaluated.explanation, observation: evaluated.explanation?.observation ?? evidence[0]?.text ?? explanation.observation },
+    protocolState: evaluated.protocolState ?? session.protocolState,
+  };
 }
 
 export function executeOperationsCliCommand(definition: GuidedSimulationDefinition, session: OperationsSimulationSession, input: string) {
   const normalized = input.trim().toLowerCase().replace(/\s+/g, ' ');
+  const parsed = parseOperationsCliCommand(definition.labId, normalized);
+  if (parsed) return { accepted: true, configuration: { ...session.configuration, ...parsed.updates }, output: parsed.output };
   const bounded = boundedCliCommands[definition.labId]?.find((entry) => entry.command === normalized);
   if (bounded) return { accepted: true, configuration: { ...session.configuration, ...bounded.updates }, output: `ACCEPTED / ${Object.keys(bounded.updates).length} MODELED SETTING${Object.keys(bounded.updates).length === 1 ? '' : 'S'} UPDATED` };
   for (const stageDefinition of definition.stages) {
@@ -397,6 +422,58 @@ export function executeOperationsCliCommand(definition: GuidedSimulationDefiniti
     }
   }
   return { accepted: false, configuration: session.configuration, output: 'Unsupported NetBite command. Use a visible suggestion or the inspector.' };
+}
+
+function parseOperationsCliCommand(labId: string, command: string): { updates: Record<string, SimulationValue>; output: string } | undefined {
+  let match: RegExpMatchArray | null;
+  if (labId === 'acl-policy-desk') {
+    match = command.match(/^test-flow (tcp|udp|icmp) (\d+\.\d+\.\d+\.\d+) (\d+\.\d+\.\d+\.\d+)(?: eq (\d+))?$/);
+    if (match) return { updates: { 'acl.protocol': match[1], 'acl.source': match[2], 'acl.destination': match[3], 'acl.port': Number(match[4] ?? 0) }, output: `FLOW SAVED / ${match[1].toUpperCase()} ${match[2]} -> ${match[3]}:${match[4] ?? 'ANY'}` };
+    match = command.match(/^source (\d+\.\d+\.\d+\.\d+) (\d+\.\d+\.\d+\.\d+)$/);
+    if (match) return { updates: { 'acl.network': match[1], 'acl.wildcard': match[2] }, output: `SOURCE MATCH SAVED / ${match[1]} ${match[2]}` };
+    match = command.match(/^(\d+) (permit|deny) tcp (\d+\.\d+\.\d+\.\d+) (\d+\.\d+\.\d+\.\d+) host (\d+\.\d+\.\d+\.\d+) eq (\d+)$/);
+    if (match) return { updates: { 'acl.sequence': Number(match[1]), 'acl.action': match[2], 'acl.network': match[3], 'acl.wildcard': match[4], 'acl.destination': match[5], 'acl.port': Number(match[6]) }, output: `ACL ENTRY ${match[1]} SAVED / ${match[2].toUpperCase()}` };
+    match = command.match(/^interface ([a-z]+\d+\/\d+) ip access-group [a-z0-9-]+ (in|out)$/);
+    if (match) return { updates: { 'acl.interface': match[1].toUpperCase(), 'acl.direction': match[2] }, output: `ACL APPLIED / ${match[1].toUpperCase()} ${match[2].toUpperCase()}` };
+  }
+  if (labId === 'nat-translation-desk') {
+    match = command.match(/^interface ([a-z]+\d+\/\d+) ip nat (inside|outside)$/);
+    if (match) return { updates: { [`nat.${match[2]}Up`]: true }, output: `${match[1].toUpperCase()} / NAT ${match[2].toUpperCase()} / ENABLED` };
+    match = command.match(/^ip nat select (\d+\.\d+\.\d+\.\d+)\/(\d+)$/);
+    if (match) return { updates: { 'nat.network': match[1], 'nat.prefix': Number(match[2]) }, output: `NAT SELECTION / ${match[1]}/${match[2]}` };
+    match = command.match(/^ip nat pool [a-z0-9-]+ (\d+\.\d+\.\d+\.\d+) overload$/);
+    if (match) return { updates: { 'nat.global': match[1], 'nat.flowCount': 2 }, output: `PAT GLOBAL / ${match[1]} / OVERLOAD` };
+    if (command === 'show ip nat translations') return { updates: { 'nat.returnCheck': 'table' }, output: 'TRANSLATION TABLE REQUESTED / CURRENT MODELED STATE WILL BE USED' };
+  }
+  if (labId === 'ipv6-neighbor-desk') {
+    match = command.match(/^neighbor ([0-9a-f:]+) ([0-9a-f:.]+)$/);
+    if (match) return { updates: { 'nd.target': match[1], 'nd.ownerMac': match[2].toUpperCase() }, output: `NEIGHBOR EVIDENCE / ${match[1]} -> ${match[2].toUpperCase()}` };
+    match = command.match(/^ipv6 default-router ([0-9a-f:]+)$/);
+    if (match) return { updates: { 'nd.router': match[1], 'nd.ra': true }, output: `ROUTER INFORMATION / ${match[1]}` };
+    match = command.match(/^ipv6 route ([0-9a-f:]+)\/(\d+) ([0-9a-f:]+)$/);
+    if (match) return { updates: { 'nd.routePrefix': match[1], 'nd.routeLength': Number(match[2]), 'nd.nextHop': match[3] }, output: `IPV6 ROUTE / ${match[1]}/${match[2]} VIA ${match[3]}` };
+    if (command === 'verify ipv6 bidirectional') return { updates: { 'nd.forwardRoute': true, 'nd.returnRoute': true }, output: 'VERIFICATION REQUESTED / FORWARD AND RETURN STATE WILL BE DERIVED' };
+  }
+  if (labId === 'etherchannel-desk') {
+    match = command.match(/^(sw-a|sw-b) channel-group (\d+) mode (active|passive)$/);
+    if (match) return { updates: { [match[1] === 'sw-a' ? 'lacp.modeA' : 'lacp.modeB']: match[3] }, output: `${match[1].toUpperCase()} / CHANNEL-GROUP ${match[2]} / ${match[3].toUpperCase()}` };
+    match = command.match(/^members speed (\d+) switchport mode (access|trunk)$/);
+    if (match) return { updates: { 'lacp.speedA': Number(match[1]), 'lacp.speedB': Number(match[1]), 'lacp.switchportMode': match[2] }, output: `MEMBERS / ${match[1]} MBPS / ${match[2].toUpperCase()}` };
+    match = command.match(/^interface port-channel(\d+) no shutdown$/);
+    if (match) return { updates: { 'lacp.channel': `Port-channel${match[1]}`, 'lacp.membersUp': true }, output: `PORT-CHANNEL${match[1]} / ADMIN UP` };
+    match = command.match(/^switchport trunk allowed vlan (\d+(?:,\d+)*)$/);
+    if (match) return { updates: { 'lacp.vlans': match[1] }, output: `TRUNK VLANS / ${match[1]}` };
+  }
+  if (labId === 'ospf-area-desk') {
+    match = command.match(/^(r[123]) router-id (\d+\.\d+\.\d+\.\d+)$/);
+    if (match) return { updates: { [`ospf.${match[1]}`]: match[2] }, output: `${match[1].toUpperCase()} / ROUTER ID ${match[2]}` };
+    match = command.match(/^links area (\d+) no shutdown$/);
+    if (match) return { updates: { 'ospf.area12': Number(match[1]), 'ospf.area23': Number(match[1]), 'ospf.linksUp': true }, output: `OSPF LINKS / AREA ${match[1]} / UP` };
+    match = command.match(/^links cost (\d+) advertise (\d+\.\d+\.\d+\.\d+)\/(\d+)$/);
+    if (match) return { updates: { 'ospf.cost12': Number(match[1]), 'ospf.cost23': Number(match[1]), 'ospf.advertise': true }, output: `OSPF COST ${match[1]} / ADVERTISE ${match[2]}/${match[3]}` };
+    if (command === 'link r2-r3 shutdown recalculate spf') return { updates: { 'ospf.failedLink': 'r2-r3-down', 'ospf.response': 'recalculate' }, output: 'R2-R3 DOWN / LSDB REBUILT / SPF RECALCULATED' };
+  }
+  return undefined;
 }
 
 export function getOperationsCliSuggestions(definition: GuidedSimulationDefinition, stageIndex: number) {
