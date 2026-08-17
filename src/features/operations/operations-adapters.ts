@@ -230,7 +230,7 @@ function evaluate(labId: string, stageId: string, session: OperationsSimulationS
   if (labId === 'spanning-tree-desk') {
     const tree = stpEvaluation(c); const rows = [`ROOT ${tree.rootId ?? 'NONE'}`, ...tree.roles.map((role) => `${role.switchId} ${role.linkId} / ${role.role.toUpperCase()} / ${role.forwarding ? 'FORWARDING' : 'DISCARDING'}`)];
     if (stageId === 'root') return result(tree.rootId === 'SW-B', 'The lowest bridge ID becomes root.', rows);
-    if (stageId === 'cost') return result(tree.roles.length === 6 && tree.roles.some((role) => role.role === 'alternate'), 'Every non-root switch selects its lowest-cost root path.', rows);
+    if (stageId === 'ports') return result(tree.roles.length === 6 && tree.roles.some((role) => role.role === 'alternate'), 'Every non-root switch selects its lowest-cost root path.', rows);
     if (stageId === 'block') return result(c['stp.redundantRole'] === 'alternate' && tree.roles.some((role) => role.role === 'alternate' && !role.forwarding), 'One inferior redundant port must discard ordinary frames.', rows);
     return result(c['stp.failedLink'] === 'AB' && tree.roles.every((role) => role.linkId !== 'AB'), 'The tree must be recalculated without the failed link.', rows);
   }

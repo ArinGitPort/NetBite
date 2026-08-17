@@ -1,4 +1,5 @@
 import { router } from 'expo-router';
+import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import type { OperationsLabBriefing as OperationsLabBriefingDefinition } from '@/features/operations/operations-lab-definitions';
@@ -6,9 +7,12 @@ import { lessonRoute } from '@/shared/routes';
 import { Text } from '@/shared/components/console-text';
 import { StatusRow } from '@/shared/components/status-row';
 import { Fonts, Palette, Space } from '@/shared/theme';
+import { AppButton } from '@/shared/components/app-button';
+import { SolvedLabExampleModal } from '@/features/practice/components/solved-lab-example-modal';
 
 export function OperationsLabBriefing({ labId, briefing, expanded, onToggle }: { labId: string; briefing: OperationsLabBriefingDefinition; expanded: boolean; onToggle: () => void }) {
-  return <View style={styles.shell}>
+  const [exampleVisible, setExampleVisible] = useState(false);
+  return <><View style={styles.shell}>
     <Pressable accessibilityHint="Opens a worked walkthrough of the lab setup" accessibilityRole="button" accessibilityState={{ expanded }} onPress={onToggle} style={styles.header}>
       <View style={styles.headerCopy}><Text variant="label" style={styles.orange}>LEARN THE SETUP</Text><Text variant="bodySmall" style={styles.copy}>{briefing.goal}</Text></View>
       <Text variant="label" style={styles.toggle}>{expanded ? 'HIDE' : 'OPEN'}</Text>
@@ -18,8 +22,9 @@ export function OperationsLabBriefing({ labId, briefing, expanded, onToggle }: {
       <View style={styles.example}><Text variant="label" style={styles.orange}>{briefing.workedExample.title}</Text>{briefing.workedExample.steps.map((step, index) => <View key={step} style={styles.step}><View style={styles.number}><Text variant="label" style={styles.numberText}>{index + 1}</Text></View><Text variant="bodySmall" style={styles.stepCopy}>{step}</Text></View>)}<Text variant="bodySmall" style={styles.result}>RESULT / {briefing.workedExample.result}</Text></View>
       <View style={styles.group}><Text variant="label" style={styles.green}>YOUR TASKS</Text>{briefing.taskChecklist.map((item, index) => <Text key={item} variant="bodySmall" style={styles.copy}>{index + 1}. {item}</Text>)}</View>
       {briefing.lessonIds.length ? <View style={styles.group}><Text variant="label" style={styles.green}>REVIEW THE METHOD</Text><View style={styles.lessonLinks}>{briefing.lessonIds.map((lessonId) => <Pressable key={lessonId} accessibilityRole="link" accessibilityHint="Returns to this lab when you leave the lesson" onPress={() => router.push(lessonRoute(lessonId, { fromLabId: labId }))} style={styles.lessonLink}><Text variant="label">OPEN {lessonId.replaceAll('-', ' ').toUpperCase()}</Text></Pressable>)}</View></View> : null}
+      <View style={styles.group}><Text variant="label" style={styles.green}>SOLVED EXAMPLE</Text><Text variant="bodySmall" style={styles.copy}>EXACT SOLUTION / READ-ONLY. Opens a completed copy without changing your lab.</Text><AppButton accessibilityHint="Opens the exact completed lab in a separate read-only view" label="OPEN SOLVED EXAMPLE" onPress={() => setExampleVisible(true)} variant="secondary" /></View>
     </View> : null}
-  </View>;
+  </View><SolvedLabExampleModal labId={labId} onClose={() => setExampleVisible(false)} visible={exampleVisible} /></>;
 }
 
 const styles = StyleSheet.create({

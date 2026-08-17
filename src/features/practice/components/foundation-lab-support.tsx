@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { getChapterByLabId } from '@/content/chapters';
@@ -7,6 +7,8 @@ import { Text } from '@/shared/components/console-text';
 import { DisclosureSection } from '@/shared/components/disclosure-section';
 import { lessonRoute } from '@/shared/routes';
 import { NumberedStepRow, StatusRow } from '@/shared/components/status-row';
+import { AppButton } from '@/shared/components/app-button';
+import { SolvedLabExampleModal } from '@/features/practice/components/solved-lab-example-modal';
 import { Fonts, Palette, Space } from '@/shared/theme';
 
 export const labSetupSupportIds = [
@@ -44,13 +46,14 @@ const authoredFacts: Record<string, string[]> = {
 };
 
 export function LabSetupSupport({ labId }: { labId: string }) {
+  const [exampleVisible, setExampleVisible] = useState(false);
   if (!supportedLabIds.has(labId)) return null;
   const chapter = getChapterByLabId(labId);
   if (!chapter) return null;
   const lessonIds = chapter.lessons.slice(0, Math.min(4, chapter.lessons.length)).map(({ id }) => id);
   const facts = authoredFacts[labId] ?? [chapter.lab.detail, 'Use the current objective, supplied values, and resulting evidence in that order.'];
 
-  return <DisclosureSection title="LEARN THE SETUP" summary="Goal, supplied facts, worked method, and prerequisite lessons.">
+  return <><DisclosureSection title="LEARN THE SETUP" summary="Goal, supplied facts, worked method, and prerequisite lessons.">
     <Text variant="sectionHeading">{chapter.lab.title}</Text>
     <Group label="GOAL"><Text variant="body">{chapter.lab.detail}</Text></Group>
     <Group label="STARTING FACTS">{facts.map((fact) => <StatusRow key={fact} label={fact} state="info" variant="bodySmall" showStateLabel={false} />)}</Group>
@@ -68,7 +71,11 @@ export function LabSetupSupport({ labId }: { labId: string }) {
     <Group label="REVIEW THE LESSONS">
       <View style={styles.links}>{lessonIds.map((lessonId) => <Pressable key={lessonId} accessibilityRole="link" accessibilityHint="Returns to this lab when you leave the lesson" onPress={() => router.push(lessonRoute(lessonId, { fromLabId: labId }))} style={styles.link}><Text variant="label">OPEN {lessonId.replaceAll('-', ' ').toUpperCase()}</Text></Pressable>)}</View>
     </Group>
-  </DisclosureSection>;
+    <Group label="SOLVED EXAMPLE">
+      <Text variant="bodySmall">EXACT SOLUTION / READ-ONLY. Opens a completed copy without changing your lab.</Text>
+      <AppButton accessibilityHint="Opens the exact completed lab in a separate read-only view" label="OPEN SOLVED EXAMPLE" onPress={() => setExampleVisible(true)} variant="secondary" />
+    </Group>
+  </DisclosureSection><SolvedLabExampleModal labId={labId} onClose={() => setExampleVisible(false)} visible={exampleVisible} /></>;
 }
 
 function Group({ label, children }: { label: string; children: ReactNode }) {
