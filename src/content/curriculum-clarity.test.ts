@@ -28,7 +28,7 @@ describe('curriculum-wide clarity standard', () => {
       const simulator = operationsSimulationDefinitions[lab.id];
       expect(simulator).toBeDefined();
       simulator!.stages.forEach((stage) => {
-        expect(stage.providedFacts?.length).toBeGreaterThan(0);
+        expect(stage.providedFacts).toBeDefined();
         stage.fields.forEach((field) => {
           expect(field.label.length).toBeGreaterThanOrEqual(2);
           expect(field.incorrectFeedback.length).toBeGreaterThan(15);

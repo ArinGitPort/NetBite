@@ -8,9 +8,12 @@ import {
   inspectDhcpPool,
   negotiateEtherChannel,
   parseIPv6Address,
+  relayDhcpMessage,
+  releaseDhcpLease,
   resolveDnsQuery,
   resolveIPv6Neighbor,
   selectRouteSource,
+  simulateTransportExchange,
   traceIPv6Path,
   translateNatFlow,
   validateOperationsCapstone,
@@ -55,7 +58,9 @@ export interface OperationsObjectiveResult {
 
 export interface OperationsVisualTrace {
   activeDeviceIds: string[];
+  activeLinkIds: string[];
   failedDeviceId?: string;
+  failedLinkId?: string;
   text: string;
 }
 
@@ -68,10 +73,13 @@ export interface OperationsCliCommandResult {
 export interface OperationsSimulationAdapter<TState = Record<string, unknown>, TAction = Record<string, SimulationValue>> {
   id: string;
   createInitialState: () => TState;
+  validateAction: (state: TState, action: TAction) => { accepted: boolean; message?: string };
   applyAction: (state: TState, action: TAction) => { accepted: boolean; state: TState; message?: string };
-  inspectDevice: (deviceLabel: string, session: OperationsSimulationSession) => OperationsDeviceRecord;
+  inspectDevice: (deviceId: string, deviceLabel: string, session: OperationsSimulationSession) => OperationsDeviceRecord;
   deriveTables: (session: OperationsSimulationSession) => OperationsDerivedTable[];
+  deriveTrace: (stageId: string, session: OperationsSimulationSession, nodes: readonly { id: string; label: string }[], links: readonly { id: string; a: string; b: string }[]) => OperationsVisualTrace | undefined;
   evaluateObjective: (stageId: string, session: OperationsSimulationSession) => OperationsObjectiveResult;
+  evaluateObjectives: (session: OperationsSimulationSession, stageIds: readonly string[]) => OperationsObjectiveResult[];
 }
 
 type Configuration = Record<string, SimulationValue>;
@@ -180,6 +188,64 @@ function ospfEvaluation(configuration: Configuration) {
 
 function evaluate(labId: string, stageId: string, session: OperationsSimulationSession): OperationsObjectiveResult {
   const c = session.configuration;
+  if (labId === 'transport-service-desk') {
+    const protocol = text(c['transport.protocol'], 'tcp') as 'tcp' | 'udp';
+    const exchange = simulateTransportExchange({ protocol, source: { address: '192.168.10.10', port: Number(c['transport.sourcePort'] ?? 0) }, destination: { address: '192.168.10.20', port: Number(c['transport.destinationPort'] ?? 0) }, listeningPorts: c['transport.listeningPort'] === undefined ? [] : [Number(c['transport.listeningPort'])], dropDataUnit: c['transport.drop'] === true });
+    const passed = stageId === 'endpoint'
+      ? protocol === 'tcp' && Number(c['transport.sourcePort']) === 49152 && Number(c['transport.destinationPort']) === 443 && Number(c['transport.listeningPort']) === 443
+      : stageId === 'handshake'
+        ? c['transport.event'] === 'handshake'
+        : stageId === 'recovery'
+          ? c['transport.drop'] === true && c['transport.recovery'] === 'retransmit'
+          : protocol === 'udp' && Number(c['transport.destinationPort']) === 53 && Number(c['transport.listeningPort']) === 53 && c['transport.udpConclusion'] === 'no-confirmation';
+    return result(passed, passed ? 'The transport state satisfies the current objective.' : 'The endpoint, event order, or recovery choice still needs attention.', exchange.events);
+  }
+  if (labId === 'dhcp-lease-desk') {
+    const saved = dhcpState(session);
+    const state: DhcpState = saved ?? {
+      pool: {
+        network: text(c['dhcp.network']),
+        prefix: Number(c['dhcp.prefix'] ?? -1),
+        start: text(c['dhcp.start']),
+        end: text(c['dhcp.end']),
+        gateway: text(c['dhcp.gateway']),
+        excluded: c['dhcp.excluded'] ? [text(c['dhcp.excluded'])] : [],
+      },
+      leases: [],
+    };
+    const rows = () => {
+      const pool = inspectDhcpPool(state);
+      return [`POOL ${state.pool.network}/${state.pool.prefix}`, `AVAILABLE ${pool.available.join(', ') || 'NONE'}`, ...state.leases.map((lease) => `${lease.clientId} ${lease.address} ${lease.state.toUpperCase()}`)];
+    };
+    if (stageId === 'pool') {
+      const pool = inspectDhcpPool(state);
+      const passed = c['dhcp.network'] === '192.168.20.0' && Number(c['dhcp.prefix']) === 24 && c['dhcp.start'] === '192.168.20.100' && c['dhcp.end'] === '192.168.20.102' && c['dhcp.excluded'] === '192.168.20.100' && c['dhcp.gateway'] === '192.168.20.1' && Number(c['dhcp.leaseSteps']) === 4 && pool.firstAvailable === '192.168.20.101';
+      return result(passed, passed ? 'The pool belongs to the client subnet and has a valid first offer.' : 'The pool, exclusion, gateway, or lease setting does not match the client subnet.', rows(), undefined, { dhcp: state });
+    }
+    if (stageId === 'dora' || stageId === 'renew') {
+      const client = text(c[stageId === 'dora' ? 'dhcp.client' : 'dhcp.renewClient']);
+      const allocation = allocateDhcpLease(state, client);
+      const passed = client === 'PC1' && allocation.state.leases.some((lease) => lease.clientId === 'PC1' && lease.address === '192.168.20.101');
+      return result(passed, allocation.explanation.observation, allocation.events, allocation.explanation, { dhcp: allocation.state });
+    }
+    if (stageId === 'exhaust') {
+      let next = state;
+      const events: string[] = [];
+      for (const client of ['PC2', 'PC3'].slice(0, Number(c['dhcp.requestCount'] ?? 0))) {
+        const allocation = allocateDhcpLease(next, client);
+        next = allocation.state;
+        events.push(...allocation.events.map((entry) => `${client} / ${entry}`));
+      }
+      const exhausted = inspectDhcpPool(next).exhausted;
+      return result(exhausted, exhausted ? 'All non-excluded addresses are now bound.' : 'At least one address remains available.', events, undefined, { dhcp: next });
+    }
+    if (stageId === 'release') {
+      const released = releaseDhcpLease(state, text(c['dhcp.releaseClient']));
+      return result(released.mutated, released.explanation.observation, released.events, released.explanation, { dhcp: released.state });
+    }
+    const relay = relayDhcpMessage({ clientNetwork: '192.168.20.0/24', relayAddress: text(c['dhcp.relay']), serverReachable: c['dhcp.serverReachable'] === true });
+    return result(relay.forwarded, relay.reason, [`RELAY ${text(c['dhcp.relay'])}`, `SERVER PATH ${relay.forwarded ? 'FORWARDED' : 'STOPPED'}`, relay.reason], undefined, { dhcp: state });
+  }
   if (labId === 'dns-resolution-desk') {
     const state = dnsState(c, session);
     const query = resolveDnsQuery(state, text(c['dns.name'], 'server.netbite.test'), 'A');
@@ -205,7 +271,10 @@ function evaluate(labId: string, stageId: string, session: OperationsSimulationS
     const first = natEvaluation(c, session, 0, initial);
     const second = natEvaluation(c, session, 1, first.state);
     if (stageId === 'roles') return result(c['nat.insideUp'] === true && c['nat.outsideUp'] === true, first.explanation.observation, first.events, undefined, { nat: initial });
-    if (stageId === 'selection') return result(first.accepted, first.explanation.observation, first.events, undefined, { nat: initial });
+    if (stageId === 'selection') {
+      const selected = c['nat.network'] === '192.168.10.0' && Number(c['nat.prefix']) === 24;
+      return result(first.mutated && selected, selected ? first.explanation.observation : 'The inside selection does not match the supplied private network.', first.events, undefined, { nat: initial });
+    }
     if (stageId === 'pat') return result(first.mutated && second.mutated && Number(c['nat.flowCount']) >= 2 && c['nat.global'] === '203.0.113.10', 'Eligible flows create distinct PAT tuples.', [...first.events, ...second.events], undefined, { nat: second.state });
     const savedNat = natState(c, session);
     return result(c['nat.returnCheck'] === 'table' && savedNat.entries.length >= 2, 'Return traffic must match the current global tuple.', [...savedNat.entries.map((entry) => `MATCH ${entry.globalAddress}:${entry.globalPort} -> ${entry.insideAddress}:${entry.insidePort}`), c['nat.returnCheck'] === 'table' ? 'REVERSE MATCH CHECKED' : 'REVERSE MATCH NOT CHECKED'], undefined, { nat: savedNat });
@@ -229,8 +298,11 @@ function evaluate(labId: string, stageId: string, session: OperationsSimulationS
   }
   if (labId === 'spanning-tree-desk') {
     const tree = stpEvaluation(c); const rows = [`ROOT ${tree.rootId ?? 'NONE'}`, ...tree.roles.map((role) => `${role.switchId} ${role.linkId} / ${role.role.toUpperCase()} / ${role.forwarding ? 'FORWARDING' : 'DISCARDING'}`)];
-    if (stageId === 'root') return result(tree.rootId === 'SW2', 'The lowest bridge ID becomes root.', rows);
-    if (stageId === 'ports') return result(tree.roles.length === 6 && tree.roles.some((role) => role.role === 'alternate'), 'Every non-root switch selects its lowest-cost root path.', rows);
+    if (stageId === 'root') return result(c['stp.priorityA'] !== undefined && c['stp.priorityB'] !== undefined && c['stp.priorityC'] !== undefined && tree.rootId === 'SW2', 'The lowest bridge ID becomes root.', rows);
+    if (stageId === 'ports') {
+      const costsConfigured = ['stp.costAB', 'stp.costBC', 'stp.costAC'].every((key) => c[key] !== undefined);
+      return result(costsConfigured && tree.roles.length === 6 && tree.roles.some((role) => role.role === 'alternate'), 'Every non-root switch selects its lowest-cost root path from the configured link costs.', rows);
+    }
     if (stageId === 'block') return result(c['stp.redundantRole'] === 'alternate' && tree.roles.some((role) => role.role === 'alternate' && !role.forwarding), 'One inferior redundant port must discard ordinary frames.', rows);
     return result(c['stp.failedLink'] === 'AB' && tree.roles.every((role) => role.linkId !== 'AB'), 'The tree must be recalculated without the failed link.', rows);
   }
@@ -307,38 +379,43 @@ function capstoneObjective(stageId: string, c: Configuration) {
     ipv6: { addressing: ready.ipv6Address, routerDiscovery: ready.neighborReady, neighborDiscovery: ready.neighborReady, staticRoutes: ready.ipv6RoutesReady, injectedFaultCorrected: ready.parentReady, forward: ipv6Forward, returnPath: ipv6Forward },
   });
   const stageReady: Record<string, boolean> = { 'office-l2': ready.stpReady && ready.lacpReady, 'office-services': ready.servicesReady, 'office-routing': ready.routesReady, 'office-edge': ready.edgeReady, 'office-verify': ipv4Forward, 'branch-local': ready.ipv6Address && ready.neighborReady, 'branch-route': ready.ipv6RoutesReady, 'branch-fault': validation.complete };
-  const rows = [`L2 ${ready.stpReady && ready.lacpReady ? 'READY' : 'INCOMPLETE'}`, `SERVICES ${ready.servicesReady ? 'READY' : 'INCOMPLETE'}`, `IPV4 ROUTING ${ready.routesReady ? 'READY' : 'INCOMPLETE'}`, `EDGE POLICY / PAT ${ready.edgeReady ? 'READY' : 'INCOMPLETE'}`, `IPV6 LOCAL ${ready.ipv6Address && ready.neighborReady ? 'READY' : 'INCOMPLETE'}`, `IPV6 ROUTES ${ready.ipv6RoutesReady ? 'READY' : 'INCOMPLETE'}`, `CAPSTONE ${validation.complete ? 'COMPLETE' : 'INCOMPLETE'}`, ...validation.failures];
+  const rows = [`L2 ${ready.stpReady && ready.lacpReady ? 'READY' : 'INCOMPLETE'}`, `SERVICES ${ready.servicesReady ? 'READY' : 'INCOMPLETE'}`, `IPV4 ROUTING ${ready.routesReady ? 'READY' : 'INCOMPLETE'}`, `EDGE POLICY / PAT ${ready.edgeReady ? 'READY' : 'INCOMPLETE'}`, `IPV6 LOCAL ${ready.ipv6Address && ready.neighborReady ? 'READY' : 'INCOMPLETE'}`, `IPV6 ROUTES ${ready.ipv6RoutesReady ? 'READY' : 'INCOMPLETE'}`, `INTEGRATED LAB ${validation.complete ? 'COMPLETE' : 'INCOMPLETE'}`, ...validation.failures];
   return result(Boolean(stageReady[stageId]), stageReady[stageId] ? 'The current combined network state satisfies this phase.' : 'A required dependency in the combined network is still incomplete.', rows);
 }
 
-function deviceRecord(labId: string, label: string, session: OperationsSimulationSession): OperationsDeviceRecord {
+function deviceRecord(labId: string, deviceId: string, label: string, session: OperationsSimulationSession): OperationsDeviceRecord {
   const c = session.configuration;
   const upper = label.toUpperCase();
   let lines: string[] = [];
-  if (labId === 'dhcp-lease-desk') {
+  if (labId === 'transport-service-desk') {
+    if (upper === 'PC1') lines = [`SOURCE 192.168.10.10:${text(c['transport.sourcePort'])}`, `PROTOCOL ${text(c['transport.protocol']).toUpperCase()}`, `STATE ${c['transport.event'] === 'handshake' ? 'ESTABLISHED' : 'CLOSED'}`];
+    else if (upper === 'WEB1') lines = [`SERVER 192.168.10.20`, `LISTENER ${text(c['transport.protocol']).toUpperCase()} ${text(c['transport.listeningPort'])}`, `DESTINATION PORT ${text(c['transport.destinationPort'])}`];
+    else lines = ['FORWARDS USING IP INFORMATION', 'DOES NOT SELECT APPLICATION PORTS'];
+  } else if (labId === 'dhcp-lease-desk') {
     const state = dhcpState(session); const lease = state?.leases.find((item) => item.clientId === label); const availability = state ? inspectDhcpPool(state) : undefined;
     if (upper.includes('DHCP')) lines = [`POOL / ${state ? `${state.pool.network}/${state.pool.prefix}` : 'POOL NOT CONFIGURED'}`, `GATEWAY / ${state?.pool.gateway ?? text(c['dhcp.gateway'])}`, `LEASE STEPS / ${text(c['dhcp.leaseSteps'])}`, `AVAILABLE / ${availability?.available.join(', ') || 'NONE'}`, `BINDINGS / ${state?.leases.length ?? 0}`];
     else if (upper.includes('R1')) lines = [`RELAY ${text(c['dhcp.relay'])}`, `SERVER PATH ${enabled(c['dhcp.serverReachable'])}`];
-    else if (upper.includes('PC-')) lines = [`CLIENT ${label}`, `LEASE ${lease?.address ?? 'NONE'}`, `STATE ${lease?.state?.toUpperCase() ?? 'INIT'}`];
+    else if (/^PC\d+$/.test(upper)) lines = [`CLIENT ${label}`, `LEASE ${lease?.address ?? 'NONE'}`, `STATE ${lease?.state?.toUpperCase() ?? 'INIT'}`];
     else lines = ['VLAN 20', 'CLIENT BROADCAST BOUNDARY'];
   } else if (labId === 'dns-resolution-desk') {
-    if (upper.includes('PC-')) lines = [`RESOLVER ${text(c['dns.resolver'])}`, 'STUB CACHE / LOCAL'];
-    else if (upper.includes('RECURSIVE')) { const cache = (session.protocolState?.dns as DnsState | undefined)?.cache ?? []; lines = [`PATH ${enabled(c['dns.reachable'])}`, `CACHE ${cache.length ? cache.map((entry) => `${entry.name} ${entry.type} / ${entry.remaining}`).join(' | ') : 'EMPTY'}`, `TTL ${text(c['dns.ttl'])}`]; }
-    else if (upper.includes('AUTHORITATIVE')) lines = [`ZONE netbite.test`, `A ${text(c['dns.name'])} -> ${text(c['dns.value'])}`];
+    if (upper === 'PC1') lines = [`RESOLVER ${text(c['dns.resolver'])}`, 'STUB CACHE / LOCAL'];
+    else if (upper === 'DNS1') { const cache = (session.protocolState?.dns as DnsState | undefined)?.cache ?? []; lines = [`ROLE RECURSIVE RESOLVER`, `PATH ${enabled(c['dns.reachable'])}`, `CACHE ${cache.length ? cache.map((entry) => `${entry.name} ${entry.type} / TTL ${entry.remaining}`).join(' | ') : 'EMPTY'}`]; }
+    else if (upper === 'DNS3') lines = [`ROLE AUTHORITATIVE SERVER`, 'ZONE netbite.test', `A ${text(c['dns.name'])} -> ${text(c['dns.value'])}`];
+    else if (upper === 'DNS2') lines = ['ROLE ROOT / TLD REFERRAL', 'POINTS DNS1 TOWARD DNS3', 'NO HOST RECORD STORED HERE'];
     else lines = ['REFERRAL SOURCE', 'NO HOST RECORD CONFIGURED HERE'];
   } else if (labId === 'acl-policy-desk') {
     const acl = aclEvaluation(c);
     if (upper.includes('R1')) lines = [`ACL NETBITE-IN / ${text(c['acl.interface'])} ${text(c['acl.direction']).toUpperCase()}`, `MATCH ${acl.matchedRuleId}`, `ACTION ${acl.action.toUpperCase()}`];
-    else if (upper.includes('PC-')) lines = [`SOURCE ${text(c['acl.source'])}`, `${text(c['acl.protocol']).toUpperCase()} -> ${text(c['acl.destination'])}:${text(c['acl.port'])}`];
+    else if (/^PC\d+$/.test(upper)) lines = [`SOURCE ${text(c['acl.source'])}`, `${text(c['acl.protocol']).toUpperCase()} -> ${text(c['acl.destination'])}:${text(c['acl.port'])}`];
     else lines = ['LISTENER TCP/443', `POLICY RESULT ${acl.action.toUpperCase()}`];
   } else if (labId === 'nat-translation-desk') {
     const translations = (session.protocolState?.nat as NatState | undefined)?.entries ?? [];
     if (upper.includes('R1')) lines = [`INSIDE ${enabled(c['nat.insideUp'])}`, `OUTSIDE ${enabled(c['nat.outsideUp'])}`, `GLOBAL ${text(c['nat.global'])}`, `TRANSLATIONS ${translations.length}`, ...translations.map((entry) => `${entry.insideAddress}:${entry.insidePort} -> ${entry.globalAddress}:${entry.globalPort}`)];
-    else if (upper.includes('PC-')) lines = ['INSIDE LOCAL 192.168.10.10:49152', `ELIGIBLE NETWORK ${text(c['nat.network'])}/${text(c['nat.prefix'])}`];
+    else if (/^PC\d+$/.test(upper)) lines = ['INSIDE LOCAL 192.168.10.10:49152', `ELIGIBLE NETWORK ${text(c['nat.network'])}/${text(c['nat.prefix'])}`];
     else lines = ['OUTSIDE SERVICE 198.51.100.20:443', `REPLY TARGET ${text(c['nat.global'])}:40000`];
   } else if (labId === 'ipv6-address-desk') {
     const address = upper.includes('PC1') ? c['ipv6.hostA'] ?? c['ipv6.address'] : c['ipv6.hostB']; const parsed = parseIPv6Address(text(address, ''));
-    lines = upper.includes('SW-') ? ['LOCAL ETHERNET LINK', 'NO IPV6 ADDRESS REQUIRED'] : [`ADDRESS ${parsed?.compressed ?? text(address)}`, `PREFIX /${text(c['ipv6.prefix'])}`, `EXPANDED ${parsed?.expanded ?? 'NOT AVAILABLE'}`];
+    lines = upper === 'SW1' ? ['LOCAL ETHERNET LINK', 'NO IPV6 ADDRESS REQUIRED'] : [`ADDRESS ${parsed?.compressed ?? text(address)}`, `PREFIX /${text(c['ipv6.prefix'])}`, `EXPANDED ${parsed?.expanded ?? 'NOT AVAILABLE'}`];
   } else if (labId === 'ipv6-neighbor-desk') {
     const path = traceIPv6Path('2001:db8:20::20', [{ prefix: text(c['nd.routePrefix'], '::'), prefixLength: Number(c['nd.routeLength'] ?? 0), nextHop: text(c['nd.nextHop'], ''), exitInterface: 'G0/1' }]);
     if (upper.includes('PC1')) { const neighbors = (session.protocolState?.ipv6Neighbors as IPv6Neighbor[] | undefined) ?? []; lines = [`DEFAULT ROUTER ${text(c['nd.router'])}`, `NEIGHBOR CACHE ${neighbors.length ? neighbors.map((entry) => `${entry.address} -> ${entry.mac}`).join(' | ') : 'EMPTY'}`]; }
@@ -353,29 +430,75 @@ function deviceRecord(labId: string, label: string, session: OperationsSimulatio
   } else if (labId === 'ospf-area-desk') {
     const ospf = ospfEvaluation(c); const routerKey = upper.replace('-', '').toLowerCase(); lines = [`ROUTER ID ${text(c[`ospf.${routerKey}`])}`, ...ospf.topology.adjacencies.filter((link) => link.a === label || link.b === label).map((link) => `NEIGHBOR ${link.a === label ? link.b : link.a} / AREA ${link.area}`), ...ospf.routes.filter((route) => upper === 'R1').map((route) => `${route.prefix} COST ${route.cost} VIA ${route.nextHopRouterId}`)];
   } else if (labId === 'network-operations-capstone') {
-    const ready = capstoneReadiness(c); lines = [`L2 ${ready.stpReady && ready.lacpReady ? 'READY' : 'INCOMPLETE'}`, `SERVICES ${ready.servicesReady ? 'READY' : 'INCOMPLETE'}`, `IPV4 ROUTING ${ready.routesReady ? 'READY' : 'INCOMPLETE'}`, `EDGE ${ready.edgeReady ? 'READY' : 'INCOMPLETE'}`, `IPV6 ${ready.ipv6Address && ready.neighborReady && ready.ipv6RoutesReady && ready.parentReady ? 'READY' : 'INCOMPLETE'}`];
+    const ready = capstoneReadiness(c);
+    if (upper === 'PC1') lines = [`LEASE ${text(c['cap.dhcp'])}`, `DNS RESULT ${text(c['cap.dns'])}`, `IPV4 TEST ${ready.servicesReady && ready.routesReady && ready.edgeReady ? 'READY' : 'BLOCKED'}`];
+    else if (upper === 'SW1' || upper === 'SW2') lines = [`VLANS ${text(c['cap.vlans'])}`, `LACP ${ready.lacpReady ? 'FORMED' : 'INCOMPLETE'}`, `SPANNING TREE ROOT ${text(c['cap.stp'])}`];
+    else if (upper === 'R1') lines = [`OSPF FORWARD ${text(c['cap.ospfForward'])}`, `OSPF RETURN ${text(c['cap.ospfReturn'])}`, `ACL ${text(c['cap.acl'])}`, `PAT ${text(c['cap.pat'])}`];
+    else if (upper === 'DHCP1') lines = [`FIRST LEASE ${text(c['cap.dhcp'])}`, `SERVICE ${ready.servicesReady ? 'READY' : 'INCOMPLETE'}`];
+    else if (upper === 'DNS1') lines = ['A RECORD server.netbite.test', `VALUE ${text(c['cap.dns'])}`];
+    else if (upper === 'WEB1') lines = ['LISTENER TCP 443', `REQUIRED FLOW ${ready.edgeReady && ready.routesReady ? 'PERMITTED' : 'BLOCKED'}`];
+    else if (upper === 'R2') lines = [`FORWARD PREFIX ${text(c['cap.ipv6Forward'])}/64`, `RETURN PREFIX ${text(c['cap.ipv6Return'])}/64`, `PARENT ${ready.parentReady ? 'UP' : 'DOWN'}`];
+    else lines = [`ADDRESS ${text(c['cap.ipv6Address'])}/64`, `ROUTER ${text(c['cap.ndp'])}`, `IPV6 TEST ${ready.ipv6Address && ready.neighborReady && ready.ipv6RoutesReady && ready.parentReady ? 'READY' : 'BLOCKED'}`];
   }
   if (!lines.length) lines = ['NO MODELED STATE FOR THIS DEVICE'];
-  return { id: `${labId}:${label}`, title: label, lines, status: lines.some((line) => /NOT |NONE|MISSING|INCOMPLETE|DOWN|FAILED/.test(line)) ? 'attention' : 'ready' };
+  return { id: `${labId}:${deviceId}`, title: label, lines, status: lines.some((line) => /NOT |NONE|MISSING|INCOMPLETE|DOWN|FAILED/.test(line)) ? 'attention' : 'ready' };
+}
+
+const traceLabels: Record<string, Record<string, string[]>> = {
+  'dhcp-lease-desk': { pool: ['DHCP1'], dora: ['PC1', 'SW1', 'R1', 'DHCP1'], renew: ['PC1', 'SW1', 'R1', 'DHCP1'], exhaust: ['PC1', 'PC2', 'SW1', 'R1', 'DHCP1'], release: ['PC2', 'SW1', 'R1', 'DHCP1'], relay: ['PC1', 'SW1', 'R1', 'DHCP1'] },
+  'dns-resolution-desk': { stub: ['PC1', 'DNS1'], hierarchy: ['PC1', 'DNS1', 'DNS2', 'DNS3'], cache: ['PC1', 'DNS1'], expiry: ['DNS1', 'DNS3'] },
+  'acl-policy-desk': { tuple: ['PC1'], wildcard: ['R1'], match: ['PC1', 'R1', 'WEB1'], direction: ['PC1', 'R1', 'WEB1'] },
+  'nat-translation-desk': { roles: ['R1'], selection: ['PC1', 'R1'], pat: ['PC1', 'R1', 'WEB1'], return: ['WEB1', 'R1', 'PC1'] },
+  'ipv6-address-desk': { parse: ['PC1'], compress: ['PC1'], scope: ['PC1'], prefix: ['PC1', 'SW1', 'PC2'] },
+  'ipv6-neighbor-desk': { ns: ['PC1', 'R1'], ra: ['R1', 'PC1'], route: ['R1', 'R2'], return: ['PC1', 'R1', 'R2', 'PC2'] },
+  'spanning-tree-desk': { root: ['SW1', 'SW2', 'SW3'], ports: ['SW1', 'SW2', 'SW3'], block: ['SW1', 'SW2', 'SW3'], change: ['SW1', 'SW2', 'SW3'] },
+  'etherchannel-desk': { mode: ['SW1', 'SW2'], members: ['SW1', 'SW2'], bundle: ['SW1', 'SW2'], reach: ['SW1', 'SW2'] },
+  'route-source-desk': { sources: ['R1'], prefix: ['PC1', 'R1'], ad: ['R1'], withdraw: ['PC1', 'R1', 'PC2'] },
+  'ospf-area-desk': { identity: ['R1', 'R2', 'R3'], neighbor: ['R1', 'R2', 'R3'], spf: ['R1', 'R2', 'R3'], failure: ['R1', 'R2', 'R3'] },
+  'network-operations-capstone': { 'office-l2': ['PC1', 'SW1', 'SW2'], 'office-services': ['PC1', 'SW1', 'SW2', 'R1', 'DHCP1', 'DNS1'], 'office-routing': ['PC1', 'SW1', 'SW2', 'R1', 'WEB1'], 'office-edge': ['PC1', 'SW1', 'SW2', 'R1', 'WEB1'], 'office-verify': ['PC1', 'SW1', 'SW2', 'R1', 'DNS1', 'WEB1'], 'branch-local': ['PC2', 'R2'], 'branch-route': ['PC2', 'R2', 'R1'], 'branch-fault': ['PC2', 'R2', 'R1'] },
+};
+
+function visualTrace(labId: string, stageId: string, session: OperationsSimulationSession, nodes: readonly { id: string; label: string }[], links: readonly { id: string; a: string; b: string }[]): OperationsVisualTrace | undefined {
+  const currentEvidence = session.evidence[session.traceIndex];
+  if (!currentEvidence) return undefined;
+  const labels = traceLabels[labId]?.[stageId] ?? [];
+  const activeDeviceIds = nodes.filter((node) => labels.includes(node.label)).map((node) => node.id);
+  const activeSet = new Set(activeDeviceIds);
+  const activeLinkIds = links.filter((link) => activeSet.has(link.a) && activeSet.has(link.b)).map((link) => link.id);
+  const failed = currentEvidence.tone === 'warning';
+  return {
+    activeDeviceIds,
+    activeLinkIds,
+    failedDeviceId: failed ? activeDeviceIds.at(-1) : undefined,
+    failedLinkId: failed ? activeLinkIds.at(-1) : undefined,
+    text: currentEvidence.text,
+  };
 }
 
 function createAdapter(id: string): OperationsSimulationAdapter {
   return {
     id,
     createInitialState: () => ({}),
+    validateAction: (_state, action) => ({ accepted: Boolean(action && typeof action === 'object'), message: action && typeof action === 'object' ? undefined : 'The action must contain modeled configuration.' }),
     applyAction: (state, action) => ({ accepted: true, state: { ...state, ...action } }),
-    inspectDevice: (label, session) => deviceRecord(id, label, session),
+    inspectDevice: (deviceId, label, session) => deviceRecord(id, deviceId, label, session),
     deriveTables: (session) => evaluate(id, session.completedObjectiveIds.at(-1) ?? '', session).tables,
+    deriveTrace: (stageId, session, nodes, links) => visualTrace(id, stageId, session, nodes, links),
     evaluateObjective: (stageId, session) => evaluate(id, stageId, session),
+    evaluateObjectives: (session, stageIds) => stageIds.map((stageId) => evaluate(id, stageId, session)),
   };
 }
 
-const ids = ['dhcp-lease-desk', 'dns-resolution-desk', 'acl-policy-desk', 'nat-translation-desk', 'ipv6-address-desk', 'ipv6-neighbor-desk', 'spanning-tree-desk', 'etherchannel-desk', 'route-source-desk', 'ospf-area-desk', 'network-operations-capstone'];
+const ids = ['transport-service-desk', 'dhcp-lease-desk', 'dns-resolution-desk', 'acl-policy-desk', 'nat-translation-desk', 'ipv6-address-desk', 'ipv6-neighbor-desk', 'spanning-tree-desk', 'etherchannel-desk', 'route-source-desk', 'ospf-area-desk', 'network-operations-capstone'];
 
 export const operationsSimulationAdapters: Record<string, OperationsSimulationAdapter> = Object.fromEntries(ids.map((id) => [id, createAdapter(id)]));
 
-export function getOperationsDeviceRecord(labId: string, label: string, session: OperationsSimulationSession) {
-  return operationsSimulationAdapters[labId]?.inspectDevice(label, session) ?? { id: `${labId}:${label}`, title: label, lines: ['SIMULATOR ADAPTER UNAVAILABLE'], status: 'attention' as const };
+export function getOperationsDeviceRecord(labId: string, deviceId: string, label: string, session: OperationsSimulationSession) {
+  return operationsSimulationAdapters[labId]?.inspectDevice(deviceId, label, session) ?? { id: `${labId}:${deviceId}`, title: label, lines: ['SIMULATOR ADAPTER UNAVAILABLE'], status: 'attention' as const };
+}
+
+export function deriveOperationsVisualTrace(labId: string, stageId: string, session: OperationsSimulationSession, nodes: readonly { id: string; label: string }[], links: readonly { id: string; a: string; b: string }[]) {
+  return operationsSimulationAdapters[labId]?.deriveTrace(stageId, session, nodes, links);
 }
 
 export function evaluateOperationsAdapterObjective(labId: string, stageId: string, session: OperationsSimulationSession) {

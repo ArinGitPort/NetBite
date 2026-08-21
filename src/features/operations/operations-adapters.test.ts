@@ -31,24 +31,41 @@ describe('specialized Network Operations adapters', () => {
   ];
 
   test('registers a typed adapter for every non-Transport simulator', () => {
-    expect(Object.keys(operationsSimulationAdapters).sort()).toEqual([...specializedIds].sort());
+    expect(Object.keys(operationsSimulationAdapters).sort()).toEqual(['transport-service-desk', ...specializedIds].sort());
     specializedIds.forEach((id) => expect(operationsSimulationAdapters[id].id).toBe(id));
   });
 
   test('derives device records instead of generic current-task text', () => {
     const cases = [
-      ['dns-resolution-desk', 'RECURSIVE DNS', 'CACHE'],
-      ['acl-policy-desk', 'R1', 'ACL NETBITE-IN'],
-      ['nat-translation-desk', 'R1', 'GLOBAL'],
-      ['ipv6-address-desk', 'PC1', 'EXPANDED'],
-      ['spanning-tree-desk', 'SW2', 'ROOT'],
-      ['etherchannel-desk', 'SW1', 'PORT-CHANNEL'],
-      ['route-source-desk', 'R1', 'INSTALLED'],
-      ['ospf-area-desk', 'R1', 'ROUTER ID'],
+      ['dns-resolution-desk', 'dns-node-1', 'DNS1', 'CACHE'],
+      ['dns-resolution-desk', 'dns-node-2', 'DNS2', 'REFERRAL'],
+      ['dns-resolution-desk', 'dns-node-3', 'DNS3', 'AUTHORITATIVE'],
+      ['acl-policy-desk', 'acl-node-1', 'R1', 'ACL NETBITE-IN'],
+      ['nat-translation-desk', 'nat-node-1', 'R1', 'GLOBAL'],
+      ['ipv6-address-desk', 'ipv6-address-node-0', 'PC1', 'EXPANDED'],
+      ['spanning-tree-desk', 'stp-node-1', 'SW2', 'ROOT'],
+      ['etherchannel-desk', 'etherchannel-node-0', 'SW1', 'PORT-CHANNEL'],
+      ['route-source-desk', 'route-source-node-1', 'R1', 'INSTALLED'],
+      ['ospf-area-desk', 'ospf-node-0', 'R1', 'ROUTER ID'],
     ] as const;
-    cases.forEach(([labId, device, expected]) => {
+    cases.forEach(([labId, deviceId, device, expected]) => {
       const session = configuredSession(labId, 0);
-      expect(getOperationsDeviceRecord(labId, device, session).lines.join(' ')).toContain(expected);
+      expect(getOperationsDeviceRecord(labId, deviceId, device, session).lines.join(' ')).toContain(expected);
+    });
+  });
+
+  test.each(specializedIds)('%s exposes repairable objective failures before its solved state', (labId) => {
+    const definition = operationsSimulationDefinitions[labId];
+    const empty = emptyOperationsSimulationSession();
+    const emptyFailures = definition.stages.filter((stage) => !evaluateOperationsAdapterObjective(labId, stage.id, empty).passed);
+    expect(emptyFailures.length).toBeGreaterThanOrEqual(4);
+
+    let solved = empty;
+    definition.stages.forEach((stage) => {
+      solved = applySimulationConfiguration(solved, stage, Object.fromEntries(stage.fields.map((field) => [field.id, field.expected]))).session;
+      const outcome = evaluateOperationsAdapterObjective(labId, stage.id, solved);
+      expect(outcome.passed).toBe(true);
+      solved = { ...solved, protocolState: outcome.protocolState ?? solved.protocolState };
     });
   });
 

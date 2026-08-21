@@ -14,7 +14,7 @@ export const courses: CourseDefinition[] = [
     prerequisitePolicy: { diagnosticId: 'network-operations-readiness', questionCount: 12, masteryScore: 10 },
     summary: 'Operate services, IPv6, resilient switching, traffic policy, translation, and single-area dynamic routing.',
     chapterIds: operationsChapters.map(({ id }) => id),
-    capstone: { id: 'network-operations-capstone', title: 'Network Operations Capstone', detail: 'Repair an IPv4 small office and an IPv6 branch.' },
+    capstone: { id: 'network-operations-capstone', title: 'Integrated Network Operations Lab', detail: 'Configure an IPv4 small office and troubleshoot an IPv6 branch.' },
     certificateTitle: 'NetBite Network Operations',
   },
 ];

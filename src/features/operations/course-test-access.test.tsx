@@ -17,7 +17,7 @@ describe('development test access', () => {
   test('opens Network Operations without Foundations readiness and exposes its capstone', async () => {
     const screen = await render(<CourseLibraryScreen />);
     expect(screen.getByText('COURSE 2 / TEST ACCESS')).toBeTruthy();
-    expect(screen.getByText('Start operations capstone')).toBeTruthy();
+    expect(screen.getByText('Open integrated network lab')).toBeTruthy();
     await fireEvent.press(screen.getByRole('button', { name: /network operations, course 2 \/ test access/i }));
     expect(mockPush).toHaveBeenCalledWith({ pathname: '/learn', params: { courseId: 'network-operations' } });
   });

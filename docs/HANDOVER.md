@@ -8,7 +8,7 @@
 - Generic Course 2 sessions remain local in `netbite-operations-labs-v1`. Specialized protocol sessions use `netbite-protocol-labs-v1`. Both retain up to 20 Undo snapshots; incompatible unfinished Transport state is preserved as a recovery copy and earned completion is not removed.
 - Every Operations module currently has `simulationReleaseState: released`. The access layer supports `validation` and `comingSoon`, displays those labels in the learning path, and rejects direct entry until promotion.
 - Detailed lab sessions stay local; completion, readiness, capstones, assessments, review state, and achievements may sync.
-- The two-part Operations capstone and PDF certificate are available after all module requirements are complete.
+- The two-phase Integrated Network Operations Lab and PDF certificate are available after all module requirements are complete.
 - Technical boundaries and sources are in `NETWORK_OPERATIONS_SIMULATION_GUIDE.md` and `references/NETWORK_OPERATIONS_SOURCES.md`.
 
 ## Active-recall flashcards

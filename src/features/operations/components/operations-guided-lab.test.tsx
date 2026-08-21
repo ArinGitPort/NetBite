@@ -34,7 +34,7 @@ describe('Operations guided simulator', () => {
     await fireEvent.changeText(screen.getByLabelText('Server listening port'), '443');
     await fireEvent.press(screen.getByText('Save configuration'));
     await fireEvent.press(await screen.findByText('Save endpoint configuration'));
-    expect(await screen.findByText(/HTTPS in this exercise listens with TCP/i)).toBeTruthy();
+    expect((await screen.findAllByText(/HTTPS in this exercise listens with TCP/i)).length).toBeGreaterThan(0);
     expect(useOperationsLabStore.getState().sessions[definition.id]).toMatchObject({ stageIndex: 0, configuration: { 'transport.protocol': 'udp' } });
     await fireEvent.press(screen.getByText('Undo latest change'));
     expect(useOperationsLabStore.getState().sessions[definition.id].lastResult).toBeUndefined();
@@ -66,9 +66,9 @@ describe('Operations guided simulator', () => {
     expect(await screen.findByText('SELECTED / DHCP1')).toBeTruthy();
     expect(screen.getByText('POOL / POOL NOT CONFIGURED')).toBeTruthy();
     expect(screen.getByText(/The first remaining address the server may offer is 192.168.20.101/)).toBeTruthy();
-    expect(screen.getByText('INFORMATION PROVIDED')).toBeTruthy();
+    expect(screen.getByText('SUPPLIED SCENARIO FACTS')).toBeTruthy();
     expect(screen.getByText(/The \/24 means the prefix length is 24/)).toBeTruthy();
-    expect(screen.getByText(/The pool must match the clients, not the remote server/)).toBeTruthy();
+    expect(screen.getByText(/pool must match the client subnet, not the DHCP server subnet/i)).toBeTruthy();
   });
 
   test('accepts a slash-prefixed DHCP prefix after explaining the required inputs', async () => {
@@ -94,5 +94,6 @@ describe('Operations guided simulator', () => {
     await fireEvent.press(task);
     expect(screen.getByText('EVIDENCE')).toBeTruthy();
     expect(screen.getByText('SUPPLIED FACT 1')).toBeTruthy();
+    expect(screen.getByText(/Configure the current objective using the supplied facts/i)).toBeTruthy();
   });
 });

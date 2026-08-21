@@ -6,7 +6,7 @@ Network Operations is Course 2. Its labs are fixed-topology, configuration-drive
 
 ## Quality gate
 
-A learner-facing module must have a registered deterministic lab with at least four stages. Transport uses its dedicated step-driven engine. The remaining modules and capstone use a typed version-3 simulation adapter that owns objective evaluation, device inspection, protocol tables, state mutations, and evidence. Each stage supplies a current objective, editable device or protocol controls, validation, protocol evidence, two progressive hints retained in history, and a four-part explanation: observation, governing rule, supported conclusion, and next check.
+A learner-facing module must have a registered deterministic lab with at least four stages. Transport uses its dedicated step-driven engine. The remaining modules and the Integrated Network Operations Lab use typed version-4 simulation adapters that own objective evaluation, stable-ID device inspection, protocol tables, state mutations, selective traces, and evidence. Each stage separates supplied scenario facts, learner configuration, the protocol action, and resulting evidence. It also provides two progressive hints retained in history and a four-part explanation: observation, governing rule, supported conclusion, and next check.
 
 Malformed input never mutates state. Syntactically valid but logically incorrect configuration remains visible and repairable. A stage advances only when the adapter derives a satisfied objective from the current state. Learner-facing placeholders never contain the assessed value. Optional bounded CLI commands write the same configuration keys as the inspector, and parameterized command grammars are available where command construction is part of the objective.
 
@@ -24,11 +24,11 @@ The DHCP reference topology contains two clients, SW1, relay router R1, and DHCP
 - One current objective and one dominant configuration or protocol-event action
 - Module-specific device records and derived protocol tables
 - Device/protocol controls with full-value inputs and explicit selections
-- Optional bounded NetBite CLI for ACL, NAT/PAT, IPv6 routing, EtherChannel, OSPF, and capstone work
+- Optional bounded NetBite CLI for ACL, NAT/PAT, IPv6 routing, EtherChannel, OSPF, and integrated-lab work
 - Persistent protocol table plus learner-controlled event trace
 - Accumulated hints, deterministic explanation, Undo, and confirmed Reset
 
-All eleven modules and the capstone currently carry the `released` quality state. The content model also supports `validation` and `comingSoon`; those states are visible in the learning path and block direct routes unless development presentation access is active.
+All eleven modules and the Integrated Network Operations Lab currently carry the `released` quality state. The content model also supports `validation` and `comingSoon`; those states are visible in the learning path and block direct routes unless development presentation access is active.
 
 ## Supported engines
 
@@ -48,6 +48,6 @@ NetBite does not create sockets, transmit packets, measure time, emulate queues,
 
 The Transport lab uses deterministic initial sequence values only to make state changes inspectable. Its learner-controlled missing segment does not represent a timer, random network loss, or a claim about a particular retransmission timeout. The intermediate router is shown to clarify that transport ports are endpoint information and are not used for ordinary IP route selection.
 
-## Capstone
+## Integrated Network Operations Lab
 
-The Operations capstone has two autosaved parts that share one version-3 state envelope. The IPv4 small office derives VLAN carriage, LACP formation, STP root state, DHCP allocation, DNS resolution, OSPF route selection, PAT translation, and service-specific ACL results through their existing pure engines. Its verification stage contains no learner-supplied pass/fail fields. The IPv6 branch derives configured identities, router and neighbor discovery, bidirectional static prefixes, and repair of an injected down-interface fault. Completion requires the combined current state and forward/return evidence; no manually entered success value can complete it.
+The Integrated Network Operations Lab has two guided phases that share one version-4 state envelope. The IPv4 Small Office derives VLAN carriage, LACP formation, STP root state, DHCP allocation, DNS resolution, OSPF route selection, PAT translation, and service-specific ACL results through the same pure engines used by the module labs. Its verification stage contains no learner-supplied pass/fail fields. The IPv6 Branch derives configured identities, router and neighbor discovery, bidirectional static prefixes, and repair of an injected down-interface fault. Completion requires the combined current state and forward/return evidence; no manually entered success value can complete it.

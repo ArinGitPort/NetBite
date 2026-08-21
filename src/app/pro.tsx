@@ -32,7 +32,7 @@ export default function ProScreen() {
       {testProEnabled ? (
         <View style={styles.testOwned}>
           <Text variant="sectionHeading" style={styles.test}>DEVELOPMENT TEST ACCESS</Text>
-          <Text variant="bodySmall">All chapters, Network Operations modules, the Operations capstone, and Network Sandbox are unlocked on this development installation. No purchase or account entitlement was created.</Text>
+          <Text variant="bodySmall">All chapters, Network Operations modules, the Integrated Network Operations Lab, and Network Sandbox are unlocked on this development installation. No purchase or account entitlement was created.</Text>
         </View>
       ) : hasPro ? (
         <View style={styles.owned}>

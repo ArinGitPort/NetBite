@@ -57,7 +57,7 @@ Course 2 is unlocked by completing Network Foundations or passing the 12-questio
 | 10 Dynamic Routing Foundations | 6 | Prefix, route source, AD, metric, and withdrawal decisions |
 | 11 Single-Area OSPFv2 | 8 | Neighbor graph, topology state, SPF, and failure recovery |
 
-Eight- and seven-lesson modules use eight scenario questions with 7/8 mastery. Six-lesson modules use seven questions with 6/7 mastery. Every deck contains 8–11 question-first active-recall cards. The two-part Operations capstone integrates an IPv4 small office and IPv6 branch; completion requires forward and return verification plus correction of injected faults.
+Eight- and seven-lesson modules use eight scenario questions with 7/8 mastery. Six-lesson modules use seven questions with 6/7 mastery. Every deck contains 8–11 question-first active-recall cards. The two-phase Integrated Network Operations Lab combines an IPv4 small office and IPv6 branch; completion requires forward and return verification plus correction of injected faults.
 
 Future expansion may cover DHCPv6, OSPFv3, wireless RF, QoS, advanced OSPF areas, BGP, production packet capture, and vendor hardware practice after the bounded operations sequence is proven.
 

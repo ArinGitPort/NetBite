@@ -16,9 +16,9 @@ export default function CapstoneScreen() {
   const progress = useGameStore();
   const completeCapstone = useGameStore((state) => state.completeCapstone);
   const course = getCourse(courseId);
-  if (!course?.capstone || courseId !== 'network-operations') return <ContentNotFound label="Capstone" />;
+  if (!course?.capstone || courseId !== 'network-operations') return <ContentNotFound label="Integrated lab" />;
   if (!hasContentAccess) return <CourseLockedScreen reason="NetBite Pro access is required for Network Operations." />;
   if (!accessBypass && !canEnterOperations(progress)) return <CourseLockedScreen reason="Complete Network Foundations or pass the readiness diagnostic first." />;
-  if (!accessBypass && !getCourseChapters('network-operations').every((chapter) => isChapterComplete(chapter, progress))) return <CourseLockedScreen reason="Complete all 11 Network Operations modules before beginning the capstone." />;
+  if (!accessBypass && !getCourseChapters('network-operations').every((chapter) => isChapterComplete(chapter, progress))) return <CourseLockedScreen reason="Complete all 11 Network Operations modules before opening the integrated network lab." />;
   return <OperationsGuidedLab definition={operationsLabDefinitions[course.capstone.id]} onComplete={() => completeCapstone(course.capstone!.id)} />;
 }

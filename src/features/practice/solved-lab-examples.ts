@@ -192,8 +192,9 @@ function transportSnapshot(): SolvedLabExampleSnapshot {
 }
 
 function operationsSolvedLayout(topology: OperationsLabDefinition['visualTopology']): AuthoredTopologyLayout {
-  const width = Math.max(760, topology.nodes.length * 210);
-  const height = 360;
+  const integrated = topology.nodes.length > 6;
+  const width = Math.max(760, topology.nodes.length * (integrated ? 230 : 210));
+  const height = integrated ? 560 : 360;
   return {
     width,
     height,
@@ -223,7 +224,7 @@ function operationsSnapshot(labId: string): SolvedLabExampleSnapshot {
   }
   const topology = authored.visualTopology;
   const explanation = session.lastResult?.explanation ?? authored.stages.at(-1)!.explanation;
-  return { labId, title: authored.title, goal: authored.briefing.goal, family: labId === 'network-operations-capstone' ? 'capstone' : 'operations', topology: { description: topology.description, layout: operationsSolvedLayout(topology), nodes: topology.nodes.map((node) => ({ id: node.id, label: node.label, kind: node.kind, detail: node.detail })), links: topology.links.map((link) => ({ id: link.id, from: link.a, to: link.b, fromInterface: link.aPort, toInterface: link.bPort, state: 'UP' })) }, sections: [section('configuration', 'CORRECT CONFIGURATION', 'configuration', Object.entries(session.configuration).map(([key, value]) => `${key.toUpperCase()} / ${String(value).toUpperCase()}`)), section('tables', authored.tableTitle, 'table', tables.length ? tables : ['NO ADDITIONAL TABLE ROWS']), section('trace', 'VERIFICATION EVIDENCE', 'trace', evidence)], explanation: { observation: explanation.observation, rule: explanation.rule, proves: explanation.proves, nextCheck: explanation.nextCheck ?? 'Compare the current evidence with the completed objective.' } };
+  return { labId, title: authored.title, goal: authored.briefing.goal, family: labId === 'network-operations-capstone' ? 'capstone' : 'operations', topology: { description: topology.description, layout: operationsSolvedLayout(topology), nodes: topology.nodes.map((node) => ({ id: node.id, label: node.label, kind: node.kind, detail: node.detail })), links: topology.links.map((link) => ({ id: link.id, from: link.a, to: link.b, fromInterface: link.aPort, toInterface: link.bPort, state: 'UP' })) }, sections: [section('configuration', 'CORRECT CONFIGURATION', 'configuration', Object.entries(session.configuration).map(([key, value]) => `${key.replaceAll('.', ' ').replace(/([A-Z])/g, ' $1').toUpperCase()}    ${String(value).toUpperCase()}`)), section('tables', authored.tableTitle, 'table', tables.length ? tables : ['NO ADDITIONAL TABLE ROWS']), section('trace', 'VERIFICATION EVIDENCE', 'trace', evidence)], explanation: { observation: explanation.observation, rule: explanation.rule, proves: explanation.proves, nextCheck: explanation.nextCheck ?? 'Compare the current evidence with the completed objective.' } };
 }
 
 const practiceIds = ['ipv4-configurator', 'subnet-range-desk', 'gateway-forwarding-desk', 'arp-resolution-desk'] as const;

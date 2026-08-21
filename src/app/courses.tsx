@@ -52,7 +52,7 @@ export default function CourseLibraryScreen() {
       const footer = fullyComplete
         ? <AppButton label="View certificate" variant="utility" onPress={() => router.push(`/certificate/${courseId}` as Href)} />
         : course.capstone && (modulesComplete || accessBypass)
-          ? <AppButton label="Start operations capstone" variant="secondary" onPress={() => router.push(`/capstone/${courseId}` as Href)} />
+          ? <AppButton label="Open integrated network lab" variant="secondary" onPress={() => router.push(`/capstone/${courseId}` as Href)} />
           : undefined;
       return <ActionCard key={course.id} badge={`${completed}/${courseChapters.length} MODULES`} detail={lockedReason ?? course.summary} endIcon={lockedReason ? 'lock' : 'arrow-right'} footer={footer} icon="learn" priority={courseId === 'network-foundations' ? 'primary' : 'secondary'} progress={completed / courseChapters.length} status={courseId === 'network-foundations' ? 'COURSE 1' : presentationActive ? 'COURSE 2 / DEMO BYPASS' : testProEnabled ? 'COURSE 2 / TEST ACCESS' : 'COURSE 2'} title={course.title.toUpperCase()} tone={courseId === 'network-foundations' ? 'learning' : 'sandbox'} onPress={open} />;
     })}</View>

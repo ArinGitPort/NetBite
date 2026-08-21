@@ -67,7 +67,7 @@ export default function SettingsScreen() {
       {testProAvailable ? <View style={[styles.section, styles.testAccessSection]}>
         <Text variant="sectionHeading" style={styles.heading}>DEVELOPMENT TEST ACCESS</Text>
         <Text variant="label" style={testProEnabled ? styles.syncLabel : styles.syncWarning}>{testProEnabled ? 'ENABLED / NOT PURCHASED' : 'DISABLED / DEVELOPMENT ONLY'}</Text>
-        <Text variant="bodySmall" style={styles.detail}>Unlocks all Foundation chapters, every Network Operations module, the Operations capstone, and Network Sandbox on this development installation. It bypasses course prerequisites and module order without creating a purchase or Supabase entitlement.</Text>
+        <Text variant="bodySmall" style={styles.detail}>Unlocks all Foundation chapters, every Network Operations module, the Integrated Network Operations Lab, and Network Sandbox on this development installation. It bypasses course prerequisites and module order without creating a purchase or Supabase entitlement.</Text>
         <AppButton label={testProEnabled ? 'Disable test access' : 'Enable test access'} variant={testProEnabled ? 'secondary' : 'primary'} onPress={() => setTestProEnabled(!testProEnabled)} />
       </View> : null}
       <Text variant="label" style={styles.groupLabel}>PREFERENCES</Text>

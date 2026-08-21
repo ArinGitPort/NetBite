@@ -76,7 +76,7 @@ export interface ObjectiveResult {
 }
 
 export interface OperationsSimulationSession {
-  version: 3;
+  version: 4;
   stageIndex: number;
   completedObjectiveIds: string[];
   configuration: Record<string, SimulationValue>;
@@ -99,7 +99,7 @@ const stage = (id: string, actionLabel: string, fields: SimulationFieldDefinitio
   actionLabel,
   fields,
   hints,
-  providedFacts: providedFacts ?? (hints[0] ? [hints[0]] : []),
+  providedFacts: providedFacts ?? [],
 });
 
 const definitions: GuidedSimulationDefinition[] = [
@@ -111,13 +111,13 @@ const definitions: GuidedSimulationDefinition[] = [
   ]},
   { labId: 'dhcp-lease-desk', releaseState: 'released', cliEnabled: false, stages: [
     stage('pool', 'Save DHCP pool', [
-      { ...text('dhcp.network', 'Pool network', '192.168.20.0', 'ipv4', 'Use the client network ID shown in the task.', '192.168.20.0'), helpText: 'The pool must match the clients, not the remote server. Enter the client network ID 192.168.20.0.' },
-      { ...number('dhcp.prefix', 'Prefix length', 24, 'prefix4', 'Use the /24 client subnet.'), placeholder: '24', helpText: 'The /24 in 192.168.20.0/24 is the prefix. Enter 24; the slash is optional.' },
-      { ...text('dhcp.start', 'First pool address', '192.168.20.100', 'ipv4', 'Start the assigned pool at 192.168.20.100.', '192.168.20.100'), helpText: 'This is the first address inside the small range DHCP1 is allowed to manage.' },
-      { ...text('dhcp.end', 'Last pool address', '192.168.20.102', 'ipv4', 'End the assigned pool at 192.168.20.102.', '192.168.20.102'), helpText: 'This is the final address included in the server pool.' },
-      { ...text('dhcp.excluded', 'Reserved address to exclude', '192.168.20.100', 'ipv4', 'Exclude the reserved first pool address.', '192.168.20.100'), helpText: 'An exclusion is inside the pool range but must not be leased. Reserve 192.168.20.100.' },
-      { ...text('dhcp.gateway', 'Default gateway option', '192.168.20.1', 'ipv4', 'Supply the client VLAN gateway.', '192.168.20.1'), helpText: 'DHCP gives clients the gateway inside their own subnet. For VLAN 20, use 192.168.20.1.' },
-      { ...number('dhcp.leaseSteps', 'Modeled lease duration', 4, 'positive', 'Use four learner-controlled steps for this exercise.'), placeholder: '4', helpText: 'NetBite uses learner-controlled steps instead of real clock time. Enter 4.' },
+      { ...text('dhcp.network', 'Pool network', '192.168.20.0', 'ipv4', 'Use the client network ID shown in the task.', 'EXAMPLE / 10.10.10.0'), helpText: 'The pool must match the client subnet, not the DHCP server subnet.' },
+      { ...number('dhcp.prefix', 'Prefix length', 24, 'prefix4', 'Use the client subnet prefix.'), placeholder: 'EXAMPLE / /26', helpText: 'Enter the prefix supplied for the client subnet. The slash is optional.' },
+      { ...text('dhcp.start', 'First pool address', '192.168.20.100', 'ipv4', 'Use the first address in the supplied pool range.', 'EXAMPLE / 10.10.10.100'), helpText: 'This is the first address DHCP1 is allowed to manage.' },
+      { ...text('dhcp.end', 'Last pool address', '192.168.20.102', 'ipv4', 'Use the last address in the supplied pool range.', 'EXAMPLE / 10.10.10.120'), helpText: 'This is the final address DHCP1 is allowed to manage.' },
+      { ...text('dhcp.excluded', 'Reserved address to exclude', '192.168.20.100', 'ipv4', 'Exclude the address identified as reserved.', 'EXAMPLE / 10.10.10.100'), helpText: 'An exclusion remains inside the pool but cannot be leased.' },
+      { ...text('dhcp.gateway', 'Default gateway option', '192.168.20.1', 'ipv4', 'Supply the client VLAN gateway.', 'EXAMPLE / 10.10.10.1'), helpText: 'DHCP gives clients the gateway inside their own subnet. Use the gateway supplied above.' },
+      { ...number('dhcp.leaseSteps', 'Modeled lease duration', 4, 'positive', 'Use four learner-controlled steps for this exercise.'), placeholder: 'EXAMPLE / 8', helpText: 'NetBite uses learner-controlled steps instead of real clock time. Use the duration supplied above.' },
     ], ['The pool network must match the subnet where the clients live.', 'With 192.168.20.100 excluded, the first offer is 192.168.20.101.'], [
       'PC1 and PC2 are clients in subnet 192.168.20.0/24.',
       'The /24 means the prefix length is 24. In the Prefix field, enter 24 (with or without the slash).',
@@ -181,7 +181,7 @@ const definitions: GuidedSimulationDefinition[] = [
     stage('withdraw', 'Withdraw preferred route', [toggle('route.staticAvailable', false, 'Withdraw the preferred static candidate to expose the fallback.')], ['The table is recalculated from currently eligible candidates.', 'Remove the static /24 and verify that the OSPF /24 becomes installed.']),
   ]},
   { labId: 'ospf-area-desk', releaseState: 'released', cliEnabled: true, stages: [
-    stage('identity', 'Save router IDs', [text('ospf.r1', 'R1 router ID', '1.1.1.1', 'ipv4', 'Router IDs must be unique.', '1.1.1.1'), text('ospf.r2', 'R2 router ID', '2.2.2.2', 'ipv4', 'Router IDs must be unique.', '2.2.2.2'), text('ospf.r3', 'R3 router ID', '3.3.3.3', 'ipv4', 'Router IDs must be unique.', '3.3.3.3')], ['Router IDs identify routers in OSPF state.', 'Configure three unique identifiers: 1.1.1.1, 2.2.2.2, and 3.3.3.3.']),
+    stage('identity', 'Save router IDs', [text('ospf.r1', 'R1 router ID', '1.1.1.1', 'ipv4', 'Router IDs must be unique.', 'EXAMPLE / 10.10.10.10'), text('ospf.r2', 'R2 router ID', '2.2.2.2', 'ipv4', 'Router IDs must be unique.', 'EXAMPLE / 20.20.20.20'), text('ospf.r3', 'R3 router ID', '3.3.3.3', 'ipv4', 'Router IDs must be unique.', 'EXAMPLE / 30.30.30.30')], ['Router IDs identify routers in OSPF state.', 'Configure three unique identifiers: 1.1.1.1, 2.2.2.2, and 3.3.3.3.']),
     stage('neighbor', 'Form OSPF neighbors', [number('ospf.area12', 'R1–R2 area', 0, 'positive', 'Both ends must use area 0.'), number('ospf.area23', 'R2–R3 area', 0, 'positive', 'Both links belong to the same single area.'), toggle('ospf.linksUp', true, 'OSPF cannot form neighbors across disabled links.', 'no shutdown')], ['Hello compatibility is required before adjacency.', 'Place both active links in area 0.']),
     stage('spf', 'Calculate SPF routes', [number('ospf.cost12', 'R1–R2 cost', 10, 'positive', 'Use the fixed link cost 10.'), number('ospf.cost23', 'R2–R3 cost', 10, 'positive', 'Use the fixed link cost 10.'), toggle('ospf.advertise', true, 'R3 must advertise its destination prefix.', 'network 192.168.30.0 0.0.0.255 area 0')], ['SPF uses synchronized topology state and accumulated cost.', 'Advertise the R3 LAN and calculate the two-link cost from R1.']),
     stage('failure', 'Fail link and recover', [select('ospf.failedLink', 'Link state', 'r2-r3-down', [option('R2–R3 down', 'r2-r3-down', 'shutdown'), option('All links up', 'up', 'no shutdown')], 'Inject the R2–R3 failure before recalculation.'), select('ospf.response', 'Required response', 'recalculate', [option('Rebuild topology and run SPF', 'recalculate', 'show ip ospf database'), option('Keep stale route installed', 'stale')], 'Unavailable adjacency state must be removed before SPF is recalculated.')], ['A failed adjacency changes the current topology graph.', 'Remove R2–R3, rebuild LSDB state, and rerun SPF without inventing a delay.']),
@@ -253,7 +253,25 @@ const boundedCliCommands: Record<string, { stageId: string; command: string; upd
 };
 
 export function emptyOperationsSimulationSession(): OperationsSimulationSession {
-  return { version: 3, stageIndex: 0, completedObjectiveIds: [], configuration: {}, evidence: [], tables: {}, traceIndex: 0, hints: [], updatedAt: new Date().toISOString() };
+  return { version: 4, stageIndex: 0, completedObjectiveIds: [], configuration: {}, evidence: [], tables: {}, traceIndex: 0, hints: [], updatedAt: new Date().toISOString() };
+}
+
+export function isOperationsSimulationSession(value: unknown): value is OperationsSimulationSession {
+  if (!value || typeof value !== 'object') return false;
+  const session = value as Partial<OperationsSimulationSession>;
+  return session.version === 4
+    && Number.isInteger(session.stageIndex)
+    && Number(session.stageIndex) >= 0
+    && Array.isArray(session.completedObjectiveIds)
+    && session.completedObjectiveIds.every((id) => typeof id === 'string')
+    && Boolean(session.configuration && typeof session.configuration === 'object' && !Array.isArray(session.configuration))
+    && Array.isArray(session.evidence)
+    && Boolean(session.tables && typeof session.tables === 'object' && !Array.isArray(session.tables))
+    && Number.isInteger(session.traceIndex)
+    && Number(session.traceIndex) >= 0
+    && Array.isArray(session.hints)
+    && session.hints.every((hint) => typeof hint === 'string')
+    && typeof session.updatedAt === 'string';
 }
 
 export function validateSimulationField(field: SimulationFieldDefinition, value: SimulationValue): string | undefined {
@@ -378,7 +396,7 @@ function engineEvidence(labId: string, configuration: Record<string, SimulationV
       ipv4: { vlans: configuration['cap.vlans'] === '10,20', etherChannel: configuration['cap.lacp'] === 'active-passive', spanningTree: normalizeDeviceReference(String(configuration['cap.stp'])) === 'sw-b', dhcp: configuration['cap.dhcp'] === '192.168.10.101', dns: configuration['cap.dns'] === '192.168.20.20', ospf: configuration['cap.ospfForward'] === '192.168.20.0/24' && configuration['cap.ospfReturn'] === '192.168.10.0/24', pat: configuration['cap.pat'] === '203.0.113.10', acl: configuration['cap.acl'] === 'permit-https-deny-other', forward: configuration['cap.ipv4Forward'] === 'pass', returnPath: configuration['cap.ipv4Return'] === 'pass' },
       ipv6: { addressing: configuration['cap.ipv6Address'] === '2001:db8:10::10', routerDiscovery: configuration['cap.ndp'] === 'fe80::1', neighborDiscovery: configuration['cap.ndp'] === 'fe80::1', staticRoutes: configuration['cap.ipv6Forward'] === '2001:db8:20::' && configuration['cap.ipv6Return'] === '2001:db8:10::', injectedFaultCorrected: configuration['cap.parentUp'] === 'up', forward: configuration['cap.ipv6Forward'] === '2001:db8:20::', returnPath: configuration['cap.ipv6Return'] === '2001:db8:10::' },
     });
-    return [...result.failures, `CAPSTONE ${result.complete ? 'READY' : 'INCOMPLETE'}`];
+    return [...result.failures, `INTEGRATED LAB ${result.complete ? 'READY' : 'INCOMPLETE'}`];
   }
   return ['NO SIMULATION ADAPTER'];
 }

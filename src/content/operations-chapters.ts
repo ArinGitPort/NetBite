@@ -163,6 +163,6 @@ export const operationsChapters = [
       c('ospf-troubleshoot', 'Troubleshoot the First Broken OSPF Dependency', 'Missing routes can result from interface, addressing, participation, compatibility, database, or installation state.', 'Check interface and subnet first, then neighbor state, LSDB presence, SPF reachability, route-source preference, and return routing.', 'R1 has no R2 neighbor because their area IDs differ.', 'Correct the adjacency mismatch before changing downstream network advertisements.', 'Adding a default route repairs every OSPF neighbor mismatch.'),
     ],
     lab: ['ospf-area-desk', 'Build an OSPF area', 'Configure three routers, form neighbors, inspect topology state, and recover from a link failure'],
-    recap: ['A verified single-area OSPF topology', 'Neighbors, LSAs, SPF cost, installed routes, and troubleshooting', 'Complete the Network Operations capstone'],
+    recap: ['A verified single-area OSPF topology', 'Neighbors, LSAs, SPF cost, installed routes, and troubleshooting', 'Apply the full course in the Integrated Network Operations Lab'],
   }),
 ];

@@ -41,7 +41,7 @@ export default function CertificateScreen() {
   const exportPdf = async () => {
     setBusy(true);
     try {
-      const html = `<!doctype html><html><body style="font-family:monospace;background:#f5f2ef;color:#242126;padding:64px;text-align:center"><div style="border:3px solid #c04848;padding:56px"><p style="letter-spacing:3px;color:#c04848">NETBITE / COURSE ACHIEVEMENT</p><h1>${escapeHtml(course.certificateTitle)}</h1><p>This non-accredited learning certificate recognizes</p><h2>${escapeHtml(learner)}</h2><p>for completing all required lessons, guided simulations, assessments${course.capstone ? ", and the operations capstone" : ""}.</p><p>${escapeHtml(date)}</p><small>Educational achievement / not a professional certification</small></div></body></html>`;
+      const html = `<!doctype html><html><body style="font-family:monospace;background:#f5f2ef;color:#242126;padding:64px;text-align:center"><div style="border:3px solid #c04848;padding:56px"><p style="letter-spacing:3px;color:#c04848">NETBITE / COURSE ACHIEVEMENT</p><h1>${escapeHtml(course.certificateTitle)}</h1><p>This non-accredited learning certificate recognizes</p><h2>${escapeHtml(learner)}</h2><p>for completing all required lessons, guided simulations, assessments${course.capstone ? ", and the Integrated Network Operations Lab" : ""}.</p><p>${escapeHtml(date)}</p><small>Educational achievement / not a professional certification</small></div></body></html>`;
       const file = await Print.printToFileAsync({ html });
       if (await Sharing.isAvailableAsync())
         await Sharing.shareAsync(file.uri, {

@@ -118,6 +118,21 @@ describe('Course 2 guided simulation framework', () => {
     expect(migrated.recoveryCopies['dns-resolution-desk']).toEqual(legacy.sessions['dns-resolution-desk']);
   });
 
+  test('archives unfinished version-3 sessions and retains valid version-4 sessions', () => {
+    const legacy = { version: 3, stageIndex: 1, configuration: { old: true }, evidence: [], hints: [] };
+    const current = { ...emptyOperationsSimulationSession(), stageIndex: 2 };
+    const migrated = migrateOperationsLabState({ sessions: { legacy, current } });
+    expect(migrated.sessions.current).toMatchObject({ version: 4, stageIndex: 2 });
+    expect(migrated.recoveryCopies.legacy).toEqual(legacy);
+  });
+
+  test('archives malformed version-4 sessions instead of hydrating unsafe state', () => {
+    const malformed = { version: 4, stageIndex: -1, configuration: [], evidence: 'broken', hints: [] };
+    const migrated = migrateOperationsLabState({ sessions: { malformed } });
+    expect(migrated.sessions).toEqual({});
+    expect(migrated.recoveryCopies.malformed).toEqual(malformed);
+  });
+
   test('blocks validation modules consistently while allowing presentation bypass', () => {
     const chapter = { ...operationsChapters[0], simulationReleaseState: 'validation' as const };
     const progress = { completedLessonIds: [], completedLabIds: [], quizScores: {}, quizContentVersions: {}, reviewedFlashcardChapterIds: [], flashcardContentVersions: {}, readinessScores: { 'network-operations': 10 } };

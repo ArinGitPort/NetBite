@@ -3,6 +3,7 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 
 import {
   emptyOperationsSimulationSession,
+  isOperationsSimulationSession,
   type OperationsSimulationSession,
 } from '@/features/operations/operations-simulator';
 import { gameStorage } from '@/store/game-storage';
@@ -33,7 +34,7 @@ export function migrateOperationsLabState(persisted: unknown) {
     : {};
 
   for (const [labId, value] of Object.entries(rawSessions)) {
-    if (value && typeof value === 'object' && (value as { version?: number }).version === 3) sessions[labId] = { ...(value as OperationsSimulationSession), tables: (value as OperationsSimulationSession).tables ?? {} };
+    if (isOperationsSimulationSession(value)) sessions[labId] = cloneSession(value);
     else recoveryCopies[labId] = value;
   }
   return { sessions, history: {}, recoveryCopies };
@@ -83,7 +84,7 @@ export const useOperationsLabStore = create<OperationsLabStore>()(persist((set) 
   }),
 }), {
   name: 'netbite-operations-labs-v1',
-  version: 3,
+  version: 4,
   storage: createJSONStorage(() => gameStorage),
   skipHydration: true,
   migrate: migrateOperationsLabState,
