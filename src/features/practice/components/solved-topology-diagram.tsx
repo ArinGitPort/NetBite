@@ -1,18 +1,33 @@
 import { useMemo } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import Svg, { Line } from 'react-native-svg';
 import { Image } from 'expo-image';
 
 import type { SolvedExampleTopology } from '@/features/practice/solved-lab-examples';
 import { DeviceGlyph } from '@/features/devices/components/device-glyph';
 import { Text } from '@/shared/components/console-text';
-import { TopologyLinkLabels } from '@/shared/components/topology-link-labels';
+import { calculateTopologyLabelLayout, TopologyLinkLabels } from '@/shared/components/topology-link-labels';
 import { Fonts, Palette, Space } from '@/shared/theme';
 
 interface Point { x: number; y: number }
 
 export function SolvedTopologyDiagram({ topology, selectedId, onSelect }: { topology: SolvedExampleTopology; selectedId?: string; onSelect: (id: string) => void }) {
+  const { fontScale } = useWindowDimensions();
   const layout = useMemo(() => buildLayout(topology), [topology]);
+  const labelLayout = useMemo(() => calculateTopologyLabelLayout({
+    canvas: { width: layout.width, height: layout.height },
+    fontScale,
+    nodes: topology.nodes.map((node) => ({ id: node.id, point: layout.points[node.id], bounds: { halfWidth: 52, halfHeight: 46 } })).filter((node) => Boolean(node.point)),
+    links: topology.links.filter((link) => link.fromInterface || link.toInterface).map((link) => ({
+      id: link.id,
+      fromDeviceId: link.from,
+      toDeviceId: link.to,
+      fromLabel: link.fromInterface ?? 'PORT',
+      toLabel: link.toInterface ?? 'PORT',
+      contextLabel: link.context,
+      anchor: topology.layout?.captions[link.id] ?? (link.context ? { kind: 'link' as const, side: 'above' as const, gap: 36 } : undefined),
+    })),
+  }), [fontScale, layout, topology]);
   return <ScrollView accessibilityLabel={topology.description} horizontal showsHorizontalScrollIndicator contentContainerStyle={styles.scroll}>
     <View style={[styles.canvas, { width: layout.width, height: layout.height }]}>
       <Svg accessible={false} pointerEvents="none" style={StyleSheet.absoluteFill} width={layout.width} height={layout.height}>
@@ -26,14 +41,13 @@ export function SolvedTopologyDiagram({ topology, selectedId, onSelect }: { topo
         return <TopologyLinkLabels
           key={`${link.id}-labels`}
           accessibilityLabel={`Connection from ${fromName} ${link.fromInterface ?? 'modeled port'} to ${toName} ${link.toInterface ?? 'modeled port'}. ${link.context ?? link.state ?? 'Connected'}.`}
-          canvas={{ width: layout.width, height: layout.height }}
           contextLabel={link.context}
-          contextPlacement={{ perpendicular: -58 }}
           contextTone={link.state === 'ATTENTION' || link.state === 'LINK DOWN' ? 'warning' : 'normal'}
           from={a}
           fromBounds={{ halfWidth: 52, halfHeight: 46 }}
           fromLabel={link.fromInterface ?? 'PORT'}
           id={`solved-${link.id}`}
+          resolvedLayout={labelLayout[link.id]}
           to={b}
           toBounds={{ halfWidth: 52, halfHeight: 46 }}
           toLabel={link.toInterface ?? 'PORT'}
@@ -48,6 +62,7 @@ export function SolvedTopologyDiagram({ topology, selectedId, onSelect }: { topo
 }
 
 function buildLayout(topology: SolvedExampleTopology) {
+  if (topology.layout) return { width: topology.layout.width, height: topology.layout.height, points: topology.layout.nodes };
   const degree = Object.fromEntries(topology.nodes.map((node) => [node.id, 0])) as Record<string, number>;
   topology.links.forEach((link) => { degree[link.from] = (degree[link.from] ?? 0) + 1; degree[link.to] = (degree[link.to] ?? 0) + 1; });
   const hub = topology.nodes.reduce((best, node) => degree[node.id] > degree[best.id] ? node : best, topology.nodes[0]);

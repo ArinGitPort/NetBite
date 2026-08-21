@@ -6,10 +6,7 @@ import { CliLab } from '@/features/cli/components/cli-lab';
 import { createCliVisualTrace } from '@/features/cli/components/cli-topology-view';
 import { cliLabDefinitions, createRoutingState, requiredStaticRoutes } from '@/features/cli/cli-lab-definitions';
 import {
-  calculateCableEndpointLabels,
-  calculateCableMidpointLabel,
-  getTopologyCaptionSize,
-  getTopologyLabelSize,
+  calculateTopologyLabelLayout,
   getTopologyRect,
   topologyRectsOverlap,
 } from '@/shared/components/topology-link-labels';
@@ -38,6 +35,44 @@ const layoutTopology = async (screen: Awaited<ReturnType<typeof render>>, width 
   const size = StyleSheet.flatten(canvas.props.style);
   await fireEvent(canvas, 'layout', { nativeEvent: { layout: { width: size.width, height: size.height, x: 0, y: 0 } } });
 };
+
+function expectLabelLayoutClear(definition: (typeof cliLabDefinitions)[keyof typeof cliLabDefinitions], network: ReturnType<typeof definition.createState>, mode: 'compact' | 'regular' | 'wide', fontScale: number) {
+  const canvas = { width: definition.topology.width[mode], height: definition.topology.height[mode] };
+  const positions = definition.topology[mode];
+  const nodes = network.devices.map((device) => ({
+    id: device.id,
+    point: { x: canvas.width * positions[device.id].x / 100, y: canvas.height * positions[device.id].y / 100 },
+    bounds: { halfWidth: 52, halfHeight: 42 },
+  }));
+  const links = network.links.map((link) => {
+    const id = `${link.aDeviceId}-${link.aInterface}-${link.bDeviceId}-${link.bInterface}`;
+    return {
+      id,
+      fromDeviceId: link.aDeviceId,
+      toDeviceId: link.bDeviceId,
+      fromLabel: link.aInterface,
+      toLabel: link.bInterface,
+      contextLabel: deriveCliLinkContext(network, link).label,
+      anchor: definition.topology.linkCaptions?.[id]?.[mode],
+    };
+  });
+  const resolved = calculateTopologyLabelLayout({ canvas, fontScale, links, nodes });
+  const nodeRects = nodes.map((node) => getTopologyRect(node.point, { width: 104, height: 84 }));
+  const labelRects = Object.entries(resolved).flatMap(([id, item]) => [
+    { id: `${id}:from`, rect: getTopologyRect(item.from.position, item.from.size) },
+    { id: `${id}:to`, rect: getTopologyRect(item.to.position, item.to.size) },
+    ...(item.context ? [{ id: `${id}:context`, rect: getTopologyRect(item.context.position, item.context.size) }] : []),
+  ]);
+
+  labelRects.forEach((label, index) => {
+    nodeRects.forEach((node) => {
+      if (topologyRectsOverlap(label.rect, node, 4)) throw new Error(`${label.id} overlaps a device at ${fontScale}x in ${mode}`);
+    });
+    labelRects.forEach((other, otherIndex) => {
+      if (index !== otherIndex && topologyRectsOverlap(label.rect, other.rect, 4)) throw new Error(`${label.id} overlaps ${other.id} at ${fontScale}x in ${mode}`);
+    });
+  });
+}
 
 describe('CliLab', () => {
   beforeEach(() => useGameStore.setState({ completedLabIds: [], cliGuideSeen: true }));
@@ -74,38 +109,44 @@ describe('CliLab', () => {
     const routedDefinitions = [cliLabDefinitions['static-route-board'], cliLabDefinitions['ping-diagnostic-desk']];
     routedDefinitions.forEach((definition) => {
       const states = [definition.createState(), ...(definition.diagnosticScenarios?.map((scenario) => scenario.createState()) ?? [])];
-      states.forEach((network) => (['compact', 'regular', 'wide'] as const).forEach((mode) => [1, 1.3, 1.5, 2].forEach((fontScale) => {
-        const canvas = { width: definition.topology.width[mode], height: definition.topology.height[mode] };
-        const positions = definition.topology[mode];
-        const nodeRects = network.devices.map((device) => {
-          const point = positions[device.id];
-          return getTopologyRect({ x: canvas.width * point.x / 100, y: canvas.height * point.y / 100 }, { width: 104, height: 84 });
-        });
-        const endpointRects: ReturnType<typeof getTopologyRect>[] = [];
-        const captionRects: ReturnType<typeof getTopologyRect>[] = [];
-        network.links.forEach((link) => {
-          const fromPoint = positions[link.aDeviceId];
-          const toPoint = positions[link.bDeviceId];
-          const from = { x: canvas.width * fromPoint.x / 100, y: canvas.height * fromPoint.y / 100 };
-          const to = { x: canvas.width * toPoint.x / 100, y: canvas.height * toPoint.y / 100 };
-          const fromSize = getTopologyLabelSize(link.aInterface, fontScale);
-          const toSize = getTopologyLabelSize(link.bInterface, fontScale);
-          const endpoints = calculateCableEndpointLabels(from, to, { halfWidth: 52, halfHeight: 42 }, { halfWidth: 52, halfHeight: 42 }, fromSize, toSize);
-          endpointRects.push(getTopologyRect(endpoints.from, fromSize), getTopologyRect(endpoints.to, toSize));
-          const context = deriveCliLinkContext(network, link);
-          const label = context.kind === 'network' || context.kind === 'mismatch' ? context.label : context.networkLabel;
-          if (!label) return;
-          const id = `${link.aDeviceId}-${link.aInterface}-${link.bDeviceId}-${link.bInterface}`;
-          const size = getTopologyCaptionSize(label, fontScale);
-          const center = calculateCableMidpointLabel(from, to, size, definition.topology.linkCaptions?.[id]?.[mode], canvas);
-          captionRects.push(getTopologyRect(center, size));
-        });
-        captionRects.forEach((caption) => {
-          nodeRects.forEach((node) => expect(topologyRectsOverlap(caption, node, 2)).toBe(false));
-          endpointRects.forEach((endpoint) => expect(topologyRectsOverlap(caption, endpoint, 2)).toBe(false));
-        });
-      })));
+      states.forEach((network) => (['compact', 'regular', 'wide'] as const).forEach((mode) => [1, 1.3, 1.5, 2].forEach((fontScale) => expectLabelLayoutClear(definition, network, mode, fontScale))));
     });
+  });
+
+  test('keeps authored VLAN captions in clear cable lanes at every responsive mode and font scale', () => {
+    const definition = cliLabDefinitions['vlan-port-desk'];
+    const initial = definition.createState();
+    const configured = structuredClone(initial);
+    configured.devices.filter(({ type }) => type === 'switch').forEach((device) => {
+      device.vlans = [1, 10, 20];
+      device.interfaces.forEach((item) => {
+        if (item.name === 'F0/24') {
+          item.switchportMode = 'trunk';
+          item.allowedVlans = [10, 20];
+        } else {
+          item.switchportMode = 'access';
+          item.accessVlan = item.name === 'F0/3' ? 20 : 10;
+        }
+      });
+    });
+
+    [initial, configured].forEach((network) => (['compact', 'regular', 'wide'] as const).forEach((mode) => [1, 1.3, 1.5, 2].forEach((fontScale) => expectLabelLayoutClear(definition, network, mode, fontScale))));
+  });
+
+  test('keeps Inter-VLAN access and trunk captions clear of nodes and port plates', () => {
+    const definition = cliLabDefinitions['inter-vlan-routing-desk'];
+    const initial = definition.createState();
+    const configured = structuredClone(initial);
+    const sw1 = configured.devices.find(({ id }) => id === 'sw-1')!;
+    const trunk = sw1.interfaces.find(({ name }) => name === 'F0/24')!;
+    trunk.switchportMode = 'trunk';
+    trunk.allowedVlans = [10, 20];
+    configured.devices.find(({ id }) => id === 'r1')!.interfaces.push(
+      { name: 'G0/0.10', parentInterface: 'G0/0', encapsulationVlan: 10, ipv4: '192.168.10.1', prefix: 24, adminUp: true, linkUp: true },
+      { name: 'G0/0.20', parentInterface: 'G0/0', encapsulationVlan: 20, ipv4: '192.168.20.1', prefix: 24, adminUp: true, linkUp: true },
+    );
+
+    [initial, configured].forEach((network) => (['compact', 'regular', 'wide'] as const).forEach((mode) => [1, 1.3, 1.5, 2].forEach((fontScale) => expectLabelLayoutClear(definition, network, mode, fontScale))));
   });
 
   test.each(['ping-diagnostic-desk', 'static-route-board', 'vlan-port-desk', 'inter-vlan-routing-desk'])('opens with the fixed topology and no miniature terminal for %s', async (labId) => {

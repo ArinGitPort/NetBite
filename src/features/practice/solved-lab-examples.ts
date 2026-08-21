@@ -1,17 +1,19 @@
 import { deriveCliLinkContext, executeCliCommand, parseCliCommand, prefixToSubnetMask, type CliNetworkState } from '@/core/network/cli-simulator';
 import { applyTransportAction, createTransportLabState, deriveTransportTables, evaluateTransportObjective, type TransportLabState } from '@/core/network/transport-lab';
 import { calculateSubnetRange } from '@/core/network/advanced-networking';
-import { cliLabDefinitions, diagnosticScenarios, requiredStaticRoutes } from '@/features/cli/cli-lab-definitions';
-import { operationsLabDefinitions, type OperationsTopologyDeviceKind } from '@/features/operations/operations-lab-definitions';
+import { cliLabDefinitions, diagnosticScenarios, requiredStaticRoutes, type CliLabDefinition } from '@/features/cli/cli-lab-definitions';
+import { operationsLabDefinitions, type OperationsLabDefinition, type OperationsTopologyDeviceKind } from '@/features/operations/operations-lab-definitions';
 import { applySimulationConfiguration, emptyOperationsSimulationSession, evaluateSimulationObjective, operationsSimulationDefinitions, type OperationsSimulationSession, type SimulationValue } from '@/features/operations/operations-simulator';
 import { practiceConfigs } from '@/features/practice/practice-configs';
 import { normalizeVisibleDeviceName } from '@/shared/device-display-names';
+import type { AuthoredTopologyLayout, TopologyCaptionAnchor } from '@/shared/components/topology-link-labels';
 
 export type SolvedExampleFamily = 'topology' | 'decision' | 'switching' | 'cli' | 'transport' | 'operations' | 'capstone';
 export type SolvedExampleDeviceKind = OperationsTopologyDeviceKind;
 
 export interface SolvedExampleTopology {
   description: string;
+  layout?: AuthoredTopologyLayout;
   nodes: { id: string; label: string; kind: SolvedExampleDeviceKind; detail?: string }[];
   links: { id: string; from: string; to: string; label?: string; fromInterface?: string; toInterface?: string; context?: string; state?: string }[];
 }
@@ -64,7 +66,7 @@ function isSnapshot(value: unknown): value is SolvedLabExampleSnapshot {
 const foundationStatic: Record<string, Omit<SolvedLabExampleSnapshot, 'labId'>> = {
   'first-network': {
     title: 'BUILD YOUR FIRST NETWORK', goal: 'Connect both PCs to the same switch.', family: 'topology',
-    topology: { description: 'Two PCs use separate Ethernet links to one switch.', nodes: [{ id: 'pc-1', label: 'PC1', kind: 'pc' }, { id: 'sw-1', label: 'SW1', kind: 'switch' }, { id: 'pc-2', label: 'PC2', kind: 'pc' }], links: [{ id: 'a', from: 'pc-1', to: 'sw-1', fromInterface: 'E0', toInterface: 'F0/1', context: 'ETHERNET LINK', state: 'UP' }, { id: 'b', from: 'pc-2', to: 'sw-1', fromInterface: 'E0', toInterface: 'F0/2', context: 'ETHERNET LINK', state: 'UP' }] },
+    topology: { description: 'Two PCs use separate Ethernet links to one switch.', layout: { width: 680, height: 340, nodes: { 'pc-1': { x: 120, y: 92 }, 'sw-1': { x: 340, y: 244 }, 'pc-2': { x: 560, y: 92 } }, captions: { a: { kind: 'link', side: 'above', gap: 38 }, b: { kind: 'link', side: 'below', gap: 38 } } }, nodes: [{ id: 'pc-1', label: 'PC1', kind: 'pc' }, { id: 'sw-1', label: 'SW1', kind: 'switch' }, { id: 'pc-2', label: 'PC2', kind: 'pc' }], links: [{ id: 'a', from: 'pc-1', to: 'sw-1', fromInterface: 'E0', toInterface: 'F0/1', context: 'ETHERNET LINK', state: 'UP' }, { id: 'b', from: 'pc-2', to: 'sw-1', fromInterface: 'E0', toInterface: 'F0/2', context: 'ETHERNET LINK', state: 'UP' }] },
     sections: [section('configuration', 'COMPLETED CONNECTIONS', 'configuration', ['PC1 E0 → SW1 F0/1', 'PC2 E0 → SW1 F0/2']), section('trace', 'MESSAGE PATH', 'trace', ['PC1 → SW1 → PC2', 'Both PCs share one local Ethernet network.'])],
     explanation: why('Both PCs have an active link to the same switch.', 'A switch connects endpoints inside one local network.', 'The two endpoints now have a Layer 2 path.', 'Select each cable and confirm both endpoint ports.'),
   },
@@ -79,9 +81,32 @@ function practiceSnapshot(labId: string): SolvedLabExampleSnapshot {
   return { labId, title: config.title, goal: config.objective, family: 'decision', sections: [section('decisions', 'CORRECT DECISIONS', 'results', config.stages.map((stage, index) => { const choice = stage.choices.find((entry) => entry.id === stage.correctChoiceId); return `${index + 1} / ${choice?.label ?? stage.correctChoiceId} / ${stage.result}`; })), section('reasons', 'WHY EACH DECISION IS CORRECT', 'trace', config.stages.map((stage, index) => `${index + 1} / ${stage.explanation}`))], explanation: why('Every stage uses the supplied network facts.', 'The decision must follow the addressing, subnet, gateway, ARP, or ICMP rule taught before the lab.', 'The complete sequence satisfies the lab objective.', 'Compare each supplied fact with the corresponding decision.') };
 }
 
-function topologyFromCli(state: CliNetworkState): SolvedExampleTopology {
+function cliSolvedLayout(state: CliNetworkState, definition: CliLabDefinition): AuthoredTopologyLayout {
+  const mode = 'wide' as const;
+  const width = definition.topology.width[mode];
+  const height = definition.topology.height[mode];
+  const positions = definition.topology[mode];
+  const captions: Record<string, TopologyCaptionAnchor> = {};
+  state.links.forEach((link, index) => {
+    const liveLinkId = `${link.aDeviceId}-${link.aInterface}-${link.bDeviceId}-${link.bInterface}`;
+    const anchor = definition.topology.linkCaptions?.[liveLinkId]?.[mode];
+    if (anchor) captions[`link-${index}`] = anchor;
+  });
   return {
-    description: 'Completed fixed CLI topology. Port labels appear beside devices and link context appears above each cable.',
+    width,
+    height,
+    nodes: Object.fromEntries(state.devices.map((device) => {
+      const point = positions[device.id];
+      return [device.id, { x: width * point.x / 100, y: height * point.y / 100 }];
+    })),
+    captions,
+  };
+}
+
+function topologyFromCli(state: CliNetworkState, definition: CliLabDefinition): SolvedExampleTopology {
+  return {
+    description: 'Completed fixed CLI topology. Port labels stay with device endpoints and link context uses the authored network layout.',
+    layout: cliSolvedLayout(state, definition),
     nodes: state.devices.map((device) => ({ id: device.id, label: device.name, kind: device.type === 'host' ? 'pc' : device.type })),
     links: state.links.map((link, index) => {
       const context = deriveCliLinkContext(state, link);
@@ -114,7 +139,7 @@ function cliSnapshot(labId: string): SolvedLabExampleSnapshot {
   if (!definition) throw new Error(`No CLI definition for ${labId}.`);
   if (definition.kind === 'diagnostic') {
     const rows = diagnosticScenarios.flatMap((scenario, index) => [`SCENARIO ${index + 1} / ${scenario.context}`, ...scenario.suggestions.map((command) => `COMMAND / ${command}`), `CONCLUSION / ${scenario.choices.find((choice) => choice.id === scenario.correctChoiceId)?.label}`]);
-    return { labId, title: definition.title, goal: definition.objective, family: 'cli', topology: topologyFromCli(diagnosticScenarios.at(-1)!.createState()), sections: [section('commands', 'SUPPORTED COMMAND EVIDENCE', 'commands', rows), section('results', 'VERIFICATION', 'results', diagnosticScenarios.map((scenario) => scenario.choices.find((choice) => choice.id === scenario.correctChoiceId)?.feedback ?? scenario.correctChoiceId))], explanation: why('Each conclusion is limited to the displayed CLI evidence.', 'Diagnostic commands reveal specific state but do not prove unrelated causes.', 'All four scenarios have the required evidence and supported conclusion.', 'Read the command output before choosing the conclusion.') };
+    return { labId, title: definition.title, goal: definition.objective, family: 'cli', topology: topologyFromCli(diagnosticScenarios.at(-1)!.createState(), definition), sections: [section('commands', 'SUPPORTED COMMAND EVIDENCE', 'commands', rows), section('results', 'VERIFICATION', 'results', diagnosticScenarios.map((scenario) => scenario.choices.find((choice) => choice.id === scenario.correctChoiceId)?.feedback ?? scenario.correctChoiceId))], explanation: why('Each conclusion is limited to the displayed CLI evidence.', 'Diagnostic commands reveal specific state but do not prove unrelated causes.', 'All four scenarios have the required evidence and supported conclusion.', 'Read the command output before choosing the conclusion.') };
   }
   let state = definition.createState();
   const transcript: string[] = [];
@@ -142,7 +167,7 @@ function cliSnapshot(labId: string): SolvedLabExampleSnapshot {
       ? ['VLAN 10 AND VLAN 20 PRESENT', 'ACCESS PORTS ASSIGNED', 'BOTH TRUNKS ALLOW VLAN 10 AND VLAN 20']
       : ['G0/0.10 SERVES VLAN 10 AT 192.168.10.1/24', 'G0/0.20 SERVES VLAN 20 AT 192.168.20.1/24', 'BIDIRECTIONAL INTER-VLAN PING — SUCCESS'];
   return {
-    labId, title: definition.title, goal: definition.objective, family: 'cli', topology: topologyFromCli(state),
+    labId, title: definition.title, goal: definition.objective, family: 'cli', topology: topologyFromCli(state, definition),
     sections: [
       section('configuration', 'FINAL DEVICE CONFIGURATION', 'configuration', ['Select a device to inspect its completed interfaces, routes, and VLAN state.'], { records: configurationRecords }),
       section('transcript', 'COMMAND TRANSCRIPT', 'commands', transcript, { commandGroups }),
@@ -163,7 +188,18 @@ function transportSnapshot(): SolvedLabExampleSnapshot {
   result = applyTransportAction(state, { type: 'drop-udp' }); state = result.state;
   if (!evaluateTransportObjective(state).complete) throw new Error('Transport solved state is incomplete.');
   const tables = deriveTransportTables(state);
-  return { labId: 'transport-service-desk', title: 'BUILD TRANSPORT EXCHANGES', goal: 'Configure endpoints, complete TCP recovery, then compare UDP.', family: 'transport', topology: { description: 'Client traffic crosses an IP-forwarding router to an application server.', nodes: [{ id: 'client', label: 'PC1', kind: 'pc', detail: `${state.client.address}:${state.client.port}` }, { id: 'network', label: 'R1', kind: 'router', detail: 'IP FORWARDER' }, { id: 'server', label: 'WEB1', kind: 'server', detail: `${state.server.address}:${state.server.port}` }], links: [{ id: 'one', from: 'client', to: 'network', fromInterface: 'E0', toInterface: 'G0/0', state: 'UP' }, { id: 'two', from: 'network', to: 'server', fromInterface: 'G0/1', toInterface: 'E0', state: 'UP' }] }, sections: [section('configuration', 'ENDPOINT CONFIGURATION', 'configuration', [...tables.endpoints, ...tables.listeners]), section('state', 'FINAL PROTOCOL STATE', 'table', tables.connection), section('trace', 'EVENT TRACE', 'trace', state.evidence.map((entry) => entry.text))], explanation: state.lastExplanation };
+  return { labId: 'transport-service-desk', title: 'BUILD TRANSPORT EXCHANGES', goal: 'Configure endpoints, complete TCP recovery, then compare UDP.', family: 'transport', topology: { description: 'Client traffic crosses an IP-forwarding router to an application server.', layout: { width: 720, height: 280, nodes: { client: { x: 100, y: 140 }, network: { x: 360, y: 140 }, server: { x: 620, y: 140 } }, captions: {} }, nodes: [{ id: 'client', label: 'PC1', kind: 'pc', detail: `${state.client.address}:${state.client.port}` }, { id: 'network', label: 'R1', kind: 'router', detail: 'IP FORWARDER' }, { id: 'server', label: 'WEB1', kind: 'server', detail: `${state.server.address}:${state.server.port}` }], links: [{ id: 'one', from: 'client', to: 'network', fromInterface: 'E0', toInterface: 'G0/0', state: 'UP' }, { id: 'two', from: 'network', to: 'server', fromInterface: 'G0/1', toInterface: 'E0', state: 'UP' }] }, sections: [section('configuration', 'ENDPOINT CONFIGURATION', 'configuration', [...tables.endpoints, ...tables.listeners]), section('state', 'FINAL PROTOCOL STATE', 'table', tables.connection), section('trace', 'EVENT TRACE', 'trace', state.evidence.map((entry) => entry.text))], explanation: state.lastExplanation };
+}
+
+function operationsSolvedLayout(topology: OperationsLabDefinition['visualTopology']): AuthoredTopologyLayout {
+  const width = Math.max(760, topology.nodes.length * 210);
+  const height = 360;
+  return {
+    width,
+    height,
+    nodes: Object.fromEntries(topology.nodes.map((node) => [node.id, { x: width * node.wide.x / 100, y: height * node.wide.y / 100 }])),
+    captions: {},
+  };
 }
 
 function operationsSnapshot(labId: string): SolvedLabExampleSnapshot {
@@ -187,7 +223,7 @@ function operationsSnapshot(labId: string): SolvedLabExampleSnapshot {
   }
   const topology = authored.visualTopology;
   const explanation = session.lastResult?.explanation ?? authored.stages.at(-1)!.explanation;
-  return { labId, title: authored.title, goal: authored.briefing.goal, family: labId === 'network-operations-capstone' ? 'capstone' : 'operations', topology: { description: topology.description, nodes: topology.nodes.map((node) => ({ id: node.id, label: node.label, kind: node.kind, detail: node.detail })), links: topology.links.map((link) => ({ id: link.id, from: link.a, to: link.b, fromInterface: link.aPort, toInterface: link.bPort, state: 'UP' })) }, sections: [section('configuration', 'CORRECT CONFIGURATION', 'configuration', Object.entries(session.configuration).map(([key, value]) => `${key.toUpperCase()} / ${String(value).toUpperCase()}`)), section('tables', authored.tableTitle, 'table', tables.length ? tables : ['NO ADDITIONAL TABLE ROWS']), section('trace', 'VERIFICATION EVIDENCE', 'trace', evidence)], explanation: { observation: explanation.observation, rule: explanation.rule, proves: explanation.proves, nextCheck: explanation.nextCheck ?? 'Compare the current evidence with the completed objective.' } };
+  return { labId, title: authored.title, goal: authored.briefing.goal, family: labId === 'network-operations-capstone' ? 'capstone' : 'operations', topology: { description: topology.description, layout: operationsSolvedLayout(topology), nodes: topology.nodes.map((node) => ({ id: node.id, label: node.label, kind: node.kind, detail: node.detail })), links: topology.links.map((link) => ({ id: link.id, from: link.a, to: link.b, fromInterface: link.aPort, toInterface: link.bPort, state: 'UP' })) }, sections: [section('configuration', 'CORRECT CONFIGURATION', 'configuration', Object.entries(session.configuration).map(([key, value]) => `${key.toUpperCase()} / ${String(value).toUpperCase()}`)), section('tables', authored.tableTitle, 'table', tables.length ? tables : ['NO ADDITIONAL TABLE ROWS']), section('trace', 'VERIFICATION EVIDENCE', 'trace', evidence)], explanation: { observation: explanation.observation, rule: explanation.rule, proves: explanation.proves, nextCheck: explanation.nextCheck ?? 'Compare the current evidence with the completed objective.' } };
 }
 
 const practiceIds = ['ipv4-configurator', 'subnet-range-desk', 'gateway-forwarding-desk', 'arp-resolution-desk'] as const;

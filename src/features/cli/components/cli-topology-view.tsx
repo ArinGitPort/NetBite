@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import Svg, { Line } from 'react-native-svg';
 
 import {
@@ -17,7 +17,7 @@ import { AppButton } from '@/shared/components/app-button';
 import { Text } from '@/shared/components/console-text';
 import { DisclosureSection } from '@/shared/components/disclosure-section';
 import { LinkConnectionRecord } from '@/shared/components/link-connection-record';
-import { TopologyLinkLabels } from '@/shared/components/topology-link-labels';
+import { calculateTopologyLabelLayout, TopologyLinkLabels } from '@/shared/components/topology-link-labels';
 import type { ResponsiveMode } from '@/shared/responsive-layout';
 import { Fonts, Palette, Space } from '@/shared/theme';
 
@@ -156,6 +156,7 @@ export function CliTopologyView({ network, layout, mode, selectedDeviceId, cliDe
   onOpenCli: (deviceId: string) => void;
 }) {
   const positions = layout[mode];
+  const { fontScale } = useWindowDimensions();
   const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
   const [viewportWidth, setViewportWidth] = useState(0);
   const horizontalScrollRef = useRef<ScrollView>(null);
@@ -167,6 +168,23 @@ export function CliTopologyView({ network, layout, mode, selectedDeviceId, cliDe
   const authoredWidth = layout.width[mode];
   const canvasWidth = Math.max(authoredWidth, viewportWidth);
   const canPan = viewportWidth > 0 && canvasWidth > viewportWidth;
+  const topologyLabelLayout = useMemo(() => {
+    if (canvasSize.width <= 0 || canvasSize.height <= 0) return {};
+    return calculateTopologyLabelLayout({
+      canvas: canvasSize,
+      fontScale,
+      nodes: network.devices.flatMap((device) => {
+        const point = positions[device.id];
+        return point ? [{ id: device.id, point: { x: canvasSize.width * point.x / 100, y: canvasSize.height * point.y / 100 }, bounds: { halfWidth: NODE_WIDTH / 2, halfHeight: 42 } }] : [];
+      }),
+      links: network.links.flatMap((link) => {
+        const id = `${link.aDeviceId}-${link.aInterface}-${link.bDeviceId}-${link.bInterface}`;
+        const context = deriveCliLinkContext(network, link);
+        const anchor = layout.linkCaptions?.[id]?.[mode];
+        return anchor ? [{ id, fromDeviceId: link.aDeviceId, toDeviceId: link.bDeviceId, fromLabel: link.aInterface, toLabel: link.bInterface, contextLabel: context.label, anchor }] : [];
+      }),
+    });
+  }, [canvasSize, fontScale, layout.linkCaptions, mode, network, positions]);
 
   useEffect(() => {
     const point = positions[selectedDeviceId];
@@ -204,10 +222,9 @@ export function CliTopologyView({ network, layout, mode, selectedDeviceId, cliDe
             fromBounds={{ halfWidth: NODE_WIDTH / 2, halfHeight: 42 }}
             fromLabel={link.aInterface}
             id={id}
-            canvas={canvasSize}
             contextLabel={contextLabel}
-            contextPlacement={layout.linkCaptions?.[id]?.[mode]}
             contextTone={context.tone === 'warning' ? 'warning' : 'normal'}
+            resolvedLayout={topologyLabelLayout[id]}
             to={{ x: canvasSize.width * to.x / 100, y: canvasSize.height * to.y / 100 }}
             toBounds={{ halfWidth: NODE_WIDTH / 2, halfHeight: 42 }}
             toLabel={link.bInterface}

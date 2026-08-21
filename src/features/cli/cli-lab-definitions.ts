@@ -1,5 +1,5 @@
 import type { CliDeviceState, CliLabDefinition as PublicCliLabDefinition, CliNetworkState } from '@/core/network/cli-simulator';
-import type { TopologyLinkCaptionPlacement } from '@/shared/components/topology-link-labels';
+import type { TopologyCaptionAnchor } from '@/shared/components/topology-link-labels';
 
 export interface CliPredictionChoice { id: string; label: string; feedback: string }
 export type CliLabView = 'cli' | 'topology';
@@ -11,7 +11,7 @@ export interface CliTopologyLayout {
   compact: Record<string, CliTopologyNodePosition>;
   regular: Record<string, CliTopologyNodePosition>;
   wide: Record<string, CliTopologyNodePosition>;
-  linkCaptions?: Record<string, Partial<Record<'compact' | 'regular' | 'wide', TopologyLinkCaptionPlacement>>>;
+  linkCaptions?: Record<string, Partial<Record<'compact' | 'regular' | 'wide', TopologyCaptionAnchor>>>;
 }
 export interface DiagnosticScenario {
   id: string;
@@ -34,11 +34,15 @@ export interface CliLabDefinition extends PublicCliLabDefinition {
   topology: CliTopologyLayout;
 }
 
-const routedCaptionLane = {
-  compact: { perpendicular: -62 },
-  regular: { perpendicular: -62 },
-  wide: { perpendicular: -62 },
-} satisfies Partial<Record<'compact' | 'regular' | 'wide', TopologyLinkCaptionPlacement>>;
+const everyMode = (anchor: TopologyCaptionAnchor) => ({ compact: anchor, regular: anchor, wide: anchor });
+const routedCaptionLane = everyMode({ kind: 'link', side: 'above', gap: 40 });
+const vlanLeftAccessCaptionLane = everyMode({ kind: 'device', deviceId: 'pc-a', side: 'top', gap: 8 });
+const vlanTrunkCaptionLane = everyMode({ kind: 'device', deviceId: 'sw-a', side: 'top', gap: 8 });
+const vlanUpperBranchCaptionLane = everyMode({ kind: 'link', side: 'above', along: -28, gap: 28 });
+const vlanLowerBranchCaptionLane = everyMode({ kind: 'link', side: 'below', along: -28, gap: 28 });
+const interVlanTrunkCaptionLane = everyMode({ kind: 'device', deviceId: 'sw-1', side: 'bottom', gap: 8 });
+const interVlanLeftAccessCaptionLane = everyMode({ kind: 'link', side: 'above', along: -24, gap: 28 });
+const interVlanRightAccessCaptionLane = everyMode({ kind: 'link', side: 'above', along: -24, gap: 28 });
 
 const device = (input: Partial<CliDeviceState> & Pick<CliDeviceState, 'id' | 'name' | 'type'>): CliDeviceState => ({
   mode: 'user-exec', interfaces: [], routes: [], vlans: [], ...input,
@@ -164,20 +168,31 @@ const staticRoutingTopology: CliTopologyLayout = {
 
 const vlanTopology: CliTopologyLayout = {
   description: 'PC1 connects to SW1. SW1 connects to SW2. PC2 and PC3 connect to SW2.',
-  width: { compact: 860, regular: 860, wide: 860 },
-  height: { compact: 330, regular: 330, wide: 330 },
-  compact: { 'pc-a': { x: 8, y: 50 }, 'sw-a': { x: 31, y: 50 }, 'sw-b': { x: 57, y: 50 }, 'pc-b': { x: 90, y: 27 }, 'pc-c': { x: 90, y: 73 } },
-  regular: { 'pc-a': { x: 8, y: 50 }, 'sw-a': { x: 31, y: 50 }, 'sw-b': { x: 57, y: 50 }, 'pc-b': { x: 90, y: 27 }, 'pc-c': { x: 90, y: 73 } },
-  wide: { 'pc-a': { x: 8, y: 50 }, 'sw-a': { x: 31, y: 50 }, 'sw-b': { x: 57, y: 50 }, 'pc-b': { x: 90, y: 27 }, 'pc-c': { x: 90, y: 73 } },
+  width: { compact: 980, regular: 980, wide: 980 },
+  height: { compact: 400, regular: 400, wide: 400 },
+  compact: { 'pc-a': { x: 10.5, y: 50 }, 'sw-a': { x: 31, y: 50 }, 'sw-b': { x: 57, y: 50 }, 'pc-b': { x: 90, y: 27 }, 'pc-c': { x: 90, y: 73 } },
+  regular: { 'pc-a': { x: 10.5, y: 50 }, 'sw-a': { x: 31, y: 50 }, 'sw-b': { x: 57, y: 50 }, 'pc-b': { x: 90, y: 27 }, 'pc-c': { x: 90, y: 73 } },
+  wide: { 'pc-a': { x: 10.5, y: 50 }, 'sw-a': { x: 31, y: 50 }, 'sw-b': { x: 57, y: 50 }, 'pc-b': { x: 90, y: 27 }, 'pc-c': { x: 90, y: 73 } },
+  linkCaptions: {
+    'pc-a-E0-sw-a-F0/1': vlanLeftAccessCaptionLane,
+    'sw-a-F0/24-sw-b-F0/24': vlanTrunkCaptionLane,
+    'pc-b-E0-sw-b-F0/2': vlanUpperBranchCaptionLane,
+    'pc-c-E0-sw-b-F0/3': vlanLowerBranchCaptionLane,
+  },
 };
 
 const interVlanTopology: CliTopologyLayout = {
   description: 'PC1 and PC2 use separate access VLANs on SW1. SW1 connects by one trunk to router R1.',
-  width: { compact: 640, regular: 640, wide: 640 },
+  width: { compact: 760, regular: 760, wide: 760 },
   height: { compact: 370, regular: 370, wide: 370 },
   compact: { r1: { x: 50, y: 15 }, 'sw-1': { x: 50, y: 50 }, 'pc-a': { x: 16, y: 84 }, 'pc-b': { x: 84, y: 84 } },
   regular: { r1: { x: 50, y: 15 }, 'sw-1': { x: 50, y: 50 }, 'pc-a': { x: 16, y: 84 }, 'pc-b': { x: 84, y: 84 } },
   wide: { r1: { x: 50, y: 15 }, 'sw-1': { x: 50, y: 50 }, 'pc-a': { x: 16, y: 84 }, 'pc-b': { x: 84, y: 84 } },
+  linkCaptions: {
+    'pc-a-E0-sw-1-F0/1': interVlanLeftAccessCaptionLane,
+    'pc-b-E0-sw-1-F0/2': interVlanRightAccessCaptionLane,
+    'sw-1-F0/24-r1-G0/0': interVlanTrunkCaptionLane,
+  },
 };
 
 export function createVlanState(): CliNetworkState {

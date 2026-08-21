@@ -3,7 +3,7 @@ import { StyleSheet } from 'react-native';
 
 import {
   calculateCableEndpointLabels,
-  calculateCableMidpointLabel,
+  calculateTopologyLabelLayout,
   formatTopologyCaption,
   getTopologyCaptionSize,
   getTopologyLabelSize,
@@ -14,6 +14,22 @@ import {
 } from '@/shared/components/topology-link-labels';
 
 const bounds = { halfWidth: 50, halfHeight: 40 };
+
+function resolveTestLink({ anchor = { kind: 'link' as const, side: 'above' as const, gap: 24 }, contextLabel, fontScale = 1, from = { x: 80, y: 110 }, id = 'test-link', to = { x: 420, y: 110 } }: {
+  anchor?: { kind: 'link'; side: 'above' | 'below'; gap?: number } | { kind: 'device'; deviceId: string; side: 'top' | 'bottom' | 'left' | 'right'; gap?: number };
+  contextLabel?: string;
+  fontScale?: number;
+  from?: { x: number; y: number };
+  id?: string;
+  to?: { x: number; y: number };
+}) {
+  return calculateTopologyLabelLayout({
+    canvas: { width: 500, height: 260 },
+    fontScale,
+    nodes: [{ id: 'a', point: from, bounds }, { id: 'b', point: to, bounds }],
+    links: [{ id, fromDeviceId: 'a', toDeviceId: 'b', fromLabel: 'E0', toLabel: 'G0/0', contextLabel, anchor }],
+  })[id];
+}
 
 describe('topology link labels', () => {
   test('places horizontal labels outside both device bounds', () => {
@@ -47,16 +63,17 @@ describe('topology link labels', () => {
     expect(horizontalGap).toBeGreaterThanOrEqual((fromSize.width + toSize.width) / 2 + 8);
   });
 
-  test('places the network caption in a separate lane above a horizontal cable', () => {
-    const caption = calculateCableMidpointLabel(
-      { x: 100, y: 100 },
-      { x: 400, y: 100 },
-      getTopologyCaptionSize('192.168.10.0/24'),
-      { perpendicular: -24 },
-      { width: 500, height: 220 },
-    );
-    expect(caption.x).toBe(250);
-    expect(caption.y).toBeLessThan(100);
+  test('places an anchored network caption in a separate lane above its cable', () => {
+    const resolved = resolveTestLink({ contextLabel: '192.168.10.0/24' });
+    expect(resolved.context?.position.x).toBe(250);
+    expect(resolved.context?.position.y).toBeLessThan(110);
+  });
+
+  test('keeps a device-related warning below its owning device as text grows', () => {
+    const normal = resolveTestLink({ anchor: { kind: 'device', deviceId: 'a', side: 'bottom', gap: 8 }, contextLabel: 'NOT TRUNKED' });
+    const large = resolveTestLink({ anchor: { kind: 'device', deviceId: 'a', side: 'bottom', gap: 8 }, contextLabel: 'NOT TRUNKED', fontScale: 2 });
+    expect(normal.context!.position.y).toBeGreaterThan(110 + bounds.halfHeight);
+    expect(large.context!.position.y).toBeGreaterThan(normal.context!.position.y);
   });
 
   test('expands technical plates with system font scale without truncating the value', () => {
@@ -75,15 +92,20 @@ describe('topology link labels', () => {
     const fontScale = 2;
     const fromSize = getTopologyLabelSize('E0', fontScale);
     const toSize = getTopologyLabelSize('G0/0', fontScale);
-    const endpointPositions = calculateCableEndpointLabels(from, to, bounds, bounds, fromSize, toSize);
     const captionSize = getTopologyCaptionSize('192.168.10.0/24', fontScale);
-    const captionPosition = calculateCableMidpointLabel(from, to, captionSize, { perpendicular: -62 }, { width: 484, height: 280 });
+    const resolved = calculateTopologyLabelLayout({
+      canvas: { width: 484, height: 280 },
+      fontScale,
+      nodes: [{ id: 'a', point: from, bounds }, { id: 'b', point: to, bounds }],
+      links: [{ id: 'large', fromDeviceId: 'a', toDeviceId: 'b', fromLabel: 'E0', toLabel: 'G0/0', contextLabel: '192.168.10.0/24', anchor: { kind: 'link', side: 'above', gap: 20 } }],
+    }).large;
+    const captionPosition = resolved.context!.position;
     const captionRect = getTopologyRect(captionPosition, captionSize);
     const otherRects = [
-      getTopologyRect(from, { width: 100, height: 84 }),
-      getTopologyRect(to, { width: 100, height: 84 }),
-      getTopologyRect(endpointPositions.from, fromSize),
-      getTopologyRect(endpointPositions.to, toSize),
+      getTopologyRect(from, { width: 100, height: 80 }),
+      getTopologyRect(to, { width: 100, height: 80 }),
+      getTopologyRect(resolved.from.position, fromSize),
+      getTopologyRect(resolved.to.position, toSize),
     ];
     otherRects.forEach((rect) => expect(topologyRectsOverlap(captionRect, rect, 4)).toBe(false));
   });
@@ -100,7 +122,8 @@ describe('topology link labels', () => {
   });
 
   test('renders a derived subnet caption separately from both endpoint plates', async () => {
-    const screen = await render(<TopologyLinkLabels accessibilityLabel="Routed cable" canvas={{ width: 500, height: 220 }} contextLabel="192.168.10.0/24" from={{ x: 80, y: 100 }} fromBounds={bounds} fromLabel="E0" id="subnet-link" to={{ x: 420, y: 100 }} toBounds={bounds} toLabel="G0/0" />);
+    const resolvedLayout = resolveTestLink({ contextLabel: '192.168.10.0/24', from: { x: 80, y: 100 }, id: 'subnet-link', to: { x: 420, y: 100 } });
+    const screen = await render(<TopologyLinkLabels accessibilityLabel="Routed cable" contextLabel="192.168.10.0/24" from={{ x: 80, y: 100 }} fromBounds={bounds} fromLabel="E0" id="subnet-link" resolvedLayout={resolvedLayout} to={{ x: 420, y: 100 }} toBounds={bounds} toLabel="G0/0" />);
     const context = StyleSheet.flatten(screen.getByTestId('topology-link-label-subnet-link-context').props.style);
     const from = StyleSheet.flatten(screen.getByTestId('topology-link-label-subnet-link-from').props.style);
     expect(screen.getByText(/192\.168\.10\.0\s*\/24/)).toBeTruthy();
@@ -109,7 +132,8 @@ describe('topology link labels', () => {
   });
 
   test('keeps a complete transit subnet visible without ellipsis or a split prefix', async () => {
-    const screen = await render(<TopologyLinkLabels canvas={{ width: 420, height: 220 }} contextLabel="10.0.23.0/30" from={{ x: 70, y: 120 }} fromBounds={bounds} fromLabel="G0/1" id="transit-subnet" to={{ x: 350, y: 120 }} toBounds={bounds} toLabel="G0/0" />);
+    const resolvedLayout = calculateTopologyLabelLayout({ canvas: { width: 420, height: 220 }, nodes: [{ id: 'a', point: { x: 70, y: 120 }, bounds }, { id: 'b', point: { x: 350, y: 120 }, bounds }], links: [{ id: 'transit-subnet', fromDeviceId: 'a', toDeviceId: 'b', fromLabel: 'G0/1', toLabel: 'G0/0', contextLabel: '10.0.23.0/30', anchor: { kind: 'link', side: 'above', gap: 24 } }] })['transit-subnet'];
+    const screen = await render(<TopologyLinkLabels contextLabel="10.0.23.0/30" from={{ x: 70, y: 120 }} fromBounds={bounds} fromLabel="G0/1" id="transit-subnet" resolvedLayout={resolvedLayout} to={{ x: 350, y: 120 }} toBounds={bounds} toLabel="G0/0" />);
     const label = screen.getByText('10.0.23.0/30');
     const plate = StyleSheet.flatten(screen.getByTestId('topology-link-label-transit-subnet-context').props.style);
     expect(label.props.numberOfLines).toBe(1);
