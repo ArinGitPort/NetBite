@@ -1,9 +1,11 @@
-import { executeCliCommand, parseCliCommand, type CliNetworkState } from '@/core/network/cli-simulator';
+import { deriveCliLinkContext, executeCliCommand, parseCliCommand, prefixToSubnetMask, type CliNetworkState } from '@/core/network/cli-simulator';
 import { applyTransportAction, createTransportLabState, deriveTransportTables, evaluateTransportObjective, type TransportLabState } from '@/core/network/transport-lab';
+import { calculateSubnetRange } from '@/core/network/advanced-networking';
 import { cliLabDefinitions, diagnosticScenarios, requiredStaticRoutes } from '@/features/cli/cli-lab-definitions';
 import { operationsLabDefinitions, type OperationsTopologyDeviceKind } from '@/features/operations/operations-lab-definitions';
 import { applySimulationConfiguration, emptyOperationsSimulationSession, evaluateSimulationObjective, operationsSimulationDefinitions, type OperationsSimulationSession, type SimulationValue } from '@/features/operations/operations-simulator';
 import { practiceConfigs } from '@/features/practice/practice-configs';
+import { normalizeVisibleDeviceName } from '@/shared/device-display-names';
 
 export type SolvedExampleFamily = 'topology' | 'decision' | 'switching' | 'cli' | 'transport' | 'operations' | 'capstone';
 export type SolvedExampleDeviceKind = OperationsTopologyDeviceKind;
@@ -11,7 +13,7 @@ export type SolvedExampleDeviceKind = OperationsTopologyDeviceKind;
 export interface SolvedExampleTopology {
   description: string;
   nodes: { id: string; label: string; kind: SolvedExampleDeviceKind; detail?: string }[];
-  links: { id: string; from: string; to: string; label?: string }[];
+  links: { id: string; from: string; to: string; label?: string; fromInterface?: string; toInterface?: string; context?: string; state?: string }[];
 }
 
 export interface SolvedExampleSection {
@@ -19,7 +21,13 @@ export interface SolvedExampleSection {
   title: string;
   kind: 'configuration' | 'commands' | 'table' | 'trace' | 'results';
   rows: string[];
+  records?: SolvedExampleRecord[];
+  commandGroups?: SolvedExampleCommandGroup[];
 }
+
+export interface SolvedExampleField { label: string; value: string }
+export interface SolvedExampleRecord { id: string; title: string; deviceLabel?: string; fields: SolvedExampleField[] }
+export interface SolvedExampleCommandGroup { deviceLabel: string; lines: string[]; explanations?: SolvedExampleRecord[] }
 
 export interface SolvedLabExampleSnapshot {
   labId: string;
@@ -41,7 +49,7 @@ export interface SolvedLabExampleDefinition<TSnapshot = SolvedLabExampleSnapshot
   describeResults: (snapshot: TSnapshot) => string[];
 }
 
-const section = (id: string, title: string, kind: SolvedExampleSection['kind'], rows: string[]): SolvedExampleSection => ({ id, title, kind, rows });
+const section = (id: string, title: string, kind: SolvedExampleSection['kind'], rows: string[], extra?: Pick<SolvedExampleSection, 'records' | 'commandGroups'>): SolvedExampleSection => ({ id, title, kind, rows, ...extra });
 const why = (observation: string, rule: string, proves: string, nextCheck: string) => ({ observation, rule, proves, nextCheck });
 
 function isSnapshot(value: unknown): value is SolvedLabExampleSnapshot {
@@ -56,12 +64,12 @@ function isSnapshot(value: unknown): value is SolvedLabExampleSnapshot {
 const foundationStatic: Record<string, Omit<SolvedLabExampleSnapshot, 'labId'>> = {
   'first-network': {
     title: 'BUILD YOUR FIRST NETWORK', goal: 'Connect both PCs to the same switch.', family: 'topology',
-    topology: { description: 'Two PCs use separate Ethernet links to one switch.', nodes: [{ id: 'pc-1', label: 'PC 1', kind: 'pc' }, { id: 'sw-1', label: 'SWITCH 1', kind: 'switch' }, { id: 'pc-2', label: 'PC 2', kind: 'pc' }], links: [{ id: 'a', from: 'pc-1', to: 'sw-1', label: 'E0 — F0/1' }, { id: 'b', from: 'pc-2', to: 'sw-1', label: 'E0 — F0/2' }] },
-    sections: [section('configuration', 'COMPLETED CONNECTIONS', 'configuration', ['PC 1 E0 → SWITCH 1 F0/1', 'PC 2 E0 → SWITCH 1 F0/2']), section('trace', 'MESSAGE PATH', 'trace', ['PC 1 → SWITCH 1 → PC 2', 'Both PCs share one local Ethernet network.'])],
+    topology: { description: 'Two PCs use separate Ethernet links to one switch.', nodes: [{ id: 'pc-1', label: 'PC1', kind: 'pc' }, { id: 'sw-1', label: 'SW1', kind: 'switch' }, { id: 'pc-2', label: 'PC2', kind: 'pc' }], links: [{ id: 'a', from: 'pc-1', to: 'sw-1', fromInterface: 'E0', toInterface: 'F0/1', context: 'ETHERNET LINK', state: 'UP' }, { id: 'b', from: 'pc-2', to: 'sw-1', fromInterface: 'E0', toInterface: 'F0/2', context: 'ETHERNET LINK', state: 'UP' }] },
+    sections: [section('configuration', 'COMPLETED CONNECTIONS', 'configuration', ['PC1 E0 → SW1 F0/1', 'PC2 E0 → SW1 F0/2']), section('trace', 'MESSAGE PATH', 'trace', ['PC1 → SW1 → PC2', 'Both PCs share one local Ethernet network.'])],
     explanation: why('Both PCs have an active link to the same switch.', 'A switch connects endpoints inside one local network.', 'The two endpoints now have a Layer 2 path.', 'Select each cable and confirm both endpoint ports.'),
   },
   'ethernet-cables': { title: 'MATCH ETHERNET CABLES', goal: 'Choose the traditional cable type for every device pair.', family: 'decision', sections: [section('answers', 'CORRECT CABLE DECISIONS', 'results', ['PC ↔ SWITCH / STRAIGHT-THROUGH', 'ROUTER ↔ SWITCH / STRAIGHT-THROUGH', 'SWITCH ↔ SWITCH / CROSSOVER']), section('reason', 'REASONS', 'trace', ['Unlike device roles use straight-through wiring.', 'Like device roles traditionally use crossover wiring.', 'Auto-MDIX can remove this manual distinction on supported ports.'])], explanation: why('Every device pair has the appropriate transmit/receive wiring.', 'Traditional Ethernet cabling pairs unlike roles straight-through and like roles crossover.', 'The links can be cabled correctly in the lab model.', 'On real equipment, verify whether auto-MDIX is available.') },
-  'switch-decision-desk': { title: 'FOLLOW A SWITCH DECISION', goal: 'Learn sources first, then forward or flood from the destination lookup.', family: 'switching', topology: { description: 'PC-A, PC-B, and PC-C connect to one switch.', nodes: [{ id: 'a', label: 'PC-A', kind: 'pc' }, { id: 'sw', label: 'SW-1', kind: 'switch' }, { id: 'b', label: 'PC-B', kind: 'pc' }, { id: 'c', label: 'PC-C', kind: 'pc' }], links: [{ id: 'a1', from: 'a', to: 'sw', label: 'PORT 1' }, { id: 'b2', from: 'b', to: 'sw', label: 'PORT 2' }, { id: 'c3', from: 'c', to: 'sw', label: 'PORT 3' }] }, sections: [section('sequence', 'FRAME SEQUENCE', 'trace', ['1 / A→B / LEARN A ON PORT 1 / FLOOD', '2 / B→A / LEARN B ON PORT 2 / FORWARD PORT 1', '3 / C→BROADCAST / LEARN C ON PORT 3 / FLOOD PORTS 1 AND 2', '4 / A→B / REFRESH A ON PORT 1 / FORWARD PORT 2']), section('table', 'FINAL MAC TABLE', 'table', ['02:00:00:00:00:0A / PORT 1', '02:00:00:00:00:0B / PORT 2', '02:00:00:00:00:0C / PORT 3'])], explanation: why('The switch learned all three source MAC addresses.', 'A switch learns the source first, then checks the destination.', 'Known unicasts use one port while unknown unicasts and broadcasts flood eligible ports.', 'Compare the destination MAC with the final table.') },
+  'switch-decision-desk': { title: 'FOLLOW A SWITCH DECISION', goal: 'Learn sources first, then forward or flood from the destination lookup.', family: 'switching', topology: { description: 'PC1, PC2, and PC3 connect to one switch.', nodes: [{ id: 'a', label: 'PC1', kind: 'pc' }, { id: 'sw', label: 'SW1', kind: 'switch' }, { id: 'b', label: 'PC2', kind: 'pc' }, { id: 'c', label: 'PC3', kind: 'pc' }], links: [{ id: 'a1', from: 'a', to: 'sw', label: 'PORT 1' }, { id: 'b2', from: 'b', to: 'sw', label: 'PORT 2' }, { id: 'c3', from: 'c', to: 'sw', label: 'PORT 3' }] }, sections: [section('sequence', 'FRAME SEQUENCE', 'trace', ['1 / A→B / LEARN A ON PORT 1 / FLOOD', '2 / B→A / LEARN B ON PORT 2 / FORWARD PORT 1', '3 / C→BROADCAST / LEARN C ON PORT 3 / FLOOD PORTS 1 AND 2', '4 / A→B / REFRESH A ON PORT 1 / FORWARD PORT 2']), section('table', 'FINAL MAC TABLE', 'table', ['02:00:00:00:00:0A / PORT 1', '02:00:00:00:00:0B / PORT 2', '02:00:00:00:00:0C / PORT 3'])], explanation: why('The switch learned all three source MAC addresses.', 'A switch learns the source first, then checks the destination.', 'Known unicasts use one port while unknown unicasts and broadcasts flood eligible ports.', 'Compare the destination MAC with the final table.') },
   'layer-sorting-desk': { title: 'SORT THE OSI RESPONSIBILITIES', goal: 'Place each responsibility at the layer that owns it.', family: 'decision', sections: [section('mapping', 'COMPLETE LAYER MAP', 'results', ['7 APPLICATION / USER-FACING NETWORK SERVICES', '6 PRESENTATION / FORMAT, ENCRYPTION, COMPRESSION', '5 SESSION / DIALOG MANAGEMENT', '4 TRANSPORT / PORTS AND END-TO-END DELIVERY', '3 NETWORK / IP ADDRESSING AND ROUTING', '2 DATA LINK / FRAMES, MAC, LOCAL SWITCHING', '1 PHYSICAL / SIGNALS, MEDIA, CONNECTORS'])], explanation: why('Every responsibility is assigned to its closest OSI layer.', 'The OSI model separates networking responsibilities for discussion and troubleshooting.', 'The mapping identifies responsibility, not a literal implementation sequence.', 'Ask what information each layer adds or interprets.') },
 };
 
@@ -72,7 +80,19 @@ function practiceSnapshot(labId: string): SolvedLabExampleSnapshot {
 }
 
 function topologyFromCli(state: CliNetworkState): SolvedExampleTopology {
-  return { description: 'Completed fixed CLI topology.', nodes: state.devices.map((device) => ({ id: device.id, label: device.name, kind: device.type === 'host' ? 'pc' : device.type, detail: device.interfaces.map((item) => `${item.name}${item.ipv4 ? ` ${item.ipv4}/${item.prefix}` : ''}`).join(' / ') })), links: state.links.map((link, index) => ({ id: `link-${index}`, from: link.aDeviceId, to: link.bDeviceId, label: `${link.aInterface} — ${link.bInterface}` })) };
+  return {
+    description: 'Completed fixed CLI topology. Port labels appear beside devices and link context appears above each cable.',
+    nodes: state.devices.map((device) => ({ id: device.id, label: device.name, kind: device.type === 'host' ? 'pc' : device.type })),
+    links: state.links.map((link, index) => {
+      const context = deriveCliLinkContext(state, link);
+      return {
+        id: `link-${index}`, from: link.aDeviceId, to: link.bDeviceId,
+        fromInterface: link.aInterface, toInterface: link.bInterface,
+        context: context.kind === 'operational' ? context.networkLabel : context.label,
+        state: context.kind === 'operational' ? context.label : context.tone === 'warning' ? 'ATTENTION' : 'UP',
+      };
+    }),
+  };
 }
 
 function runCli(state: CliNetworkState, deviceId: string, commands: string[], transcript: string[]) {
@@ -114,8 +134,22 @@ function cliSnapshot(labId: string): SolvedLabExampleSnapshot {
     state = runCli(state, 'pc-a', ['ping 192.168.20.20'], transcript);
     state = runCli(state, 'pc-b', ['ping 192.168.10.10'], transcript);
   }
-  const configuration = state.devices.flatMap((device) => [`${device.name} / MODE ${device.mode.toUpperCase()}`, ...device.interfaces.map((item) => `${item.name} / ${item.ipv4 ? `${item.ipv4}/${item.prefix}` : item.switchportMode?.toUpperCase() ?? 'UP'}${item.accessVlan ? ` / VLAN ${item.accessVlan}` : ''}${item.allowedVlans ? ` / ALLOWED ${item.allowedVlans.join(',')}` : ''}`), ...device.routes.filter((route) => route.source === 'static').map((route) => `ROUTE ${route.prefix}/${route.prefixLength} VIA ${route.nextHop}`)]);
-  return { labId, title: definition.title, goal: definition.objective, family: 'cli', topology: topologyFromCli(state), sections: [section('configuration', 'FINAL DEVICE CONFIGURATION', 'configuration', configuration), section('transcript', 'COMMAND TRANSCRIPT', 'commands', transcript), section('verification', 'RESULTING EVIDENCE', 'results', definition.kind === 'routing' ? ['PC-A → PC-C / SUCCESS', 'PC-C → PC-A / SUCCESS', 'FOUR REQUIRED STATIC ROUTES PRESENT'] : definition.kind === 'vlan' ? ['VLAN 10 AND 20 PRESENT', 'ACCESS PORTS ASSIGNED', 'BOTH TRUNKS ALLOW VLAN 10 AND 20'] : ['G0/0.10 / VLAN 10 / 192.168.10.1/24', 'G0/0.20 / VLAN 20 / 192.168.20.1/24', 'BIDIRECTIONAL INTER-VLAN PING / SUCCESS'])], explanation: why('The accepted commands produced the displayed device state.', 'Verification is derived from configuration, routes, VLAN context, and forward/return paths.', 'The completed state satisfies the lab requirements.', 'Compare the configuration first, then its verification evidence.') };
+  const configurationRecords = cliConfigurationRecords(state);
+  const commandGroups = cliCommandGroups(state, transcript);
+  const verification = definition.kind === 'routing'
+    ? ['PC1 TO PC3 — SUCCESS', 'PC3 TO PC1 — SUCCESS', 'FOUR REQUIRED STATIC ROUTES PRESENT']
+    : definition.kind === 'vlan'
+      ? ['VLAN 10 AND VLAN 20 PRESENT', 'ACCESS PORTS ASSIGNED', 'BOTH TRUNKS ALLOW VLAN 10 AND VLAN 20']
+      : ['G0/0.10 SERVES VLAN 10 AT 192.168.10.1/24', 'G0/0.20 SERVES VLAN 20 AT 192.168.20.1/24', 'BIDIRECTIONAL INTER-VLAN PING — SUCCESS'];
+  return {
+    labId, title: definition.title, goal: definition.objective, family: 'cli', topology: topologyFromCli(state),
+    sections: [
+      section('configuration', 'FINAL DEVICE CONFIGURATION', 'configuration', ['Select a device to inspect its completed interfaces, routes, and VLAN state.'], { records: configurationRecords }),
+      section('transcript', 'COMMAND TRANSCRIPT', 'commands', transcript, { commandGroups }),
+      section('verification', 'RESULTING EVIDENCE', 'results', verification),
+    ],
+    explanation: why('The accepted commands produced the displayed device state.', 'Verification is derived from configuration, routes, VLAN context, and forward and return paths.', 'The completed state satisfies the lab requirements.', 'Compare the configuration first, then its verification evidence.'),
+  };
 }
 
 function transportSnapshot(): SolvedLabExampleSnapshot {
@@ -129,7 +163,7 @@ function transportSnapshot(): SolvedLabExampleSnapshot {
   result = applyTransportAction(state, { type: 'drop-udp' }); state = result.state;
   if (!evaluateTransportObjective(state).complete) throw new Error('Transport solved state is incomplete.');
   const tables = deriveTransportTables(state);
-  return { labId: 'transport-service-desk', title: 'BUILD TRANSPORT EXCHANGES', goal: 'Configure endpoints, complete TCP recovery, then compare UDP.', family: 'transport', topology: { description: 'Client traffic crosses an IP-forwarding router to an application server.', nodes: [{ id: 'client', label: 'CLIENT PC', kind: 'pc', detail: `${state.client.address}:${state.client.port}` }, { id: 'network', label: 'R-1', kind: 'router', detail: 'IP FORWARDER' }, { id: 'server', label: 'APPLICATION SERVER', kind: 'server', detail: `${state.server.address}:${state.server.port}` }], links: [{ id: 'one', from: 'client', to: 'network' }, { id: 'two', from: 'network', to: 'server' }] }, sections: [section('configuration', 'ENDPOINT CONFIGURATION', 'configuration', [...tables.endpoints, ...tables.listeners]), section('state', 'FINAL PROTOCOL STATE', 'table', tables.connection), section('trace', 'EVENT TRACE', 'trace', state.evidence.map((entry) => entry.text))], explanation: state.lastExplanation };
+  return { labId: 'transport-service-desk', title: 'BUILD TRANSPORT EXCHANGES', goal: 'Configure endpoints, complete TCP recovery, then compare UDP.', family: 'transport', topology: { description: 'Client traffic crosses an IP-forwarding router to an application server.', nodes: [{ id: 'client', label: 'PC1', kind: 'pc', detail: `${state.client.address}:${state.client.port}` }, { id: 'network', label: 'R1', kind: 'router', detail: 'IP FORWARDER' }, { id: 'server', label: 'WEB1', kind: 'server', detail: `${state.server.address}:${state.server.port}` }], links: [{ id: 'one', from: 'client', to: 'network', fromInterface: 'E0', toInterface: 'G0/0', state: 'UP' }, { id: 'two', from: 'network', to: 'server', fromInterface: 'G0/1', toInterface: 'E0', state: 'UP' }] }, sections: [section('configuration', 'ENDPOINT CONFIGURATION', 'configuration', [...tables.endpoints, ...tables.listeners]), section('state', 'FINAL PROTOCOL STATE', 'table', tables.connection), section('trace', 'EVENT TRACE', 'trace', state.evidence.map((entry) => entry.text))], explanation: state.lastExplanation };
 }
 
 function operationsSnapshot(labId: string): SolvedLabExampleSnapshot {
@@ -153,7 +187,7 @@ function operationsSnapshot(labId: string): SolvedLabExampleSnapshot {
   }
   const topology = authored.visualTopology;
   const explanation = session.lastResult?.explanation ?? authored.stages.at(-1)!.explanation;
-  return { labId, title: authored.title, goal: authored.briefing.goal, family: labId === 'network-operations-capstone' ? 'capstone' : 'operations', topology: { description: topology.description, nodes: topology.nodes.map((node) => ({ id: node.id, label: node.label, kind: node.kind, detail: node.detail })), links: topology.links.map((link) => ({ id: link.id, from: link.a, to: link.b, label: `${link.aPort} - ${link.bPort}` })) }, sections: [section('configuration', 'CORRECT CONFIGURATION', 'configuration', Object.entries(session.configuration).map(([key, value]) => `${key.toUpperCase()} / ${String(value).toUpperCase()}`)), section('tables', authored.tableTitle, 'table', tables.length ? tables : ['NO ADDITIONAL TABLE ROWS']), section('trace', 'VERIFICATION EVIDENCE', 'trace', evidence)], explanation: { observation: explanation.observation, rule: explanation.rule, proves: explanation.proves, nextCheck: explanation.nextCheck ?? 'Compare the current evidence with the completed objective.' } };
+  return { labId, title: authored.title, goal: authored.briefing.goal, family: labId === 'network-operations-capstone' ? 'capstone' : 'operations', topology: { description: topology.description, nodes: topology.nodes.map((node) => ({ id: node.id, label: node.label, kind: node.kind, detail: node.detail })), links: topology.links.map((link) => ({ id: link.id, from: link.a, to: link.b, fromInterface: link.aPort, toInterface: link.bPort, state: 'UP' })) }, sections: [section('configuration', 'CORRECT CONFIGURATION', 'configuration', Object.entries(session.configuration).map(([key, value]) => `${key.toUpperCase()} / ${String(value).toUpperCase()}`)), section('tables', authored.tableTitle, 'table', tables.length ? tables : ['NO ADDITIONAL TABLE ROWS']), section('trace', 'VERIFICATION EVIDENCE', 'trace', evidence)], explanation: { observation: explanation.observation, rule: explanation.rule, proves: explanation.proves, nextCheck: explanation.nextCheck ?? 'Compare the current evidence with the completed objective.' } };
 }
 
 const practiceIds = ['ipv4-configurator', 'subnet-range-desk', 'gateway-forwarding-desk', 'arp-resolution-desk'] as const;
@@ -175,8 +209,99 @@ export function validateSolvedLabExample(labId: string, value: unknown) { return
 export function buildSolvedLabExample(labId: string) {
   const definition = getSolvedLabExample(labId);
   if (!definition) return undefined;
-  const snapshot = definition.buildSnapshot();
+  const snapshot = normalizeSnapshot(definition.buildSnapshot());
   if (!definition.validateSnapshot(snapshot)) throw new Error(`Solved example ${labId} failed validation.`);
   return snapshot;
 }
+
+function cliConfigurationRecords(state: CliNetworkState): SolvedExampleRecord[] {
+  return state.devices.flatMap((device) => {
+    const interfaces: SolvedExampleRecord[] = device.interfaces.map((item) => {
+      const range = item.ipv4 && item.prefix !== undefined ? calculateSubnetRange(item.ipv4, item.prefix) : undefined;
+      const fields: SolvedExampleField[] = [
+        { label: 'Device', value: device.name },
+        { label: 'State', value: item.adminUp && item.linkUp ? 'Up' : 'Down' },
+      ];
+      if (item.ipv4 && item.prefix !== undefined) fields.splice(1, 0,
+        { label: 'IPv4 address', value: item.ipv4 },
+        { label: 'Prefix length', value: `/${item.prefix}` },
+        { label: 'Subnet mask', value: prefixToSubnetMask(item.prefix) ?? 'Invalid prefix' },
+        { label: 'Network', value: range ? `${range.network}/${item.prefix}` : 'Invalid address' },
+      );
+      if (item.parentInterface) fields.push({ label: 'Physical parent', value: item.parentInterface });
+      if (item.encapsulationVlan !== undefined) fields.push({ label: '802.1Q VLAN', value: String(item.encapsulationVlan) });
+      if (item.switchportMode) fields.push({ label: 'Switchport mode', value: item.switchportMode === 'access' ? 'Access' : 'Trunk' });
+      if (item.switchportMode === 'access') fields.push({ label: 'Access VLAN', value: String(item.accessVlan ?? 'Not configured') });
+      if (item.switchportMode === 'trunk') fields.push({ label: 'Allowed VLANs', value: item.allowedVlans?.join(', ') || 'Not configured' });
+      return { id: `${device.id}-interface-${item.name}`, title: `INTERFACE ${item.name}`, deviceLabel: device.name, fields };
+    });
+    const routes = device.routes.filter((route) => route.source === 'static').map((route, index): SolvedExampleRecord => ({
+      id: `${device.id}-route-${index}`, title: 'STATIC ROUTE', deviceLabel: device.name,
+      fields: [
+        { label: 'Device', value: device.name },
+        { label: 'Destination', value: `${route.prefix}/${route.prefixLength}` },
+        { label: 'Subnet mask', value: prefixToSubnetMask(route.prefixLength) ?? 'Invalid prefix' },
+        { label: 'Next hop', value: route.nextHop ?? 'Directly connected' },
+      ],
+    }));
+    const vlans = device.vlans.filter((vlan) => vlan !== 1).map((vlan): SolvedExampleRecord => ({
+      id: `${device.id}-vlan-${vlan}`, title: `VLAN ${vlan}`, deviceLabel: device.name,
+      fields: [{ label: 'Device', value: device.name }, { label: 'Status', value: 'Available' }],
+    }));
+    return [...interfaces, ...routes, ...vlans];
+  });
+}
+
+function cliCommandGroups(state: CliNetworkState, transcript: string[]): SolvedExampleCommandGroup[] {
+  const groups = new Map<string, string[]>();
+  let current = state.devices[0]?.name ?? 'DEVICE';
+  for (const line of transcript) {
+    const promptDevice = state.devices.find((device) => line.startsWith(`${device.name}>`));
+    if (promptDevice) current = promptDevice.name;
+    groups.set(current, [...(groups.get(current) ?? []), line]);
+  }
+  return [...groups].map(([deviceLabel, lines]) => ({
+    deviceLabel,
+    lines,
+    explanations: lines.flatMap((line, index) => {
+      const match = line.match(/^\S+>\s+ip route\s+(\S+)\s+(\S+)\s+(\S+)$/i);
+      return match ? [{
+        id: `${deviceLabel}-route-command-${index}`, title: 'STATIC ROUTE COMMAND', deviceLabel,
+        fields: [
+          { label: 'Destination network', value: match[1] },
+          { label: 'Subnet mask', value: match[2] },
+          { label: 'Next hop', value: match[3] },
+        ],
+      }] : [];
+    }),
+  }));
+}
 export function deriveSolvedExampleSections(snapshot: SolvedLabExampleSnapshot) { return snapshot.sections; }
+
+function normalizeSnapshot(snapshot: SolvedLabExampleSnapshot): SolvedLabExampleSnapshot {
+  const text = (value: string) => normalizeVisibleDeviceName(value)
+    .replaceAll('\u00e2\u2020\u2019', '\u2192')
+    .replaceAll('\u00e2\u2020\u201d', '\u2194')
+    .replaceAll('\u00e2\u20ac\u201d', '\u2014');
+  return {
+    ...snapshot,
+    title: text(snapshot.title),
+    goal: text(snapshot.goal),
+    topology: snapshot.topology ? {
+      ...snapshot.topology,
+      description: text(snapshot.topology.description),
+      nodes: snapshot.topology.nodes.map((node) => ({ ...node, label: text(node.label), detail: node.detail ? text(node.detail) : undefined })),
+      links: snapshot.topology.links.map((link) => ({ ...link, label: link.label ? text(link.label) : undefined })),
+    } : undefined,
+    sections: snapshot.sections.map((entry) => ({
+      ...entry,
+      title: text(entry.title),
+      rows: entry.rows.map(text),
+      records: entry.records?.map((record) => ({ ...record, title: text(record.title), deviceLabel: record.deviceLabel ? text(record.deviceLabel) : undefined, fields: record.fields.map((field) => ({ label: text(field.label), value: text(field.value) })) })),
+      commandGroups: entry.commandGroups?.map((group) => ({ ...group, deviceLabel: text(group.deviceLabel), lines: group.lines.map(text), explanations: group.explanations?.map((record) => ({ ...record, title: text(record.title), deviceLabel: record.deviceLabel ? text(record.deviceLabel) : undefined, fields: record.fields.map((field) => ({ label: text(field.label), value: text(field.value) })) })) })),
+    })),
+    explanation: {
+      observation: text(snapshot.explanation.observation), rule: text(snapshot.explanation.rule), proves: text(snapshot.explanation.proves), nextCheck: text(snapshot.explanation.nextCheck),
+    },
+  };
+}

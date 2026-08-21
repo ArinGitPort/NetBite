@@ -4,6 +4,7 @@ import { AccessibilityInfo, Pressable, StyleSheet, View } from 'react-native';
 import type { LessonCheckpoint as LessonCheckpointDefinition } from '@/content/types';
 import { AppButton } from '@/shared/components/app-button';
 import { Text } from '@/shared/components/console-text';
+import { HintHistoryPanel } from '@/shared/components/hint-history-panel';
 import { Fonts, Palette, Space } from '@/shared/theme';
 
 interface LessonCheckpointProps {
@@ -96,12 +97,7 @@ export function LessonCheckpoint({ checkpoint, reviewLabel, reviewText, onIncorr
               <Text variant="body" style={styles.ruleText}>{reviewText}</Text>
             </View>
           ) : null}
-          {checkpoint.hints?.slice(0, hintCount).map((hint, index) => (
-            <View key={`${index}-${hint}`} accessibilityLiveRegion="polite" style={styles.hintPanel}>
-              <Text variant="label" style={styles.hintLabel}>HINT {index + 1}</Text>
-              <Text variant="bodySmall" style={styles.hintText}>{hint}</Text>
-            </View>
-          ))}
+          <HintHistoryPanel hints={checkpoint.hints?.slice(0, hintCount) ?? []} total={checkpoint.hints?.length ?? 0} />
           {checkpoint.hints && hintCount < checkpoint.hints.length ? (
             <Pressable accessibilityRole="button" onPress={() => setHintCount((count) => count + 1)} style={styles.hintButton}>
               <Text variant="label" style={styles.hintButtonText}>{hintCount === 0 ? 'SHOW A HINT' : 'SHOW NEXT HINT'}</Text>

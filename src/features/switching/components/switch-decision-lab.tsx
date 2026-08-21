@@ -121,7 +121,7 @@ export function SwitchDecisionLab() {
         <View style={styles.switchHeader}>
           <DeviceGlyph type="switch" size={58} />
           <View style={styles.switchHeaderCopy}>
-            <Text variant="technical" style={styles.panelLabel}>SWITCH 1 / THREE ACTIVE PORTS</Text>
+            <Text variant="technical" style={styles.panelLabel}>SW1 / THREE ACTIVE PORTS</Text>
             <Text variant="bodySmall" style={styles.panelCopy}>The ingress port is marked before each decision. Correct output ports appear after the prediction.</Text>
           </View>
         </View>

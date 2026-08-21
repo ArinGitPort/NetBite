@@ -31,12 +31,12 @@ describe('sandbox screen', () => {
     await fireEvent.press(screen.getByText('GUIDE / STARTING NETWORKS'));
     await fireEvent.press(screen.getByText(/start guided lan/i));
     expect(useSandboxStore.getState().workspace.devices).toHaveLength(3);
-    await fireEvent.press(screen.getByLabelText('canvas PC-1'));
+    await fireEvent.press(screen.getByLabelText('canvas PC1'));
     await fireEvent.press(screen.getByRole('button', { name: /^connect$/i }));
-    await fireEvent.press(screen.getByLabelText('canvas SW-1'));
-    await fireEvent.press(screen.getByLabelText('canvas PC-2'));
+    await fireEvent.press(screen.getByLabelText('canvas SW1'));
+    await fireEvent.press(screen.getByLabelText('canvas PC2'));
     await fireEvent.press(screen.getByRole('button', { name: /^connect$/i }));
-    await fireEvent.press(screen.getByLabelText('canvas SW-1'));
+    await fireEvent.press(screen.getByLabelText('canvas SW1'));
     expect(screen.getByText(/2 OF 2 LINKS/)).toBeTruthy();
     await fireEvent.press(screen.getByText(/finish guide/i));
     expect(screen.queryByText(/GUIDED BUILD/)).toBeNull();
@@ -56,7 +56,7 @@ describe('sandbox screen', () => {
     await fireEvent.press(screen.getByText('GUIDE / STARTING NETWORKS'));
     await fireEvent.press(screen.getByText(/show routed walkthrough/i));
     expect(screen.getByText('READY ROUTED NETWORK / TINKERING GUIDE')).toBeTruthy();
-    await fireEvent.press(screen.getByRole('button', { name: /inspect pc-1/i }));
+    await fireEvent.press(screen.getByRole('button', { name: /inspect pc1/i }));
     expect(screen.getByText(/CURRENT \/ 192\.168\.10\.10\/24/)).toBeTruthy();
     await fireEvent.press(screen.getByRole('button', { name: /^test$/i }));
     await fireEvent.press(screen.getByRole('button', { name: /^ping$/i }));
@@ -75,7 +75,7 @@ describe('sandbox screen', () => {
     expect(destination.props.placeholder).toBe('EXAMPLE / 192.168.1.20');
     expect(destination.props.placeholderTextColor).toBe(Palette.textMuted);
     expect(StyleSheet.flatten(destination.props.style).color).toBe(Palette.white);
-    expect(screen.getByRole('button', { name: 'PC-2 / 192.168.20.20' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'PC2 / 192.168.20.20' })).toBeTruthy();
   });
 
   test('blocks incomplete ping input and can explicitly prepare a beginner LAN', async () => {
@@ -88,12 +88,12 @@ describe('sandbox screen', () => {
     await fireEvent.press(screen.getByRole('button', { name: /^test$/i }));
     await fireEvent.press(screen.getByRole('button', { name: /^ping$/i }));
     expect(screen.getByText('BEGINNER LAN AVAILABLE')).toBeTruthy();
-    expect(screen.getByText(/PC-1 does not have a saved IPv4 address and prefix/i)).toBeTruthy();
+    expect(screen.getByText(/PC1 does not have a saved IPv4 address and prefix/i)).toBeTruthy();
     expect(screen.getByRole('button', { name: /run ping/i }).props.accessibilityState.disabled).toBe(true);
     expect(screen.queryByText(/TRACE STOPPED/)).toBeNull();
 
     await fireEvent.press(screen.getByRole('button', { name: /set up beginner lan/i }));
-    expect(screen.getByText(/PC-1: NOT CONFIGURED.*192\.168\.10\.10\/24/s)).toBeTruthy();
+    expect(screen.getByText(/PC1: NOT CONFIGURED.*192\.168\.10\.10\/24/s)).toBeTruthy();
     await fireEvent.press(screen.getByRole('button', { name: /apply setup/i }));
     expect(useSandboxStore.getState().workspace.devices.find((device) => device.id === 'pc-1')?.interfaces[0]).toMatchObject({ ipv4: '192.168.10.10', prefix: 24 });
     expect(screen.getByLabelText('Ping destination IPv4 address').props.value).toBe('192.168.10.20');
@@ -118,8 +118,8 @@ describe('sandbox screen', () => {
     const screen = await render(<SandboxScreen />);
     await fireEvent.press(screen.getByRole('button', { name: /^test$/i }));
     await fireEvent.press(screen.getByRole('button', { name: /^ping$/i }));
-    await fireEvent.press(screen.getByRole('button', { name: /^R-1$/i }));
-    expect(screen.getByLabelText(/SOURCE\. COMPLETE\. R-1 G0\/1 \/ 192\.168\.20\.1\/24/i)).toBeTruthy();
+    await fireEvent.press(screen.getByRole('button', { name: /^R1$/i }));
+    expect(screen.getByLabelText(/SOURCE\. COMPLETE\. R1 G0\/1 \/ 192\.168\.20\.1\/24/i)).toBeTruthy();
   });
 
   test('clears an old trace when the workspace topology changes', async () => {
@@ -155,7 +155,7 @@ describe('sandbox screen', () => {
     const screen = await render(<SandboxScreen />);
     await fireEvent.press(screen.getByRole('button', { name: /^add$/i }));
     await fireEvent.press(screen.getByRole('button', { name: /^pc$/i }));
-    expect(screen.getByText(/DEVICE CREATED \/ PC-1 \/ SAVED LOCALLY/i)).toBeTruthy();
+    expect(screen.getByText(/DEVICE CREATED \/ PC1 \/ SAVED LOCALLY/i)).toBeTruthy();
     await fireEvent.press(screen.getByRole('button', { name: /^configure$/i }));
     await fireEvent.changeText(screen.getByLabelText('NAME'), 'Office_PC');
     await fireEvent.press(screen.getByRole('button', { name: /save name/i }));

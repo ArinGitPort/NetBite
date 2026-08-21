@@ -19,7 +19,7 @@ describe('SandboxCli shared full-screen console', () => {
 
     const layout = screen.getByTestId('sandbox-cli-layout');
     expect(StyleSheet.flatten(layout.props.style)).toMatchObject({ flex: 1 });
-    expect(screen.getByText('R-1 DEVICE CONSOLE')).toBeTruthy();
+    expect(screen.getByText('R1 DEVICE CONSOLE')).toBeTruthy();
     expect(screen.getByLabelText('CLI transcript')).toBeTruthy();
     expect(screen.getByRole('button', { name: /run command/i })).toBeTruthy();
     expect(screen.getAllByRole('button', { name: /^help$/i }).length).toBeGreaterThan(0);

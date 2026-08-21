@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { useState, type ReactNode } from 'react';
+import { type ReactNode } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { getChapterByLabId } from '@/content/chapters';
@@ -7,8 +7,7 @@ import { Text } from '@/shared/components/console-text';
 import { DisclosureSection } from '@/shared/components/disclosure-section';
 import { lessonRoute } from '@/shared/routes';
 import { NumberedStepRow, StatusRow } from '@/shared/components/status-row';
-import { AppButton } from '@/shared/components/app-button';
-import { SolvedLabExampleModal } from '@/features/practice/components/solved-lab-example-modal';
+import { SolvedExampleLauncher } from '@/features/practice/components/solved-example-launcher';
 import { Fonts, Palette, Space } from '@/shared/theme';
 
 export const labSetupSupportIds = [
@@ -30,7 +29,7 @@ export const labSetupSupportIds = [
 const supportedLabIds = new Set<string>(labSetupSupportIds);
 
 const authoredFacts: Record<string, string[]> = {
-  'first-network': ['Two PCs need separate links to the same switch.', 'A router is not required for this one-LAN task.'],
+  'first-network': ['Two PCs need separate links to the same switch.', 'Device names are administrator-chosen labels. NetBite uses PC1, PC2, SW1, and R1 consistently.', 'A router is not required for this one-LAN task.'],
   'ethernet-cables': ['PC or router to switch: straight-through in the traditional manual rule.', 'Switch to switch: crossover when auto-MDIX is unavailable.'],
   'switch-decision-desk': ['Learn the source MAC on the ingress port first.', 'Then inspect the destination and either forward to one known port or flood every other eligible port.'],
   'ipv4-configurator': ['The required LAN is 192.168.10.0/24.', 'Every octet must be 0 through 255, and host addresses must be unique.'],
@@ -41,12 +40,11 @@ const authoredFacts: Record<string, string[]> = {
   'static-route-board': ['Both forward and return paths need routes.', 'Connected routes already exist; add only the required remote static routes.'],
   'vlan-port-desk': ['Access ports carry one access VLAN.', 'Both trunk endpoints must carry the required VLANs.'],
   'layer-sorting-desk': ['Classify the responsibility, not the device name.', 'OSI is a reference model; it is not a literal packet-processing program.'],
-  'inter-vlan-routing-desk': ['PC-A uses F0/1 in VLAN 10; PC-B uses F0/2 in VLAN 20.', 'R-1 G0/0 connects to the F0/24 trunk and uses one subinterface per VLAN.'],
+  'inter-vlan-routing-desk': ['PC1 uses F0/1 in VLAN 10; PC2 uses F0/2 in VLAN 20.', 'R1 G0/0 connects to the F0/24 trunk and uses one subinterface per VLAN.'],
   'transport-service-desk': ['Hosts process transport ports; the intermediate router forwards using IP information.', 'TCP establishes state before this exercise sends application data.'],
 };
 
 export function LabSetupSupport({ labId }: { labId: string }) {
-  const [exampleVisible, setExampleVisible] = useState(false);
   if (!supportedLabIds.has(labId)) return null;
   const chapter = getChapterByLabId(labId);
   if (!chapter) return null;
@@ -71,11 +69,7 @@ export function LabSetupSupport({ labId }: { labId: string }) {
     <Group label="REVIEW THE LESSONS">
       <View style={styles.links}>{lessonIds.map((lessonId) => <Pressable key={lessonId} accessibilityRole="link" accessibilityHint="Returns to this lab when you leave the lesson" onPress={() => router.push(lessonRoute(lessonId, { fromLabId: labId }))} style={styles.link}><Text variant="label">OPEN {lessonId.replaceAll('-', ' ').toUpperCase()}</Text></Pressable>)}</View>
     </Group>
-    <Group label="SOLVED EXAMPLE">
-      <Text variant="bodySmall">EXACT SOLUTION / READ-ONLY. Opens a completed copy without changing your lab.</Text>
-      <AppButton accessibilityHint="Opens the exact completed lab in a separate read-only view" label="OPEN SOLVED EXAMPLE" onPress={() => setExampleVisible(true)} variant="secondary" />
-    </Group>
-  </DisclosureSection><SolvedLabExampleModal labId={labId} onClose={() => setExampleVisible(false)} visible={exampleVisible} /></>;
+  </DisclosureSection><SolvedExampleLauncher labId={labId} /></>;
 }
 
 function Group({ label, children }: { label: string; children: ReactNode }) {

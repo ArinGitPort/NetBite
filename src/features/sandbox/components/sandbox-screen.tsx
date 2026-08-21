@@ -306,7 +306,7 @@ export function SandboxScreen() {
     setTestType('ping');
     setTrace(undefined);
     setActiveTool('test');
-    setNotice('Inter-VLAN demo loaded. PC-1 reaches PC-2 through the switch trunk and R-1 subinterfaces.');
+    setNotice('Inter-VLAN demo loaded. PC1 reaches PC2 through the switch trunk and R1 subinterfaces.');
     successHaptic();
   };
 
@@ -353,7 +353,7 @@ export function SandboxScreen() {
       {guideActive ? (
         <View style={styles.guideBanner}>
           <Text variant="label" style={styles.guideTitle}>GUIDED BUILD / {Math.min(guideConnections, 2)} OF 2 LINKS</Text>
-          <Text variant="bodySmall" style={styles.guideCopy}>{guideConnections === 0 ? 'Select PC-1, choose Connect, then tap SW-1.' : guideConnections === 1 ? 'Connect PC-2 to SW-1.' : 'Both PCs share the switch. Finish the guide to keep experimenting.'}</Text>
+          <Text variant="bodySmall" style={styles.guideCopy}>{guideConnections === 0 ? 'Select PC1, choose Connect, then tap SW1.' : guideConnections === 1 ? 'Connect PC2 to SW1.' : 'Both PCs share the switch. Finish the guide to keep experimenting.'}</Text>
           {guideConnections >= 2 ? <AppButton label="Finish guide" onPress={finishGuide} /> : <AppButton label="Skip guide" variant="secondary" onPress={finishGuide} />}
         </View>
       ) : null}
@@ -361,12 +361,12 @@ export function SandboxScreen() {
       {presetGuideActive ? (
         <View style={styles.presetGuide}>
           <Text variant="label" style={styles.presetGuideTitle}>READY ROUTED NETWORK / TINKERING GUIDE</Text>
-          <Text variant="bodySmall" style={styles.presetGuideCopy}>PC-1 is in 192.168.10.0/24 and PC-2 is in 192.168.20.0/24. R-1 joins the two LANs through one interface in each network.</Text>
-          <View style={styles.guideStep}><Text variant="label" style={styles.guideStepNumber}>01</Text><Text variant="bodySmall" style={styles.guideStepCopy}>Inspect PC-1 and R-1. PC-1 uses 192.168.10.1 as its gateway; that address belongs to R-1 G0/0.</Text></View>
-          <View style={styles.guideStep}><Text variant="label" style={styles.guideStepNumber}>02</Text><Text variant="bodySmall" style={styles.guideStepCopy}>Choose Test → Ping. PC-1 and 192.168.20.20 are preselected. Step through how R-1 forwards between the two networks.</Text></View>
-          <View style={styles.guideStep}><Text variant="label" style={styles.guideStepNumber}>03</Text><Text variant="bodySmall" style={styles.guideStepCopy}>Select R-1 → Configure → Open CLI. Try `show ip interface brief` and `show ip route` to inspect its connected networks.</Text></View>
-          <View style={styles.guideStep}><Text variant="label" style={styles.guideStepNumber}>04</Text><Text variant="bodySmall" style={styles.guideStepCopy}>Disable R-1 G0/1, repeat the ping, then use Undo under More to restore the working path.</Text></View>
-          <View style={styles.guideActions}><AppButton label="Inspect PC-1" onPress={() => { setSelectedDeviceId('pc-1'); setActiveTool('configure'); setPresetGuideActive(false); setNotice('Inspect the current address, then select PC-2 when ready.'); }} /><AppButton label="Hide guide" variant="secondary" onPress={() => setPresetGuideActive(false)} /></View>
+          <Text variant="bodySmall" style={styles.presetGuideCopy}>PC1 is in 192.168.10.0/24 and PC2 is in 192.168.20.0/24. R1 joins the two LANs through one interface in each network.</Text>
+          <View style={styles.guideStep}><Text variant="label" style={styles.guideStepNumber}>01</Text><Text variant="bodySmall" style={styles.guideStepCopy}>Inspect PC1 and R1. PC1 uses 192.168.10.1 as its gateway; that address belongs to R1 G0/0.</Text></View>
+          <View style={styles.guideStep}><Text variant="label" style={styles.guideStepNumber}>02</Text><Text variant="bodySmall" style={styles.guideStepCopy}>Choose Test → Ping. PC1 and 192.168.20.20 are preselected. Step through how R1 forwards between the two networks.</Text></View>
+          <View style={styles.guideStep}><Text variant="label" style={styles.guideStepNumber}>03</Text><Text variant="bodySmall" style={styles.guideStepCopy}>Select R1 → Configure → Open CLI. Try `show ip interface brief` and `show ip route` to inspect its connected networks.</Text></View>
+          <View style={styles.guideStep}><Text variant="label" style={styles.guideStepNumber}>04</Text><Text variant="bodySmall" style={styles.guideStepCopy}>Disable R1 G0/1, repeat the ping, then use Undo under More to restore the working path.</Text></View>
+          <View style={styles.guideActions}><AppButton label="Inspect PC1" onPress={() => { setSelectedDeviceId('pc-1'); setActiveTool('configure'); setPresetGuideActive(false); setNotice('Inspect the current address, then select PC2 when ready.'); }} /><AppButton label="Hide guide" variant="secondary" onPress={() => setPresetGuideActive(false)} /></View>
         </View>
       ) : null}
 

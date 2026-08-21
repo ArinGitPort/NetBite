@@ -20,11 +20,11 @@ describe('Network Operations deterministic engines', () => {
 
   test('renews and releases DHCP bindings without inventing addresses', () => {
     const initial = { pool: { network: '192.168.10.0', prefix: 24, start: '192.168.10.100', end: '192.168.10.102', excluded: ['192.168.10.100'] }, leases: [] };
-    const first = allocateDhcpLease(initial, 'PC-A');
-    const renewed = allocateDhcpLease(first.state, 'PC-A');
+    const first = allocateDhcpLease(initial, 'PC1');
+    const renewed = allocateDhcpLease(first.state, 'PC1');
     expect(renewed.state.leases).toHaveLength(1);
     expect(renewed.events).toEqual(['DHCPREQUEST', 'DHCPACK']);
-    const released = releaseDhcpLease(renewed.state, 'PC-A');
+    const released = releaseDhcpLease(renewed.state, 'PC1');
     expect(released.state.leases).toHaveLength(0);
     expect(inspectDhcpPool(released.state).firstAvailable).toBe('192.168.10.101');
   });

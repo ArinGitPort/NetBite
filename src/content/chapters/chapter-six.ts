@@ -10,7 +10,7 @@ export const chapterSix = createAdvancedChapter({
         { heading: 'One interface per side', body: 'A router joining 192.168.10.0/24 and 192.168.20.0/24 might use 192.168.10.1 on one interface and 192.168.20.1 on the other.' },
         { heading: 'The router is not one universal address', body: 'Hosts use the address of the router interface on their own subnet. The far-side interface belongs to a different network.' },
       ],
-      example: { label: 'TWO-LAN ROUTER', setup: 'PC A is in 192.168.10.0/24; PC B is in 192.168.20.0/24.', result: 'The router needs one interface in each subnet to provide a path between them.' },
+      example: { label: 'TWO-LAN ROUTER', setup: 'PC1 is in 192.168.10.0/24; PC2 is in 192.168.20.0/24.', result: 'The router needs one interface in each subnet to provide a path between them.' },
       takeaway: 'Each router interface has an address appropriate for its directly attached network.',
     },
     {
@@ -35,7 +35,7 @@ export const chapterSix = createAdvancedChapter({
         { heading: 'Direct does not mean cable-to-cable', body: 'A switch may still sit between the hosts. “Direct” means the IP next hop is the destination host, not a router.' },
         { heading: 'Local mapping is still required', body: 'On Ethernet, the sender needs the destination’s MAC address. Chapter 7 explains how ARP discovers that local mapping.' },
       ],
-      example: { label: 'SAME /24', setup: 'PC A 192.168.10.10 sends to PC B 192.168.10.20 in 192.168.10.0/24.', result: 'PC A targets PC B as the IP next hop and the switch carries the local Ethernet frame.' },
+      example: { label: 'SAME /24', setup: 'PC1 192.168.10.10 sends to PC2 192.168.10.20 in 192.168.10.0/24.', result: 'PC1 targets PC2 as the IP next hop and the switch carries the local Ethernet frame.' },
       takeaway: 'A local destination is the next hop itself, even when a switch lies along the physical path.',
     },
     {
@@ -43,11 +43,11 @@ export const chapterSix = createAdvancedChapter({
       body: 'When the destination network differs, the host cannot deliver directly on its LAN. It sends the local Ethernet frame toward a router, normally the configured default gateway, while keeping the remote IPv4 destination inside the datagram.',
       sections: [
         { heading: 'Gateway is the next hop', body: 'The gateway is the next device along the route, not the final destination. The host resolves the gateway’s local MAC with ARP, then uses that MAC as the destination of the first Ethernet frame.' },
-        { heading: 'The remote address remains', body: 'If PC A sends to 192.168.20.20, that complete IPv4 destination remains unchanged; only the first local-link frame targets the gateway.' },
+        { heading: 'The remote address remains', body: 'If PC1 sends to 192.168.20.20, that complete IPv4 destination remains unchanged; only the first local-link frame targets the gateway.' },
       ],
-      example: { label: 'LEAVE THE LAN', setup: 'PC A 192.168.10.10/24 sends to remote destination 192.168.20.20 through gateway 192.168.10.1.', presentation: 'guided', visual: { illustration: 'default-gateway', stageIds: ['compare', 'next-hop', 'frame', 'ip'] }, steps: [
+      example: { label: 'LEAVE THE LAN', setup: 'PC1 192.168.10.10/24 sends to remote destination 192.168.20.20 through gateway 192.168.10.1.', presentation: 'guided', visual: { illustration: 'default-gateway', stageIds: ['compare', 'next-hop', 'frame', 'ip'] }, steps: [
         { id: 'compare', label: 'COMPARE NETWORK IDENTITIES', explanation: '192.168.10.0/24 and 192.168.20.0/24 differ.', value: 'REMOTE' },
-        { id: 'next-hop', label: 'CHOOSE A LOCAL NEXT HOP', explanation: 'PC A selects its reachable gateway 192.168.10.1.' },
+        { id: 'next-hop', label: 'CHOOSE A LOCAL NEXT HOP', explanation: 'PC1 selects its reachable gateway 192.168.10.1.' },
         { id: 'frame', label: 'ADDRESS THE LOCAL FRAME', explanation: 'The first Ethernet frame targets the gateway MAC, not the remote PC MAC.' },
         { id: 'ip', label: 'KEEP THE IP DESTINATION', explanation: 'The enclosed datagram still names the remote endpoint.', value: '192.168.20.20' },
       ], result: 'Local frame delivery reaches the router; IP addressing continues to describe the end destination.' },
@@ -75,11 +75,11 @@ export const chapterSix = createAdvancedChapter({
         { heading: 'Local frame addresses change', body: 'The source and destination MAC addresses are meaningful only on their particular Ethernet link. The next link uses addresses appropriate for that link.' },
         { heading: 'The IPv4 packet is processed', body: 'Across this simple route, the original source and destination IPv4 addresses remain the endpoints. The router reduces the IPv4 Time to Live, updates the IPv4 header checksum, and resolves the next-hop MAC when needed before creating the new frame.' },
       ],
-      example: { label: 'TWO ETHERNET LINKS', setup: 'PC A sends an IP datagram through one router to PC B.', presentation: 'guided', visual: { illustration: 'routed-frame', stageIds: ['first', 'remove', 'second', 'endpoints'] }, steps: [
-        { id: 'first', label: 'LAN A FRAME', explanation: 'PC A builds a local frame addressed to the router interface.' },
+      example: { label: 'TWO ETHERNET LINKS', setup: 'PC1 sends an IP datagram through one router to PC2.', presentation: 'guided', visual: { illustration: 'routed-frame', stageIds: ['first', 'remove', 'second', 'endpoints'] }, steps: [
+        { id: 'first', label: 'LAN A FRAME', explanation: 'PC1 builds a local frame addressed to the router interface.' },
         { id: 'remove', label: 'ROUTER PROCESSES IPv4', explanation: 'The router removes the LAN A frame, reads the destination IPv4 address, reduces TTL, and selects the next route.' },
         { id: 'second', label: 'LAN B FRAME', explanation: 'The router resolves the next-hop MAC if needed and creates a new frame suitable for the outgoing LAN.' },
-        { id: 'endpoints', label: 'PRESERVE IP ENDPOINTS', explanation: 'The datagram still names PC A and PC B.', value: 'FRAME CHANGES / IP DESTINATION REMAINS' },
+        { id: 'endpoints', label: 'PRESERVE IP ENDPOINTS', explanation: 'The datagram still names PC1 and PC2.', value: 'FRAME CHANGES / IP DESTINATION REMAINS' },
       ], result: 'Link-layer addresses are hop-specific, while the routed IPv4 destination remains end-to-end.' },
       takeaway: 'Routing preserves the IP destination while replacing local-link delivery information at each routed hop.',
     },
@@ -96,8 +96,8 @@ export const chapterSix = createAdvancedChapter({
   cards: [
     ['router-interfaces', 'Why does each router interface need an address from its attached subnet?', 'Each interface acts as the router’s local identity and next hop on that network.', 'A router joins separately addressed networks rather than extending one LAN unchanged.'],
     ['same-subnet-decision', 'How does a host decide whether a destination is local or remote?', 'It compares its own and the destination’s network identities using the configured prefix.', 'Matching network identities use direct delivery; different identities use a gateway.'],
-    ['local-delivery', 'PC A is 192.168.10.10/24 and PC B is 192.168.10.20/24. What is the next hop?', 'PC B itself.', 'Both addresses derive 192.168.10.0/24, so PC A delivers directly on the local LAN.'],
-    ['remote-delivery', 'PC A is 192.168.10.10/24 and sends to 192.168.20.20. What local device receives the first frame?', 'PC A’s default gateway.', 'The IPv4 destination remains 192.168.20.20, but the first local Ethernet frame targets the gateway.'],
+    ['local-delivery', 'PC1 is 192.168.10.10/24 and PC2 is 192.168.10.20/24. What is the next hop?', 'PC2 itself.', 'Both addresses derive 192.168.10.0/24, so PC1 delivers directly on the local LAN.'],
+    ['remote-delivery', 'PC1 is 192.168.10.10/24 and sends to 192.168.20.20. What local device receives the first frame?', 'PC1’s default gateway.', 'The IPv4 destination remains 192.168.20.20, but the first local Ethernet frame targets the gateway.'],
     ['gateway-requirements', 'Why is 192.168.20.1 an invalid gateway for host 192.168.10.10/24?', 'The gateway is not locally reachable in 192.168.10.0/24.', 'A host must be able to reach its gateway directly before that gateway can forward anything.'],
     ['gateway-requirements', 'What three basic conditions make a default gateway usable?', 'It has a usable address in the host’s subnet, belongs to a router interface on that LAN, and is operationally reachable.', 'A correctly formatted but off-subnet gateway is still unusable.'],
     ['routed-frame', 'Which addresses stay end-to-end and which change when a router forwards an IPv4 packet?', 'Source and destination IPv4 addresses stay; link-layer source and destination MAC addresses change for the next link.', 'The router removes the incoming Ethernet frame and builds a new one around the forwarded packet.'],

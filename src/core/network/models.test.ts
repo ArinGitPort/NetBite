@@ -40,7 +40,7 @@ describe('Chapter 1 network rules', () => {
   test('routes a packet between the selected PCs when more than two are connected', () => {
     const topology = createChapterOneTopology();
     const [firstPC, networkSwitch, secondPC] = topology.devices;
-    const thirdPC = createPC('PC 3', { x: 0, y: 0 });
+    const thirdPC = createPC('PC3', { x: 0, y: 0 });
     topology.devices.push(thirdPC);
     topology.cables = [
       cable('first', firstPC.id, networkSwitch.id),
@@ -57,9 +57,9 @@ describe('Chapter 1 network rules', () => {
   });
 
   test('rejects PCs connected to different switches', () => {
-    const firstPC = createPC('PC 1', { x: 0, y: 0 });
-    const secondPC = createPC('PC 2', { x: 0, y: 0 });
-    const firstSwitch = createSwitch('Switch 1', { x: 0, y: 0 });
+    const firstPC = createPC('PC1', { x: 0, y: 0 });
+    const secondPC = createPC('PC2', { x: 0, y: 0 });
+    const firstSwitch = createSwitch('SW1', { x: 0, y: 0 });
     const secondSwitch = createSwitch('Switch 2', { x: 0, y: 0 });
     const topology: NetworkTopology = {
       devices: [firstPC, secondPC, firstSwitch, secondSwitch],
@@ -78,12 +78,12 @@ describe('Chapter 1 network rules', () => {
   test('reuses an available label without duplicating an existing device name', () => {
     const topology: NetworkTopology = {
       devices: [
-        createPC('PC 2', { x: 0, y: 0 }),
-        createPC('PC 3', { x: 0, y: 0 }),
+        createPC('PC2', { x: 0, y: 0 }),
+        createPC('PC3', { x: 0, y: 0 }),
       ],
       cables: [],
     };
 
-    expect(getNextDeviceName(topology, 'pc')).toBe('PC 1');
+    expect(getNextDeviceName(topology, 'pc')).toBe('PC1');
   });
 });

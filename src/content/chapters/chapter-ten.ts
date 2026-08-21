@@ -30,7 +30,7 @@ export const chapterTen = createAdvancedChapter({
         { heading: 'Endpoint view', body: 'Ordinary endpoint traffic on an access link is normally untagged. The switch’s port configuration supplies the VLAN association.' },
         { heading: 'Port assignment matters', body: 'Moving the cable to an access port in another VLAN changes the endpoint’s Layer 2 membership, even if its old IPv4 configuration remains unchanged and becomes unsuitable.' },
       ],
-      example: { label: 'PC A MEMBERSHIP', setup: 'PC A connects to switch port 1 configured as access VLAN 10.', result: 'PC A’s arriving Ethernet frames are processed as VLAN 10 traffic.' },
+      example: { label: 'PC1 MEMBERSHIP', setup: 'PC1 connects to switch port 1 configured as access VLAN 10.', result: 'PC1’s arriving Ethernet frames are processed as VLAN 10 traffic.' },
       takeaway: 'An endpoint access port associates untagged endpoint traffic with one configured VLAN.',
       checkpoint: { prompt: 'A PC should join VLAN 20. What must be true of its switch access port?', correctChoiceId: 'assigned', choices: [
         { id: 'assigned', label: 'ASSIGNED TO VLAN 20', feedback: 'Correct. Access-port configuration provides the endpoint’s VLAN membership.' },
@@ -45,7 +45,7 @@ export const chapterTen = createAdvancedChapter({
         { heading: 'Across more than one switch', body: 'Same-VLAN communication can extend across switches when a valid inter-switch path carries that VLAN.' },
         { heading: 'Same VLAN is not the only requirement', body: 'The ports, links, host addressing, and any trunk allowance must also be correct. VLAN membership does not repair a disconnected cable.' },
       ],
-      example: { label: 'LOCAL LAYER 2 PATH', setup: 'PC A and PC B both use VLAN 10 on one switch.', result: 'The switch can forward their unicast frames within VLAN 10 without routing between VLANs.' },
+      example: { label: 'LOCAL LAYER 2 PATH', setup: 'PC1 and PC2 both use VLAN 10 on one switch.', result: 'The switch can forward their unicast frames within VLAN 10 without routing between VLANs.' },
       takeaway: 'Same-VLAN endpoints can use a Layer 2 switching path when the complete VLAN path is valid.',
     },
     {
@@ -55,7 +55,7 @@ export const chapterTen = createAdvancedChapter({
         { heading: 'Routing is the crossing point', body: 'Communication between VLAN networks requires a router or Layer 3 switch with suitable interfaces, gateways, and routes.' },
         { heading: 'This chapter stops at the boundary', body: 'NetBite identifies when routing is required but does not configure router-on-a-stick or switched virtual interfaces in this chapter.' },
       ],
-      example: { label: 'VLAN 10 TO VLAN 20', setup: 'PC A is in VLAN 10; PC B is in VLAN 20.', result: 'They need Layer 3 inter-VLAN forwarding rather than a direct same-domain switch path.' },
+      example: { label: 'VLAN 10 TO VLAN 20', setup: 'PC1 is in VLAN 10; PC2 is in VLAN 20.', result: 'They need Layer 3 inter-VLAN forwarding rather than a direct same-domain switch path.' },
       takeaway: 'Different VLANs remain separated until a Layer 3 device routes between their networks.',
     },
     {
@@ -75,8 +75,8 @@ export const chapterTen = createAdvancedChapter({
         { heading: 'Allowed list controls the path', body: 'If VLAN 20 is omitted from the allowed VLAN set, VLAN 20 can work locally on each switch yet fail to cross that trunk.' },
         { heading: 'End-to-end VLAN path', body: 'Check the source access port, every trunk along the path, and the destination access port. One mismatched segment breaks that VLAN’s Layer 2 continuity.' },
       ],
-      example: { label: 'TWO-SWITCH VLAN 20', setup: 'PC A and PC B use VLAN 20 access ports on different switches, but the inter-switch trunk allows only VLAN 10.', steps: [
-        { id: 'ingress', label: 'CLASSIFY THE INGRESS', explanation: 'PC A’s access port associates the arriving frame with VLAN 20.' },
+      example: { label: 'TWO-SWITCH VLAN 20', setup: 'PC1 and PC2 use VLAN 20 access ports on different switches, but the inter-switch trunk allows only VLAN 10.', steps: [
+        { id: 'ingress', label: 'CLASSIFY THE INGRESS', explanation: 'PC1’s access port associates the arriving frame with VLAN 20.' },
         { id: 'path', label: 'CHECK THE TRUNK', explanation: 'The only inter-switch path is configured to allow VLAN 10, not VLAN 20.' },
         { id: 'preserve', label: 'PRESERVE SEPARATION', explanation: 'The switches do not silently place VLAN 20 traffic into VLAN 10.' },
         { id: 'correct', label: 'ALLOW THE REQUIRED VLAN', explanation: 'Add VLAN 20 to the allowed trunk set while keeping its identity separate.' },
@@ -103,7 +103,7 @@ export const chapterTen = createAdvancedChapter({
     ['vlan-purpose', 'Why would an administrator place devices into separate VLANs on the same switch hardware?', 'To create separate logical Layer 2 networks and broadcast boundaries without requiring a different physical switch for each group.', 'VLAN membership changes the logical LAN a switchport belongs to.'],
     ['logical-vlan-separation', 'A host in VLAN 10 sends a Layer 2 broadcast. Which ports may receive it?', 'Eligible ports carrying VLAN 10, except the ingress port.', 'Ports belonging only to VLAN 20 are outside that broadcast domain.'],
     ['access-ports', 'What VLAN behavior should an endpoint-facing access port provide?', 'It assigns the attached endpoint’s untagged traffic to one configured VLAN.', 'The endpoint normally sends ordinary untagged Ethernet frames on an access link.'],
-    ['same-vlan-switching', 'PC A and PC B are in VLAN 10 on different switches. What Layer 2 path is required?', 'Both access ports must belong to VLAN 10, and every trunk between them must carry VLAN 10.', 'The VLAN must remain continuous across every switch segment in the path.'],
+    ['same-vlan-switching', 'PC1 and PC2 are in VLAN 10 on different switches. What Layer 2 path is required?', 'Both access ports must belong to VLAN 10, and every trunk between them must carry VLAN 10.', 'The VLAN must remain continuous across every switch segment in the path.'],
     ['same-different-vlan', 'Can a Layer 2 switch alone forward traffic directly from VLAN 10 to VLAN 20?', 'No.', 'Different VLANs are different Layer 2 networks; communication between them requires Layer 3 routing.'],
     ['dot1q-tag', 'What are the operational parts of the four-byte IEEE 802.1Q tag?', 'TPID 0x8100, three PCP bits, one DEI bit, and a 12-bit VLAN identifier.', 'NetBite focuses on the VLAN identifier; PCP and DEI are shown so the four-byte tag is not misrepresented.'],
     ['dot1q-trunks', 'What is the purpose of a trunk link between switches?', 'To carry traffic for multiple permitted VLANs over one shared connection.', 'A trunk does not merge those VLANs into one broadcast domain.'],

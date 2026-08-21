@@ -77,11 +77,11 @@ export const chapterOneLessons = buildLessons('1', [
       { heading: 'One cable / one link', body: 'A PC-to-switch cable creates one link. A second PC needs its own link to the switch; one connected PC does not automatically connect every nearby device.' },
       { heading: 'A LAN has a boundary', body: 'LAN describes a local network, not the entire internet. Routers are used when communication must cross from one network to another.' },
     ],
-    example: { label: 'FIRST TOPOLOGY', setup: 'PC A and PC B each have one cable to the same switch.', result: 'The two separate links place both PCs in one simple physical LAN topology.' },
+    example: { label: 'FIRST TOPOLOGY', setup: 'PC1 and PC2 each have one cable to the same switch.', result: 'The two separate links place both PCs in one simple physical LAN topology.' },
     takeaway: 'A LAN joins nearby devices, and each cable creates one physical link between two interfaces.',
     checkpoint: {
-      prompt: 'What is still missing if PC A is cabled to the switch but PC B is not?', correctChoiceId: 'link', choices: [
-        { id: 'link', label: 'A LINK FOR PC B', feedback: 'Correct. PC B needs its own connection to a compatible switch port.' },
+      prompt: 'What is still missing if PC1 is cabled to the switch but PC2 is not?', correctChoiceId: 'link', choices: [
+        { id: 'link', label: 'A LINK FOR PC2', feedback: 'Correct. PC2 needs its own connection to a compatible switch port.' },
         { id: 'router', label: 'A SECOND ROUTER', feedback: 'A router is not required to connect two PCs inside this simple LAN.' },
         { id: 'name', label: 'A NEW PC NAME', feedback: 'Changing a name does not create a physical network path.' },
       ],
@@ -95,7 +95,7 @@ export const chapterOneQuiz: QuizQuestion[] = [
   { id: 'endpoint-role', lessonId: 'end-and-intermediary-devices', prompt: 'Which device is an endpoint in a student’s file request?', answers: ['The student PC', 'The switch carrying the request', 'The router between networks'], correctAnswerIndex: 0, explanation: 'The PC creates the request, so it is an end device.' },
   { id: 'switch-role', lessonId: 'meet-the-devices', prompt: 'Which device normally connects nearby PCs inside one LAN?', answers: ['Switch', 'PC', 'Printer'], correctAnswerIndex: 0, explanation: 'A switch provides local network connections for endpoints.' },
   { id: 'router-role', lessonId: 'meet-the-devices', prompt: 'What is the basic purpose of a router?', answers: ['Connect different networks', 'Act as every user’s end device', 'Replace every local cable'], correctAnswerIndex: 0, explanation: 'A router provides forwarding between different IP networks.' },
-  { id: 'physical-link', lessonId: 'connecting-devices', prompt: 'PC B has no cable to the switch. What does it lack?', answers: ['A physical network link', 'A second computer name', 'A shared printer'], correctAnswerIndex: 0, explanation: 'A compatible cable between interfaces creates the wired physical link.' },
+  { id: 'physical-link', lessonId: 'connecting-devices', prompt: 'PC2 has no cable to the switch. What does it lack?', answers: ['A physical network link', 'A second computer name', 'A shared printer'], correctAnswerIndex: 0, explanation: 'A compatible cable between interfaces creates the wired physical link.' },
 ];
 
 export const chapterOneFlashcards: Flashcard[] = [
@@ -105,7 +105,7 @@ export const chapterOneFlashcards: Flashcard[] = [
   { id: 'intermediary', lessonId: 'end-and-intermediary-devices', prompt: 'What is the role of an intermediary device?', answer: 'It connects network paths and helps forward data between endpoints.', explanation: 'Switches and routers are intermediary devices because user communication passes through them.' },
   { id: 'switch', lessonId: 'meet-the-devices', prompt: 'Which device normally connects nearby endpoints inside one LAN?', answer: 'A switch.', explanation: 'A switch provides local connections; it does not replace the endpoints using the network.' },
   { id: 'router', lessonId: 'meet-the-devices', prompt: 'When does a simple network need a router rather than only a switch?', answer: 'When traffic must move between different IP networks.', explanation: 'A switch connects the local LAN, while a router provides a path beyond that network.' },
-  { id: 'physical-link', lessonId: 'connecting-devices', prompt: 'PC A is connected to a switch, but PC B has no cable. What is PC B missing?', answer: 'Its own physical link to a compatible switch port.', explanation: 'One PC’s cable does not connect nearby devices automatically.' },
+  { id: 'physical-link', lessonId: 'connecting-devices', prompt: 'PC1 is connected to a switch, but PC2 has no cable. What is PC2 missing?', answer: 'Its own physical link to a compatible switch port.', explanation: 'One PC’s cable does not connect nearby devices automatically.' },
   { id: 'lan', lessonId: 'connecting-devices', prompt: 'What does LAN describe?', answer: 'A local area network covering a limited place such as a home, classroom, or office.', explanation: 'A LAN is a local network boundary, not the entire internet.' },
 ];
 

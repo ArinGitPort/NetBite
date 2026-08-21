@@ -12,7 +12,7 @@ export const chapterThreeLessons = buildLessons('3', [
       { heading: 'Read the displayed address', body: 'Each pair of hexadecimal digits represents one byte. Six pairs equal six bytes, and six bytes equal 48 bits. The separators improve readability but are not extra address data.' },
       { heading: 'Interface identity', body: 'A MAC address belongs to an interface role, not to an entire route or physical cable. A device with several network interfaces can have several MAC addresses.' },
     ],
-    example: { label: 'TWO LOCAL INTERFACES', setup: `PC A uses ${PC_A}; PC B uses ${PC_B}.`, result: 'The switch can distinguish their Ethernet interfaces even though both PCs attach to the same LAN.' },
+    example: { label: 'TWO LOCAL INTERFACES', setup: `PC1 uses ${PC_A}; PC2 uses ${PC_B}.`, result: 'The switch can distinguish their Ethernet interfaces even though both PCs attach to the same LAN.' },
     takeaway: 'A displayed MAC address contains six hexadecimal bytes identifying one network interface.',
     termNote: { term: 'HEXADECIMAL', definition: 'A number system using 0–9 and A–F. Two hexadecimal digits display one byte.' },
   },
@@ -29,7 +29,7 @@ export const chapterThreeLessons = buildLessons('3', [
       { id: 'act', label: 'CHOOSE AN OUTPUT', explanation: 'A known destination uses its learned port; an unknown one is flooded to other eligible ports.' },
     ], result: 'Source learning and destination forwarding are two ordered decisions with different address roles.' },
     takeaway: 'Switches learn from the source MAC and make forwarding decisions from the destination MAC.',
-    checkpoint: { prompt: 'A frame from PC-A enters switch port 3. Which field lets the switch learn that PC-A is reachable through port 3?', correctChoiceId: 'source', choices: [
+    checkpoint: { prompt: 'A frame from PC1 enters switch port 3. Which field lets the switch learn that PC1 is reachable through port 3?', correctChoiceId: 'source', choices: [
       { id: 'source', label: 'SOURCE MAC', feedback: 'Correct. The source arrived through the ingress port, so the switch can map that address to the port.' },
       { id: 'destination', label: 'DESTINATION MAC', feedback: 'The destination guides forwarding; it does not prove where that interface is connected.' },
       { id: 'payload', label: 'PAYLOAD', feedback: 'The payload carries upper-layer data, not the switch’s source-to-port learning identity.' },
@@ -39,7 +39,7 @@ export const chapterThreeLessons = buildLessons('3', [
     id: 'switch-source-learning', title: 'How a switch learns', illustration: 'mac-learning',
     body: 'When a frame enters a switch, the switch records or refreshes a mapping between the source MAC address and the ingress port. These mappings form the dynamic MAC address table used for later forwarding decisions.',
     sections: [
-      { heading: 'Ingress means arrival', body: 'If PC A’s frame arrives on port 1, the switch learns PC A on port 1. It never adds the ingress port to that same frame’s output list.' },
+      { heading: 'Ingress means arrival', body: 'If PC1’s frame arrives on port 1, the switch learns PC1 on port 1. It never adds the ingress port to that same frame’s output list.' },
       { heading: 'Mappings can change', body: 'If the same source later arrives on a different port, the switch updates the mapping. Real switches also age dynamic entries, but aging timers are outside this beginner chapter.' },
     ],
     example: { label: 'TABLE UPDATE', setup: `A frame with source ${PC_A} enters port 1.`, result: `The table records ${PC_A} → port 1 before the switch handles the destination.` },
@@ -49,10 +49,10 @@ export const chapterThreeLessons = buildLessons('3', [
     id: 'known-unknown-unicast', title: 'Known unicast uses one learned port', illustration: 'switch-forwarding',
     body: 'A unicast frame is intended for one destination interface. When the destination MAC already has a table entry, the switch has a known unicast and can select the single learned output port.',
     sections: [
-      { heading: 'Targeted forwarding', body: 'If PC B is learned on port 2, a frame for PC B is forwarded to port 2 rather than copied to every other device.' },
+      { heading: 'Targeted forwarding', body: 'If PC2 is learned on port 2, a frame for PC2 is forwarded to port 2 rather than copied to every other device.' },
       { heading: 'Ingress exclusion still applies', body: 'If the learned destination points to the same port where the frame arrived, the switch does not send the frame back through that port. The destination is already on that segment.' },
     ],
-    example: { label: 'KNOWN DESTINATION', setup: `${PC_B} is stored on port 2; a frame for PC B enters port 1.`, result: 'The switch forwards only through port 2.' },
+    example: { label: 'KNOWN DESTINATION', setup: `${PC_B} is stored on port 2; a frame for PC2 enters port 1.`, result: 'The switch forwards only through port 2.' },
     takeaway: 'Known unicast forwarding uses the destination’s single learned port.',
   },
   {
@@ -91,7 +91,7 @@ export const chapterThreeQuiz: QuizQuestion[] = [
   { id: 'mac-identifies-interface', lessonId: 'mac-addresses', prompt: 'What does a MAC address identify for Ethernet delivery?', answers: ['A network interface', 'A complete routed path', 'A cable type'], correctAnswerIndex: 0, explanation: 'A MAC address is a local-link interface identifier.' },
   { id: 'mac-byte-count', lessonId: 'mac-addresses', prompt: 'How many displayed bytes are in 02:00:00:00:00:0A?', answers: ['Six', 'Twelve', 'Forty-eight'], correctAnswerIndex: 0, explanation: 'Six pairs of hexadecimal digits display six bytes, or 48 bits.' },
   { id: 'switch-learns-source', lessonId: 'mac-source-destination', prompt: 'Which frame field does a switch learn from?', answers: ['Source MAC', 'Destination MAC', 'Payload length'], correctAnswerIndex: 0, explanation: 'The source arrived on the ingress port, allowing a reliable mapping.' },
-  { id: 'learning-port', lessonId: 'switch-source-learning', prompt: 'A frame from PC C enters port 3. What entry is learned?', answers: ['PC C → port 3', 'Destination → port 3', 'PC C → every port'], correctAnswerIndex: 0, explanation: 'The switch maps the source, PC C, to ingress port 3.' },
+  { id: 'learning-port', lessonId: 'switch-source-learning', prompt: 'A frame from PC3 enters port 3. What entry is learned?', answers: ['PC3 → port 3', 'Destination → port 3', 'PC3 → every port'], correctAnswerIndex: 0, explanation: 'The switch maps the source, PC3, to ingress port 3.' },
   { id: 'known-unicast-decision', lessonId: 'known-unknown-unicast', prompt: 'The destination is learned on port 2. What should the switch do?', answers: ['Forward only to port 2', 'Flood every port including ingress', 'Erase the table'], correctAnswerIndex: 0, explanation: 'Known unicast uses the destination’s learned port.' },
   { id: 'unknown-unicast-decision', lessonId: 'unknown-unicast-flooding', prompt: 'An unknown destination arrives on port 1. What should happen?', answers: ['Flood every other active port', 'Return it through port 1', 'Send only to a router'], correctAnswerIndex: 0, explanation: 'Unknown unicast is flooded except through the ingress port.' },
   { id: 'broadcast-difference', lessonId: 'broadcast-frames', prompt: 'Why is a broadcast flooded when every unicast MAC is known?', answers: ['It is intentionally addressed to everyone locally', 'Its source cannot be learned', 'It always has a damaged check'], correctAnswerIndex: 0, explanation: 'Broadcast flooding is intentional, not caused by an unknown unicast destination.' },

@@ -38,7 +38,7 @@ The sandbox models bounded router-on-a-stick forwarding through 802.1Q router su
 - A two-PC, one-switch workspace may explicitly apply the previewed `192.168.10.0/24` beginner setup. Existing configuration is never replaced without confirmation.
 - Canvas plates show PC addressing, every configured router interface address, and whether an interface is down. Layer 2 switches state that management IPs are not modeled because the sandbox does not yet support an SVI.
 - Router inspectors can add logical subinterfaces beneath a physical parent. Each logical interface inherits the parent MAC and physical link, terminates one configured VLAN, and derives a connected route only when its parent and VLAN context are usable.
-- `INTER-VLAN ROUTING DEMO` loads PC-1 in VLAN 10, PC-2 in VLAN 20, a switch trunk, and two configured router subinterfaces. It is safe to modify, undo, reset, and test.
+- `INTER-VLAN ROUTING DEMO` loads PC1 in VLAN 10, PC2 in VLAN 20, a switch trunk, and two configured router subinterfaces. It is safe to modify, undo, reset, and test.
 - Filled configuration values use normal high-contrast input text. Muted input text is reserved for examples in empty fields.
 - Undo and redo retain 20 changes during the current session. Only the workspace and first-use acknowledgement persist after relaunch.
 

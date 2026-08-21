@@ -87,7 +87,7 @@ describe('Network Operations course', () => {
     expect(operationsLabDefinitions['network-operations-capstone'].stages).toHaveLength(8);
     const dhcp = operationsLabDefinitions['dhcp-lease-desk'];
     expect(dhcp.stages).toHaveLength(6);
-    expect(dhcp.visualTopology.nodes.map(({ label }) => label)).toEqual(['PC-A', 'PC-B', 'SW-1', 'R-1', 'DHCP-1']);
+    expect(dhcp.visualTopology.nodes.map(({ label }) => label)).toEqual(['PC1', 'PC2', 'SW1', 'R1', 'DHCP1']);
     expect(dhcp.visualTopology.links.map(({ aPort, bPort }) => `${aPort}-${bPort}`)).toContain('F0/24-G0/0');
   });
 

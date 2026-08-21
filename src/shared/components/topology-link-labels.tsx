@@ -39,6 +39,7 @@ const LABEL_HEIGHT = 22;
 const LABEL_GAP = 5;
 const MAX_FONT_SCALE = 2;
 const CAPTION_MAX_WIDTH = 196;
+const ATOMIC_CAPTION_MAX_WIDTH = 480;
 
 const normalizedFontScale = (fontScale: number) => Math.max(1, Math.min(MAX_FONT_SCALE, fontScale));
 
@@ -98,7 +99,13 @@ export function calculateCableEndpointLabels(
 
 export function getTopologyCaptionSize(label: string, fontScale = 1): TopologyLabelSize {
   const scale = normalizedFontScale(fontScale);
-  const estimatedWidth = 20 + label.length * 7 * scale;
+  const estimatedWidth = 24 + label.length * 8.5 * scale;
+  if (isAtomicTopologyCaption(label)) {
+    return {
+      width: Math.max(92, Math.min(ATOMIC_CAPTION_MAX_WIDTH, estimatedWidth)),
+      height: Math.ceil(8 + 17 * scale),
+    };
+  }
   const wraps = estimatedWidth > CAPTION_MAX_WIDTH;
   return {
     width: Math.max(92, Math.min(CAPTION_MAX_WIDTH, estimatedWidth)),
@@ -107,11 +114,16 @@ export function getTopologyCaptionSize(label: string, fontScale = 1): TopologyLa
 }
 
 export function formatTopologyCaption(label: string, fontScale = 1) {
-  if (20 + label.length * 7 * normalizedFontScale(fontScale) <= CAPTION_MAX_WIDTH) return label;
+  if (isAtomicTopologyCaption(label)) return label;
+  if (24 + label.length * 8.5 * normalizedFontScale(fontScale) <= CAPTION_MAX_WIDTH) return label;
   const slash = label.lastIndexOf('/');
   if (slash > 0) return `${label.slice(0, slash)}\n${label.slice(slash)}`;
   const space = label.lastIndexOf(' ', Math.ceil(label.length / 2));
   return space > 0 ? `${label.slice(0, space)}\n${label.slice(space + 1)}` : label;
+}
+
+export function isAtomicTopologyCaption(label: string) {
+  return /^(?:\d{1,3}\.){3}\d{1,3}\/(?:[0-9]|[12]\d|3[0-2])$/.test(label.trim());
 }
 
 export function getTopologyRect(center: TopologyPoint, size: TopologyLabelSize): TopologyRect {
@@ -210,7 +222,7 @@ export function TopologyLinkLabels({
         pointerEvents="none"
         style={[styles.label, styles.contextLabel, contextTone === 'warning' && styles.contextWarning, { left: contextPosition.x - contextSize.width / 2, top: contextPosition.y - contextSize.height / 2, width: contextSize.width, minHeight: contextSize.height }]}
         testID={`topology-link-label-${id}-context`}>
-        <Text accessible={false} numberOfLines={2} variant="technical" style={[styles.text, contextTone === 'warning' && styles.warningText]}>{renderedContextLabel}</Text>
+        <Text accessible={false} numberOfLines={isAtomicTopologyCaption(contextLabel) ? 1 : 2} variant="technical" style={[styles.text, contextTone === 'warning' && styles.warningText]}>{renderedContextLabel}</Text>
       </View> : null}
     </>
   );

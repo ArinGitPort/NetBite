@@ -63,7 +63,7 @@ export function createRouter(name: string, position: Position): DeviceNode {
 }
 
 export function getNextDeviceName(topology: NetworkTopology, type: DeviceType): string {
-  const label = type === 'pc' ? 'PC' : type === 'switch' ? 'Switch' : 'Router';
+  const label = type === 'pc' ? 'PC' : type === 'switch' ? 'SW' : 'R';
   const usedNumbers = new Set(
     topology.devices
       .filter((device) => device.type === type)
@@ -73,7 +73,7 @@ export function getNextDeviceName(topology: NetworkTopology, type: DeviceType): 
 
   let nextNumber = 1;
   while (usedNumbers.has(nextNumber)) nextNumber += 1;
-  return `${label} ${nextNumber}`;
+  return `${label}${nextNumber}`;
 }
 
 const DEFAULT_CANVAS_WIDTH = 272;
@@ -88,9 +88,9 @@ export function createChapterOneTopology(
 
   return {
     devices: [
-      createPC('PC 1', { x: centeredX - horizontalSpread, y: 56 }),
-      createSwitch('Switch 1', { x: centeredX, y: 176 }),
-      createPC('PC 2', { x: centeredX + horizontalSpread, y: 56 }),
+      createPC('PC1', { x: centeredX - horizontalSpread, y: 56 }),
+      createSwitch('SW1', { x: centeredX, y: 176 }),
+      createPC('PC2', { x: centeredX + horizontalSpread, y: 56 }),
     ],
     cables: [],
   };

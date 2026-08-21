@@ -5,7 +5,7 @@ import { LessonCheckpoint } from '@/features/lessons/components/lesson-checkpoin
 import { isLessonCheckpointBlocking } from '@/features/lessons/checkpoint-rules';
 
 const checkpoint = {
-  prompt: 'PC-A sends an Ethernet frame to PC-B. Which field identifies PC-B as the intended local receiver?',
+  prompt: 'PC1 sends an Ethernet frame to PC2. Which field identifies PC2 as the intended local receiver?',
   correctChoiceId: 'data-link',
   choices: [
     { id: 'physical', label: 'SOURCE MAC', feedback: 'The source MAC identifies the sender, not the intended receiver.' },

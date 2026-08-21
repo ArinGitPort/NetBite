@@ -13,6 +13,7 @@ interface StatusRowProps {
   description?: string;
   variant?: TypographyRole;
   showStateLabel?: boolean;
+  stateLabel?: string;
   testID?: string;
 }
 
@@ -24,15 +25,16 @@ const statusPresentation: Record<StatusRowState, { icon: SemanticIconName; color
   info: { icon: 'status-info', color: Palette.text, label: 'INFORMATION' },
 };
 
-export function StatusRow({ label, state, value, description, variant = 'technical', showStateLabel = true, testID }: StatusRowProps) {
+export function StatusRow({ label, state, value, description, variant = 'technical', showStateLabel = true, stateLabel, testID }: StatusRowProps) {
   const presentation = statusPresentation[state];
+  const displayedState = stateLabel ?? presentation.label;
   const spokenValue = value ? `, ${value}` : '';
   const spokenDescription = description ? `. ${description}` : '';
 
   return (
     <View
       accessible
-      accessibilityLabel={`${label}${spokenValue}. ${presentation.label}${spokenDescription}`}
+      accessibilityLabel={`${label}${spokenValue}. ${displayedState}${spokenDescription}`}
       style={styles.row}
       testID={testID}
     >
@@ -41,7 +43,7 @@ export function StatusRow({ label, state, value, description, variant = 'technic
         <View style={styles.primaryLine}>
           <Text variant={variant} style={[styles.label, { color: presentation.color }]}>{label}</Text>
           {value ? <Text variant={variant} style={styles.value}>{value}</Text> : null}
-          {showStateLabel ? <Text variant="technical" style={[styles.state, { color: presentation.color }]}>{presentation.label}</Text> : null}
+          {showStateLabel ? <Text variant="technical" style={[styles.state, { color: presentation.color }]}>{displayedState}</Text> : null}
         </View>
         {description ? <Text variant="bodySmall" style={styles.description}>{description}</Text> : null}
       </View>

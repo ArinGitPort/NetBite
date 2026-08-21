@@ -16,8 +16,9 @@ import {
   type SimulationValue,
 } from '@/features/operations/operations-simulator';
 import { AppButton } from '@/shared/components/app-button';
-import { CliConsoleShell, type CliConsoleLine } from '@/shared/components/cli-console-shell';
+import { CliConsoleShell, type CliConsoleLine, type CliConsoleTaskContext } from '@/shared/components/cli-console-shell';
 import { FeedbackModal } from '@/shared/components/feedback-modal';
+import { HintHistoryPanel } from '@/shared/components/hint-history-panel';
 import { PageHeader } from '@/shared/components/page-header';
 import { StatusRow } from '@/shared/components/status-row';
 import { SelectionControl } from '@/shared/components/selection-control';
@@ -107,6 +108,16 @@ export function OperationsGuidedLab({ definition, onComplete }: { definition: Op
   const dirty = current.fields.some((field) => draft[field.id] !== undefined && draft[field.id] !== session.configuration[field.id]);
   const configured = current.fields.every((field) => session.configuration[field.id] !== undefined) && !dirty;
   const suggestions = getOperationsCliSuggestions(simulator, currentIndex);
+  const cliTaskContext = useMemo<CliConsoleTaskContext>(() => ({
+    title: authored.objective,
+    state: finished ? 'complete' : configured ? 'ready' : Object.keys(session.configuration).length ? 'in-progress' : 'not-started',
+    progress: `${Math.min(session.stageIndex + 1, simulator.stages.length)} OF ${simulator.stages.length}`,
+    requirement: authored.prompt,
+    facts: (current.providedFacts ?? []).map((value, index) => ({ label: `SUPPLIED FACT ${index + 1}`, value })),
+    commandFormat: suggestions[0],
+    evidence: `Use ${current.actionLabel.toUpperCase()} to verify the modeled result.`,
+    nextAction: configured ? `Run ${current.actionLabel.toUpperCase()} and inspect the resulting table and trace.` : 'Configure the current objective using the supplied facts.',
+  }), [authored.objective, authored.prompt, configured, current.actionLabel, current.providedFacts, finished, session.configuration, session.stageIndex, simulator.stages.length, suggestions]);
   const liveTableRows = useMemo(() => {
     const savedRows = session.tables?.[definition.tableTitle] ?? [];
     if (savedRows.length || finished || definition.id === 'dhcp-lease-desk') return savedRows;
@@ -186,13 +197,13 @@ export function OperationsGuidedLab({ definition, onComplete }: { definition: Op
 
       {!finished ? <View style={styles.why}><Text variant="label" style={styles.panelTitle}>WHY THIS HAPPENED</Text><Text variant="bodySmall" style={styles.line}>OBSERVATION / {session.lastResult?.explanation.observation ?? authored.explanation.observation}</Text><Text variant="bodySmall" style={styles.line}>RULE / {session.lastResult?.explanation.rule ?? authored.explanation.rule}</Text><Text variant="bodySmall" style={styles.line}>PROVES / {session.lastResult?.explanation.proves ?? authored.explanation.proves}</Text><Text variant="bodySmall" style={styles.line}>NEXT CHECK / {session.lastResult?.explanation.nextCheck ?? authored.explanation.nextCheck}</Text></View> : null}
 
-      {session.hints.length ? <View style={styles.hints}><Text variant="label" style={styles.warningTitle}>HINT HISTORY</Text>{session.hints.map((hint, index) => <Text key={`${index}-${hint}`} variant="bodySmall" style={styles.line}>{index + 1}. {hint.replace(/^.*? \/ /, '')}</Text>)}</View> : null}
+      <HintHistoryPanel hints={session.hints} stripContext />
       {!finished && session.hints.filter((hint) => hint.startsWith(`${current.id} / `)).length < current.hints.length ? <AppButton label={session.hints.some((hint) => hint.startsWith(`${current.id} / `)) ? 'Show next hint' : 'Show a hint'} variant="secondary" onPress={showHint} /> : null}
 
       <View style={styles.tools}><Text variant="label" style={styles.toolsTitle}>SESSION TOOLS</Text><AppButton disabled={undoCount === 0} label="Undo latest change" variant="utility" onPress={() => { undo(definition.id); setValidationError(undefined); setDraft({}); }} /><AppButton label="Reset simulator" variant="danger" onPress={() => setResetVisible(true)} /></View>
       <Text variant="technical" style={styles.limit}>MODEL BOUNDARY / {definition.limitations}</Text>
     </View>
-    {simulator.cliEnabled ? <CliConsoleShell accessibilityLabel={`${definition.title} full-screen CLI`} boundary="BOUNDED EDUCATIONAL COMMAND SET / SAME STATE AS INSPECTOR" eyebrow="NETWORK OPERATIONS / CLI" input={cliInput} lines={cliLines} onClose={() => setCliVisible(false)} onInputChange={setCliInput} onSubmit={runCli} prompt="NETBITE>" suggestions={suggestions} testID="operations-cli-modal" title={definition.title} visible={cliVisible} /> : null}
+    {simulator.cliEnabled ? <CliConsoleShell accessibilityLabel={`${definition.title} full-screen CLI`} boundary="BOUNDED EDUCATIONAL COMMAND SET / SAME STATE AS INSPECTOR" eyebrow="NETWORK OPERATIONS / CLI" input={cliInput} lines={cliLines} onClose={() => setCliVisible(false)} onInputChange={setCliInput} onSubmit={runCli} prompt="NETBITE>" suggestions={suggestions} taskContext={cliTaskContext} testID="operations-cli-modal" title={definition.title} visible={cliVisible} /> : null}
     <FeedbackModal visible={resetVisible} tone="warning" eyebrow="CONFIRM SIMULATOR RESET" title="Reset this simulator?" message="Configuration, evidence, trace position, undo history, and hints for this lab will be removed." detail="Earned course completion is retained." onRequestClose={() => setResetVisible(false)} secondaryAction={{ label: 'Keep working', variant: 'secondary', onPress: () => setResetVisible(false) }} primaryAction={{ label: 'Reset simulator', variant: 'danger', onPress: () => { reset(definition.id); setResetVisible(false); setCliVisible(false); setCliLines([]); setDraft({}); setValidationError(undefined); } }} />
   </Screen>;
 }

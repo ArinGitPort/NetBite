@@ -28,7 +28,7 @@ describe('EducationalLessonIllustration', () => {
 
   test('stacks packet fields without truncating exact values on a narrow panel', async () => {
     const screen = await render(<EducationalLessonIllustration type="arp-request" />);
-    const panel = screen.getByLabelText(/PC A sends an ARP Request/i);
+    const panel = screen.getByLabelText(/PC1 sends an ARP Request/i);
     fireEvent(panel, 'layout', { nativeEvent: { layout: { width: 360, height: 600, x: 0, y: 0 } } });
     expect(screen.getByText('192.168.10.10 / 02:00:00:00:00:0A')).toBeTruthy();
     expect(screen.getByText('192.168.10.20')).toBeTruthy();

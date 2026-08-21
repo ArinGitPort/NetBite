@@ -17,7 +17,7 @@ The stable ID is never changed during an update. This protects cable endpoints, 
 
 ## Validation and error prevention
 
-Device names are trimmed and must contain 1–24 letters, numbers, spaces, hyphens, or underscores. Names are compared without case, so `PC-A` and `pc-a` cannot coexist. Invalid or duplicate names do not mutate the workspace.
+Device names are trimmed and must contain 1–24 letters, numbers, spaces, hyphens, or underscores. Names are compared without case, so `PC1` and `pc1` cannot coexist. Invalid or duplicate names do not mutate the workspace.
 
 Existing network validation remains active for IPv4 addresses, prefixes, gateways, VLAN IDs, routes, subinterfaces, and interface state. Malformed input is rejected. A syntactically valid but logically incorrect network configuration remains editable so the learner can inspect and repair it.
 

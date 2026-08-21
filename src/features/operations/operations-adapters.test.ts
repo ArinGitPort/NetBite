@@ -38,12 +38,12 @@ describe('specialized Network Operations adapters', () => {
   test('derives device records instead of generic current-task text', () => {
     const cases = [
       ['dns-resolution-desk', 'RECURSIVE DNS', 'CACHE'],
-      ['acl-policy-desk', 'R-1', 'ACL NETBITE-IN'],
-      ['nat-translation-desk', 'R-1', 'GLOBAL'],
-      ['ipv6-address-desk', 'PC-A', 'EXPANDED'],
-      ['spanning-tree-desk', 'SW-B', 'ROOT'],
-      ['etherchannel-desk', 'SW-A', 'PORT-CHANNEL'],
-      ['route-source-desk', 'R-1', 'INSTALLED'],
+      ['acl-policy-desk', 'R1', 'ACL NETBITE-IN'],
+      ['nat-translation-desk', 'R1', 'GLOBAL'],
+      ['ipv6-address-desk', 'PC1', 'EXPANDED'],
+      ['spanning-tree-desk', 'SW2', 'ROOT'],
+      ['etherchannel-desk', 'SW1', 'PORT-CHANNEL'],
+      ['route-source-desk', 'R1', 'INSTALLED'],
       ['ospf-area-desk', 'R1', 'ROUTER ID'],
     ] as const;
     cases.forEach(([labId, device, expected]) => {

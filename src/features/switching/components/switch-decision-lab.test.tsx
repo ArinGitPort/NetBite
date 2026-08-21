@@ -43,7 +43,7 @@ describe('SwitchDecisionLab', () => {
     await chooseAndCheck(screen, 'FLOOD OTHER PORTS');
     expect(screen.getByText('DECISION CONFIRMED')).toBeTruthy();
     expect(screen.getByLabelText('MAC address table, 1 learned address, after decision')).toBeTruthy();
-    expect(screen.getByLabelText(/PC B, MAC 02:00:00:00:00:0B, port 2, egress/)).toBeTruthy();
+    expect(screen.getByLabelText(/PC2, MAC 02:00:00:00:00:0B, port 2, egress/)).toBeTruthy();
     await fireEvent.press(screen.getByText(/next frame/i));
 
     expect(screen.getByText('REPLY FRAME')).toBeTruthy();

@@ -3,9 +3,9 @@ import { ETHERNET_BROADCAST_MAC, type SwitchFrame } from '@/core/network/switchi
 export const SWITCH_DESK_PORTS = [1, 2, 3];
 
 export const SWITCH_DESK_ENDPOINTS = [
-  { id: 'pc-a', name: 'PC A', macAddress: '02:00:00:00:00:0A', port: 1 },
-  { id: 'pc-b', name: 'PC B', macAddress: '02:00:00:00:00:0B', port: 2 },
-  { id: 'pc-c', name: 'PC C', macAddress: '02:00:00:00:00:0C', port: 3 },
+  { id: 'pc-a', name: 'PC1', macAddress: '02:00:00:00:00:0A', port: 1 },
+  { id: 'pc-b', name: 'PC2', macAddress: '02:00:00:00:00:0B', port: 2 },
+  { id: 'pc-c', name: 'PC3', macAddress: '02:00:00:00:00:0C', port: 3 },
 ] as const;
 
 export type SwitchPrediction = 'port-1' | 'port-2' | 'port-3' | 'flood';

@@ -21,10 +21,10 @@ export const chapterEight = createAdvancedChapter({
         { heading: 'Both directions matter', body: 'The request needs a forward path, and the reply needs a return path. Receiving the matching reply is therefore stronger evidence than seeing only the request leave.' },
         { heading: 'Each test is a moment', body: 'A successful exchange describes reachability for that source, destination, and time. It does not promise that the network can never change.' },
       ],
-      example: { label: 'MATCH ONE ECHO ROUND TRIP', setup: 'PC A sends an Echo Request with identifier 24 and sequence 1 to PC B.', presentation: 'guided', visual: { illustration: 'echo-exchange', stageIds: ['request', 'reply', 'match'] }, steps: [
-        { id: 'request', label: 'SEND THE REQUEST', explanation: 'PC A sends Type 8, Code 0 with identifier 24 and sequence 1.' },
-        { id: 'reply', label: 'RETURN THE REPLY', explanation: 'PC B returns Type 0, Code 0 through a valid return path.' },
-        { id: 'match', label: 'MATCH THE RESPONSE', explanation: 'PC A sees identifier 24 and sequence 1 in the reply and associates it with the request.' },
+      example: { label: 'MATCH ONE ECHO ROUND TRIP', setup: 'PC1 sends an Echo Request with identifier 24 and sequence 1 to PC2.', presentation: 'guided', visual: { illustration: 'echo-exchange', stageIds: ['request', 'reply', 'match'] }, steps: [
+        { id: 'request', label: 'SEND THE REQUEST', explanation: 'PC1 sends Type 8, Code 0 with identifier 24 and sequence 1.' },
+        { id: 'reply', label: 'RETURN THE REPLY', explanation: 'PC2 returns Type 0, Code 0 through a valid return path.' },
+        { id: 'match', label: 'MATCH THE RESPONSE', explanation: 'PC1 sees identifier 24 and sequence 1 in the reply and associates it with the request.' },
       ], result: 'The matching reply establishes that this Echo exchange completed in both directions.' },
       takeaway: 'Ping succeeds when an Echo Request reaches the destination and an Echo Reply returns.',
     },

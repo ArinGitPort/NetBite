@@ -18,6 +18,7 @@ import { restoreProtocolState, type GuidedProtocolAdapter } from '@/features/pro
 import { GuidedProtocolLabShell } from '@/features/protocol-labs/components/guided-protocol-lab-shell';
 import { AppButton } from '@/shared/components/app-button';
 import { FeedbackModal } from '@/shared/components/feedback-modal';
+import { HintHistoryPanel } from '@/shared/components/hint-history-panel';
 import { SelectionControl } from '@/shared/components/selection-control';
 import { Text } from '@/shared/components/console-text';
 import { useMeasuredResponsiveLayout } from '@/shared/responsive-layout';
@@ -185,7 +186,7 @@ export function TransportGuidedLab() {
           <Text variant="bodySmall" style={styles.body}>NEXT CHECK / {state.lastExplanation.nextCheck}</Text>
         </View>
 
-        {state.hints.length ? <View style={styles.hintPanel}><Text variant="label" style={styles.orange}>HINT HISTORY</Text>{state.hints.map((hint, index) => <Text key={`${index}-${hint}`} variant="bodySmall" style={styles.body}>{index + 1}. {hint.replace(/^.*? \/ /, '')}</Text>)}</View> : null}
+        <HintHistoryPanel hints={state.hints} stripContext />
         {!result.complete && usedHints.length < currentHints.length ? <AppButton label={usedHints.length ? 'Show next hint' : 'Show a hint'} variant="secondary" onPress={() => run({ type: 'add-hint', hint: `${current.id} / ${currentHints[usedHints.length]}` }, false)} /> : null}
 
         <View style={styles.tools}><Text variant="label" style={styles.muted}>SESSION TOOLS</Text><AppButton disabled={undoCount === 0} label="Undo latest change" variant="utility" onPress={() => { undo(LAB_ID); setDraftOverride(undefined); setFormError(undefined); }} /><AppButton label="Reset simulator" variant="danger" onPress={() => setResetVisible(true)} /></View>
@@ -220,9 +221,9 @@ function getNextAction(state: TransportLabState, dirty: boolean, saveConfigurati
 
 function TransportTopology({ compact, selected, state, onSelect }: { compact: boolean; selected: TransportLabState['selectedDeviceId']; state: TransportLabState; onSelect: (id: TransportLabState['selectedDeviceId']) => void }) {
   const nodes: { id: TransportLabState['selectedDeviceId']; label: string; detail: string; kind: 'pc' | 'router' | 'server' }[] = [
-    { id: 'client', label: 'CLIENT PC', detail: `${state.client.address}:${state.client.port}`, kind: 'pc' },
-    { id: 'network', label: 'IP NETWORK', detail: 'FORWARDS BY IP', kind: 'router' },
-    { id: 'server', label: 'APP SERVER', detail: `${state.server.address}:${state.server.port}`, kind: 'server' },
+    { id: 'client', label: 'PC1', detail: `${state.client.address}:${state.client.port}`, kind: 'pc' },
+    { id: 'network', label: 'R1', detail: 'FORWARDS BY IP', kind: 'router' },
+    { id: 'server', label: 'WEB1', detail: `${state.server.address}:${state.server.port}`, kind: 'server' },
   ];
   return <View accessible={false} style={styles.topologyPanel}><Text variant="label" style={styles.green}>FIXED INTERACTIVE TOPOLOGY</Text><Text variant="bodySmall" style={styles.muted}>Tap a device to inspect it. Configuration and protocol actions remain guided below.</Text><View style={[styles.topology, compact && styles.topologyCompact]}>{nodes.map((node, index) => <View key={node.id} style={[styles.nodeUnit, compact && styles.nodeUnitCompact]}>{index > 0 ? <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={[styles.cable, compact && styles.cableCompact]}><View style={[styles.cableLine, compact && styles.cableLineCompact]} /><Text variant="technical" style={styles.cableLabel}>{state.segments.at(-1)?.direction === 'server-to-client' ? 'RETURN' : 'PATH'}</Text></View> : null}<Pressable accessibilityHint="Selects this device for inspection" accessibilityLabel={`${node.label}, ${node.detail}${selected === node.id ? ', selected' : ''}`} accessibilityRole="button" accessibilityState={{ selected: selected === node.id }} onPress={() => onSelect(node.id)} style={[styles.node, selected === node.id && styles.nodeSelected]}>{node.kind === 'server' ? <Image accessibilityIgnoresInvertColors contentFit="contain" source={require('@/assets/images/education/server-terminal-mobile.png')} style={styles.serverImage} /> : <DeviceGlyph size={68} type={node.kind} />}<Text variant="label" style={styles.nodeLabel}>{node.label}</Text><Text variant="technical" style={styles.nodeDetail}>{node.detail}</Text></Pressable></View>)}</View></View>;
 }

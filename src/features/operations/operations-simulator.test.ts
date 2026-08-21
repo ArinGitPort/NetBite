@@ -63,10 +63,10 @@ describe('Course 2 guided simulation framework', () => {
     let session = emptyOperationsSimulationSession();
     const configurations: Record<string, SimulationValue>[] = [
       { 'dhcp.network': '192.168.20.0', 'dhcp.prefix': 24, 'dhcp.start': '192.168.20.100', 'dhcp.end': '192.168.20.102', 'dhcp.excluded': '192.168.20.100', 'dhcp.gateway': '192.168.20.1', 'dhcp.leaseSteps': 4 },
-      { 'dhcp.client': 'PC-A' },
-      { 'dhcp.renewClient': 'PC-A' },
+      { 'dhcp.client': 'PC1' },
+      { 'dhcp.renewClient': 'PC1' },
       { 'dhcp.requestCount': 2 },
-      { 'dhcp.releaseClient': 'PC-B' },
+      { 'dhcp.releaseClient': 'PC2' },
     ];
     configurations.forEach((configuration, index) => {
       session = applySimulationConfiguration(session, simulator.stages[index], configuration).session;
@@ -75,7 +75,7 @@ describe('Course 2 guided simulation framework', () => {
       session = { ...session, protocolState: result.protocolState };
     });
     const dhcp = session.protocolState?.dhcp as { leases: { clientId: string; address: string }[] };
-    expect(dhcp.leases).toEqual([{ clientId: 'PC-A', address: '192.168.20.101', state: 'bound', leaseStepsRemaining: 4 }]);
+    expect(dhcp.leases).toEqual([{ clientId: 'PC1', address: '192.168.20.101', state: 'bound', leaseStepsRemaining: 4 }]);
   });
 
   test('CLI and inspector write the same configuration keys', () => {

@@ -52,7 +52,7 @@ describe('sandbox canvas device and cable labels', () => {
     expect(screen.queryByText('192.168.10.10/24')).toBeNull();
     expect(screen.queryByText('IP NOT SET')).toBeNull();
     expect(screen.queryByText('MGMT IP NOT MODELED')).toBeNull();
-    expect(screen.getByLabelText(/PC-1, pc, IP address 192\.168\.10\.10\/24/i)).toBeTruthy();
+    expect(screen.getByLabelText(/PC1, pc, IP address 192\.168\.10\.10\/24/i)).toBeTruthy();
 
     workspace = configureSandboxDevice(workspace, 'pc-1', { interfaceId: 'E0', interface: { adminUp: false } }).state;
     await screen.rerender(<SandboxCanvas workspace={workspace} zoom={1.2} {...callbacks} />);
@@ -66,7 +66,7 @@ describe('sandbox canvas device and cable labels', () => {
     expect(screen.queryByText('192.168.10.1/24')).toBeNull();
     expect(screen.queryByText('192.168.20.1/24')).toBeNull();
     expect(screen.queryByText('MGMT IP NOT MODELED')).toBeNull();
-    expect(screen.getByLabelText(/R-1, router, G0\/0, IP address 192\.168\.10\.1\/24/i)).toBeTruthy();
+    expect(screen.getByLabelText(/R1, router, G0\/0, IP address 192\.168\.10\.1\/24/i)).toBeTruthy();
   });
 
   test('shows both exact interface labels and keeps a named cable press target', async () => {
@@ -77,10 +77,10 @@ describe('sandbox canvas device and cable labels', () => {
 
     expect(screen.getByText('E0')).toBeTruthy();
     expect(screen.getByText('F0/1')).toBeTruthy();
-    await fireEvent.press(screen.getByRole('button', { name: 'Cable from PC-1 E0 to SW-1 F0/1' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Cable from PC1 E0 to SW1 F0/1' }));
     expect(callbacks.onSelectLink).toHaveBeenCalledWith(connection.ok ? connection.link.id : 'missing');
 
-    await fireEvent(screen.getByLabelText(/PC-1, pc/i), 'layout', { nativeEvent: { layout: { width: 128, height: 360, x: 0, y: 0 } } });
+    await fireEvent(screen.getByLabelText(/PC1, pc/i), 'layout', { nativeEvent: { layout: { width: 128, height: 360, x: 0, y: 0 } } });
     await waitFor(() => expect(StyleSheet.flatten(screen.getByTestId('sandbox-canvas-surface').props.style).height).toBeGreaterThanOrEqual(420));
   });
 });

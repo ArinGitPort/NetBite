@@ -43,6 +43,20 @@ describe('CliLab', () => {
   beforeEach(() => useGameStore.setState({ completedLabIds: [], cliGuideSeen: true }));
   afterEach(cleanup);
 
+  test('turns routing status into guided per-device work and a direct next action', async () => {
+    const screen = await render(<CliLab definition={cliLabDefinitions['static-route-board']} />);
+    await fireEvent.press(screen.getByRole('button', { name: /objective status/i }));
+    expect(screen.getByText('CONFIGURE REMOTE ROUTES')).toBeTruthy();
+    expect(screen.getByText('0 OF 4')).toBeTruthy();
+    expect(screen.getAllByText('R1').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('R2').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('R3').length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/192\.168\.30\.0\/24/i).length).toBeGreaterThan(0);
+    expect(screen.getByText('OPEN CLI ON R1')).toBeTruthy();
+    expect(screen.getAllByText('BLOCKED BY EARLIER STEP')).toHaveLength(2);
+    expect(screen.queryByText(/10\.0\.12\.2/)).toBeNull();
+  });
+
   test('provides complete authored topology coordinates for every CLI lab and diagnostic scenario', () => {
     Object.values(cliLabDefinitions).forEach((definition) => {
       const states = [definition.createState(), ...(definition.diagnosticScenarios?.map((scenario) => scenario.createState()) ?? [])];
@@ -124,14 +138,16 @@ describe('CliLab', () => {
     }
   });
 
-  test('keeps VLAN-only links free of visible IP captions', async () => {
+  test('shows VLAN context on VLAN-only links without inventing IP captions', async () => {
     const vlan = await render(<CliLab definition={cliLabDefinitions['vlan-port-desk']} />);
     await layoutTopology(vlan);
     const state = cliLabDefinitions['vlan-port-desk'].createState();
     state.links.forEach((link) => {
       const id = `${link.aDeviceId}-${link.aInterface}-${link.bDeviceId}-${link.bInterface}`;
-      expect(vlan.queryByTestId(`topology-link-label-${id}-context`)).toBeNull();
+      expect(vlan.getByTestId(`topology-link-label-${id}-context`)).toBeTruthy();
     });
+    expect(vlan.getAllByText('ACCESS VLAN 1').length).toBeGreaterThan(0);
+    expect(vlan.queryByText(/192\.168\./)).toBeNull();
   });
 
   test('keeps Help manual and explains the deliberate full-screen console flow', async () => {
@@ -145,38 +161,68 @@ describe('CliLab', () => {
 
   test('opens and closes the shared full-screen console without losing transcript or selection', async () => {
     const screen = await render(<CliLab definition={cliLabDefinitions['static-route-board']} />);
-    await openCli(screen, 'NB-R1');
-    expect(screen.getByLabelText('NB-R1 full-screen CLI')).toBeTruthy();
+    await openCli(screen, 'R1');
+    expect(screen.getByLabelText('R1 full-screen CLI')).toBeTruthy();
     await submit(screen, 'enable');
     expect(screen.getByText('PRIVILEGED EXEC MODE')).toBeTruthy();
     await fireEvent.press(screen.getByLabelText('Close CLI'));
     expect(screen.queryByTestId('cli-fullscreen-modal')).toBeNull();
 
-    await openCli(screen, 'NB-R1');
+    await openCli(screen, 'R1');
     expect(screen.getByText('PRIVILEGED EXEC MODE')).toBeTruthy();
     expect(screen.getByLabelText('CLI command').props.value).toBe('');
+  });
+
+  test('keeps a same-device command draft and clears it after a deliberate device switch', async () => {
+    const screen = await render(<CliLab definition={cliLabDefinitions['static-route-board']} />);
+    await openCli(screen, 'R1');
+    await fireEvent.changeText(screen.getByLabelText('CLI command'), 'ip route 192.168.30.0 ');
+    expect(screen.getByText('DRAFT KEPT WHEN CONSOLE CLOSES')).toBeTruthy();
+    await fireEvent.press(screen.getByLabelText('Close CLI'));
+    await openCli(screen, 'R1');
+    expect(screen.getByLabelText('CLI command').props.value).toBe('ip route 192.168.30.0 ');
+    await fireEvent.press(screen.getByRole('radio', { name: 'R2' }));
+    expect(screen.getByLabelText('CLI command').props.value).toBe('');
+  });
+
+  test('shows expandable live task and network reference inside the routing console', async () => {
+    const screen = await render(<CliLab definition={cliLabDefinitions['static-route-board']} />);
+    await openCli(screen, 'R1');
+    const task = screen.getByRole('button', { name: /current task.*configure remote routes.*not started.*0 of 4/i });
+    expect(task.props.accessibilityState.expanded).toBe(false);
+    await fireEvent.press(task);
+    expect(screen.getByText('DESTINATION')).toBeTruthy();
+    expect(screen.getAllByText('192.168.30.0/24').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('255.255.255.0').length).toBeGreaterThan(0);
+    expect(screen.getByText('ip route <network> <mask> <next-hop>')).toBeTruthy();
+    expect(screen.queryByText('10.0.12.2')).toBeNull();
+    await fireEvent.press(screen.getByRole('button', { name: /network reference/i }));
+    expect(screen.getAllByText('10.0.12.0/30').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('10.0.23.0/30').length).toBeGreaterThan(0);
   });
 
   test('selecting a topology device changes the inspector and opens its console', async () => {
     const screen = await render(<CliLab definition={cliLabDefinitions['static-route-board']} />);
     await fireEvent.press(screen.getByTestId('cli-topology-node-r2'));
-    expect(screen.getByText('NB-R2 / ROUTER')).toBeTruthy();
-    expect(screen.getAllByText(/10\.0\.12\.2\/30/i).length).toBeGreaterThan(0);
-    await openCli(screen, 'NB-R2');
-    expect(screen.getByLabelText('NB-R2 full-screen CLI')).toBeTruthy();
+    expect(screen.getByText('R2 — ROUTER')).toBeTruthy();
+    expect(screen.getAllByText('10.0.12.2').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('/30').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('255.255.255.252').length).toBeGreaterThan(0);
+    await openCli(screen, 'R2');
+    expect(screen.getByLabelText('R2 full-screen CLI')).toBeTruthy();
   });
 
   test('non-console endpoints remain inspectable without widening the CLI command scope', async () => {
     const screen = await render(<CliLab definition={cliLabDefinitions['vlan-port-desk']} />);
     await fireEvent.press(screen.getByTestId('cli-topology-node-pc-a'));
-    expect(screen.getByText('PC-A / PC')).toBeTruthy();
+    expect(screen.getByText('PC1 — PC')).toBeTruthy();
     expect(screen.getByText(/inspection only/i)).toBeTruthy();
     expect(screen.queryByRole('button', { name: /open cli on pc-a/i })).toBeNull();
   });
 
   test('wrong-mode commands do not mutate state or enable Undo', async () => {
     const screen = await render(<CliLab definition={cliLabDefinitions['static-route-board']} />);
-    await openCli(screen, 'NB-R1');
+    await openCli(screen, 'R1');
     await submit(screen, 'conf t');
     expect(screen.getByText(/available in privileged EXEC mode/i)).toBeTruthy();
     expect(screen.getByRole('button', { name: /undo config/i }).props.accessibilityState.disabled).toBe(true);
@@ -184,7 +230,7 @@ describe('CliLab', () => {
 
   test('configuration, history, Undo, and topology inspection use the same state', async () => {
     const screen = await render(<CliLab definition={cliLabDefinitions['static-route-board']} />);
-    await openCli(screen, 'NB-R1');
+    await openCli(screen, 'R1');
     await submit(screen, 'en');
     await submit(screen, 'conf t');
     await submit(screen, 'ip route 192.168.30.0 255.255.255.0 10.0.12.2');
@@ -199,12 +245,12 @@ describe('CliLab', () => {
   test('setup disclosure remains inside the lab and does not reset console state', async () => {
     const screen = await render(<CliLab definition={cliLabDefinitions['static-route-board']} />);
     expect(screen.getAllByRole('button')[0].props.accessibilityLabel).toBe('Back to Chapter 9');
-    await openCli(screen, 'NB-R1');
+    await openCli(screen, 'R1');
     await submit(screen, 'enable');
     await fireEvent.press(screen.getByLabelText('Close CLI'));
     await fireEvent.press(screen.getByRole('button', { name: /learn the setup/i }));
     expect(screen.getByText('STARTING FACTS')).toBeTruthy();
-    await openCli(screen, 'NB-R1');
+    await openCli(screen, 'R1');
     expect(screen.getByText('PRIVILEGED EXEC MODE')).toBeTruthy();
   });
 
@@ -221,9 +267,10 @@ describe('CliLab', () => {
     const screen = await render(<CliLab definition={cliLabDefinitions['inter-vlan-routing-desk']} />);
     await fireEvent.press(screen.getByText(/show a hint/i));
     await fireEvent.press(screen.getByText(/show next hint/i));
-    expect(screen.getByText(/PC-A uses SW-1 F0\/1 in VLAN 10/i)).toBeTruthy();
+    expect(screen.getByText(/PC1 uses SW1 F0\/1 in VLAN 10/i)).toBeTruthy();
     expect(screen.getByText(/switchport trunk allowed vlan 10,20/i)).toBeTruthy();
-    expect(screen.getByText(/revealed hints \/ 2 of 4/i)).toBeTruthy();
+    expect(screen.getByText('2 HINTS REVEALED')).toBeTruthy();
+    expect(screen.getByText('2 OF 4')).toBeTruthy();
   });
 
   test('expands a successful routed ping into complete forward and return visual paths', () => {

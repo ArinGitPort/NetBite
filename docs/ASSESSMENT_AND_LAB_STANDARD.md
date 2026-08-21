@@ -157,7 +157,7 @@ For clients in `192.168.20.0/24`, a small assessed pool may be specified as:
 - Last pool address: `192.168.20.102`
 - Excluded address: `192.168.20.100`
 
-The learner can then derive `192.168.20.101` as the first available offer. DHCP-1 may reside at `192.168.10.5`; the relay at `192.168.20.1` supplies the client-network context. The server's own subnet must not be mistaken for the client address pool.
+The learner can then derive `192.168.20.101` as the first available offer. DHCP1 may reside at `192.168.10.5`; the relay at `192.168.20.1` supplies the client-network context. The server's own subnet must not be mistaken for the client address pool.
 
 ## Automated quality-test structure
 

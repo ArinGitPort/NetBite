@@ -157,7 +157,7 @@ export function createSandboxDevice(type: SandboxDeviceType, number: number, pos
   const label = type === 'pc' ? 'PC' : type === 'switch' ? 'SW' : 'R';
   return {
     id: `${type}-${number}`,
-    name: `${label}-${number}`,
+    name: `${label}${number}`,
     type,
     position,
     interfaces: interfaceNames(type).map((name, index) => ({
@@ -1017,7 +1017,7 @@ export function executeSandboxCliCommand(
     const source = findDevice(effectiveWorkspace, deviceId);
     const trace = source?.interfaces.some((item) => item.adminUp && item.ipv4 && item.prefix !== undefined)
       ? simulateSandboxPing(effectiveWorkspace, deviceId, parsed.command.destination)
-      : failure(effectiveWorkspace, 'The selected device has no active IPv4 interface.', 'It cannot originate an IPv4 Echo Request.', 'Choose R-1 or configure and enable an IPv4 interface.');
+      : failure(effectiveWorkspace, 'The selected device has no active IPv4 interface.', 'It cannot originate an IPv4 Echo Request.', 'Choose R1 or configure and enable an IPv4 interface.');
     const workspaceMutated = learnedStateChanged(effectiveWorkspace, trace.state);
     const nextSession = syncCliSessionFromWorkspace(cli, trace.state);
     const result: CliCommandResult = {

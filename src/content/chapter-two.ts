@@ -9,7 +9,7 @@ export const chapterTwoLessons = buildLessons('2', [
       { heading: 'Link by link', body: 'A PC and switch can share one Ethernet link, while the switch and another device use a different link. Each link has two connected interfaces.' },
       { heading: 'Several pieces cooperate', body: 'A working link needs compatible interfaces, suitable media, and an agreed Ethernet method. Higher chapters add the addressing and forwarding decisions.' },
     ],
-    example: { label: 'LOCAL SCOPE', setup: 'PC A connects to Switch 1 with one copper cable.', result: 'Ethernet describes communication over that local PC-to-switch link. Routing beyond the LAN is a separate responsibility.' },
+    example: { label: 'LOCAL SCOPE', setup: 'PC1 connects to SW1 with one copper cable.', result: 'Ethernet describes communication over that local PC-to-switch link. Routing beyond the LAN is a separate responsibility.' },
     takeaway: 'Ethernet provides local-link communication between compatible network interfaces.',
   },
   {
@@ -19,14 +19,14 @@ export const chapterTwoLessons = buildLessons('2', [
       { heading: 'Read the important fields in order', body: 'Destination MAC names the local receiver or group, source MAC names the sender, and the two-byte EtherType identifies the contained protocol. For example, 0x0800 identifies IPv4 and 0x0806 identifies ARP.' },
       { heading: 'Payload and check', body: 'The payload carries the upper-layer packet or message. The four-byte Frame Check Sequence, or FCS, helps a receiver detect corruption, but Ethernet discards rather than repairs a damaged frame.' },
     ],
-    example: { label: 'BUILD ONE ETHERNET FRAME', setup: 'PC A needs to carry an IPv4 datagram across its local Ethernet link.', presentation: 'guided', visual: { illustration: 'frame', stageIds: ['payload', 'addresses', 'type', 'check'] }, steps: [
+    example: { label: 'BUILD ONE ETHERNET FRAME', setup: 'PC1 needs to carry an IPv4 datagram across its local Ethernet link.', presentation: 'guided', visual: { illustration: 'frame', stageIds: ['payload', 'addresses', 'type', 'check'] }, steps: [
       { id: 'payload', label: 'RECEIVE THE PAYLOAD', explanation: 'The networking stack gives the NIC an IPv4 datagram that must cross this link.' },
       { id: 'addresses', label: 'ADD LOCAL MAC ADDRESSES', explanation: 'The NIC writes the destination and source MAC addresses for this Ethernet hop.' },
       { id: 'type', label: 'IDENTIFY THE PAYLOAD', explanation: 'EtherType 0x0800 tells the receiver that the payload is IPv4.', value: '0x0800 / IPv4' },
       { id: 'check', label: 'ADD THE FCS', explanation: 'The sender calculates an error-detection value that the receiver checks after transmission.' },
     ], result: 'The completed frame is then represented as signals on copper or fiber; the frame is not the signal itself.' },
     takeaway: 'An Ethernet frame packages local-link delivery information, payload data, and an error check.',
-    checkpoint: { prompt: 'PC-A sends an Ethernet frame to PC-B. Which field identifies PC-B as the intended receiver on this local link?', correctChoiceId: 'destination', choices: [
+    checkpoint: { prompt: 'PC1 sends an Ethernet frame to PC2. Which field identifies PC2 as the intended receiver on this local link?', correctChoiceId: 'destination', choices: [
       { id: 'destination', label: 'DESTINATION MAC', feedback: 'Correct. The destination MAC identifies the intended local-link interface.' },
       { id: 'source', label: 'SOURCE MAC', feedback: 'The source identifies the sender. It does not name the intended receiver.' },
       { id: 'check', label: 'ERROR CHECK', feedback: 'The check helps detect damage; it is not the delivery address.' },

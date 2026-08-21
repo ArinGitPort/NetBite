@@ -16,6 +16,7 @@ describe('LabSetupSupport', () => {
   test('starts collapsed, expands inline, and opens prerequisite lessons with lab return context', async () => {
     const view = await render(<LabSetupSupport labId="first-network" />);
     expect(view.queryByText(/starting facts/i)).toBeNull();
+    expect(view.getByRole('button', { name: /view completed lab/i })).toBeTruthy();
     await fireEvent.press(view.getByRole('button', { name: /learn the setup/i }));
 
     expect(view.getByText(/starting facts/i)).toBeTruthy();
@@ -26,6 +27,17 @@ describe('LabSetupSupport', () => {
       pathname: '/lesson/[lessonId]',
       params: { lessonId: 'what-is-a-network', fromLabId: 'first-network' },
     });
+  });
+
+  test('opens the completed example separately and returns without changing setup state', async () => {
+    const view = await render(<LabSetupSupport labId="first-network" />);
+    await fireEvent.press(view.getByRole('button', { name: /view completed lab/i }));
+    expect(view.getByText('HOW TO STUDY THIS EXAMPLE')).toBeTruthy();
+    expect(view.getByText('PC1')).toBeTruthy();
+    expect(view.getByText('PC2')).toBeTruthy();
+    await fireEvent.press(view.getByLabelText('Return to my lab'));
+    expect(view.queryByText('HOW TO STUDY THIS EXAMPLE')).toBeNull();
+    expect(view.getByRole('button', { name: /view completed lab/i })).toBeTruthy();
   });
 
   test('does not duplicate setup guidance for an Operations lab with an embedded briefing', async () => {

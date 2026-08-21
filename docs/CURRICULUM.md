@@ -149,7 +149,7 @@ Goal: read route instructions and select connected, static, most-specific, and d
 
 Lessons: A Route Table Answers Where to Send IP Traffic; Active Interfaces Create Connected Routes; Read a Route Entry as One Instruction; A Static Route Names an Administrator-Chosen Path; Communication Needs Forward and Return Routes; First Decide Which Routes Match; The Longest Matching Prefix Wins; A Default Route Is the Least-Specific Fallback.
 
-Practice: configure exactly four forward and return static routes through the NetBite CLI, inspect derived route/path state, and verify both PC-A-to-PC-C directions.
+Practice: configure exactly four forward and return static routes through the NetBite CLI, inspect derived route/path state, and verify both PC1-to-PC3 directions.
 
 Assessment: eight quiz questions, mastery 7/8. Scope excludes dynamic routing protocols, metrics, administrative distance, and convergence. Sources: `references/CHAPTER9_SOURCES.md`.
 
@@ -183,8 +183,8 @@ Practice: configure an 802.1Q switch trunk and two router subinterfaces, verify 
 
 The lab keeps this topology map visible throughout configuration:
 
-- PC-A `192.168.10.10/24`, gateway `192.168.10.1` -> SW-1 `F0/1`, access VLAN 10.
-- PC-B `192.168.20.20/24`, gateway `192.168.20.1` -> SW-1 `F0/2`, access VLAN 20.
-- R-1 `G0/0` <-> SW-1 `F0/24`, trunk carrying VLANs 10 and 20.
+- PC1 `192.168.10.10/24`, gateway `192.168.10.1` -> SW1 `F0/1`, access VLAN 10.
+- PC2 `192.168.20.20/24`, gateway `192.168.20.1` -> SW1 `F0/2`, access VLAN 20.
+- R1 `G0/0` <-> SW1 `F0/24`, trunk carrying VLANs 10 and 20.
 
 Assessment: eight quiz questions, mastery 7/8. Scope is router-on-a-stick only; Layer 3 switch SVIs, native-VLAN behavior, DTP, VTP, and STP remain excluded. Sources: `references/CHAPTER12_SOURCES.md`.

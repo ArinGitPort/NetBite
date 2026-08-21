@@ -16,8 +16,8 @@ describe('StatusRow', () => {
   });
 
   test('supports wrapped descriptions and optional compact state labels', async () => {
-    const screen = await render(<StatusRow description="PC-1 needs a saved IPv4 address and prefix." label="SOURCE" showStateLabel={false} state="attention" />);
-    expect(screen.getByLabelText('SOURCE. NEEDS ATTENTION. PC-1 needs a saved IPv4 address and prefix.')).toBeTruthy();
+    const screen = await render(<StatusRow description="PC1 needs a saved IPv4 address and prefix." label="SOURCE" showStateLabel={false} state="attention" />);
+    expect(screen.getByLabelText('SOURCE. NEEDS ATTENTION. PC1 needs a saved IPv4 address and prefix.')).toBeTruthy();
     expect(screen.queryByText('NEEDS ATTENTION')).toBeNull();
   });
 

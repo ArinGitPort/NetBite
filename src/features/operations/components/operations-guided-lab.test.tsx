@@ -43,7 +43,7 @@ describe('Operations guided simulator', () => {
   test('retains progressive hints and advances from verified state', async () => {
     const screen = await render(<OperationsGuidedLab definition={definition} />);
     await fireEvent.press(screen.getByText('Show a hint'));
-    expect(await screen.findByText('HINT HISTORY')).toBeTruthy();
+    expect(await screen.findByText('1 HINT REVEALED')).toBeTruthy();
     await fireEvent.press(screen.getByText('Show next hint'));
     expect(useOperationsLabStore.getState().sessions[definition.id].hints).toHaveLength(2);
     await fireEvent.press(screen.getByText('TCP'));
@@ -62,8 +62,8 @@ describe('Operations guided simulator', () => {
     expect(screen.getByText('LEARN THE SETUP')).toBeTruthy();
     expect(screen.getByText('HOW TO READ THE POOL SETTINGS')).toBeTruthy();
     expect(screen.getByTestId('operations-topology-canvas')).toBeTruthy();
-    await fireEvent.press(screen.getByLabelText(/DHCP-1, SERVER/i));
-    expect(await screen.findByText('SELECTED / DHCP-1')).toBeTruthy();
+    await fireEvent.press(screen.getByLabelText(/DHCP1, SERVER/i));
+    expect(await screen.findByText('SELECTED / DHCP1')).toBeTruthy();
     expect(screen.getByText('POOL / POOL NOT CONFIGURED')).toBeTruthy();
     expect(screen.getByText(/The first remaining address the server may offer is 192.168.20.101/)).toBeTruthy();
     expect(screen.getByText('INFORMATION PROVIDED')).toBeTruthy();
@@ -83,5 +83,16 @@ describe('Operations guided simulator', () => {
     await fireEvent.changeText(screen.getByLabelText('Modeled lease duration'), '4');
     await fireEvent.press(screen.getByText('Save configuration'));
     expect(useOperationsLabStore.getState().sessions[dhcp.id].configuration).toMatchObject({ 'dhcp.prefix': 24 });
+  });
+
+  test('keeps the current Operations objective available inside its full-screen CLI', async () => {
+    const acl = operationsLabDefinitions['acl-policy-desk'];
+    const screen = await render(<OperationsGuidedLab definition={acl} />);
+    await fireEvent.press(screen.getByText('Open full-screen CLI'));
+    const task = screen.getByRole('button', { name: /current task/i });
+    expect(task.props.accessibilityState.expanded).toBe(false);
+    await fireEvent.press(task);
+    expect(screen.getByText('EVIDENCE')).toBeTruthy();
+    expect(screen.getByText('SUPPLIED FACT 1')).toBeTruthy();
   });
 });

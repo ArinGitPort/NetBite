@@ -78,7 +78,7 @@ export function deriveCliLinkContext(state: CliNetworkState, link: CliLink): Cli
     const rightVlans = new Set(right.allowedVlans ?? []);
     const commonVlans = [...new Set(left.allowedVlans ?? [])].filter((vlan) => rightVlans.has(vlan)).sort((x, y) => x - y);
     return commonVlans.length
-      ? { kind: 'trunk', label: `TRUNK / VLAN ${commonVlans.join(',')}`, tone: 'success' }
+      ? { kind: 'trunk', label: `TRUNK VLANs ${commonVlans.join(',')}`, tone: 'success' }
       : { kind: 'trunk', label: 'NO COMMON VLANs', tone: 'warning' };
   }
 
@@ -94,15 +94,15 @@ export function deriveCliLinkContext(state: CliNetworkState, link: CliLink): Cli
       const routerVlanSet = new Set(routerVlans);
       const commonVlans = [...new Set(port.allowedVlans ?? [])].filter((vlan) => routerVlanSet.has(vlan)).sort((x, y) => x - y);
       return commonVlans.length
-        ? { kind: 'trunk', label: `TRUNK / VLAN ${commonVlans.join(',')}`, tone: 'success' }
+        ? { kind: 'trunk', label: `TRUNK VLANs ${commonVlans.join(',')}`, tone: 'success' }
         : { kind: 'trunk', label: 'NO COMMON VLANs', tone: 'warning' };
     }
     if (port.switchportMode === 'trunk') {
       return port.allowedVlans?.length
-        ? { kind: 'trunk', label: `TRUNK / VLAN ${[...new Set(port.allowedVlans)].sort((x, y) => x - y).join(',')}`, tone: 'success' }
-        : { kind: 'trunk', label: 'TRUNK / NO VLANs', tone: 'warning' };
+        ? { kind: 'trunk', label: `TRUNK VLANs ${[...new Set(port.allowedVlans)].sort((x, y) => x - y).join(',')}`, tone: 'success' }
+        : { kind: 'trunk', label: 'TRUNK WITH NO ALLOWED VLANs', tone: 'warning' };
     }
-    return { kind: 'vlan', label: `ACCESS / VLAN ${port.accessVlan ?? 1}`, tone: 'normal' };
+    return { kind: 'vlan', label: `ACCESS VLAN ${port.accessVlan ?? 1}`, tone: 'normal' };
   }
 
   return { kind: 'ethernet', label: 'ETHERNET LINK', tone: 'normal' };
@@ -189,6 +189,16 @@ export function maskToPrefix(mask: string): number | null {
   const bits = octets.map((octet) => octet.toString(2).padStart(8, '0')).join('');
   if (!/^1*0*$/.test(bits)) return null;
   return bits.indexOf('0') === -1 ? 32 : bits.indexOf('0');
+}
+
+export function prefixToSubnetMask(prefix: number): string | null {
+  if (!Number.isInteger(prefix) || prefix < 0 || prefix > 32) return null;
+  return Array.from({ length: 4 }, (_, octetIndex) => {
+    const remainingBits = prefix - octetIndex * 8;
+    if (remainingBits >= 8) return 255;
+    if (remainingBits <= 0) return 0;
+    return 256 - (2 ** (8 - remainingBits));
+  }).join('.');
 }
 
 function parseVlanList(value: string): number[] | null {

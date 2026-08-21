@@ -35,7 +35,7 @@ function AddressPlate({ label, address }: { label: string; address: string }) {
 function MacAddressGraphic() {
   return (
     <View style={styles.centeredGraphic}>
-      <Endpoint label="PC A / NIC" />
+      <Endpoint label="PC1 / NIC" />
       <AddressPlate label="MAC ADDRESS / 6 BYTES" address={PC_A} />
       <View style={styles.byteRow}>
         {PC_A.split(':').map((byte, index) => (
@@ -50,7 +50,7 @@ function LearningGraphic() {
   return (
     <View style={styles.centeredGraphic}>
       <View style={styles.deviceFlow}>
-        <Endpoint label="PC A" />
+        <Endpoint label="PC1" />
         <View style={styles.flowPath}>
           <Text variant="technical" style={styles.flowLabel}>FRAME ENTERS P1</Text>
           <View style={styles.signalLine} />
@@ -83,9 +83,9 @@ function ForwardingGraphic() {
   return (
     <View style={styles.centeredGraphic}>
       <View style={styles.deviceFlow}>
-        <Endpoint label="PC A / P1" />
+        <Endpoint label="PC1 / P1" />
         <Endpoint label="SWITCH" type="switch" />
-        <Endpoint label="PC B / P2" />
+        <Endpoint label="PC2 / P2" />
       </View>
       <View style={styles.table}>
         <View style={styles.tableRow}><Text variant="bodySmall" style={styles.tableValue}>{PC_B}</Text><Text variant="label" style={styles.portValue}>2</Text></View>

@@ -26,13 +26,16 @@ import {
   type CliPredictionChoice,
 } from '@/features/cli/cli-lab-definitions';
 import { CliTopologyView, createCliVisualTrace, type CliVisualTrace } from '@/features/cli/components/cli-topology-view';
+import { GuidedCliObjectivePanel } from '@/features/cli/components/guided-cli-objective-panel';
+import { deriveCliConsoleTaskContext, shouldPreserveCliDraft } from '@/features/cli/cli-console-context';
+import { deriveCliLabObjectives, deriveNextCliLabAction, deriveStaticRouteProgress, type GuidedCliNextAction } from '@/features/cli/guided-cli-objectives';
 import { LabSetupSupport } from '@/features/practice/components/foundation-lab-support';
 import { AppButton } from '@/shared/components/app-button';
 import { CliConsoleShell, type CliConsoleLine } from '@/shared/components/cli-console-shell';
 import { Text } from '@/shared/components/console-text';
 import { FeedbackModal } from '@/shared/components/feedback-modal';
+import { HintHistoryPanel } from '@/shared/components/hint-history-panel';
 import { PageHeader } from '@/shared/components/page-header';
-import { StatusRow } from '@/shared/components/status-row';
 import { useMeasuredResponsiveLayout } from '@/shared/responsive-layout';
 import { Screen } from '@/shared/components/screen';
 import { selectionHaptic, successHaptic, warningHaptic } from '@/shared/haptics';
@@ -44,14 +47,6 @@ interface TranscriptEntry { id: number; prompt?: string; lines: CliOutputLine[] 
 
 function sameSet(values: number[] | undefined, expected: number[]) {
   return Boolean(values && values.length === expected.length && expected.every((value) => values.includes(value)));
-}
-
-function routeProgress(state: CliNetworkState) {
-  const configured = requiredStaticRoutes.filter((required) => state.devices.find(({ id }) => id === required.deviceId)?.routes.some((route) =>
-    route.prefix === required.prefix && route.prefixLength === required.prefixLength && route.nextHop === required.nextHop,
-  )).length;
-  const staticCount = state.devices.flatMap(({ routes }) => routes).filter(({ source }) => source === 'static').length;
-  return { configured, exact: configured === requiredStaticRoutes.length && staticCount === requiredStaticRoutes.length };
 }
 
 function vlanProgress(state: CliNetworkState) {
@@ -89,6 +84,7 @@ function GuideModal({ visible, onClose }: { visible: boolean; onClose: () => voi
       <View style={styles.modalBackdrop}>
         <View accessibilityRole="alert" accessibilityViewIsModal style={styles.guidePanel}>
           <Text variant="label" style={styles.orange}>NETBITE CLI / QUICK START</Text>
+          <View style={styles.guideCard}><Text variant="sectionHeading" style={styles.guideTitle}>DEVICE NAMES</Text><Text variant="bodySmall">Network administrators choose device names. NetBite uses familiar numbered labels such as PC1, SW1, and R1.</Text></View>
           <View style={styles.guideCard}><Text variant="sectionHeading" style={styles.guideTitle}>1 / READ THE PROMPT</Text><Text variant="bodySmall">The ending shows the mode: &gt; user, # privileged, (config)# configuration.</Text></View>
           <View style={styles.guideCard}><Text variant="sectionHeading" style={styles.guideTitle}>2 / TYPE OR TAP</Text><Text variant="bodySmall">Suggestions reduce mobile typing. You can still enter any supported command yourself.</Text></View>
           <View style={styles.guideCard}><Text variant="sectionHeading" style={styles.guideTitle}>3 / INSPECT AND CORRECT</Text><Text variant="bodySmall">Valid configuration changes remain active. Use NO commands, Undo, or Reset to correct mistakes.</Text></View>
@@ -146,11 +142,23 @@ export function CliLab({ definition }: { definition: CliLabDefinition }) {
   const transcriptRef = useRef<ScrollView>(null);
   const activeDevice = network.devices.find(({ id }) => id === activeDeviceId) ?? network.devices[0];
   const scenario = definition.diagnosticScenarios?.[scenarioIndex];
-  const routeState = routeProgress(network);
+  const routeState = deriveStaticRouteProgress(network);
   const vlanState = vlanProgress(network);
   const interVlanState = interVlanProgress(network);
   const forwardVerified = events.includes('verified-forward');
   const reverseVerified = events.includes('verified-reverse');
+  const diagnosticEvidenceReady = Boolean(scenario && scenario.requiredEvents.every((required) => events.includes(required)));
+  const guidedObjectives = useMemo(() => deriveCliLabObjectives({
+    definition,
+    network,
+    events,
+    diagnosticEvidenceReady,
+    diagnosticScenarioIndex: scenarioIndex,
+    diagnosticScenarioCount: definition.diagnosticScenarios?.length,
+    diagnosticConclusionCorrect: selectedPrediction === scenario?.correctChoiceId,
+    vlanPredictions,
+  }), [definition, diagnosticEvidenceReady, events, network, scenario?.correctChoiceId, scenarioIndex, selectedPrediction, vlanPredictions]);
+  const nextGuidedAction = useMemo(() => deriveNextCliLabAction(guidedObjectives), [guidedObjectives]);
 
   const visibleDevices = network.devices.filter((item) => definition.kind === 'diagnostic' ? item.id === 'r1' : definition.kind === 'vlan' ? item.type === 'switch' : true);
   const statusDevices = definition.kind === 'vlan'
@@ -163,8 +171,7 @@ export function CliLab({ definition }: { definition: CliLabDefinition }) {
     if (definition.kind === 'routing') {
       if (activeDevice.type === 'host') return [activeDevice.id === 'pc-a' ? 'ping 192.168.30.10' : 'ping 192.168.10.10', 'help'];
       if (activeDevice.mode === 'global-config') {
-        const commands = requiredStaticRoutes.filter(({ deviceId }) => deviceId === activeDevice.id).map(({ prefix, nextHop }) => `ip route ${prefix} 255.255.255.0 ${nextHop}`);
-        return routeState.configured === 0 ? [...commands.slice(0, 1), 'end'] : ['ip route ', 'end'];
+        return ['ip route ', 'end', 'show ip route'];
       }
     }
     if (definition.kind === 'vlan' && activeDevice.mode === 'global-config') return ['vlan 10', 'vlan 20', 'interface F0/1', 'interface F0/2', 'interface F0/3', 'interface F0/24', 'end'];
@@ -174,7 +181,7 @@ export function CliLab({ definition }: { definition: CliLabDefinition }) {
       if (activeDevice.id === 'r1' && activeDevice.mode === 'global-config') return ['interface G0/0.10', 'interface G0/0.20', 'interface G0/0', 'end'];
     }
     return getCliSuggestions(activeDevice, network);
-  }, [activeDevice, definition.kind, network, routeState.configured, scenario]);
+  }, [activeDevice, definition.kind, network, scenario]);
 
   const availableHints = useMemo(() => {
     if (definition.kind === 'diagnostic') return scenario?.hints ?? [];
@@ -183,20 +190,20 @@ export function CliLab({ definition }: { definition: CliLabDefinition }) {
       return [
         'A static route needs a destination network, contiguous mask, and adjacent next-hop address.',
         'Work one router at a time. Use SHOW IP ROUTE after each route so you can distinguish connected networks from remote networks.',
-        missing ? `The next missing route is on ${network.devices.find(({ id }) => id === missing.deviceId)?.name}: IP ROUTE ${missing.prefix} 255.255.255.0 ${missing.nextHop}.` : 'The required routes are present. Select PC-A and PC-C in turn and use PING to verify both directions.',
+        missing ? `The next missing route is on ${network.devices.find(({ id }) => id === missing.deviceId)?.name}: IP ROUTE ${missing.prefix} 255.255.255.0 ${missing.nextHop}.` : 'The required routes are present. Select PC1 and PC3 in turn and use PING to verify both directions.',
       ];
     }
     if (definition.kind === 'inter-vlan') {
       return [
-        'Read the fixed map first: PC-A uses SW-1 F0/1 in VLAN 10, PC-B uses F0/2 in VLAN 20, and F0/24 connects to R-1 G0/0.',
-        'On SW-1, enter INTERFACE F0/24, set SWITCHPORT MODE TRUNK, then use SWITCHPORT TRUNK ALLOWED VLAN 10,20. Verify with SHOW INTERFACES TRUNK.',
-        'On R-1, create G0/0.10 with ENCAPSULATION DOT1Q 10 and IP ADDRESS 192.168.10.1 255.255.255.0. Create G0/0.20 the same way for VLAN 20 and 192.168.20.1.',
-        'Use SHOW IP INTERFACE BRIEF and SHOW IP ROUTE on R-1. Then select PC-A and ping 192.168.20.20; select PC-B and ping 192.168.10.10.',
+        'Read the fixed map first: PC1 uses SW1 F0/1 in VLAN 10, PC2 uses F0/2 in VLAN 20, and F0/24 connects to R1 G0/0.',
+        'On SW1, enter INTERFACE F0/24, set SWITCHPORT MODE TRUNK, then use SWITCHPORT TRUNK ALLOWED VLAN 10,20. Verify with SHOW INTERFACES TRUNK.',
+        'On R1, create G0/0.10 with ENCAPSULATION DOT1Q 10 and IP ADDRESS 192.168.10.1 255.255.255.0. Create G0/0.20 the same way for VLAN 20 and 192.168.20.1.',
+        'Use SHOW IP INTERFACE BRIEF and SHOW IP ROUTE on R1. Then select PC1 and ping 192.168.20.20; select PC2 and ping 192.168.10.10.',
       ];
     }
     return [
       'Create VLAN 10 and 20 on both switches before assigning endpoint and trunk ports.',
-      'PC-A uses SW-A F0/1 VLAN 10. PC-B uses SW-B F0/2 VLAN 10. PC-C uses SW-B F0/3 VLAN 20.',
+      'PC1 uses SW1 F0/1 VLAN 10. PC2 uses SW2 F0/2 VLAN 10. PC3 uses SW2 F0/3 VLAN 20.',
       'Configure F0/24 as a trunk allowing VLAN 10 and 20 on both switches, then verify with SHOW VLAN BRIEF and SHOW INTERFACES TRUNK.',
     ];
   }, [definition.kind, network.devices, scenario]);
@@ -209,6 +216,13 @@ export function CliLab({ definition }: { definition: CliLabDefinition }) {
       : `Show next hint (${hintLevel + 1} of ${availableHints.length})`;
 
   const suggestions = taskSuggestions.filter((item) => !input || item.toLowerCase().startsWith(input.trim().toLowerCase())).slice(0, compact ? 4 : 6);
+  const consoleTaskContext = useMemo(() => deriveCliConsoleTaskContext({
+    definition,
+    network,
+    objectives: guidedObjectives,
+    activeDeviceId: activeDevice.id,
+    suggestedCommand: taskSuggestions[0],
+  }), [activeDevice.id, definition, guidedObjectives, network, taskSuggestions]);
 
   const appendTranscript = (deviceId: string, entry: Omit<TranscriptEntry, 'id'>) => {
     const nextEntry = { ...entry, id: nextTranscriptId.current++ };
@@ -274,12 +288,38 @@ export function CliLab({ definition }: { definition: CliLabDefinition }) {
   };
 
   const finishLab = () => { completeLab(definition.id); setCompletionVisible(true); successHaptic(); };
-  const diagnosticEvidenceReady = Boolean(scenario && scenario.requiredEvents.every((required) => events.includes(required)));
   const routingComplete = routeState.exact && forwardVerified && reverseVerified;
   const vlanComplete = vlanState.exact && vlanPredictions.same === true && vlanPredictions.different === true;
   const interVlanComplete = interVlanState.exact && events.includes('verified-inter-vlan-forward') && events.includes('verified-inter-vlan-reverse');
 
   const closeGuide = () => { markCliGuideSeen(); setGuideVisible(false); };
+
+  const performGuidedAction = (action: GuidedCliNextAction) => {
+    if (action.deviceId) {
+      if (!shouldPreserveCliDraft(activeDevice.id, action.deviceId)) setInput('');
+      setActiveDeviceId(action.deviceId);
+      setInspectedDeviceId(action.deviceId);
+    }
+    if (action.type === 'open-cli') setCliVisible(true);
+    if (action.type === 'continue') advanceDiagnostic();
+    selectionHaptic();
+  };
+
+  const statusDeviceDetail = (item: CliNetworkState['devices'][number]) => {
+    if (definition.kind === 'routing' && item.type === 'router') {
+      const detail = guidedObjectives.find(({ id }) => id === 'routing-routes')?.details?.find(({ label }) => label === item.name);
+      return detail ? `${detail.value} ROUTES` : 'ROUTES REQUIRED';
+    }
+    if (definition.kind === 'inter-vlan' && item.type === 'router') {
+      const gateways = item.interfaces.filter(({ parentInterface, ipv4 }) => parentInterface && ipv4).length;
+      return `${gateways} OF 2 GATEWAYS`;
+    }
+    if (item.type === 'switch') {
+      const trunk = item.interfaces.find(({ name }) => name === 'F0/24');
+      return `F0/24 ${trunk?.switchportMode?.toUpperCase() ?? 'ACCESS'}${trunk?.switchportMode === 'trunk' ? ` ${trunk.allowedVlans?.join(',') || 'NONE'}` : ''}`;
+    }
+    return 'ENDPOINT';
+  };
 
   const statusPanel = (
     <View style={styles.statusPanel}>
@@ -289,24 +329,15 @@ export function CliLab({ definition }: { definition: CliLabDefinition }) {
       {statusVisible ? (
         <View style={styles.statusBody}>
           <Text variant="bodySmall">{definition.objective}</Text>
-          {definition.kind !== 'diagnostic' ? <View accessibilityLabel={definition.kind === 'routing' ? 'Fixed path from PC-A through R1, R2, and R3 to PC-C.' : definition.kind === 'inter-vlan' ? 'PC-A connects to SW-1 F0/1 in VLAN 10. PC-B connects to F0/2 in VLAN 20. SW-1 F0/24 connects to router R-1 G0/0.' : 'PC-A connects to SW-A. SW-A connects to SW-B. PC-B and PC-C connect to SW-B.'} style={styles.networkMap}>{statusDevices.map((item) => { const trunk = item.interfaces.find(({ name }) => name === 'F0/24'); const detail = item.type === 'router' ? `${item.routes.filter(({ source }) => source === 'static').length} STATIC` : item.type === 'switch' ? `F0/24 ${trunk?.switchportMode?.toUpperCase() ?? 'ACCESS'}${trunk?.switchportMode === 'trunk' ? ` ${trunk.allowedVlans?.join(',') || 'NONE'}` : ''}` : 'ENDPOINT'; return <View key={item.id} style={[styles.networkNode, item.type === 'switch' && definition.kind === 'vlan' ? styles.networkNodeWide : styles.networkNodeStandard, item.id === activeDevice.id && styles.networkNodeActive]}><Text variant="technical" style={styles.networkNodeName}>{item.name}</Text><Text variant="technical" style={styles.networkNodeDetail}>{detail}</Text></View>; })}</View> : null}
+          {definition.kind !== 'diagnostic' ? <View accessibilityLabel={definition.kind === 'routing' ? 'Fixed path from PC1 through R1, R2, and R3 to PC3.' : definition.kind === 'inter-vlan' ? 'PC1 connects to SW1 F0/1 in VLAN 10. PC2 connects to F0/2 in VLAN 20. SW1 F0/24 connects to router R1 G0/0.' : 'PC1 connects to SW1. SW1 connects to SW2. PC2 and PC3 connect to SW2.'} style={styles.networkMap}>{statusDevices.map((item) => <View key={item.id} style={[styles.networkNode, item.type === 'switch' && definition.kind === 'vlan' ? styles.networkNodeWide : styles.networkNodeStandard, item.id === activeDevice.id && styles.networkNodeActive]}><Text variant="technical" style={styles.networkNodeName}>{item.name}</Text><Text variant="technical" style={styles.networkNodeDetail}>{statusDeviceDetail(item)}</Text></View>)}</View> : null}
           {definition.kind === 'inter-vlan' ? <View style={styles.fixedMap}>
             <Text variant="label" style={styles.orange}>FIXED PORT AND ADDRESS MAP</Text>
-            <View style={styles.mapRecord}><Text variant="technical" style={styles.networkNodeName}>PC-A / E0</Text><Text variant="technical">192.168.10.10/24 / GW 192.168.10.1</Text><Text variant="technical" style={styles.networkNodeDetail}>SW-1 F0/1 / ACCESS VLAN 10</Text></View>
-            <View style={styles.mapRecord}><Text variant="technical" style={styles.networkNodeName}>PC-B / E0</Text><Text variant="technical">192.168.20.20/24 / GW 192.168.20.1</Text><Text variant="technical" style={styles.networkNodeDetail}>SW-1 F0/2 / ACCESS VLAN 20</Text></View>
-            <View style={styles.mapRecord}><Text variant="technical" style={styles.networkNodeName}>ROUTER LINK</Text><Text variant="technical">SW-1 F0/24 ↔ R-1 G0/0</Text><Text variant="technical" style={styles.networkNodeDetail}>TRUNK MUST CARRY VLAN 10 + 20</Text></View>
+            <View style={styles.mapRecord}><Text variant="technical" style={styles.networkNodeName}>PC1 — INTERFACE E0</Text><Text variant="technical">IPv4 address  192.168.10.10/24</Text><Text variant="technical">Default gateway  192.168.10.1</Text><Text variant="technical" style={styles.networkNodeDetail}>SW1 PORT F0/1 — ACCESS VLAN 10</Text></View>
+            <View style={styles.mapRecord}><Text variant="technical" style={styles.networkNodeName}>PC2 — INTERFACE E0</Text><Text variant="technical">IPv4 address  192.168.20.20/24</Text><Text variant="technical">Default gateway  192.168.20.1</Text><Text variant="technical" style={styles.networkNodeDetail}>SW1 PORT F0/2 — ACCESS VLAN 20</Text></View>
+            <View style={styles.mapRecord}><Text variant="technical" style={styles.networkNodeName}>ROUTER LINK</Text><Text variant="technical">SW1 F0/24 ↔ R1 G0/0</Text><Text variant="technical" style={styles.networkNodeDetail}>TRUNK MUST CARRY VLAN 10 + 20</Text></View>
           </View> : null}
-          {definition.kind === 'diagnostic' ? <><Text variant="technical">SCENARIO {scenarioIndex + 1} OF {definition.diagnosticScenarios!.length}</Text><Text variant="bodySmall">{scenario?.context}</Text><StatusRow label={diagnosticEvidenceReady ? 'EVIDENCE COLLECTED' : 'RUN THE EVIDENCE COMMANDS'} state={diagnosticEvidenceReady ? 'complete' : 'pending'} /></> : null}
-          {definition.kind === 'routing' ? <><StatusRow label="ROUTES" value={`${routeState.configured} OF 4`} state={routeState.exact ? 'complete' : 'pending'} /><StatusRow label="PC-A → PC-C" state={forwardVerified ? 'complete' : 'pending'} /><StatusRow label="PC-C → PC-A" state={reverseVerified ? 'complete' : 'pending'} />{activeDevice.type === 'router' ? activeDevice.routes.filter(({ source }) => source === 'static').map((route) => <Text key={`${route.prefix}-${route.nextHop}`} variant="technical">S {route.prefix}/{route.prefixLength} VIA {route.nextHop}</Text>) : null}</> : null}
-          {definition.kind === 'vlan' ? <><StatusRow label="VLAN 10 + 20" state={vlanState.vlans ? 'complete' : 'pending'} /><StatusRow label="ACCESS PORTS" state={vlanState.access ? 'complete' : 'pending'} /><StatusRow label="BOTH TRUNK ENDS" state={vlanState.trunks ? 'complete' : 'pending'} />{activeDevice.interfaces.filter((item) => item.switchportMode === 'trunk' || item.accessVlan !== 1).length ? activeDevice.interfaces.filter((item) => item.switchportMode === 'trunk' || item.accessVlan !== 1).map((item) => <Text key={item.name} variant="technical">{item.name} / {item.switchportMode?.toUpperCase() ?? 'UNSET'}{item.switchportMode === 'access' ? ` / VLAN ${item.accessVlan}` : item.switchportMode === 'trunk' ? ` / ${item.allowedVlans?.join(',') || 'NO VLANS'}` : ''}</Text>) : <StatusRow label={`NO PORT CHANGES ON ${activeDevice.name}`} state="attention" showStateLabel={false} />}</> : null}
-          {definition.kind === 'inter-vlan' ? <>
-            <StatusRow label="F0/24 TRUNK / VLAN 10 + 20" state={interVlanState.trunkReady ? 'complete' : 'pending'} />
-            <StatusRow label="G0/0 PHYSICAL PARENT UP" state={interVlanState.parentReady ? 'complete' : 'pending'} />
-            <StatusRow label="G0/0.10 + G0/0.20 GATEWAYS" state={interVlanState.subinterfacesReady ? 'complete' : 'pending'} />
-            <StatusRow label="PC-A → PC-B" state={events.includes('verified-inter-vlan-forward') ? 'complete' : 'pending'} />
-            <StatusRow label="PC-B → PC-A" state={events.includes('verified-inter-vlan-reverse') ? 'complete' : 'pending'} />
-            {activeDevice.interfaces.filter(({ parentInterface }) => parentInterface).map((item) => <Text key={item.name} variant="technical">{item.name} / VLAN {item.encapsulationVlan ?? 'UNSET'} / {item.ipv4 ? `${item.ipv4}/${item.prefix}` : 'NO IP'}</Text>)}
-          </> : null}
+          {definition.kind === 'diagnostic' ? <><Text variant="technical">SCENARIO {scenarioIndex + 1} OF {definition.diagnosticScenarios!.length}</Text><Text variant="bodySmall">{scenario?.context}</Text></> : null}
+          <GuidedCliObjectivePanel nextAction={nextGuidedAction} objectives={guidedObjectives} onAction={performGuidedAction} />
         </View>
       ) : null}
     </View>
@@ -322,17 +353,11 @@ export function CliLab({ definition }: { definition: CliLabDefinition }) {
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={8} onLayout={onLayout} style={styles.screen} testID="cli-layout">
         <Text variant="label" style={styles.orange}>{definition.eyebrow}</Text><Text variant="screenTitle" style={styles.title}>{definition.title}</Text><Text variant="technical" style={styles.scope}>{definition.scopeNote}</Text>
         <LabSetupSupport labId={definition.id} />
-        <View style={styles.workspace} testID="cli-workspace">{statusPanel}<CliTopologyView cliDeviceIds={visibleDevices.map((item) => item.id)} layout={definition.topology} mode={responsiveMode} network={network} onOpenCli={(deviceId) => { setActiveDeviceId(deviceId); setInspectedDeviceId(deviceId); setInput(''); setCliVisible(true); selectionHaptic(); }} onSelectDevice={(deviceId) => { setInspectedDeviceId(deviceId); if (visibleDevices.some((item) => item.id === deviceId)) setActiveDeviceId(deviceId); selectionHaptic(); }} selectedDeviceId={inspectedDeviceId} trace={visualTrace} /></View>
+        <View style={styles.workspace} testID="cli-workspace">{statusPanel}<CliTopologyView cliDeviceIds={visibleDevices.map((item) => item.id)} layout={definition.topology} mode={responsiveMode} network={network} onOpenCli={(deviceId) => { if (!shouldPreserveCliDraft(activeDevice.id, deviceId)) setInput(''); setActiveDeviceId(deviceId); setInspectedDeviceId(deviceId); setCliVisible(true); selectionHaptic(); }} onSelectDevice={(deviceId) => { setInspectedDeviceId(deviceId); if (visibleDevices.some((item) => item.id === deviceId)) setActiveDeviceId(deviceId); selectionHaptic(); }} selectedDeviceId={inspectedDeviceId} trace={visualTrace} /></View>
         {definition.kind === 'diagnostic' && diagnosticEvidenceReady && scenario ? <View style={styles.assessment}><Text variant="sectionHeading">{scenario.prompt}</Text><PredictionPanel choices={scenario.choices} feedback={predictionFeedback} onSelect={chooseDiagnosticPrediction} selected={selectedPrediction} /><AppButton disabled={selectedPrediction !== scenario.correctChoiceId} label={scenarioIndex === definition.diagnosticScenarios!.length - 1 ? 'Complete diagnostics' : 'Next scenario'} onPress={advanceDiagnostic} /></View> : null}
-        {definition.kind === 'vlan' && vlanState.exact ? <View style={styles.assessment}><Text variant="label" style={styles.orange}>VERIFY THE RESULT</Text><Text variant="bodySmall">Use the actual port and trunk state to predict both paths.</Text><PredictionPanel choices={[{ id: 'yes', label: 'PC-A → PC-B / REACHABLE', feedback: deriveVlanReachability(network, 'pc-a', 'pc-b').reason }, { id: 'no', label: 'PC-A → PC-B / BLOCKED', feedback: 'A matching VLAN is allowed across both configured trunk endpoints, so the switches can carry this same-VLAN path.' }]} feedback={vlanFeedback.same} selected={vlanSelections.same} onSelect={(id) => { const result = deriveVlanReachability(network, 'pc-a', 'pc-b'); const correct = id === 'yes' && result.reachable; const choice = id === 'yes' ? result.reason : 'A trunk keeps VLANs separate, but it can carry VLAN 10 between the switches.'; setVlanSelections((current) => ({ ...current, same: id })); setVlanFeedback((current) => ({ ...current, same: choice })); setVlanPredictions((current) => ({ ...current, same: correct })); if (correct) successHaptic(); else warningHaptic(); }} /><PredictionPanel choices={[{ id: 'blocked', label: 'PC-A → PC-C / ROUTING REQUIRED', feedback: deriveVlanReachability(network, 'pc-a', 'pc-c').reason }, { id: 'merged', label: 'PC-A → PC-C / TRUNK MERGES VLANS', feedback: 'A trunk carries tagged VLAN contexts; it does not merge VLAN 10 and VLAN 20 into one LAN.' }]} feedback={vlanFeedback.different} selected={vlanSelections.different} onSelect={(id) => { const result = deriveVlanReachability(network, 'pc-a', 'pc-c'); const correct = id === 'blocked' && !result.reachable; const choice = id === 'blocked' ? result.reason : 'Trunks preserve VLAN separation. Communication between VLAN 10 and VLAN 20 needs Layer 3 routing.'; setVlanSelections((current) => ({ ...current, different: id })); setVlanFeedback((current) => ({ ...current, different: choice })); setVlanPredictions((current) => ({ ...current, different: correct })); if (correct) successHaptic(); else warningHaptic(); }} /></View> : null}
-        {revealedHints.length ? <View accessibilityLabel={`${revealedHints.length} of ${availableHints.length} hints revealed`} style={styles.hintPanel}>
-          <Text variant="label" style={styles.orange}>REVEALED HINTS / {revealedHints.length} OF {availableHints.length}</Text>
-          {revealedHints.map((hint, index) => <View key={`${definition.id}-hint-${index}`} style={styles.hint}>
-            <Text variant="technical" style={styles.hintNumber}>HINT {index + 1}</Text>
-            <Text accessibilityLiveRegion={index === revealedHints.length - 1 ? 'polite' : 'none'} variant="bodySmall">{hint}</Text>
-          </View>)}
-        </View> : null}
-        <View style={styles.footerActions} testID="cli-footer-actions"><AppButton disabled={!availableHints.length || allHintsShown} label={hintButtonLabel} style={[styles.actionButton, compact && styles.actionButtonStacked]} variant="utility" onPress={() => { setHintLevel((current) => Math.min(availableHints.length, current + 1)); revealLowerContent(); }} />{definition.kind === 'routing' ? <AppButton disabled={!routingComplete} label="Complete routing lab" style={[styles.actionButton, compact && styles.actionButtonStacked]} onPress={finishLab} /> : null}{definition.kind === 'vlan' ? <AppButton disabled={!vlanComplete} label="Complete VLAN lab" style={[styles.actionButton, compact && styles.actionButtonStacked]} onPress={finishLab} /> : null}{definition.kind === 'inter-vlan' ? <AppButton disabled={!interVlanComplete} label="Complete inter-VLAN lab" style={[styles.actionButton, compact && styles.actionButtonStacked]} onPress={finishLab} /> : null}</View>
+        {definition.kind === 'vlan' && vlanState.exact ? <View style={styles.assessment}><Text variant="label" style={styles.orange}>VERIFY THE RESULT</Text><Text variant="bodySmall">Use the actual port and trunk state to predict both paths.</Text><PredictionPanel choices={[{ id: 'yes', label: 'PC1 → PC2 / REACHABLE', feedback: deriveVlanReachability(network, 'pc-a', 'pc-b').reason }, { id: 'no', label: 'PC1 → PC2 / BLOCKED', feedback: 'A matching VLAN is allowed across both configured trunk endpoints, so the switches can carry this same-VLAN path.' }]} feedback={vlanFeedback.same} selected={vlanSelections.same} onSelect={(id) => { const result = deriveVlanReachability(network, 'pc-a', 'pc-b'); const correct = id === 'yes' && result.reachable; const choice = id === 'yes' ? result.reason : 'A trunk keeps VLANs separate, but it can carry VLAN 10 between the switches.'; setVlanSelections((current) => ({ ...current, same: id })); setVlanFeedback((current) => ({ ...current, same: choice })); setVlanPredictions((current) => ({ ...current, same: correct })); if (correct) successHaptic(); else warningHaptic(); }} /><PredictionPanel choices={[{ id: 'blocked', label: 'PC1 → PC3 / ROUTING REQUIRED', feedback: deriveVlanReachability(network, 'pc-a', 'pc-c').reason }, { id: 'merged', label: 'PC1 → PC3 / TRUNK MERGES VLANS', feedback: 'A trunk carries tagged VLAN contexts; it does not merge VLAN 10 and VLAN 20 into one LAN.' }]} feedback={vlanFeedback.different} selected={vlanSelections.different} onSelect={(id) => { const result = deriveVlanReachability(network, 'pc-a', 'pc-c'); const correct = id === 'blocked' && !result.reachable; const choice = id === 'blocked' ? result.reason : 'Trunks preserve VLAN separation. Communication between VLAN 10 and VLAN 20 needs Layer 3 routing.'; setVlanSelections((current) => ({ ...current, different: id })); setVlanFeedback((current) => ({ ...current, different: choice })); setVlanPredictions((current) => ({ ...current, different: correct })); if (correct) successHaptic(); else warningHaptic(); }} /></View> : null}
+        <HintHistoryPanel hints={revealedHints} total={availableHints.length} />
+        <View style={styles.footerActions} testID="cli-footer-actions">{!allHintsShown ? <AppButton disabled={!availableHints.length} label={hintButtonLabel} style={[styles.actionButton, compact && styles.actionButtonStacked]} variant="utility" onPress={() => { setHintLevel((current) => Math.min(availableHints.length, current + 1)); revealLowerContent(); }} /> : null}{definition.kind === 'routing' ? <AppButton disabled={!routingComplete} label="Complete routing lab" style={[styles.actionButton, compact && styles.actionButtonStacked]} onPress={finishLab} /> : null}{definition.kind === 'vlan' ? <AppButton disabled={!vlanComplete} label="Complete VLAN lab" style={[styles.actionButton, compact && styles.actionButtonStacked]} onPress={finishLab} /> : null}{definition.kind === 'inter-vlan' ? <AppButton disabled={!interVlanComplete} label="Complete inter-VLAN lab" style={[styles.actionButton, compact && styles.actionButtonStacked]} onPress={finishLab} /> : null}</View>
       </KeyboardAvoidingView>
       <GuideModal onClose={closeGuide} visible={guideVisible} />
       <CliConsoleShell
@@ -347,11 +372,12 @@ export function CliLab({ definition }: { definition: CliLabDefinition }) {
         onHistoryNext={() => navigateHistory(-1)}
         onHistoryPrevious={() => navigateHistory(1)}
         onInputChange={setInput}
-        onSelectDevice={(deviceId) => { setActiveDeviceId(deviceId); setInspectedDeviceId(deviceId); setInput(''); }}
+        onSelectDevice={(deviceId) => { if (!shouldPreserveCliDraft(activeDevice.id, deviceId)) setInput(''); setActiveDeviceId(deviceId); setInspectedDeviceId(deviceId); }}
         onSubmit={submit}
         prompt={getCliPrompt(activeDevice)}
         selectedDeviceId={activeDevice.id}
         suggestions={suggestions}
+        taskContext={consoleTaskContext}
         testID="cli-fullscreen-modal"
         title={`${activeDevice.name} DEVICE CONSOLE`}
         transcriptRef={transcriptRef}

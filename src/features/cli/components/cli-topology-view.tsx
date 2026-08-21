@@ -5,15 +5,18 @@ import Svg, { Line } from 'react-native-svg';
 import {
   deriveConnectedRoutes,
   deriveCliLinkContext,
+  prefixToSubnetMask,
   type CliDeviceState,
   type CliNetworkState,
   type PingSimulation,
 } from '@/core/network/cli-simulator';
+import { calculateSubnetRange } from '@/core/network/advanced-networking';
 import type { CliTopologyLayout } from '@/features/cli/cli-lab-definitions';
 import { DeviceGlyph } from '@/features/devices/components/device-glyph';
 import { AppButton } from '@/shared/components/app-button';
 import { Text } from '@/shared/components/console-text';
 import { DisclosureSection } from '@/shared/components/disclosure-section';
+import { LinkConnectionRecord } from '@/shared/components/link-connection-record';
 import { TopologyLinkLabels } from '@/shared/components/topology-link-labels';
 import type { ResponsiveMode } from '@/shared/responsive-layout';
 import { Fonts, Palette, Space } from '@/shared/theme';
@@ -68,12 +71,6 @@ export function createCliVisualTrace(network: CliNetworkState, ping: PingSimulat
   };
 }
 
-function routeLabel(route: CliDeviceState['routes'][number]) {
-  const destination = `${route.prefix}/${route.prefixLength}`;
-  if (route.nextHop) return `${route.source.toUpperCase()} ${destination} VIA ${route.nextHop}`;
-  return `${route.source.toUpperCase()} ${destination}${route.exitInterface ? ` / ${route.exitInterface}` : ''}`;
-}
-
 function defaultGateway(device: CliDeviceState) {
   return device.routes.find((route) => route.prefixLength === 0)?.nextHop;
 }
@@ -88,30 +85,57 @@ function connectedEndpoint(network: CliNetworkState, deviceId: string, interface
   return `${network.devices.find((candidate) => candidate.id === remoteId)?.name ?? remoteId} ${remoteInterface}`;
 }
 
+function DetailField({ label, value }: { label: string; value: string }) {
+  return <View style={styles.detailField}><Text variant="bodySmall" style={styles.detailLabel}>{label}</Text><Text selectable variant="technical" style={styles.detailValue}>{value}</Text></View>;
+}
+
+function InterfaceRecord({ device, network, item }: { device: CliDeviceState; network: CliNetworkState; item: CliDeviceState['interfaces'][number] }) {
+  const range = item.ipv4 && item.prefix !== undefined ? calculateSubnetRange(item.ipv4, item.prefix) : undefined;
+  return <View style={styles.record}>
+    <Text variant="label" style={styles.strong}>INTERFACE {item.name}</Text>
+    <DetailField label="State" value={item.adminUp && item.linkUp ? 'Up' : 'Down'} />
+    {item.ipv4 && item.prefix !== undefined ? <>
+      <DetailField label="IPv4 address" value={item.ipv4} />
+      <DetailField label="Prefix length" value={`/${item.prefix}`} />
+      <DetailField label="Subnet mask" value={prefixToSubnetMask(item.prefix) ?? 'Invalid prefix'} />
+      <DetailField label="Network" value={range ? `${range.network}/${item.prefix}` : 'Invalid address'} />
+    </> : <DetailField label="IPv4 address" value="Not configured" />}
+    {device.type === 'switch' ? <>
+      <DetailField label="Switchport mode" value={item.switchportMode ? item.switchportMode.toUpperCase() : 'Not configured'} />
+      {item.switchportMode === 'access' ? <DetailField label="Access VLAN" value={String(item.accessVlan ?? 'Not configured')} /> : null}
+      {item.switchportMode === 'trunk' ? <DetailField label="Allowed VLANs" value={item.allowedVlans?.join(', ') || 'Not configured'} /> : null}
+    </> : null}
+    <DetailField label="Connected to" value={connectedEndpoint(network, device.id, item.name)} />
+  </View>;
+}
+
+function RouteRecord({ route }: { route: CliDeviceState['routes'][number] }) {
+  return <View style={styles.record}>
+    <Text variant="label" style={styles.strong}>{route.source === 'static' ? 'STATIC ROUTE' : route.source === 'connected' ? 'CONNECTED ROUTE' : 'DEFAULT ROUTE'}</Text>
+    <DetailField label="Destination" value={`${route.prefix}/${route.prefixLength}`} />
+    <DetailField label="Subnet mask" value={prefixToSubnetMask(route.prefixLength) ?? 'Invalid prefix'} />
+    {route.nextHop ? <DetailField label="Next hop" value={route.nextHop} /> : null}
+    {route.exitInterface ? <DetailField label="Exit interface" value={route.exitInterface} /> : null}
+  </View>;
+}
+
 function DeviceInspector({ device, network, cliAvailable, onOpenCli }: { device: CliDeviceState; network: CliNetworkState; cliAvailable: boolean; onOpenCli: () => void }) {
   const connectedRoutes = device.type === 'router' ? deriveConnectedRoutes(device) : [];
   return (
     <View accessibilityLabel={`${device.name} configuration inspector`} style={styles.inspector}>
       <View style={styles.inspectorHeading}>
         <DeviceGlyph size={56} type={device.type === 'host' ? 'pc' : device.type} />
-        <View style={styles.inspectorHeadingCopy}><Text variant="label" style={styles.orange}>SELECTED DEVICE</Text><Text variant="sectionHeading" style={styles.inspectorTitle}>{device.name} / {device.type === 'host' ? 'PC' : device.type.toUpperCase()}</Text></View>
+        <View style={styles.inspectorHeadingCopy}><Text variant="label" style={styles.orange}>SELECTED DEVICE</Text><Text variant="sectionHeading" style={styles.inspectorTitle}>{device.name} — {device.type === 'host' ? 'PC' : device.type.toUpperCase()}</Text></View>
       </View>
-      {device.type === 'host' ? <View style={styles.record}><Text variant="label" style={styles.recordTitle}>HOST CONFIGURATION</Text><Text variant="technical">DEFAULT GATEWAY / {defaultGateway(device) ?? 'NOT CONFIGURED'}</Text></View> : null}
-      {device.type === 'switch' ? <View style={styles.record}><Text variant="label" style={styles.recordTitle}>VLAN DATABASE</Text><Text variant="technical">{device.vlans.length ? device.vlans.map((vlan) => `VLAN ${vlan}`).join(' / ') : 'NOT CONFIGURED'}</Text></View> : null}
+      {device.type === 'host' ? <View style={styles.record}><Text variant="label" style={styles.recordTitle}>HOST CONFIGURATION</Text><DetailField label="Default gateway" value={defaultGateway(device) ?? 'Not configured'} /></View> : null}
+      {device.type === 'switch' ? <View style={styles.record}><Text variant="label" style={styles.recordTitle}>VLAN DATABASE</Text><DetailField label="Available VLANs" value={device.vlans.length ? device.vlans.map((vlan) => `VLAN ${vlan}`).join(', ') : 'Not configured'} /></View> : null}
       <View style={styles.recordGroup}>
         <Text variant="label" style={styles.recordTitle}>INTERFACES</Text>
-        {device.interfaces.length ? device.interfaces.map((item) => (
-          <View key={item.name} style={styles.record}>
-            <Text variant="technical" style={styles.strong}>{item.name} / {item.adminUp && item.linkUp ? 'UP' : 'DOWN'}</Text>
-            <Text variant="technical">IP / {item.ipv4 ? `${item.ipv4}/${item.prefix}` : 'NOT CONFIGURED'}</Text>
-            {device.type === 'switch' ? <Text variant="technical">SWITCHPORT / {item.switchportMode ? item.switchportMode.toUpperCase() : 'NOT CONFIGURED'}{item.switchportMode === 'access' ? ` / VLAN ${item.accessVlan ?? 'NOT CONFIGURED'}` : item.switchportMode === 'trunk' ? ` / ALLOWED ${item.allowedVlans?.join(',') || 'NOT CONFIGURED'}` : ''}</Text> : null}
-            <Text variant="technical">LINK / {connectedEndpoint(network, device.id, item.name)}</Text>
-          </View>
-        )) : <Text variant="technical">NOT CONFIGURED</Text>}
+        {device.interfaces.length ? device.interfaces.map((item) => <InterfaceRecord key={item.name} device={device} item={item} network={network} />) : <Text variant="technical">NOT CONFIGURED</Text>}
       </View>
-      {device.type === 'router' ? <View style={styles.recordGroup}><Text variant="label" style={styles.recordTitle}>CONNECTED NETWORKS</Text>{connectedRoutes.length ? connectedRoutes.map((route) => <Text key={`${route.prefix}-${route.exitInterface}`} variant="technical">{routeLabel(route)}</Text>) : <Text variant="technical">NOT CONFIGURED</Text>}</View> : null}
-      {device.type !== 'switch' ? <View style={styles.recordGroup}><Text variant="label" style={styles.recordTitle}>ROUTING TABLE</Text>{device.routes.length ? device.routes.map((route, index) => <Text key={`${route.prefix}-${route.nextHop}-${index}`} variant="technical">{routeLabel(route)}</Text>) : <Text variant="technical">NO ROUTES INSTALLED</Text>}</View> : null}
-      {device.type === 'switch' ? <View style={styles.recordGroup}><Text variant="label" style={styles.recordTitle}>MAC ADDRESS TABLE</Text>{device.macEntries?.length ? device.macEntries.map((entry) => <Text key={`${entry.vlan}-${entry.macAddress}`} variant="technical">VLAN {entry.vlan} / {entry.macAddress} / {entry.interfaceName}</Text>) : <Text variant="technical">NO LEARNED ENTRIES</Text>}</View> : null}
+      {device.type === 'router' ? <View style={styles.recordGroup}><Text variant="label" style={styles.recordTitle}>CONNECTED NETWORKS</Text>{connectedRoutes.length ? connectedRoutes.map((route) => <RouteRecord key={`${route.prefix}-${route.exitInterface}`} route={route} />) : <Text variant="technical">NOT CONFIGURED</Text>}</View> : null}
+      {device.type !== 'switch' ? <View style={styles.recordGroup}><Text variant="label" style={styles.recordTitle}>ROUTING TABLE</Text>{device.routes.length ? device.routes.map((route, index) => <RouteRecord key={`${route.prefix}-${route.nextHop}-${index}`} route={route} />) : <Text variant="technical">NO ROUTES INSTALLED</Text>}</View> : null}
+      {device.type === 'switch' ? <View style={styles.recordGroup}><Text variant="label" style={styles.recordTitle}>MAC ADDRESS TABLE</Text>{device.macEntries?.length ? device.macEntries.map((entry) => <View key={`${entry.vlan}-${entry.macAddress}`} style={styles.record}><DetailField label="VLAN" value={String(entry.vlan)} /><DetailField label="MAC address" value={entry.macAddress} /><DetailField label="Interface" value={entry.interfaceName} /></View>) : <Text variant="technical">NO LEARNED ENTRIES</Text>}</View> : null}
       {cliAvailable ? <AppButton label={`Open CLI on ${device.name}`} onPress={onOpenCli} /> : <Text variant="technical" style={styles.muted}>INSPECTION ONLY / THIS GUIDED LAB DOES NOT OPEN A CONSOLE ON THIS DEVICE.</Text>}
     </View>
   );
@@ -172,7 +196,7 @@ export function CliTopologyView({ network, layout, mode, selectedDeviceId, cliDe
           const toName = network.devices.find((device) => device.id === link.bDeviceId)?.name ?? link.bDeviceId;
           const context = deriveCliLinkContext(network, link);
           const id = `${link.aDeviceId}-${link.aInterface}-${link.bDeviceId}-${link.bInterface}`;
-          const contextLabel = context.kind === 'network' || context.kind === 'mismatch' ? context.label : context.networkLabel;
+          const contextLabel = context.label;
           return <TopologyLinkLabels
             key={`${id}-labels`}
             accessibilityLabel={`Cable from ${fromName} ${link.aInterface} to ${toName} ${link.bInterface}. ${context.label}.`}
@@ -183,7 +207,7 @@ export function CliTopologyView({ network, layout, mode, selectedDeviceId, cliDe
             canvas={canvasSize}
             contextLabel={contextLabel}
             contextPlacement={layout.linkCaptions?.[id]?.[mode]}
-            contextTone={context.kind === 'mismatch' ? 'warning' : 'normal'}
+            contextTone={context.tone === 'warning' ? 'warning' : 'normal'}
             to={{ x: canvasSize.width * to.x / 100, y: canvasSize.height * to.y / 100 }}
             toBounds={{ halfWidth: NODE_WIDTH / 2, halfHeight: 42 }}
             toLabel={link.bInterface}
@@ -201,7 +225,12 @@ export function CliTopologyView({ network, layout, mode, selectedDeviceId, cliDe
       </View>
       </ScrollView>
       </View>
-      <DisclosureSection title="LINK DETAILS" summary="Text list of connected device interfaces and current link state.">{network.links.map((link) => { const context = deriveCliLinkContext(network, link); return <Text key={`${link.aDeviceId}-${link.aInterface}-${link.bDeviceId}-${link.bInterface}`} variant="technical">{network.devices.find((item) => item.id === link.aDeviceId)?.name} {link.aInterface} ↔ {network.devices.find((item) => item.id === link.bDeviceId)?.name} {link.bInterface} / {context.label}</Text>; })}</DisclosureSection>
+      <DisclosureSection title="LINK DETAILS" summary="Device ports, link context, and current operational state.">{network.links.map((link, index) => {
+        const context = deriveCliLinkContext(network, link);
+        const aName = network.devices.find((item) => item.id === link.aDeviceId)?.name ?? link.aDeviceId;
+        const bName = network.devices.find((item) => item.id === link.bDeviceId)?.name ?? link.bDeviceId;
+        return <LinkConnectionRecord key={`${link.aDeviceId}-${link.aInterface}-${link.bDeviceId}-${link.bInterface}`} index={index + 1} a={{ deviceName: aName, interfaceName: link.aInterface }} b={{ deviceName: bName, interfaceName: link.bInterface }} context={context.kind === 'operational' ? context.networkLabel : context.label} state={context.kind === 'operational' ? context.label : context.tone === 'warning' ? 'ATTENTION' : 'UP'} />;
+      })}</DisclosureSection>
       {trace ? <View accessibilityLiveRegion="polite" style={[styles.tracePanel, trace.success ? styles.traceSuccess : styles.traceWarning]}><Text variant="label" style={trace.success ? styles.green : styles.orange}>{trace.success ? 'PING PATH VERIFIED' : 'PING PATH STOPPED'}</Text><Text variant="bodySmall">TARGET / {trace.destination}</Text><Text variant="technical">FORWARD / {trace.forwardDeviceIds.map((id) => network.devices.find((device) => device.id === id)?.name ?? id).join(' → ') || 'NO PATH'}</Text>{trace.reverseDeviceIds.length ? <Text variant="technical">RETURN / {trace.reverseDeviceIds.map((id) => network.devices.find((device) => device.id === id)?.name ?? id).join(' → ')}</Text> : null}<Text variant="bodySmall">{trace.reason}</Text></View> : null}
       <View testID="cli-device-inspector"><DeviceInspector cliAvailable={cliDeviceIds.includes(selected.id)} device={selected} network={network} onOpenCli={() => onOpenCli(selected.id)} /></View>
     </View>
@@ -229,6 +258,9 @@ const styles = StyleSheet.create({
   record: { minWidth: 0, padding: Space.sm, gap: 2, borderWidth: 1, borderColor: Palette.border, backgroundColor: Palette.background },
   recordTitle: { color: Palette.green, fontFamily: Fonts.semibold },
   strong: { color: Palette.text, fontFamily: Fonts.semibold },
+  detailField: { minWidth: 0, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'baseline', gap: Space.sm },
+  detailLabel: { minWidth: 112, flexShrink: 0, color: Palette.textMuted },
+  detailValue: { minWidth: 0, flex: 1, color: Palette.text },
   muted: { color: Palette.textMuted },
   orange: { color: Palette.orange, fontFamily: Fonts.medium },
   green: { color: Palette.green, fontFamily: Fonts.medium },

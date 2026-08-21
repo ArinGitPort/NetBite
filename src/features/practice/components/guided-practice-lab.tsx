@@ -6,6 +6,7 @@ import { LabSetupSupport } from '@/features/practice/components/foundation-lab-s
 import { AppButton } from '@/shared/components/app-button';
 import { Text } from '@/shared/components/console-text';
 import { FeedbackModal } from '@/shared/components/feedback-modal';
+import { HintHistoryPanel } from '@/shared/components/hint-history-panel';
 import { PageHeader } from '@/shared/components/page-header';
 import { ProgressBar } from '@/shared/components/progress-bar';
 import { Screen } from '@/shared/components/screen';
@@ -97,12 +98,7 @@ export function GuidedPracticeLab({ config }: { config: PracticeConfig }) {
           </View>
         ) : null}
         {feedback ? <WhyExplanation observation={current.context} rule={current.explanation} proves={resolved ? current.result : feedback} nextCheck={!resolved ? current.hints?.[0] ?? 'Try another prediction using the stated rule.' : undefined} /> : null}
-        {current.hints?.slice(0, hintCount).map((hint, index) => (
-          <View key={`${current.id}-hint-${index}`} accessibilityLiveRegion="polite" style={styles.hintPanel}>
-            <Text variant="label" style={styles.hintLabel}>HINT {index + 1}</Text>
-            <Text variant="bodySmall" style={styles.hintText}>{hint}</Text>
-          </View>
-        ))}
+        <HintHistoryPanel hints={current.hints?.slice(0, hintCount) ?? []} total={current.hints?.length ?? 0} />
         {current.hints && hintCount < current.hints.length && !resolved ? (
           <Pressable accessibilityRole="button" onPress={() => setHintCount((count) => count + 1)} style={styles.hintButton}>
             <Text variant="label" style={styles.hintButtonText}>{hintCount === 0 ? 'SHOW A HINT' : 'SHOW NEXT HINT'}</Text>

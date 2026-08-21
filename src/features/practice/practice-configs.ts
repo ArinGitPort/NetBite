@@ -20,10 +20,10 @@ export const practiceConfigs: Record<string, PracticeConfig> = {
     id: 'ipv4-configurator', chapterId: '4', eyebrow: 'GUIDED PRACTICE / HOST CONFIG', title: 'CONFIGURE A /24 PC',
     objective: 'Approve only unique, usable settings on 192.168.10.0/24.', scopeNote: 'FIXED /24 CONFIGURATION / VALIDATION MODEL',
     stages: [
-      stage('valid', 'PC A / 192.168.10.25 /24 / GATEWAY 192.168.10.1', 'Is this configuration valid?', ['VALID', 'INVALID OCTET', 'WRONG NETWORK'], 0, 'The address and gateway are usable members of the same /24.', 'PC A CONFIGURED'),
-      stage('octet', 'PC B / 192.168.10.300 /24', 'Why must this be rejected?', ['DUPLICATE', 'OCTET ABOVE 255', 'NETWORK ADDRESS'], 1, 'Every IPv4 octet must be from 0 through 255.', 'INVALID OCTET REJECTED'),
-      stage('duplicate', 'PC B / 192.168.10.25 /24 / PC A ALREADY USES 192.168.10.25', 'Why must this be rejected?', ['DUPLICATE ADDRESS', 'PUBLIC ADDRESS', 'PREFIX TOO LONG'], 0, 'Interfaces on the same network need unique IPv4 addresses.', 'DUPLICATE REJECTED'),
-      stage('network', 'PC B / 192.168.20.25 /24 / REQUIRED LAN 192.168.10.0/24', 'What is wrong?', ['WRONG NETWORK', 'INVALID DECIMAL', 'BROADCAST MAC'], 0, 'The configured address belongs to 192.168.20.0/24, not the required LAN.', 'OFF-NETWORK SETTING REJECTED'),
+      stage('valid', 'PC1 / 192.168.10.25 /24 / GATEWAY 192.168.10.1', 'Is this configuration valid?', ['VALID', 'INVALID OCTET', 'WRONG NETWORK'], 0, 'The address and gateway are usable members of the same /24.', 'PC1 CONFIGURED'),
+      stage('octet', 'PC2 / 192.168.10.300 /24', 'Why must this be rejected?', ['DUPLICATE', 'OCTET ABOVE 255', 'NETWORK ADDRESS'], 1, 'Every IPv4 octet must be from 0 through 255.', 'INVALID OCTET REJECTED'),
+      stage('duplicate', 'PC2 / 192.168.10.25 /24 / PC1 ALREADY USES 192.168.10.25', 'Why must this be rejected?', ['DUPLICATE ADDRESS', 'PUBLIC ADDRESS', 'PREFIX TOO LONG'], 0, 'Interfaces on the same network need unique IPv4 addresses.', 'DUPLICATE REJECTED'),
+      stage('network', 'PC2 / 192.168.20.25 /24 / REQUIRED LAN 192.168.10.0/24', 'What is wrong?', ['WRONG NETWORK', 'INVALID DECIMAL', 'BROADCAST MAC'], 0, 'The configured address belongs to 192.168.20.0/24, not the required LAN.', 'OFF-NETWORK SETTING REJECTED'),
     ], completion: 'You validated a usable, unique IPv4 host configuration.',
   },
   'subnet-range-desk': {

@@ -5,6 +5,7 @@ import {
   executeCliCommand,
   getCliSuggestions,
   maskToPrefix,
+  prefixToSubnetMask,
   normalizeInterfaceName,
   parseCliCommand,
   simulatePing,
@@ -53,6 +54,15 @@ describe('NetBite CLI parsing', () => {
     expect(maskToPrefix('255.0.255.0')).toBeNull();
     expect(parseCliCommand('ip route 192.168.30.0 255.255.255.0 10.0.12.2')).toMatchObject({ ok: true });
     expect(parseCliCommand('ip route 192.168.30.3 255.255.255.0 10.0.12.2')).toMatchObject({ ok: false });
+  });
+
+  test('converts prefix lengths to dotted-decimal subnet masks', () => {
+    expect(prefixToSubnetMask(0)).toBe('0.0.0.0');
+    expect(prefixToSubnetMask(24)).toBe('255.255.255.0');
+    expect(prefixToSubnetMask(30)).toBe('255.255.255.252');
+    expect(prefixToSubnetMask(32)).toBe('255.255.255.255');
+    expect(prefixToSubnetMask(-1)).toBeNull();
+    expect(prefixToSubnetMask(33)).toBeNull();
   });
 
   test('validates and de-duplicates comma-separated VLAN IDs', () => {
@@ -162,7 +172,7 @@ describe('deterministic IPv4 simulation', () => {
     const configured = configuredRoutingState();
     const result = simulatePing(configured, 'pc-a', '192.168.30.10');
     expect(result.success).toBe(true);
-    expect(result.forward.hops).toEqual(['PC-A', 'NB-R1', 'NB-R2', 'NB-R3', 'PC-C']);
+    expect(result.forward.hops).toEqual(['PC1', 'R1', 'R2', 'R3', 'PC3']);
     expect(result.output.some(({ text }) => text.includes('THIS ROUND TRIP SUCCEEDED'))).toBe(true);
   });
 
@@ -235,14 +245,14 @@ describe('CLI topology link context', () => {
 
   test('derives access and trunk context from current switch configuration', () => {
     const state = createVlanState();
-    expect(deriveCliLinkContext(state, state.links[0])).toEqual({ kind: 'vlan', label: 'ACCESS / VLAN 1', tone: 'normal' });
+    expect(deriveCliLinkContext(state, state.links[0])).toEqual({ kind: 'vlan', label: 'ACCESS VLAN 1', tone: 'normal' });
     expect(deriveCliLinkContext(state, state.links[1])).toEqual({ kind: 'trunk', label: 'NOT TRUNKED', tone: 'warning' });
 
     const swA = state.devices.find(({ id }) => id === 'sw-a')!.interfaces.find(({ name }) => name === 'F0/24')!;
     const swB = state.devices.find(({ id }) => id === 'sw-b')!.interfaces.find(({ name }) => name === 'F0/24')!;
     Object.assign(swA, { switchportMode: 'trunk', allowedVlans: [20, 10] });
     Object.assign(swB, { switchportMode: 'trunk', allowedVlans: [10, 20] });
-    expect(deriveCliLinkContext(state, state.links[1])).toEqual({ kind: 'trunk', label: 'TRUNK / VLAN 10,20', tone: 'success' });
+    expect(deriveCliLinkContext(state, state.links[1])).toEqual({ kind: 'trunk', label: 'TRUNK VLANs 10,20', tone: 'success' });
 
     swB.allowedVlans = [30];
     expect(deriveCliLinkContext(state, state.links[1])).toEqual({ kind: 'trunk', label: 'NO COMMON VLANs', tone: 'warning' });
@@ -261,6 +271,6 @@ describe('CLI topology link context', () => {
     state = configureDevice(state, 'sw-1', ['interface F0/24', 'switchport mode trunk', 'switchport trunk allowed vlan 10,20', 'end']);
     expect(deriveCliLinkContext(state, trunk)).toEqual({ kind: 'trunk', label: 'NO COMMON VLANs', tone: 'warning' });
     state = configureDevice(state, 'r1', ['interface G0/0.10', 'encapsulation dot1q 10', 'ip address 192.168.10.1 255.255.255.0', 'end']);
-    expect(deriveCliLinkContext(state, trunk)).toEqual({ kind: 'trunk', label: 'TRUNK / VLAN 10', tone: 'success' });
+    expect(deriveCliLinkContext(state, trunk)).toEqual({ kind: 'trunk', label: 'TRUNK VLANs 10', tone: 'success' });
   });
 });

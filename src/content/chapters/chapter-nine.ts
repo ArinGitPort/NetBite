@@ -66,7 +66,7 @@ export const chapterNine = createAdvancedChapter({
       takeaway: 'End-to-end exchange needs valid routing in both forward and return directions.',
       checkpoint: { prompt: 'A request reaches LAN C but its reply has no path to LAN A. What is missing?', correctChoiceId: 'return', choices: [
         { id: 'return', label: 'A RETURN ROUTE', feedback: 'Correct. The reverse direction needs its own matching path.' },
-        { id: 'cable', label: 'A CROSSOVER CABLE AT PC A', feedback: 'The request already reached LAN C, so this symptom points beyond PC A’s local cable.' },
+        { id: 'cable', label: 'A CROSSOVER CABLE AT PC1', feedback: 'The request already reached LAN C, so this symptom points beyond PC1’s local cable.' },
         { id: 'name', label: 'A NEW ROUTER NAME', feedback: 'Changing a hostname does not create a forwarding entry.' },
       ] },
     },
@@ -119,7 +119,7 @@ export const chapterNine = createAdvancedChapter({
     { lessonId: 'connected-remote-routes', prompt: 'How is an active directly attached subnet normally known?', answers: ['As a connected route', 'As an ARP reply across the internet', 'As a VLAN name'], correctAnswerIndex: 0, explanation: 'Active addressed interfaces create connected routes.' },
     { lessonId: 'reading-route-entry', prompt: 'Which field defines the matching network?', answers: ['Destination prefix', 'Router hostname', 'Cable type'], correctAnswerIndex: 0, explanation: 'Destination plus prefix length defines the range.' },
     { lessonId: 'static-next-hop', prompt: 'What must be true of a static route’s next hop?', answers: ['It must be reachable', 'It must be the final host', 'It must use /0'], correctAnswerIndex: 0, explanation: 'The router needs a path to the named neighbor.' },
-    { lessonId: 'adding-static-routes', prompt: 'Traffic reaches LAN C but replies cannot return. What is likely missing?', answers: ['A return route', 'A longer PC cable', 'A second MAC on PC C'], correctAnswerIndex: 0, explanation: 'The reverse direction requires routing too.' },
+    { lessonId: 'adding-static-routes', prompt: 'Traffic reaches LAN C but replies cannot return. What is likely missing?', answers: ['A return route', 'A longer PC cable', 'A second MAC on PC3'], correctAnswerIndex: 0, explanation: 'The reverse direction requires routing too.' },
     { lessonId: 'route-match-test', prompt: 'Which route matches destination 192.168.20.25?', answers: ['192.168.0.0/16', '192.168.10.0/24', '10.0.0.0/8'], correctAnswerIndex: 0, explanation: '192.168.0.0/16 covers addresses whose first two octets are 192.168.' },
     { lessonId: 'longest-prefix', prompt: 'Routes /8, /16, and /24 all match. Which is selected?', answers: ['/24', '/8', 'All simultaneously'], correctAnswerIndex: 0, explanation: '/24 is most specific.' },
     { lessonId: 'default-route', prompt: 'When is 0.0.0.0/0 selected?', answers: ['When no more-specific route matches', 'Before every connected route', 'Only for broadcasts'], correctAnswerIndex: 0, explanation: 'Default is the least-specific fallback.' },

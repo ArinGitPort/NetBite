@@ -139,21 +139,21 @@ function natEvaluation(configuration: Configuration, session: OperationsSimulati
 
 function stpEvaluation(configuration: Configuration) {
   return calculateSpanningTree([
-    { id: 'SW-A', priority: Number(configuration['stp.priorityA'] ?? 32768), mac: '00:00:00:00:00:0A' },
-    { id: 'SW-B', priority: Number(configuration['stp.priorityB'] ?? 32768), mac: '00:00:00:00:00:0B' },
-    { id: 'SW-C', priority: Number(configuration['stp.priorityC'] ?? 32768), mac: '00:00:00:00:00:0C' },
+    { id: 'SW1', priority: Number(configuration['stp.priorityA'] ?? 32768), mac: '00:00:00:00:00:0A' },
+    { id: 'SW2', priority: Number(configuration['stp.priorityB'] ?? 32768), mac: '00:00:00:00:00:0B' },
+    { id: 'SW3', priority: Number(configuration['stp.priorityC'] ?? 32768), mac: '00:00:00:00:00:0C' },
   ], [
-    { id: 'AB', a: 'SW-A', b: 'SW-B', cost: Number(configuration['stp.costAB'] ?? 4), up: configuration['stp.failedLink'] !== 'AB' },
-    { id: 'BC', a: 'SW-B', b: 'SW-C', cost: Number(configuration['stp.costBC'] ?? 4), up: true },
-    { id: 'AC', a: 'SW-A', b: 'SW-C', cost: Number(configuration['stp.costAC'] ?? 8), up: true },
+    { id: 'AB', a: 'SW1', b: 'SW2', cost: Number(configuration['stp.costAB'] ?? 4), up: configuration['stp.failedLink'] !== 'AB' },
+    { id: 'BC', a: 'SW2', b: 'SW3', cost: Number(configuration['stp.costBC'] ?? 4), up: true },
+    { id: 'AC', a: 'SW1', b: 'SW3', cost: Number(configuration['stp.costAC'] ?? 8), up: true },
   ]);
 }
 
 function lacpEvaluation(configuration: Configuration) {
   const vlans = text(configuration['lacp.vlans'], '').split(',').filter(Boolean).map(Number);
   return negotiateEtherChannel([
-    { id: 'SW-A F0/1', side: 'a', mode: text(configuration['lacp.modeA'], 'passive') as 'active' | 'passive', up: configuration['lacp.membersUp'] === true, speed: Number(configuration['lacp.speedA'] ?? 0), switchportMode: text(configuration['lacp.switchportMode'], 'access') as 'access' | 'trunk', allowedVlans: vlans },
-    { id: 'SW-B F0/1', side: 'b', mode: text(configuration['lacp.modeB'], 'passive') as 'active' | 'passive', up: configuration['lacp.membersUp'] === true, speed: Number(configuration['lacp.speedB'] ?? 0), switchportMode: text(configuration['lacp.switchportMode'], 'access') as 'access' | 'trunk', allowedVlans: vlans },
+    { id: 'SW1 F0/1', side: 'a', mode: text(configuration['lacp.modeA'], 'passive') as 'active' | 'passive', up: configuration['lacp.membersUp'] === true, speed: Number(configuration['lacp.speedA'] ?? 0), switchportMode: text(configuration['lacp.switchportMode'], 'access') as 'access' | 'trunk', allowedVlans: vlans },
+    { id: 'SW2 F0/1', side: 'b', mode: text(configuration['lacp.modeB'], 'passive') as 'active' | 'passive', up: configuration['lacp.membersUp'] === true, speed: Number(configuration['lacp.speedB'] ?? 0), switchportMode: text(configuration['lacp.switchportMode'], 'access') as 'access' | 'trunk', allowedVlans: vlans },
   ]);
 }
 
@@ -216,7 +216,7 @@ function evaluate(labId: string, stageId: string, session: OperationsSimulationS
     if (stageId === 'compress') { const candidate = parseIPv6Address(text(c['ipv6.compressed'], '')); return result(Boolean(parsed && candidate && parsed.expanded === candidate.expanded), 'Compressed and expanded forms must represent the same 128 bits.', candidate ? [`EXPANDED ${candidate.expanded}`, `CANONICAL ${candidate.compressed}`] : ['PARSE FAILED']); }
     if (stageId === 'scope') return result(c['ipv6.scope'] === 'link-local', 'FE80::/10 identifies link-local unicast scope.', [`FE80::1 / ${text(c['ipv6.scope']).toUpperCase()}`]);
     const a = parseIPv6Address(text(c['ipv6.hostA'], '')); const b = parseIPv6Address(text(c['ipv6.hostB'], ''));
-    return result(Boolean(a && b && a.expanded !== b.expanded && Number(c['ipv6.prefix']) === 64 && a.hextets.slice(0, 4).join(':') === b.hextets.slice(0, 4).join(':')), 'Both unique interfaces must share the supplied /64 prefix.', [`PC-A ${a?.compressed ?? 'INVALID'}/64`, `PC-B ${b?.compressed ?? 'INVALID'}/64`]);
+    return result(Boolean(a && b && a.expanded !== b.expanded && Number(c['ipv6.prefix']) === 64 && a.hextets.slice(0, 4).join(':') === b.hextets.slice(0, 4).join(':')), 'Both unique interfaces must share the supplied /64 prefix.', [`PC1 ${a?.compressed ?? 'INVALID'}/64`, `PC2 ${b?.compressed ?? 'INVALID'}/64`]);
   }
   if (labId === 'ipv6-neighbor-desk') {
     const savedNeighbors = (session.protocolState?.ipv6Neighbors as IPv6Neighbor[] | undefined) ?? [];
@@ -229,7 +229,7 @@ function evaluate(labId: string, stageId: string, session: OperationsSimulationS
   }
   if (labId === 'spanning-tree-desk') {
     const tree = stpEvaluation(c); const rows = [`ROOT ${tree.rootId ?? 'NONE'}`, ...tree.roles.map((role) => `${role.switchId} ${role.linkId} / ${role.role.toUpperCase()} / ${role.forwarding ? 'FORWARDING' : 'DISCARDING'}`)];
-    if (stageId === 'root') return result(tree.rootId === 'SW-B', 'The lowest bridge ID becomes root.', rows);
+    if (stageId === 'root') return result(tree.rootId === 'SW2', 'The lowest bridge ID becomes root.', rows);
     if (stageId === 'ports') return result(tree.roles.length === 6 && tree.roles.some((role) => role.role === 'alternate'), 'Every non-root switch selects its lowest-cost root path.', rows);
     if (stageId === 'block') return result(c['stp.redundantRole'] === 'alternate' && tree.roles.some((role) => role.role === 'alternate' && !role.forwarding), 'One inferior redundant port must discard ordinary frames.', rows);
     return result(c['stp.failedLink'] === 'AB' && tree.roles.every((role) => role.linkId !== 'AB'), 'The tree must be recalculated without the failed link.', rows);
@@ -264,21 +264,21 @@ function evaluate(labId: string, stageId: string, session: OperationsSimulationS
 
 function capstoneReadiness(c: Configuration) {
   const spanningTree = calculateSpanningTree([
-    { id: 'SW-A', priority: 32768, mac: '00:00:00:00:00:0A' },
-    { id: 'SW-B', priority: c['cap.stp'] === 'SW-B' ? 24576 : 32768, mac: '00:00:00:00:00:0B' },
-    { id: 'SW-C', priority: 32768, mac: '00:00:00:00:00:0C' },
-  ], [{ id: 'AB', a: 'SW-A', b: 'SW-B', cost: 4, up: true }, { id: 'BC', a: 'SW-B', b: 'SW-C', cost: 4, up: true }, { id: 'AC', a: 'SW-A', b: 'SW-C', cost: 8, up: true }]);
+    { id: 'SW1', priority: 32768, mac: '00:00:00:00:00:0A' },
+    { id: 'SW2', priority: c['cap.stp'] === 'SW2' ? 24576 : 32768, mac: '00:00:00:00:00:0B' },
+    { id: 'SW3', priority: 32768, mac: '00:00:00:00:00:0C' },
+  ], [{ id: 'AB', a: 'SW1', b: 'SW2', cost: 4, up: true }, { id: 'BC', a: 'SW2', b: 'SW3', cost: 4, up: true }, { id: 'AC', a: 'SW1', b: 'SW3', cost: 8, up: true }]);
   const vlans = text(c['cap.vlans'], '').split(',').filter(Boolean).map(Number);
   const lacpModes = c['cap.lacp'] === 'active-passive' ? ['active', 'passive'] as const : ['passive', 'passive'] as const;
   const channel = negotiateEtherChannel([
     { id: 'A1', side: 'a', mode: lacpModes[0], up: true, speed: 1000, switchportMode: 'trunk', allowedVlans: vlans },
     { id: 'B1', side: 'b', mode: lacpModes[1], up: true, speed: 1000, switchportMode: 'trunk', allowedVlans: vlans },
   ]);
-  const stpReady = spanningTree.rootId === 'SW-B' && spanningTree.roles.some((role) => role.role === 'alternate');
+  const stpReady = spanningTree.rootId === 'SW2' && spanningTree.roles.some((role) => role.role === 'alternate');
   const lacpReady = channel.formed && vlans.includes(10) && vlans.includes(20);
 
   const lease = allocateDhcpLease({ pool: { network: '192.168.10.0', prefix: 24, start: '192.168.10.100', end: '192.168.10.110', excluded: ['192.168.10.100'], gateway: '192.168.10.1' }, leases: [] }, 'OFFICE-PC');
-  const dns = resolveDnsQuery({ records: [{ name: 'server.netbite.test', type: 'A', value: text(c['cap.dns'], ''), ttl: 60, authoritativeServer: 'DNS-1' }], cache: [], resolverReachable: true }, 'server.netbite.test', 'A');
+  const dns = resolveDnsQuery({ records: [{ name: 'server.netbite.test', type: 'A', value: text(c['cap.dns'], ''), ttl: 60, authoritativeServer: 'DNS1' }], cache: [], resolverReachable: true }, 'server.netbite.test', 'A');
   const servicesReady = lease.state.leases[0]?.address === c['cap.dhcp'] && dns.state.cache[0]?.value === '192.168.20.20';
 
   const forwardSelection = selectRouteSource('192.168.20.20', [{ prefix: text(c['cap.ospfForward'], '0.0.0.0').replace(/\/\d+$/, ''), prefixLength: Number(text(c['cap.ospfForward'], '').split('/')[1] ?? 0), source: 'ospf', administrativeDistance: 110, metric: 20, nextHop: '10.0.12.2' }]);
@@ -318,7 +318,7 @@ function deviceRecord(labId: string, label: string, session: OperationsSimulatio
   if (labId === 'dhcp-lease-desk') {
     const state = dhcpState(session); const lease = state?.leases.find((item) => item.clientId === label); const availability = state ? inspectDhcpPool(state) : undefined;
     if (upper.includes('DHCP')) lines = [`POOL / ${state ? `${state.pool.network}/${state.pool.prefix}` : 'POOL NOT CONFIGURED'}`, `GATEWAY / ${state?.pool.gateway ?? text(c['dhcp.gateway'])}`, `LEASE STEPS / ${text(c['dhcp.leaseSteps'])}`, `AVAILABLE / ${availability?.available.join(', ') || 'NONE'}`, `BINDINGS / ${state?.leases.length ?? 0}`];
-    else if (upper.includes('R-1')) lines = [`RELAY ${text(c['dhcp.relay'])}`, `SERVER PATH ${enabled(c['dhcp.serverReachable'])}`];
+    else if (upper.includes('R1')) lines = [`RELAY ${text(c['dhcp.relay'])}`, `SERVER PATH ${enabled(c['dhcp.serverReachable'])}`];
     else if (upper.includes('PC-')) lines = [`CLIENT ${label}`, `LEASE ${lease?.address ?? 'NONE'}`, `STATE ${lease?.state?.toUpperCase() ?? 'INIT'}`];
     else lines = ['VLAN 20', 'CLIENT BROADCAST BOUNDARY'];
   } else if (labId === 'dns-resolution-desk') {
@@ -328,28 +328,28 @@ function deviceRecord(labId: string, label: string, session: OperationsSimulatio
     else lines = ['REFERRAL SOURCE', 'NO HOST RECORD CONFIGURED HERE'];
   } else if (labId === 'acl-policy-desk') {
     const acl = aclEvaluation(c);
-    if (upper.includes('R-1')) lines = [`ACL NETBITE-IN / ${text(c['acl.interface'])} ${text(c['acl.direction']).toUpperCase()}`, `MATCH ${acl.matchedRuleId}`, `ACTION ${acl.action.toUpperCase()}`];
+    if (upper.includes('R1')) lines = [`ACL NETBITE-IN / ${text(c['acl.interface'])} ${text(c['acl.direction']).toUpperCase()}`, `MATCH ${acl.matchedRuleId}`, `ACTION ${acl.action.toUpperCase()}`];
     else if (upper.includes('PC-')) lines = [`SOURCE ${text(c['acl.source'])}`, `${text(c['acl.protocol']).toUpperCase()} -> ${text(c['acl.destination'])}:${text(c['acl.port'])}`];
     else lines = ['LISTENER TCP/443', `POLICY RESULT ${acl.action.toUpperCase()}`];
   } else if (labId === 'nat-translation-desk') {
     const translations = (session.protocolState?.nat as NatState | undefined)?.entries ?? [];
-    if (upper.includes('R-1')) lines = [`INSIDE ${enabled(c['nat.insideUp'])}`, `OUTSIDE ${enabled(c['nat.outsideUp'])}`, `GLOBAL ${text(c['nat.global'])}`, `TRANSLATIONS ${translations.length}`, ...translations.map((entry) => `${entry.insideAddress}:${entry.insidePort} -> ${entry.globalAddress}:${entry.globalPort}`)];
+    if (upper.includes('R1')) lines = [`INSIDE ${enabled(c['nat.insideUp'])}`, `OUTSIDE ${enabled(c['nat.outsideUp'])}`, `GLOBAL ${text(c['nat.global'])}`, `TRANSLATIONS ${translations.length}`, ...translations.map((entry) => `${entry.insideAddress}:${entry.insidePort} -> ${entry.globalAddress}:${entry.globalPort}`)];
     else if (upper.includes('PC-')) lines = ['INSIDE LOCAL 192.168.10.10:49152', `ELIGIBLE NETWORK ${text(c['nat.network'])}/${text(c['nat.prefix'])}`];
     else lines = ['OUTSIDE SERVICE 198.51.100.20:443', `REPLY TARGET ${text(c['nat.global'])}:40000`];
   } else if (labId === 'ipv6-address-desk') {
-    const address = upper.includes('PC-A') ? c['ipv6.hostA'] ?? c['ipv6.address'] : c['ipv6.hostB']; const parsed = parseIPv6Address(text(address, ''));
+    const address = upper.includes('PC1') ? c['ipv6.hostA'] ?? c['ipv6.address'] : c['ipv6.hostB']; const parsed = parseIPv6Address(text(address, ''));
     lines = upper.includes('SW-') ? ['LOCAL ETHERNET LINK', 'NO IPV6 ADDRESS REQUIRED'] : [`ADDRESS ${parsed?.compressed ?? text(address)}`, `PREFIX /${text(c['ipv6.prefix'])}`, `EXPANDED ${parsed?.expanded ?? 'NOT AVAILABLE'}`];
   } else if (labId === 'ipv6-neighbor-desk') {
     const path = traceIPv6Path('2001:db8:20::20', [{ prefix: text(c['nd.routePrefix'], '::'), prefixLength: Number(c['nd.routeLength'] ?? 0), nextHop: text(c['nd.nextHop'], ''), exitInterface: 'G0/1' }]);
-    if (upper.includes('PC-A')) { const neighbors = (session.protocolState?.ipv6Neighbors as IPv6Neighbor[] | undefined) ?? []; lines = [`DEFAULT ROUTER ${text(c['nd.router'])}`, `NEIGHBOR CACHE ${neighbors.length ? neighbors.map((entry) => `${entry.address} -> ${entry.mac}`).join(' | ') : 'EMPTY'}`]; }
-    else if (upper.includes('R-1')) lines = [`RA ${c['nd.ra'] === true ? 'SENT' : 'NOT SENT'}`, `ROUTE ${text(c['nd.routePrefix'])}/${text(c['nd.routeLength'])}`];
+    if (upper.includes('PC1')) { const neighbors = (session.protocolState?.ipv6Neighbors as IPv6Neighbor[] | undefined) ?? []; lines = [`DEFAULT ROUTER ${text(c['nd.router'])}`, `NEIGHBOR CACHE ${neighbors.length ? neighbors.map((entry) => `${entry.address} -> ${entry.mac}`).join(' | ') : 'EMPTY'}`]; }
+    else if (upper.includes('R1')) lines = [`RA ${c['nd.ra'] === true ? 'SENT' : 'NOT SENT'}`, `ROUTE ${text(c['nd.routePrefix'])}/${text(c['nd.routeLength'])}`];
     else lines = [path.reason, `RETURN ${c['nd.returnRoute'] === true ? 'READY' : 'MISSING'}`];
   } else if (labId === 'spanning-tree-desk') {
     const tree = stpEvaluation(c); lines = [`ROOT ${tree.rootId ?? 'UNKNOWN'}`, `PRIORITY ${text(c[`stp.priority${upper.at(-1)}`])}`, ...tree.roles.filter((role) => role.switchId === upper).map((role) => `${role.linkId} ${role.role.toUpperCase()} / ${role.forwarding ? 'FORWARDING' : 'DISCARDING'}`)];
   } else if (labId === 'etherchannel-desk') {
-    const bundle = lacpEvaluation(c); lines = [`MODE ${upper.includes('SW-A') ? text(c['lacp.modeA']) : text(c['lacp.modeB'])}`, `PORT-CHANNEL ${bundle.formed ? 'UP' : 'DOWN'}`, `MEMBERS ${bundle.activeMemberIds.join(', ') || 'NONE'}`, `VLANS ${text(c['lacp.vlans'])}`];
+    const bundle = lacpEvaluation(c); lines = [`MODE ${upper.includes('SW1') ? text(c['lacp.modeA']) : text(c['lacp.modeB'])}`, `PORT-CHANNEL ${bundle.formed ? 'UP' : 'DOWN'}`, `MEMBERS ${bundle.activeMemberIds.join(', ') || 'NONE'}`, `VLANS ${text(c['lacp.vlans'])}`];
   } else if (labId === 'route-source-desk') {
-    const selected = selectRouteSource(text(c['route.destination'], '0.0.0.0'), routeCandidates(c)); lines = upper.includes('R-1') ? [...selected.candidates.map((route) => `${route.source.toUpperCase()} ${route.prefix}/${route.prefixLength} AD ${route.administrativeDistance}`), `INSTALLED ${selected.selected ? `${selected.selected.source.toUpperCase()} ${selected.selected.prefix}/${selected.selected.prefixLength}` : 'NONE'}`] : [`DESTINATION ${text(c['route.destination'])}`, selected.reason];
+    const selected = selectRouteSource(text(c['route.destination'], '0.0.0.0'), routeCandidates(c)); lines = upper.includes('R1') ? [...selected.candidates.map((route) => `${route.source.toUpperCase()} ${route.prefix}/${route.prefixLength} AD ${route.administrativeDistance}`), `INSTALLED ${selected.selected ? `${selected.selected.source.toUpperCase()} ${selected.selected.prefix}/${selected.selected.prefixLength}` : 'NONE'}`] : [`DESTINATION ${text(c['route.destination'])}`, selected.reason];
   } else if (labId === 'ospf-area-desk') {
     const ospf = ospfEvaluation(c); const routerKey = upper.replace('-', '').toLowerCase(); lines = [`ROUTER ID ${text(c[`ospf.${routerKey}`])}`, ...ospf.topology.adjacencies.filter((link) => link.a === label || link.b === label).map((link) => `NEIGHBOR ${link.a === label ? link.b : link.a} / AREA ${link.area}`), ...ospf.routes.filter((route) => upper === 'R1').map((route) => `${route.prefix} COST ${route.cost} VIA ${route.nextHopRouterId}`)];
   } else if (labId === 'network-operations-capstone') {

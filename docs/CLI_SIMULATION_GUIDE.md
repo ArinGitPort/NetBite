@@ -82,15 +82,15 @@ Four isolated scenarios require an evidence command before a conclusion. A faile
 
 ### Chapter 9 — `static-route-board`
 
-R1, R2, and R3 begin with connected routes. Completion requires exactly four specified static routes and successful verification from PC-A to PC-C and back. The path engine distinguishes no route, unreachable next hop, loop, and missing return path.
+R1, R2, and R3 begin with connected routes. Completion requires exactly four specified static routes and successful verification from PC1 to PC3 and back. The path engine distinguishes no route, unreachable next hop, loop, and missing return path.
 
 ### Chapter 10 — `vlan-port-desk`
 
-SW-A and SW-B derive port/trunk status directly from configuration. Completion requires VLAN 10 and 20, the required access membership, both trunk endpoints allowing both VLANs, and two evidence-based reachability predictions. Trunks preserve VLAN separation; Layer 3 forwarding is outside this lab.
+SW1 and SW2 derive port/trunk status directly from configuration. Completion requires VLAN 10 and 20, the required access membership, both trunk endpoints allowing both VLANs, and two evidence-based reachability predictions. Trunks preserve VLAN separation; Layer 3 forwarding is outside this lab.
 
 ### Chapter 12 — `inter-vlan-routing-desk`
 
-The fixed topology provides PC-A in VLAN 10, PC-B in VLAN 20, one switch, and one router physical link. Learners configure `F0/24` as a trunk allowing VLAN 10 and 20, then build `G0/0.10` and `G0/0.20`.
+The fixed topology provides PC1 in VLAN 10, PC2 in VLAN 20, one switch, and one router physical link. Learners configure `F0/24` as a trunk allowing VLAN 10 and 20, then build `G0/0.10` and `G0/0.20`.
 
 Supported router-on-a-stick commands add:
 

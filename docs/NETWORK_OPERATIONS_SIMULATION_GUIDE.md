@@ -18,7 +18,7 @@ Every Operations lab begins with `LEARN THE SETUP`. It states the goal in plain 
 
 The fixed topology is an interactive inspection surface rather than a row of text labels. Existing themed PCs, switches, routers, and servers are connected by labeled modeled interfaces. Selecting a device explains its role and current visible state; learners still change configuration through the inspector or bounded CLI.
 
-The DHCP reference topology contains two clients, SW-1, relay router R-1, and DHCP-1. It separates the client broadcast domain from the routed server network and makes pool, exclusion, binding, DORA, exhaustion, and relay evidence visible without pretending to transmit live packets.
+The DHCP reference topology contains two clients, SW1, relay router R1, and DHCP1. It separates the client broadcast domain from the routed server network and makes pool, exclusion, binding, DORA, exhaustion, and relay evidence visible without pretending to transmit live packets.
 
 - One fixed, responsive topology with vertical recomposition on compact screens
 - One current objective and one dominant configuration or protocol-event action

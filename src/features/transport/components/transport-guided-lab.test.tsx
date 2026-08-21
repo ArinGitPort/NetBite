@@ -18,9 +18,9 @@ describe('Transport guided mini-simulator', () => {
   test('renders a connected inspectable topology and endpoint state', async () => {
     const screen = await render(<TransportGuidedLab />);
     expect(screen.getByText('FIXED INTERACTIVE TOPOLOGY')).toBeTruthy();
-    expect(screen.getByLabelText(/CLIENT PC, 192.0.2.10:53000/)).toBeTruthy();
-    expect(screen.getByLabelText(/APP SERVER, 192.0.2.20:443/)).toBeTruthy();
-    await fireEvent.press(screen.getByLabelText(/IP NETWORK, FORWARDS BY IP/));
+    expect(screen.getByLabelText(/PC1, 192.0.2.10:53000/)).toBeTruthy();
+    expect(screen.getByLabelText(/WEB1, 192.0.2.20:443/)).toBeTruthy();
+    await fireEvent.press(screen.getByLabelText(/R1, FORWARDS BY IP/));
     expect(await screen.findByText('SELECTED / NETWORK')).toBeTruthy();
     expect(screen.getByText('TRANSPORT PORTS / NOT USED FOR IP ROUTE SELECTION')).toBeTruthy();
   });
