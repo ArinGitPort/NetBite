@@ -9,6 +9,7 @@ import { canOpenChapter, getChapterLockReason } from '@/core/learning/course-acc
 import { useAuth } from '@/features/account/auth-context';
 import { PremiumLockedScreen } from '@/features/account/components/premium-locked-screen';
 import { ChapterRecap } from '@/features/chapters/components/chapter-recap';
+import { SubnettingCheatSheet } from '@/features/chapters/components/subnetting-cheat-sheet';
 import { AppButton } from '@/shared/components/app-button';
 import { AppIcon } from '@/shared/components/app-icon';
 import { SemanticIcon, type SemanticIconName } from '@/shared/components/semantic-icon';
@@ -100,6 +101,8 @@ export default function ChapterScreen() {
       </View>
 
       {chapterComplete ? <ChapterRecap recap={chapter.recap} /> : null}
+
+      {chapter.id === '5' ? <SubnettingCheatSheet /> : null}
 
       <Text variant="sectionHeading" style={styles.sectionTitle}>LESSONS</Text>
       {chapter.lessons.map((lesson, index) => (
