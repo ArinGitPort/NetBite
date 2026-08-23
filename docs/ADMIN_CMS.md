@@ -1,5 +1,9 @@
 # NetBite Instructor Admin CMS
 
+The portal's visual hierarchy, responsive behavior, accessibility rules, and
+shared web components are defined in
+[`ADMIN_WEB_UX_STANDARD.md`](./ADMIN_WEB_UX_STANDARD.md).
+
 The instructor portal is a separate React website. It uses the same Supabase project as the Android app, but it is not included in the learner APK.
 
 ## Security boundary

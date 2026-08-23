@@ -33,6 +33,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 
@@ -118,6 +119,172 @@ function Field({
       {children}
       {hint ? <small>{hint}</small> : null}
     </label>
+  );
+}
+
+function DialogFrame({
+  eyebrow,
+  title,
+  detail,
+  onClose,
+  children,
+}: {
+  eyebrow: string;
+  title: string;
+  detail: string;
+  onClose: () => void;
+  children: React.ReactNode;
+}) {
+  const panelRef = useRef<HTMLElement>(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+  useEffect(() => {
+    const previousFocus = document.activeElement as HTMLElement | null;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const focusable = () =>
+      Array.from(
+        panelRef.current?.querySelectorAll<HTMLElement>(
+          'button:not([disabled]),input:not([disabled]),textarea:not([disabled]),select:not([disabled]),a[href]',
+        ) ?? [],
+      );
+    focusable()[0]?.focus();
+    const handleKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onCloseRef.current();
+        return;
+      }
+      if (event.key !== "Tab") return;
+      const controls = focusable();
+      if (!controls.length) return;
+      const first = controls[0];
+      const last = controls[controls.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener("keydown", handleKey);
+    return () => {
+      document.removeEventListener("keydown", handleKey);
+      document.body.style.overflow = previousOverflow;
+      previousFocus?.focus();
+    };
+  }, []);
+  return (
+    <div className="dialog-backdrop" onMouseDown={onClose}>
+      <section
+        aria-label={title}
+        aria-modal="true"
+        className="dialog-card"
+        onMouseDown={(event) => event.stopPropagation()}
+        ref={panelRef}
+        role="dialog"
+      >
+        <button
+          aria-label="Close dialog"
+          className="dialog-close"
+          onClick={onClose}
+          type="button"
+        >
+          <X aria-hidden="true" />
+        </button>
+        <p className="eyebrow">{eyebrow}</p>
+        <h2>{title}</h2>
+        <p>{detail}</p>
+        {children}
+      </section>
+    </div>
+  );
+}
+
+function ConfirmAction({
+  className,
+  ariaLabel,
+  disabled,
+  triggerTitle,
+  children,
+  eyebrow = "CONFIRM ACTION",
+  title,
+  detail,
+  confirmLabel,
+  tone = "danger",
+  onConfirm,
+}: {
+  className: string;
+  ariaLabel?: string;
+  disabled?: boolean;
+  triggerTitle?: string;
+  children: React.ReactNode;
+  eyebrow?: string;
+  title: string;
+  detail: string;
+  confirmLabel: string;
+  tone?: "danger" | "warning";
+  onConfirm: () => void | Promise<void>;
+}) {
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const close = useCallback(() => {
+    if (!busy) setOpen(false);
+  }, [busy]);
+  const confirm = async () => {
+    if (busy) return;
+    setBusy(true);
+    setError("");
+    try {
+      await onConfirm();
+      setOpen(false);
+    } catch (nextError) {
+      setError((nextError as Error).message || "The action could not be completed.");
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <>
+      <button
+        aria-label={ariaLabel}
+        className={className}
+        disabled={disabled}
+        onClick={() => {
+          setError("");
+          setOpen(true);
+        }}
+        title={triggerTitle}
+        type="button"
+      >
+        {children}
+      </button>
+      {open ? (
+        <DialogFrame
+          detail={detail}
+          eyebrow={eyebrow}
+          onClose={close}
+          title={title}
+        >
+          {error ? <div className="feedback error" role="alert">{error}</div> : null}
+          <div className="dialog-actions">
+            <button className="button" disabled={busy} onClick={close} type="button">
+              CANCEL
+            </button>
+            <button
+              className={tone === "danger" ? "button dialog-danger" : "button secondary"}
+              disabled={busy}
+              onClick={() => void confirm()}
+              type="button"
+            >
+              {busy ? "WORKING..." : confirmLabel}
+            </button>
+          </div>
+        </DialogFrame>
+      ) : null}
+    </>
   );
 }
 
@@ -372,7 +539,10 @@ function AdminShell({
   };
   return (
     <div className="admin-shell">
-      <aside className={mobileNav ? "sidebar open" : "sidebar"}>
+      <aside
+        aria-label="Instructor console navigation"
+        className={mobileNav ? "sidebar open" : "sidebar"}
+      >
         <div className="sidebar-brand">
           <div className="brand-mark small"><img alt="" src={netbiteLogo} /></div>
           <div>
@@ -387,10 +557,11 @@ function AdminShell({
             <X />
           </button>
         </div>
-        <nav>
+        <nav aria-label="Admin sections">
           {navigation.map((item) => (
             <button
               key={item.id}
+              aria-current={view === item.id ? "page" : undefined}
               className={view === item.id ? "nav-item active" : "nav-item"}
               onClick={() => navigate(item.id)}
             >
@@ -415,6 +586,13 @@ function AdminShell({
           </button>
         </div>
       </aside>
+      {mobileNav ? (
+        <button
+          aria-label="Close navigation"
+          className="mobile-nav-scrim"
+          onClick={() => setMobileNav(false)}
+        />
+      ) : null}
       <div className="workspace">
         <header className="topbar">
           <button
@@ -655,6 +833,8 @@ function Curriculum({ userId }: { userId: string }) {
   const [search, setSearch] = useState("");
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [stableId, setStableId] = useState("");
   const load = useCallback(
     () =>
       api.getCurriculum().then((next) => {
@@ -708,9 +888,6 @@ function Curriculum({ userId }: { userId: string }) {
   };
   const create = async () => {
     if (!data || busy) return;
-    const stableId = window.prompt(
-      "Stable lesson ID (lowercase words separated by hyphens)",
-    );
     if (!stableId || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(stableId))
       return setNotice(
         "Use a lowercase stable ID such as network-service-review.",
@@ -736,6 +913,8 @@ function Curriculum({ userId }: { userId: string }) {
       );
       await load();
       setLessonId(stableId);
+      setStableId("");
+      setCreateOpen(false);
       setNotice("Supplemental lesson draft created.");
     } catch (error) {
       setNotice((error as Error).message);
@@ -753,7 +932,7 @@ function Curriculum({ userId }: { userId: string }) {
         action={
           <button
             className="button primary"
-            onClick={() => void create()}
+            onClick={() => setCreateOpen(true)}
             disabled={busy}
           >
             <Plus />
@@ -761,6 +940,46 @@ function Curriculum({ userId }: { userId: string }) {
           </button>
         }
       />
+      {createOpen ? (
+        <DialogFrame
+          detail="New lessons are supplemental and stay inside the currently selected chapter. Use a permanent lowercase ID because learner progress refers to it."
+          eyebrow="NEW SUPPLEMENTAL LESSON"
+          onClose={() => {
+            if (!busy) setCreateOpen(false);
+          }}
+          title="Create a lesson draft"
+        >
+          <form
+            className="dialog-form"
+            onSubmit={(event) => {
+              event.preventDefault();
+              void create();
+            }}
+          >
+            <Field
+              label="Stable lesson ID"
+              hint="Lowercase letters and numbers separated by hyphens. Example: network-service-review."
+            >
+              <input
+                autoFocus
+                pattern="[a-z0-9]+(?:-[a-z0-9]+)*"
+                placeholder="network-service-review"
+                required
+                value={stableId}
+                onChange={(event) => setStableId(event.target.value)}
+              />
+            </Field>
+            <div className="dialog-actions">
+              <button className="button" disabled={busy} onClick={() => setCreateOpen(false)} type="button">
+                CANCEL
+              </button>
+              <button className="button primary" disabled={busy} type="submit">
+                {busy ? "CREATING..." : "CREATE DRAFT"}
+              </button>
+            </div>
+          </form>
+        </DialogFrame>
+      ) : null}
       {notice ? <div className="feedback">{notice}</div> : null}
       <div className="authoring-layout">
         <aside className="tree-panel">
@@ -920,12 +1139,6 @@ function LessonEditor({
     }
   };
   const archive = async () => {
-    if (
-      !window.confirm(
-        `${row.archived ? "Restore" : "Archive"} ${draft.title}? Published releases remain immutable.`,
-      )
-    )
-      return;
     setBusy(true);
     try {
       await api.setLessonArchived(row.id, !row.archived, userId);
@@ -1083,14 +1296,24 @@ function LessonEditor({
                 <ArrowDown /> MOVE LATER
               </button>
             </div>
-            <button
+            <ConfirmAction
+              ariaLabel={row.archived ? "Restore lesson" : "Archive lesson"}
               className="button danger-outline"
+              confirmLabel={row.archived ? "RESTORE LESSON" : "ARCHIVE LESSON"}
+              detail={
+                row.archived
+                  ? "The draft will return to the active authoring list. Existing published releases are unchanged."
+                  : "The draft will leave the active authoring list. Existing published releases remain immutable."
+              }
               disabled={busy}
-              onClick={() => void archive()}
+              eyebrow={row.archived ? "RESTORE DRAFT" : "ARCHIVE DRAFT"}
+              onConfirm={archive}
+              title={`${row.archived ? "Restore" : "Archive"} ${draft.title}?`}
+              tone="warning"
             >
               <Archive />
               {row.archived ? "RESTORE LESSON" : "ARCHIVE LESSON"}
-            </button>
+            </ConfirmAction>
           </div>
         </div>
       )}
@@ -1365,18 +1588,20 @@ function QuizEditor({
             <Save />
             SAVE
           </button>
-          <button
+          <ConfirmAction
             className="icon-button danger"
-            aria-label="Delete quiz question"
-            onClick={() =>
-              window.confirm("Delete this draft question?") &&
-              void api
+            ariaLabel="Delete quiz question"
+            confirmLabel="DELETE QUESTION"
+            detail="This removes the draft question from the authoring workspace. Published releases remain unchanged."
+            onConfirm={() =>
+              api
                 .deleteAssessment("content_quiz_questions", row.id)
                 .then(() => onDone("Question deleted."))
             }
+            title="Delete this quiz question?"
           >
             <X />
-          </button>
+          </ConfirmAction>
         </div>
       </div>
     </article>
@@ -1466,18 +1691,20 @@ function FlashcardEditor({
             <Save />
             SAVE
           </button>
-          <button
+          <ConfirmAction
             className="icon-button danger"
-            aria-label="Delete flashcard"
-            onClick={() =>
-              window.confirm("Delete this draft flashcard?") &&
-              void api
+            ariaLabel="Delete flashcard"
+            confirmLabel="DELETE FLASHCARD"
+            detail="This removes the draft flashcard from the authoring workspace. Published releases remain unchanged."
+            onConfirm={() =>
+              api
                 .deleteAssessment("content_flashcards", row.id)
                 .then(() => onDone("Flashcard deleted."))
             }
+            title="Delete this flashcard?"
           >
             <X />
-          </button>
+          </ConfirmAction>
         </div>
       </div>
     </article>
@@ -1576,16 +1803,16 @@ function Sources({ userId }: { userId: string }) {
                 >
                   EDIT
                 </button>
-                <button
+                <ConfirmAction
                   className="icon-button danger"
-                  aria-label="Delete source"
-                  onClick={() =>
-                    window.confirm("Delete this source draft?") &&
-                    void api.deleteSource(row.id).then(load)
-                  }
+                  ariaLabel="Delete source"
+                  confirmLabel="DELETE SOURCE"
+                  detail="This removes the reference from the draft library. Published curriculum packages remain unchanged."
+                  onConfirm={() => api.deleteSource(row.id).then(load)}
+                  title="Delete this source?"
                 >
                   <X />
-                </button>
+                </ConfirmAction>
               </div>
             </article>
           ))}
@@ -1700,22 +1927,22 @@ function Assets({ userId }: { userId: string }) {
                     {Math.round(asset.byte_size / 1024)} KB
                   </small>
                 </div>
-                <button
+                <ConfirmAction
                   className="icon-button danger"
-                  aria-label="Delete image"
+                  ariaLabel="Delete image"
+                  confirmLabel="DELETE IMAGE"
+                  detail="This permanently removes the unpublished image from draft storage."
                   disabled={asset.published}
-                  title={
+                  onConfirm={() => api.deleteAsset(asset).then(load)}
+                  title="Delete this draft image?"
+                  triggerTitle={
                     asset.published
                       ? "Published assets are immutable"
                       : "Delete draft image"
                   }
-                  onClick={() =>
-                    window.confirm("Delete this draft image?") &&
-                    void api.deleteAsset(asset).then(load)
-                  }
                 >
                   <X />
-                </button>
+                </ConfirmAction>
               </article>
             ))}
           </div>
@@ -1772,14 +1999,7 @@ function Releases({ canPublish }: { canPublish: boolean }) {
     }
   };
   const publish = async () => {
-    if (
-      !canPublish ||
-      !validation?.valid ||
-      !window.confirm(
-        "Publish this immutable curriculum release to connected Android devices?",
-      )
-    )
-      return;
+    if (!canPublish || !validation?.valid) return;
     setBusy(true);
     try {
       const result = await api.publishRelease(changelog, minimum);
@@ -1865,19 +2085,24 @@ function Releases({ canPublish }: { canPublish: boolean }) {
               release content.
             </div>
           ) : null}
-          <button
+          <ConfirmAction
             className="button primary"
+            confirmLabel="PUBLISH RELEASE"
+            detail="This creates an immutable curriculum release and makes it available to connected Android devices. Drafts remain editable for the next release."
             disabled={
               busy ||
               !canPublish ||
               !validation?.valid ||
               changelog.trim().length < 3
             }
-            onClick={() => void publish()}
+            eyebrow="IMMUTABLE DELIVERY"
+            onConfirm={publish}
+            title="Publish this curriculum release?"
+            tone="warning"
           >
             <Rocket />
             PUBLISH IMMUTABLE RELEASE
-          </button>
+          </ConfirmAction>
         </section>
         <section className="panel">
           <h2>Release history</h2>
@@ -1900,20 +2125,22 @@ function Releases({ canPublish }: { canPublish: boolean }) {
                 <small className="mono">SHA-256 {row.checksum}</small>
               </div>
               {canPublish && index > 0 ? (
-                <button
+                <ConfirmAction
                   className="button tertiary"
-                  onClick={() =>
-                    window.confirm(
-                      `Republish release ${row.release_version} as a new rollback release?`,
-                    ) &&
-                    void api.rollbackRelease(row.id).then(() => {
+                  confirmLabel="PUBLISH ROLLBACK"
+                  detail={`Release ${row.release_version} will be republished as a new immutable release. Historical releases will not be edited or deleted.`}
+                  eyebrow="ROLLBACK RELEASE"
+                  onConfirm={() =>
+                    api.rollbackRelease(row.id).then(() => {
                       setNotice("Rollback release published.");
-                      void load();
+                      return load();
                     })
                   }
+                  title={`Return learners to release ${row.release_version}?`}
+                  tone="warning"
                 >
                   ROLL BACK TO THIS
-                </button>
+                </ConfirmAction>
               ) : null}
             </article>
           ))}
