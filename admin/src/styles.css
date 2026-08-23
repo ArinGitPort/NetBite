@@ -205,8 +205,6 @@ code,pre,.mono,.eyebrow,.phone,.sidebar-brand span,.topbar small,.metric span,.m
 .sidebar-account-copy { min-width: 0; display: grid; gap: 5px; padding-top: 1px; }
 .sidebar-account-copy small { color: #aaa4aa; font-family: Inter,system-ui,sans-serif; font-size: .57rem; font-weight: 650; letter-spacing: .055em; }
 .sidebar-account-copy strong { min-width: 0; overflow-wrap: anywhere; color: #f0ecef; font-family: Inter,system-ui,sans-serif; font-size: .69rem; line-height: 1.4; }
-.sidebar-role-list { display: flex; flex-wrap: wrap; gap: 5px; }
-.sidebar-role-list span { padding: 3px 6px; border: 1px solid #3c4945; border-radius: 5px; background: #1c2824; color: #8ebcaf; font-family: Inter,system-ui,sans-serif; font-size: .5rem; font-weight: 650; line-height: 1; text-transform: capitalize; }
 .sidebar-signout { width: 100%; min-height: 42px; display: flex; align-items: center; justify-content: center; gap: 9px; border: 1px solid #39353a; border-radius: 8px; background: #242126; color: #d9d5d8; cursor: pointer; font: 600 .7rem Inter,system-ui,sans-serif; transition: border-color .16s ease,background .16s ease,color .16s ease; }
 .sidebar-signout:hover:not(:disabled) { border-color: #5a535b; background: #2c282d; color: #fff; }
 .sidebar-signout:focus-visible { outline: 2px solid var(--red); outline-offset: 2px; }

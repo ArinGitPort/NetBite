@@ -609,11 +609,6 @@ function AdminShell({
             <div className="sidebar-account-copy">
               <small>INSTRUCTOR ACCOUNT</small>
               <strong title={session.user.email}>{session.user.email}</strong>
-              <div className="sidebar-role-list" aria-label="Assigned roles">
-                {roles.map((role) => (
-                  <span key={role}>{role}</span>
-                ))}
-              </div>
             </div>
           </div>
           <SignOutButton />
