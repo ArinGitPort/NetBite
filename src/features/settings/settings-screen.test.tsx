@@ -18,6 +18,7 @@ let mockAuthState = {
 jest.mock('expo-router', () => ({ router: { back: jest.fn(), canGoBack: () => false, replace: jest.fn(), dismissTo: jest.fn() } }));
 jest.mock('expo-sqlite/kv-store', () => ({ __esModule: true, default: { getItem: jest.fn(), setItem: jest.fn(), removeItem: jest.fn() } }));
 jest.mock('@/features/account/auth-context', () => ({ useAuth: () => mockAuthState }));
+jest.mock('@/features/content-delivery/content-context', () => ({ useContentDelivery: () => ({ status: 'current', message: 'Bundled learning materials are current.', manifest: undefined, checkNow: jest.fn(), restorePrevious: jest.fn() }) }));
 
 describe('settings reliability controls', () => {
   beforeEach(() => {

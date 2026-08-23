@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 import { useAuth } from '@/features/account/auth-context';
+import { useContentDelivery } from '@/features/content-delivery/content-context';
 import { AppButton } from '@/shared/components/app-button';
 import { DisclosureSection } from '@/shared/components/disclosure-section';
 import { FeedbackModal } from '@/shared/components/feedback-modal';
@@ -31,11 +32,19 @@ export default function SettingsScreen() {
   const researchActive = useResearchStore((state) => state.active);
   const [confirm, setConfirm] = useState<'learning' | 'sandbox' | 'presentation' | 'restore'>();
   const [manualSyncBusy, setManualSyncBusy] = useState(false);
+  const { status: contentStatus, manifest: contentManifest, message: contentMessage, checkNow: checkContentNow, restorePrevious: restorePreviousContent } = useContentDelivery();
+  const [contentBusy, setContentBusy] = useState(false);
 
   const runManualSync = async () => {
     if (manualSyncBusy || status !== 'authenticated' || presentationActive || researchActive) return;
     setManualSyncBusy(true);
     try { await syncNow(); } finally { setManualSyncBusy(false); }
+  };
+
+  const runContentAction = async (action: 'check' | 'restore') => {
+    if (contentBusy) return;
+    setContentBusy(true);
+    try { await (action === 'check' ? checkContentNow() : restorePreviousContent()); } finally { setContentBusy(false); }
   };
 
   const cloudLabel = presentationActive || researchActive
@@ -63,6 +72,20 @@ export default function SettingsScreen() {
         <Text variant="bodySmall" style={styles.detail}>{status === 'authenticated' ? 'NetBite automatically retries when internet access returns and whenever the app becomes active.' : configured ? 'Guest learning is stored on this device. Sign in from the main menu when cloud backup is wanted.' : 'Supabase is not configured. All lessons and simulations remain available locally.'}</Text>
         {syncStatus === 'action-needed' && syncError ? <Text accessibilityRole="alert" variant="bodySmall" style={styles.syncWarning}>{syncError}</Text> : null}
         {status === 'authenticated' ? <AppButton disabled={manualSyncBusy || syncStatus === 'syncing' || presentationActive || researchActive} label={manualSyncBusy || syncStatus === 'syncing' ? 'Syncing...' : syncStatus === 'action-needed' ? 'Retry cloud sync' : 'Sync now'} variant="secondary" onPress={() => void runManualSync()} /> : null}
+      </View>
+      <View accessibilityLiveRegion="polite" style={styles.section}>
+        <View style={styles.syncHeader}>
+          <Text variant="sectionHeading" style={styles.heading}>LEARNING MATERIALS</Text>
+          {contentBusy || contentStatus === 'checking' || contentStatus === 'updating' ? <ActivityIndicator accessibilityLabel="Learning materials are updating" color={Palette.orange} size="small" /> : <View accessibilityLabel={contentStatus} style={[styles.syncDot, (contentStatus === 'current' || contentStatus === 'updated') && styles.syncDotReady, (contentStatus === 'offline' || contentStatus === 'error') && styles.syncDotWarning]} />}
+        </View>
+        <Text variant="label" style={contentStatus === 'error' || contentStatus === 'offline' ? styles.syncWarning : styles.syncLabel}>{contentStatus === 'updating' ? 'UPDATING MATERIALS' : contentStatus === 'updated' ? 'UPDATED' : contentStatus === 'current' ? 'CONTENT CURRENT' : contentStatus === 'offline' ? 'USING OFFLINE COPY' : contentStatus.toUpperCase()}</Text>
+        <Text variant="bodySmall" style={styles.detail}>{contentMessage}</Text>
+        {contentManifest ? <Text variant="technical" style={styles.detail}>RELEASE {contentManifest.releaseVersion} / PUBLISHED {new Date(contentManifest.publishedAt).toLocaleDateString()}</Text> : <Text variant="technical" style={styles.detail}>BUNDLED CURRICULUM / OFFLINE FALLBACK</Text>}
+        <AppButton disabled={contentBusy} label={contentBusy ? 'Checking...' : 'Check for content updates'} variant="secondary" onPress={() => void runContentAction('check')} />
+        <DisclosureSection title="Content recovery" summary="Restore the previously downloaded curriculum release">
+          <Text variant="bodySmall" style={styles.detail}>Use this only if a newer lesson release needs to be rolled back on this device.</Text>
+          <AppButton disabled={contentBusy} label="Restore previous release" variant="utility" onPress={() => void runContentAction('restore')} />
+        </DisclosureSection>
       </View>
       {testProAvailable ? <View style={[styles.section, styles.testAccessSection]}>
         <Text variant="sectionHeading" style={styles.heading}>DEVELOPMENT TEST ACCESS</Text>

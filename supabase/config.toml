@@ -6,3 +6,12 @@ verify_jwt = true
 
 [functions.delete-account]
 verify_jwt = true
+
+[functions.validate-content-release]
+verify_jwt = true
+
+[functions.publish-content-release]
+verify_jwt = true
+
+[functions.rollback-content-release]
+verify_jwt = true

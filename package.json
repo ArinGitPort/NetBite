@@ -11,6 +11,7 @@
     "expo": "~57.0.15",
     "expo-clipboard": "~57.0.1",
     "expo-constants": "~57.0.13",
+    "expo-crypto": "~57.0.1",
     "expo-device": "~57.0.1",
     "expo-font": "~57.0.1",
     "expo-glass-effect": "~57.0.1",
@@ -49,6 +50,7 @@
     "jest": "~29.7.0",
     "jest-expo": "~57.0.4",
     "test-renderer": "^1.2.0",
+    "tsx": "^4.23.12",
     "typescript": "~6.0.3"
   },
   "scripts": {
@@ -65,12 +67,22 @@
     "lint": "expo lint",
     "typecheck": "tsc --noEmit",
     "test": "jest --runInBand",
-    "test:watch": "jest --watch"
+    "test:watch": "jest --watch",
+    "admin:dev": "npm run dev --prefix admin",
+    "admin:build": "npm run build --prefix admin",
+    "admin:typecheck": "npm run typecheck --prefix admin",
+    "admin:test": "npm run test --prefix admin",
+    "content:seed": "tsx scripts/seed-admin-curriculum.ts",
+    "content:seed:check": "tsx scripts/seed-admin-curriculum.ts --dry-run"
   },
   "jest": {
     "preset": "jest-expo",
     "setupFiles": [
       "<rootDir>/jest.setup.ts"
+    ],
+    "testPathIgnorePatterns": [
+      "<rootDir>/admin/",
+      "<rootDir>/.tmp/"
     ],
     "moduleNameMapper": {
       "^@/assets/(.*)$": "<rootDir>/assets/$1",

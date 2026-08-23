@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { AccessibilityInfo, BackHandler, Platform, StyleSheet, ToastAndroid, View } from 'react-native';
+import { AccessibilityInfo, BackHandler, Image, Linking, Platform, StyleSheet, ToastAndroid, View } from 'react-native';
 
 import { chapters, getLesson } from '@/content/chapters';
 import { canAccessChapter } from '@/core/account/access';
@@ -152,6 +152,10 @@ export default function LessonScreen() {
         </View>
       ))}
       {lesson.example ? <LessonWorkedExample example={lesson.example} /> : null}
+      {lesson.supportingAssets?.map((asset) => <View key={asset.id} style={styles.supportingAsset}>
+        <Image accessible accessibilityLabel={asset.altText} resizeMode="contain" source={{ uri: asset.url }} style={[styles.supportingImage, { aspectRatio: asset.width / asset.height }]} />
+        <Text variant="bodySmall" style={styles.assetAlt}>{asset.altText}</Text>
+      </View>)}
       {lesson.fieldNote ? <LessonFieldNote note={lesson.fieldNote} /> : null}
       {lesson.termNote ? (
         <View style={styles.termNote}>
@@ -163,6 +167,14 @@ export default function LessonScreen() {
         <Text variant="label" style={styles.takeawayLabel}>KEY IDEA</Text>
         <Text variant="body" style={styles.takeawayText}>{lesson.takeaway}</Text>
       </View>
+      {lesson.sources?.length ? <View style={styles.sources}>
+        <Text variant="sectionHeading" style={styles.sectionHeading}>OFFICIAL REFERENCES</Text>
+        {lesson.sources.map((source) => <View key={source.id} style={styles.sourceRow}>
+          <Text variant="bodySmall" style={styles.sourceLabel}>{source.label}</Text>
+          {source.notes ? <Text variant="bodySmall" style={styles.assetAlt}>{source.notes}</Text> : null}
+          <AppButton label={`Open ${source.label}`} variant="utility" onPress={() => void Linking.openURL(source.url)} />
+        </View>)}
+      </View> : null}
       {lesson.checkpoint && checkpointRequired ? (
         <LessonCheckpoint
           checkpoint={lesson.checkpoint}
@@ -225,6 +237,12 @@ const styles = StyleSheet.create({
   termNote: { backgroundColor: Palette.surfaceRaised, borderWidth: 1, borderColor: Palette.border, padding: Space.lg, marginTop: Space.md },
   termNoteLabel: { color: Palette.accentBright, fontFamily: Fonts.medium, marginBottom: Space.xs },
   termNoteText: { color: Palette.text },
+  supportingAsset: { borderWidth: 1, borderColor: Palette.border, backgroundColor: Palette.surface, padding: Space.md, gap: Space.sm, marginTop: Space.lg },
+  supportingImage: { width: '100%', maxHeight: 360, backgroundColor: Palette.background },
+  assetAlt: { color: Palette.textMuted },
+  sources: { borderWidth: 1, borderColor: Palette.border, backgroundColor: Palette.surface, padding: Space.lg, gap: Space.md, marginTop: Space.lg },
+  sourceRow: { borderTopWidth: 1, borderTopColor: Palette.border, paddingTop: Space.md, gap: Space.sm },
+  sourceLabel: { color: Palette.text, fontFamily: Fonts.medium },
   takeaway: { backgroundColor: Palette.surface, borderWidth: 1, borderColor: Palette.green, padding: Space.lg, borderRadius: Radius.md, marginTop: Space.xl },
   takeawayLabel: { color: Palette.green, fontFamily: Fonts.medium, marginBottom: Space.xs },
   takeawayText: { color: Palette.text },

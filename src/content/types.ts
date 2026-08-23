@@ -101,6 +101,10 @@ export interface Lesson {
   checkpoint?: LessonCheckpoint;
   takeaway: string;
   illustration: LessonIllustration;
+  requirement?: 'core' | 'supplemental';
+  publishedAt?: string;
+  sources?: { id: string; label: string; url: string; notes?: string }[];
+  supportingAssets?: { id: string; url: string; mimeType: string; width: number; height: number; altText: string }[];
   fieldNote?: LessonCallout;
   termNote?: {
     term: string;

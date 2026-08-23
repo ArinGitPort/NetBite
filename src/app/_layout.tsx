@@ -11,6 +11,7 @@ import { StyleSheet, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { AuthProvider, useAuth } from '@/features/account/auth-context';
+import { ContentProvider, useContentDelivery } from '@/features/content-delivery/content-context';
 import { createEmptySandboxWorkspace } from '@/core/network/sandbox';
 import { hydratePersistedStores } from '@/core/reliability/storage-hydration';
 import { ProgressMergeModal } from '@/features/account/components/progress-merge-modal';
@@ -36,13 +37,15 @@ if (!isRunningInExpoGo()) SplashScreen.setOptions({ duration: 450, fade: true })
 
 function ResolvedApplication() {
   const { status, continueAsGuest, error } = useAuth();
+  const { resolved: contentResolved, runtimeKey } = useContentDelivery();
+  if (!contentResolved) return <BootstrapScreen phase="storage" detail="Loading the latest verified learning materials from this device." />;
   if (status === 'loading') return <BootstrapScreen phase="auth" detail={error ?? 'Cloud account checks are bounded. Local learning remains available.'} onContinue={continueAsGuest} />;
   return (
     <View style={styles.application}>
       <StatusBar style="light" />
       <PresentationBanner />
       <ResearchBanner />
-      <View style={styles.stack}><Stack screenOptions={{ headerShown: false, animation: 'slide_from_right', contentStyle: { backgroundColor: '#151216' } }} /></View>
+      <View style={styles.stack}><Stack key={runtimeKey} screenOptions={{ headerShown: false, animation: 'slide_from_right', contentStyle: { backgroundColor: '#151216' } }} /></View>
       <ProgressMergeModal />
     </View>
   );
@@ -93,9 +96,7 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <AuthProvider>
-        <ResolvedApplication />
-      </AuthProvider>
+      <ContentProvider><AuthProvider><ResolvedApplication /></AuthProvider></ContentProvider>
     </GestureHandlerRootView>
   );
 }

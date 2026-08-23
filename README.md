@@ -1,6 +1,8 @@
 # NetBite
 
-NetBite is a mobile-first networking education game built with Expo and React Native.
+NetBite is an Android-first networking education application built with Expo and React Native.
+
+Authorized instructors use a separate React web portal in [`admin/`](admin/) to draft, validate, publish, and roll back curriculum releases. See [`docs/ADMIN_CMS.md`](docs/ADMIN_CMS.md) for setup and security boundaries.
 
 ## Setup
 
@@ -31,6 +33,9 @@ npm run demo:android
 
 # One-command browser fallback
 npm run demo:web
+
+# Separate instructor portal
+npm run admin:dev
 ```
 
 The Android commands deliberately use localhost because an emulator may not be able to reach the Windows LAN address printed by Metro. The default `npm start` remains in LAN mode so a physical iPhone can scan the Expo Go QR code.
@@ -50,6 +55,9 @@ See [docs/DEMO_RUNBOOK.md](docs/DEMO_RUNBOOK.md) for the presentation checklist,
 npx tsc --noEmit
 npm run lint
 npm test
+npm run admin:typecheck
+npm run admin:test
+npm run admin:build
 npx expo-doctor
-npx expo export --platform all
+npx expo export --platform android
 ```

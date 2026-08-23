@@ -25,7 +25,8 @@ export function isFlashcardsReviewed(chapter: ChapterDefinition, progress: Learn
 }
 
 export function getChapterProgress(chapter: ChapterDefinition, progress: LearningProgress) {
-  const completedLessons = chapter.lessons.filter((lesson) =>
+  const requiredLessons = chapter.lessons.filter((lesson) => lesson.requirement !== 'supplemental');
+  const completedLessons = requiredLessons.filter((lesson) =>
     progress.completedLessonIds.includes(lesson.id),
   ).length;
   const completed = completedLessons
@@ -33,7 +34,7 @@ export function getChapterProgress(chapter: ChapterDefinition, progress: Learnin
     + Number(isQuizMastered(chapter, progress.quizScores[chapter.id], progress.quizContentVersions?.[chapter.id] ?? 1))
     + Number(isFlashcardsReviewed(chapter, progress));
 
-  return { completed, total: chapter.lessons.length + 3 };
+  return { completed, total: requiredLessons.length + 3 };
 }
 
 export function isChapterComplete(chapter: ChapterDefinition, progress: LearningProgress) {

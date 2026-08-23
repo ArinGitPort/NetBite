@@ -45,6 +45,17 @@ describe('chapter progress', () => {
     expect(isChapterComplete(firstChapter, progress)).toBe(true);
   });
 
+  test('supplemental remote lessons do not revoke existing chapter completion', () => {
+    const chapter = { ...firstChapter, lessons: [...firstChapter.lessons, { ...firstChapter.lessons[0], id: 'new-supplemental-lesson', requirement: 'supplemental' as const }] };
+    const progress: LearningProgress = {
+      completedLessonIds: firstChapter.lessons.map(({ id }) => id), completedLabIds: [firstChapter.lab.id],
+      quizScores: { 1: getQuizMasteryScore(firstChapter) }, quizContentVersions: { 1: firstChapter.contentVersion },
+      reviewedFlashcardChapterIds: ['1'], flashcardContentVersions: { 1: firstChapter.flashcardVersion },
+    };
+    expect(isChapterComplete(chapter, progress)).toBe(true);
+    expect(getChapterProgress(chapter, progress).total).toBe(firstChapter.lessons.length + 3);
+  });
+
   test('maps every quiz question back to a lesson in its chapter', () => {
     for (const chapter of chapters) {
       const lessonIds = new Set(chapter.lessons.map((lesson) => lesson.id));
