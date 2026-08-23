@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 const authHarness = vi.hoisted(() => ({
@@ -17,6 +17,7 @@ const authHarness = vi.hoisted(() => ({
       created_at: '2026-08-24T00:00:00.000Z',
     },
   },
+  signOut: vi.fn(async () => ({ error: null })),
 }));
 
 const apiHarness = vi.hoisted(() => ({
@@ -33,7 +34,7 @@ vi.mock('./lib/supabase', () => ({
         authHarness.callback = callback;
         return { data: { subscription: { unsubscribe: vi.fn() } } };
       }),
-      signOut: vi.fn(),
+      signOut: authHarness.signOut,
     },
   },
 }));
@@ -50,6 +51,7 @@ describe('admin session stability', () => {
     window.location.hash = '#audit';
     apiHarness.getRoles.mockClear();
     apiHarness.getAuditLog.mockClear();
+    authHarness.signOut.mockClear();
   });
 
   test('keeps the selected section mounted after a same-user token refresh', async () => {
@@ -74,5 +76,16 @@ describe('admin session stability', () => {
     expect(
       screen.queryByText('Loading instructor workspace'),
     ).not.toBeInTheDocument();
+  });
+
+  test('signs out through the account footer', async () => {
+    render(<App />);
+
+    const signOut = await screen.findByRole('button', { name: 'Sign out' });
+    fireEvent.click(signOut);
+
+    await waitFor(() => expect(authHarness.signOut).toHaveBeenCalledTimes(1));
+    expect(signOut).toBeDisabled();
+    expect(signOut).toHaveTextContent('Signing out...');
   });
 });

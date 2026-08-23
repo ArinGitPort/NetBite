@@ -288,6 +288,35 @@ function ConfirmAction({
   );
 }
 
+function SignOutButton() {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const signOut = async () => {
+    if (!supabase || busy) return;
+    setBusy(true);
+    setError("");
+    const result = await supabase.auth.signOut();
+    if (result.error) {
+      setError(result.error.message);
+      setBusy(false);
+    }
+  };
+  return (
+    <>
+      <button
+        className="sidebar-signout"
+        disabled={busy}
+        onClick={() => void signOut()}
+        type="button"
+      >
+        <LogOut aria-hidden="true" />
+        <span>{busy ? "Signing out..." : "Sign out"}</span>
+      </button>
+      {error ? <p className="sidebar-signout-error" role="alert">{error}</p> : null}
+    </>
+  );
+}
+
 export function App() {
   const [session, setSession] = useState<Session | null>();
   const [roleState, setRoleState] = useState<{
@@ -572,18 +601,17 @@ function AdminShell({
           ))}
         </nav>
         <div className="sidebar-footer">
-          <div>
-            <small>SIGNED IN</small>
-            <strong>{session.user.email}</strong>
-            <span>{roles.map((role) => role.toUpperCase()).join(" + ")}</span>
+          <div className="sidebar-account">
+            <div className="sidebar-avatar" aria-hidden="true">
+              {(session.user.email?.[0] ?? "I").toUpperCase()}
+            </div>
+            <div className="sidebar-account-copy">
+              <small>SIGNED IN</small>
+              <strong title={session.user.email}>{session.user.email}</strong>
+              <span>{roles.map((role) => role.toUpperCase()).join(" + ")}</span>
+            </div>
           </div>
-          <button
-            className="nav-item"
-            onClick={() => void supabase?.auth.signOut()}
-          >
-            <LogOut />
-            Sign out
-          </button>
+          <SignOutButton />
         </div>
       </aside>
       {mobileNav ? (
