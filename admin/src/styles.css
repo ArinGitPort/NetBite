@@ -103,7 +103,7 @@ code,pre,.mono,.eyebrow,.badge,small,.button,.nav-item,.tree-item,.phone { font-
 .lesson-row strong { font-size: .75rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .lesson-row small { color: var(--muted); font-size: .58rem; overflow: hidden; text-overflow: ellipsis; }
 .lesson-row:hover,.lesson-row.active { background: var(--raised); }
-.lesson-row.active { box-shadow: inset 3px 0 var(--red); }
+.lesson-row.active { box-shadow: none; }
 .lesson-row.archived { opacity: .55; }
 .editor-panel { padding: 22px; overflow: auto; max-height: calc(100vh - 180px); }
 .editor-header { display: flex; justify-content: space-between; gap: 20px; padding-bottom: 18px; border-bottom: 1px solid var(--border); margin-bottom: 20px; }
@@ -271,7 +271,7 @@ code,pre,.mono,.eyebrow,.phone,.sidebar-brand span,.topbar small,.metric span,.m
 .tree-item.active { border-color: #474148; border-radius: var(--radius-sm); background: #29252a; box-shadow: none; }
 .lesson-row { min-height: 74px; border-radius: var(--radius-sm); border-bottom-color: #343035; padding: 11px 10px; }
 .lesson-row:hover,.lesson-row.active { background: #282429; }
-.lesson-row.active { box-shadow: inset 3px 0 var(--red); }
+.lesson-row.active { box-shadow: none; }
 .lesson-row strong { font-size: .77rem; }
 .lesson-row small { font-family: Inter,system-ui,sans-serif; font-size: .62rem; }
 .editor-panel { background: #1c191d; }
