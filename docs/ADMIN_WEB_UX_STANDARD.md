@@ -82,6 +82,8 @@ The selected section is represented in the URL hash. Browser refresh, history na
 
 - Assessments and other repeated editable records default to a master-detail workspace instead of rendering every form at once.
 - The left navigator identifies each record by position, title or prompt, and its parent lesson. The right pane displays one complete editor.
+- The selected navigator row uses its own surface and outline. Do not add a colored side rail when the selected card treatment is already sufficient.
+- The master-detail workspace remains visually flat inside its parent panel; avoid wrapping the editor in another full border when a column divider provides enough grouping.
 - A clearly labeled alternate view may display all records for bulk review, but it is not the default working mode.
 - Unsaved edits must not disappear when another record, chapter, content type, or view is selected. Selection controls remain unavailable until the current record is saved.
 - On narrow screens, the navigator becomes a bounded list above the editor so the interface retains the same mental model without horizontal page scrolling.
