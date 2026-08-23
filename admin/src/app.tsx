@@ -607,9 +607,13 @@ function AdminShell({
               {(session.user.email?.[0] ?? "I").toUpperCase()}
             </div>
             <div className="sidebar-account-copy">
-              <small>SIGNED IN</small>
+              <small>INSTRUCTOR ACCOUNT</small>
               <strong title={session.user.email}>{session.user.email}</strong>
-              <span>{roles.map((role) => role.toUpperCase()).join(" + ")}</span>
+              <div className="sidebar-role-list" aria-label="Assigned roles">
+                {roles.map((role) => (
+                  <span key={role}>{role}</span>
+                ))}
+              </div>
             </div>
           </div>
           <SignOutButton />
