@@ -88,6 +88,7 @@ The selected section is represented in the URL hash. Browser refresh, history na
 - Unsaved edits must not disappear when another record, chapter, content type, or view is selected. Selection controls remain unavailable until the current record is saved.
 - Record-specific Save and Delete actions belong in a toolbar above the selected editor. Use explicit labels such as `SAVE CHANGES` and `DELETE QUESTION`; never use an unexplained X for record deletion.
 - On narrow screens, the navigator becomes a bounded list above the editor so the interface retains the same mental model without horizontal page scrolling.
+- Course navigation uses an accordion: one course expands at a time, its header reports the chapter count, and opening another course selects its first chapter so the lesson and editor panes remain synchronized.
 
 ### Feedback and status
 

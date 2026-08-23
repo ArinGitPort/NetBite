@@ -6,6 +6,7 @@ import {
   ArrowUp,
   BookOpen,
   CheckCircle2,
+  ChevronDown,
   ChevronRight,
   ClipboardCheck,
   FileClock,
@@ -857,6 +858,7 @@ function Curriculum({ userId }: { userId: string }) {
   const [data, setData] =
     useState<Awaited<ReturnType<typeof api.getCurriculum>>>();
   const [chapterId, setChapterId] = useState("1");
+  const [expandedCourseId, setExpandedCourseId] = useState<string | null>(null);
   const [lessonId, setLessonId] = useState<string>();
   const [search, setSearch] = useState("");
   const [notice, setNotice] = useState("");
@@ -875,6 +877,11 @@ function Curriculum({ userId }: { userId: string }) {
   useEffect(() => {
     void load();
   }, [load]);
+  useEffect(() => {
+    if (!data || expandedCourseId !== null) return;
+    const owner = data.chapters.find(({ id }) => id === chapterId)?.course_id;
+    setExpandedCourseId(owner ?? data.courses[0]?.id ?? "");
+  }, [chapterId, data, expandedCourseId]);
   const chapter = data?.chapters.find(({ id }) => id === chapterId);
   const lessons = useMemo(
     () =>
@@ -1012,12 +1019,40 @@ function Curriculum({ userId }: { userId: string }) {
       <div className="authoring-layout">
         <aside className="tree-panel">
           <h2>Courses and chapters</h2>
-          {data.courses.map((course) => (
-            <div key={course.id} className="course-tree">
-              <strong>{String(course.definition.title ?? course.id)}</strong>
-              {data.chapters
-                .filter((item) => item.course_id === course.id)
-                .map((item) => (
+          <div className="course-accordion">
+            {data.courses.map((course) => {
+              const courseChapters = data.chapters.filter(
+                (item) => item.course_id === course.id,
+              );
+              const expanded = expandedCourseId === course.id;
+              return (
+                <section key={course.id} className="course-tree">
+                  <button
+                    aria-expanded={expanded}
+                    className={`course-disclosure${expanded ? " active" : ""}`}
+                    onClick={() => {
+                      if (expanded) {
+                        setExpandedCourseId("");
+                        return;
+                      }
+                      setExpandedCourseId(course.id);
+                      const firstChapter = courseChapters[0];
+                      if (firstChapter) {
+                        setChapterId(firstChapter.id);
+                        setLessonId(undefined);
+                      }
+                    }}
+                    type="button"
+                  >
+                    <span>
+                      <strong>{String(course.definition.title ?? course.id)}</strong>
+                      <small>{courseChapters.length} chapters</small>
+                    </span>
+                    {expanded ? <ChevronDown aria-hidden="true" /> : <ChevronRight aria-hidden="true" />}
+                  </button>
+                  {expanded ? (
+                    <div className="course-chapters">
+                      {courseChapters.map((item) => (
                   <button
                     key={item.id}
                     className={
@@ -1048,9 +1083,13 @@ function Curriculum({ userId }: { userId: string }) {
                       </small>
                     </div>
                   </button>
-                ))}
-            </div>
-          ))}
+                      ))}
+                    </div>
+                  ) : null}
+                </section>
+              );
+            })}
+          </div>
         </aside>
         <section className="lesson-list">
           <div className="list-heading">

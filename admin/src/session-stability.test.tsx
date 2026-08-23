@@ -24,9 +24,13 @@ const apiHarness = vi.hoisted(() => ({
   getRoles: vi.fn(async () => ['editor', 'publisher']),
   getAuditLog: vi.fn(async () => []),
   getCurriculum: vi.fn(async () => ({
-    courses: [],
+    courses: [
+      { id: 'foundations', definition: { title: 'Network Foundations' } },
+      { id: 'operations', definition: { title: 'Network Operations' } },
+    ],
     chapters: [
-      { id: '1', definition: { numberLabel: '01', title: 'Introduction to Networks' } },
+      { id: '1', course_id: 'foundations', definition: { numberLabel: '01', title: 'Introduction to Networks' } },
+      { id: 'ops-01', course_id: 'operations', definition: { numberLabel: '01', title: 'Transport and Application Endpoints' } },
     ],
     lessons: [
       {
@@ -153,5 +157,29 @@ describe('admin session stability', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'ALL ITEMS' }));
     expect(screen.getAllByLabelText('Scenario question')).toHaveLength(2);
+  });
+
+  test('shows one expanded course at a time in curriculum authoring', async () => {
+    render(<App />);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Curriculum' }));
+    const foundations = await screen.findByRole('button', {
+      name: /Network Foundations.*1 chapters/i,
+    });
+    const operations = screen.getByRole('button', {
+      name: /Network Operations.*1 chapters/i,
+    });
+    await waitFor(() =>
+      expect(foundations).toHaveAttribute('aria-expanded', 'true'),
+    );
+    expect(operations).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.getByRole('button', { name: /Introduction to Networks/i })).toBeVisible();
+
+    fireEvent.click(operations);
+    expect(foundations).toHaveAttribute('aria-expanded', 'false');
+    expect(operations).toHaveAttribute('aria-expanded', 'true');
+    expect(
+      screen.getByRole('button', { name: /Transport and Application Endpoints/i }),
+    ).toBeVisible();
   });
 });
