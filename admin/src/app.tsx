@@ -66,6 +66,13 @@ const navigation: Array<{
   { id: "audit", label: "Audit history", icon: FileClock },
 ];
 
+export function resolveAdminView(hash = window.location.hash): AdminView {
+  const candidate = hash.replace(/^#/, "") as AdminView;
+  return navigation.some(({ id }) => id === candidate)
+    ? candidate
+    : "dashboard";
+}
+
 function Loading({
   label = "Loading instructor workspace",
 }: {
@@ -116,8 +123,10 @@ function Field({
 
 export function App() {
   const [session, setSession] = useState<Session | null>();
-  const [roles, setRoles] = useState<AdminRole[]>([]);
-  const [roleLoading, setRoleLoading] = useState(false);
+  const [roleState, setRoleState] = useState<{
+    userId: string;
+    roles: AdminRole[];
+  } | null>(null);
 
   useEffect(() => {
     if (!supabase) {
@@ -132,21 +141,31 @@ export function App() {
     );
     return () => data.subscription.unsubscribe();
   }, []);
+  const userId = session?.user.id;
   useEffect(() => {
-    if (!session?.user) {
-      setRoles([]);
+    if (!userId) {
+      setRoleState(null);
       return;
     }
-    setRoleLoading(true);
+    let active = true;
     void api
-      .getRoles(session.user.id)
-      .then(setRoles)
-      .finally(() => setRoleLoading(false));
-  }, [session?.user]);
+      .getRoles(userId)
+      .then((roles) => {
+        if (active) setRoleState({ userId, roles });
+      });
+    return () => {
+      active = false;
+    };
+  }, [userId]);
 
   if (!configured) return <SetupRequired />;
-  if (session === undefined || roleLoading) return <Loading />;
+  if (
+    session === undefined ||
+    (session && roleState?.userId !== session.user.id)
+  )
+    return <Loading />;
   if (!session) return <Login />;
+  const roles = roleState?.roles ?? [];
   if (!roles.length)
     return (
       <Unauthorized
@@ -329,12 +348,26 @@ function AdminShell({
   session: Session;
   roles: AdminRole[];
 }) {
-  const [view, setView] = useState<AdminView>("dashboard");
+  const [view, setView] = useState<AdminView>(resolveAdminView);
   const [mobileNav, setMobileNav] = useState(false);
   const canPublish = roles.includes("publisher");
+  useEffect(() => {
+    const syncViewFromLocation = () => setView(resolveAdminView());
+    window.addEventListener("hashchange", syncViewFromLocation);
+    window.addEventListener("popstate", syncViewFromLocation);
+    return () => {
+      window.removeEventListener("hashchange", syncViewFromLocation);
+      window.removeEventListener("popstate", syncViewFromLocation);
+    };
+  }, []);
   const navigate = (next: AdminView) => {
     setView(next);
     setMobileNav(false);
+    const destination =
+      next === "dashboard"
+        ? `${window.location.pathname}${window.location.search}`
+        : `${window.location.pathname}${window.location.search}#${next}`;
+    window.history.pushState({ adminView: next }, "", destination);
     window.scrollTo({ top: 0 });
   };
   return (
