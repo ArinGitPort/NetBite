@@ -309,6 +309,15 @@ textarea { min-height: 92px; }
 .assessment-unsaved { margin: 8px 12px 14px; padding: 10px; border-radius: var(--radius-sm); background: var(--orange-soft); color: #edaa75; font: .58rem/1.5 'Fira Code',monospace; }
 .assessment-editor-pane { min-width: 0; padding: 18px; }
 .assessment-editor-pane .assessment-card { border: 0; background: transparent; padding: 0; }
+.assessment-item-toolbar { grid-column: 2; min-height: 58px; display: flex; align-items: center; justify-content: space-between; gap: 18px; padding-bottom: 16px; border-bottom: 1px solid #39343a; }
+.assessment-item-toolbar > div:first-child { min-width: 0; display: grid; gap: 4px; }
+.assessment-item-toolbar strong { color: #eee9ec; font-size: .72rem; }
+.assessment-item-toolbar span { color: #7fb7a8; font: .56rem 'Fira Code',monospace; letter-spacing: .05em; }
+.assessment-item-toolbar span.is-dirty { color: #eda56d; }
+.assessment-item-actions { display: flex; flex: 0 0 auto; gap: 9px; }
+.assessment-item-actions .button { min-height: 40px; }
+.assessment-item-actions svg { width: 16px; height: 16px; }
+.assessment-card > .assessment-fields { grid-column: 2; }
 .two-column,.release-layout { gap: 22px; }
 .source-row,.release-row { border-color: #39343a; }
 .source-row { padding: 18px 4px; }
@@ -388,6 +397,10 @@ textarea { min-height: 92px; }
   .assessment-navigator-list { max-height: 250px; }
   .assessment-editor-pane { padding: 16px; }
   .assessment-card { grid-template-columns: 1fr; }
+  .assessment-item-toolbar,.assessment-card > .assessment-fields { grid-column: 1; }
+  .assessment-item-toolbar { align-items: stretch; flex-direction: column; }
+  .assessment-item-actions { width: 100%; }
+  .assessment-item-actions .button { flex: 1; }
   .source-row,.release-row { grid-template-columns: 1fr; }
   .asset-card { grid-template-columns: 64px minmax(0,1fr) 44px; }
   .validation-results { grid-template-columns: repeat(2,minmax(0,1fr)); }
@@ -399,6 +412,7 @@ textarea { min-height: 92px; }
   .asset-card > .icon-button { grid-column: 2; justify-self: end; }
   .row-actions { align-items: stretch; flex-direction: column; }
   .row-actions .button { width: 100%; }
+  .assessment-item-actions { flex-direction: column; }
   .dialog-backdrop { padding: 12px; }
   .dialog-card { padding: 22px 18px; }
   .dialog-actions { align-items: stretch; flex-direction: column-reverse; }

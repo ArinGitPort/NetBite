@@ -25,6 +25,7 @@ import {
   Search,
   ShieldCheck,
   Sparkles,
+  Trash2,
   Upload,
   X,
 } from "lucide-react";
@@ -1613,6 +1614,43 @@ function QuizEditor({
       <div className="card-number">
         Q{String(row.position).padStart(2, "0")}
       </div>
+      <div className="assessment-item-toolbar">
+        <div>
+          <strong>EDITING QUESTION {String(row.position).padStart(2, "0")}</strong>
+          <span className={dirty ? "is-dirty" : ""}>
+            {dirty ? "UNSAVED CHANGES" : "ALL CHANGES SAVED"}
+          </span>
+        </div>
+        <div className="assessment-item-actions">
+          <button
+            className="button primary"
+            disabled={!dirty}
+            onClick={() =>
+              void api
+                .saveQuiz(value, userId)
+                .then(() => onDone("Quiz question saved."))
+            }
+          >
+            <Save />
+            SAVE CHANGES
+          </button>
+          <ConfirmAction
+            className="button danger-outline"
+            ariaLabel="Delete quiz question"
+            confirmLabel="DELETE QUESTION"
+            detail="This removes the draft question from the authoring workspace. Published releases remain unchanged."
+            onConfirm={() =>
+              api
+                .deleteAssessment("content_quiz_questions", row.id)
+                .then(() => onDone("Question deleted."))
+            }
+            title="Delete this quiz question?"
+          >
+            <Trash2 />
+            DELETE QUESTION
+          </ConfirmAction>
+        </div>
+      </div>
       <div className="assessment-fields">
         <Field label="Scenario question">
           <textarea
@@ -1689,33 +1727,6 @@ function QuizEditor({
             }
           />
         </Field>
-        <div className="row-actions">
-          <button
-            className="button tertiary"
-            onClick={() =>
-              void api
-                .saveQuiz(value, userId)
-                .then(() => onDone("Quiz question saved."))
-            }
-          >
-            <Save />
-            SAVE
-          </button>
-          <ConfirmAction
-            className="icon-button danger"
-            ariaLabel="Delete quiz question"
-            confirmLabel="DELETE QUESTION"
-            detail="This removes the draft question from the authoring workspace. Published releases remain unchanged."
-            onConfirm={() =>
-              api
-                .deleteAssessment("content_quiz_questions", row.id)
-                .then(() => onDone("Question deleted."))
-            }
-            title="Delete this quiz question?"
-          >
-            <X />
-          </ConfirmAction>
-        </div>
       </div>
     </article>
   );
@@ -1740,6 +1751,43 @@ function FlashcardEditor({
     <article className="assessment-card">
       <div className="card-number">
         C{String(row.position).padStart(2, "0")}
+      </div>
+      <div className="assessment-item-toolbar">
+        <div>
+          <strong>EDITING CARD {String(row.position).padStart(2, "0")}</strong>
+          <span className={dirty ? "is-dirty" : ""}>
+            {dirty ? "UNSAVED CHANGES" : "ALL CHANGES SAVED"}
+          </span>
+        </div>
+        <div className="assessment-item-actions">
+          <button
+            className="button primary"
+            disabled={!dirty}
+            onClick={() =>
+              void api
+                .saveFlashcard(value, userId)
+                .then(() => onDone("Flashcard saved."))
+            }
+          >
+            <Save />
+            SAVE CHANGES
+          </button>
+          <ConfirmAction
+            className="button danger-outline"
+            ariaLabel="Delete flashcard"
+            confirmLabel="DELETE FLASHCARD"
+            detail="This removes the draft flashcard from the authoring workspace. Published releases remain unchanged."
+            onConfirm={() =>
+              api
+                .deleteAssessment("content_flashcards", row.id)
+                .then(() => onDone("Flashcard deleted."))
+            }
+            title="Delete this flashcard?"
+          >
+            <Trash2 />
+            DELETE CARD
+          </ConfirmAction>
+        </div>
       </div>
       <div className="assessment-fields">
         <Field label="Recall question">
@@ -1796,33 +1844,6 @@ function FlashcardEditor({
             }
           />
         </Field>
-        <div className="row-actions">
-          <button
-            className="button tertiary"
-            onClick={() =>
-              void api
-                .saveFlashcard(value, userId)
-                .then(() => onDone("Flashcard saved."))
-            }
-          >
-            <Save />
-            SAVE
-          </button>
-          <ConfirmAction
-            className="icon-button danger"
-            ariaLabel="Delete flashcard"
-            confirmLabel="DELETE FLASHCARD"
-            detail="This removes the draft flashcard from the authoring workspace. Published releases remain unchanged."
-            onConfirm={() =>
-              api
-                .deleteAssessment("content_flashcards", row.id)
-                .then(() => onDone("Flashcard deleted."))
-            }
-            title="Delete this flashcard?"
-          >
-            <X />
-          </ConfirmAction>
-        </div>
       </div>
     </article>
   );

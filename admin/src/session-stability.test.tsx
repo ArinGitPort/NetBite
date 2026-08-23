@@ -141,6 +141,10 @@ describe('admin session stability', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Assessments' }));
     expect(await screen.findByRole('button', { name: 'FOCUSED' })).toHaveClass('active');
     expect(screen.getAllByLabelText('Scenario question')).toHaveLength(1);
+    expect(screen.getByRole('button', { name: 'SAVE CHANGES' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Delete quiz question' })).toHaveTextContent(
+      'DELETE QUESTION',
+    );
 
     fireEvent.click(screen.getByRole('button', { name: /Q02.*Why might a classroom/i }));
     expect(screen.getByLabelText('Scenario question')).toHaveValue(

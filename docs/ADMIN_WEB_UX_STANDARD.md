@@ -86,6 +86,7 @@ The selected section is represented in the URL hash. Browser refresh, history na
 - The master-detail workspace remains visually flat inside its parent panel; avoid wrapping the editor in another full border when a column divider provides enough grouping.
 - A clearly labeled alternate view may display all records for bulk review, but it is not the default working mode.
 - Unsaved edits must not disappear when another record, chapter, content type, or view is selected. Selection controls remain unavailable until the current record is saved.
+- Record-specific Save and Delete actions belong in a toolbar above the selected editor. Use explicit labels such as `SAVE CHANGES` and `DELETE QUESTION`; never use an unexplained X for record deletion.
 - On narrow screens, the navigator becomes a bounded list above the editor so the interface retains the same mental model without horizontal page scrolling.
 
 ### Feedback and status
