@@ -97,6 +97,7 @@ The selected section is represented in the URL hash. Browser refresh, history na
 - Loading preserves context whenever possible instead of replacing the whole application.
 - Published, archived, draft, and validation states always include readable text.
 - Authentication refresh for the same user must not remount the workspace or reset navigation.
+- The login submit action must remain visually distinct from its busy state. Authentication requests are bounded and always restore an actionable control after timeout or failure.
 - The sidebar account area uses the primary interface font and permits long email addresses to wrap. Permission roles stay out of this compact identity block and appear only where they affect an administrative task.
 
 ## Responsive behavior

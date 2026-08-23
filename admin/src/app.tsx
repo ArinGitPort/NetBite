@@ -413,9 +413,25 @@ function Login() {
     if (!supabase || busy) return;
     setBusy(true);
     setError("");
-    const result = await supabase.auth.signInWithPassword({ email, password });
-    if (result.error) setError(result.error.message);
-    setBusy(false);
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    try {
+      const timeout = new Promise<never>((_, reject) => {
+        timeoutId = setTimeout(
+          () => reject(new Error("Sign-in timed out. Check your connection and try again.")),
+          10_000,
+        );
+      });
+      const result = await Promise.race([
+        supabase.auth.signInWithPassword({ email: email.trim(), password }),
+        timeout,
+      ]);
+      if (result.error) setError(result.error.message);
+    } catch (nextError) {
+      setError((nextError as Error).message || "Sign-in could not be completed.");
+    } finally {
+      if (timeoutId) clearTimeout(timeoutId);
+      setBusy(false);
+    }
   };
   return (
     <main className="auth-page">
@@ -501,7 +517,7 @@ function Login() {
             </div>
           </Field>
           {error ? <div className="feedback error" role="alert">{error}</div> : null}
-          <button className="button auth-submit" disabled={busy}>
+          <button className="button auth-submit" disabled={busy} type="submit">
             {busy ? "Signing in..." : "Sign in"}
           </button>
           <footer className="auth-card-footer">

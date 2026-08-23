@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 const authHarness = vi.hoisted(() => ({
   callback: undefined as undefined | ((event: string, session: unknown) => void),
+  currentSession: null as unknown,
   session: {
     access_token: 'access-token',
     refresh_token: 'refresh-token',
@@ -18,6 +19,7 @@ const authHarness = vi.hoisted(() => ({
     },
   },
   signOut: vi.fn(async () => ({ error: null })),
+  signInWithPassword: vi.fn(async () => ({ error: null })),
 }));
 
 const apiHarness = vi.hoisted(() => ({
@@ -75,12 +77,13 @@ vi.mock('./lib/supabase', () => ({
   configured: true,
   supabase: {
     auth: {
-      getSession: vi.fn(async () => ({ data: { session: authHarness.session } })),
+      getSession: vi.fn(async () => ({ data: { session: authHarness.currentSession } })),
       onAuthStateChange: vi.fn((callback) => {
         authHarness.callback = callback;
         return { data: { subscription: { unsubscribe: vi.fn() } } };
       }),
       signOut: authHarness.signOut,
+      signInWithPassword: authHarness.signInWithPassword,
     },
   },
 }));
@@ -98,10 +101,12 @@ describe('admin session stability', () => {
 
   beforeEach(() => {
     window.location.hash = '#audit';
+    authHarness.currentSession = authHarness.session;
     apiHarness.getRoles.mockClear();
     apiHarness.getAuditLog.mockClear();
     apiHarness.getCurriculum.mockClear();
     authHarness.signOut.mockClear();
+    authHarness.signInWithPassword.mockClear();
   });
 
   test('keeps the selected section mounted after a same-user token refresh', async () => {
@@ -137,6 +142,27 @@ describe('admin session stability', () => {
     await waitFor(() => expect(authHarness.signOut).toHaveBeenCalledTimes(1));
     expect(signOut).toBeDisabled();
     expect(signOut).toHaveTextContent('Signing out...');
+  });
+
+  test('keeps the login submit action usable and submits trimmed credentials', async () => {
+    authHarness.currentSession = null;
+    render(<App />);
+
+    const email = await screen.findByLabelText('Email address');
+    const password = screen.getByLabelText('Password');
+    const submit = screen.getByRole('button', { name: 'Sign in' });
+    expect(submit).toBeEnabled();
+
+    fireEvent.change(email, { target: { value: ' instructor@netbite.local ' } });
+    fireEvent.change(password, { target: { value: 'secret-password' } });
+    fireEvent.click(submit);
+
+    await waitFor(() =>
+      expect(authHarness.signInWithPassword).toHaveBeenCalledWith({
+        email: 'instructor@netbite.local',
+        password: 'secret-password',
+      }),
+    );
   });
 
   test('uses a focused assessment navigator with an alternate all-items view', async () => {

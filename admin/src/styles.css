@@ -241,6 +241,10 @@ code,pre,.mono,.eyebrow,.phone,.sidebar-brand span,.topbar small,.metric span,.m
 .button.tertiary { min-height: 38px; border-color: transparent; background: transparent; }
 .button.tertiary:hover:not(:disabled) { border-color: #3b373d; }
 .button.danger-outline { border-color: #69363a; border-radius: var(--radius-sm); color: #fa858b; }
+.auth-login-card .auth-submit { border-color: transparent; background: #e7e6e7; color: #242225; font-family: Inter,system-ui,sans-serif; font-size: .78rem; font-weight: 700; letter-spacing: 0; opacity: 1; }
+.auth-login-card .auth-submit:hover:not(:disabled) { background: #fff; }
+.auth-login-card .auth-submit:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
+.auth-login-card .auth-submit:disabled { background: #373438; color: #969096; opacity: 1; cursor: wait; }
 .icon-button { border-color: #3b373d; border-radius: var(--radius-sm); background: #211e22; }
 .icon-button:hover:not(:disabled) { border-color: #5b545c; background: #2a262b; }
 .icon-button.danger { border-color: #603438; background: #28191c; }
