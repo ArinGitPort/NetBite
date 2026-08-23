@@ -1,5 +1,5 @@
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 const authHarness = vi.hoisted(() => ({
   callback: undefined as undefined | ((event: string, session: unknown) => void),
@@ -23,6 +23,48 @@ const authHarness = vi.hoisted(() => ({
 const apiHarness = vi.hoisted(() => ({
   getRoles: vi.fn(async () => ['editor', 'publisher']),
   getAuditLog: vi.fn(async () => []),
+  getCurriculum: vi.fn(async () => ({
+    courses: [],
+    chapters: [
+      { id: '1', definition: { numberLabel: '01', title: 'Introduction to Networks' } },
+    ],
+    lessons: [
+      {
+        id: 'connecting-devices',
+        chapter_id: '1',
+        requirement: 'core',
+        archived: false,
+        draft: { title: 'What is a computer network?' },
+      },
+    ],
+    quiz: [
+      {
+        id: 'q1',
+        chapter_id: '1',
+        lesson_id: 'connecting-devices',
+        position: 1,
+        draft: {
+          prompt: 'Which situation describes a computer network?',
+          answers: ['Connected devices', 'Disconnected devices', 'One application'],
+          correctAnswerIndex: 0,
+          explanation: 'Connected devices need a communication path.',
+        },
+      },
+      {
+        id: 'q2',
+        chapter_id: '1',
+        lesson_id: 'connecting-devices',
+        position: 2,
+        draft: {
+          prompt: 'Why might a classroom build a network?',
+          answers: ['Share resources', 'Remove cables', 'Disable communication'],
+          correctAnswerIndex: 0,
+          explanation: 'Networks let devices share resources.',
+        },
+      },
+    ],
+    flashcards: [],
+  })),
 }));
 
 vi.mock('./lib/supabase', () => ({
@@ -42,15 +84,19 @@ vi.mock('./lib/supabase', () => ({
 vi.mock('./lib/content-api', () => ({
   getRoles: apiHarness.getRoles,
   getAuditLog: apiHarness.getAuditLog,
+  getCurriculum: apiHarness.getCurriculum,
 }));
 
 import { App } from './app';
 
 describe('admin session stability', () => {
+  afterEach(() => cleanup());
+
   beforeEach(() => {
     window.location.hash = '#audit';
     apiHarness.getRoles.mockClear();
     apiHarness.getAuditLog.mockClear();
+    apiHarness.getCurriculum.mockClear();
     authHarness.signOut.mockClear();
   });
 
@@ -87,5 +133,21 @@ describe('admin session stability', () => {
     await waitFor(() => expect(authHarness.signOut).toHaveBeenCalledTimes(1));
     expect(signOut).toBeDisabled();
     expect(signOut).toHaveTextContent('Signing out...');
+  });
+
+  test('uses a focused assessment navigator with an alternate all-items view', async () => {
+    render(<App />);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Assessments' }));
+    expect(await screen.findByRole('button', { name: 'FOCUSED' })).toHaveClass('active');
+    expect(screen.getAllByLabelText('Scenario question')).toHaveLength(1);
+
+    fireEvent.click(screen.getByRole('button', { name: /Q02.*Why might a classroom/i }));
+    expect(screen.getByLabelText('Scenario question')).toHaveValue(
+      'Why might a classroom build a network?',
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'ALL ITEMS' }));
+    expect(screen.getAllByLabelText('Scenario question')).toHaveLength(2);
   });
 });

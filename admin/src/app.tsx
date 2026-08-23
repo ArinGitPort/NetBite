@@ -1384,11 +1384,27 @@ function Assessments({ userId }: { userId: string }) {
     useState<Awaited<ReturnType<typeof api.getCurriculum>>>();
   const [chapterId, setChapterId] = useState("1");
   const [mode, setMode] = useState<"quiz" | "flashcards">("quiz");
+  const [view, setView] = useState<"focused" | "all">("focused");
+  const [selectedId, setSelectedId] = useState("");
+  const [selectedItemDirty, setSelectedItemDirty] = useState(false);
   const [notice, setNotice] = useState("");
   const load = () => api.getCurriculum().then(setData);
   useEffect(() => {
     void load();
   }, []);
+  const assessmentRows = useMemo<Array<QuizRow | FlashcardRow>>(() => {
+    if (!data) return [];
+    const rows = mode === "quiz" ? data.quiz : data.flashcards;
+    return rows.filter((item) => item.chapter_id === chapterId);
+  }, [chapterId, data, mode]);
+  useEffect(() => {
+    setSelectedId((current) =>
+      assessmentRows.some(({ id }) => id === current)
+        ? current
+        : (assessmentRows[0]?.id ?? ""),
+    );
+    setSelectedItemDirty(false);
+  }, [assessmentRows]);
   if (!data) return <Loading />;
   const lessons = data.lessons.filter(
     (item) =>
@@ -1397,6 +1413,8 @@ function Assessments({ userId }: { userId: string }) {
       !item.archived,
   );
   const selectedChapter = data.chapters.find(({ id }) => id === chapterId);
+  const selectedAssessment =
+    assessmentRows.find(({ id }) => id === selectedId) ?? assessmentRows[0];
   return (
     <>
       <PageIntro
@@ -1408,6 +1426,7 @@ function Assessments({ userId }: { userId: string }) {
       <div className="toolbar">
         <select
           aria-label="Chapter"
+          disabled={selectedItemDirty}
           value={chapterId}
           onChange={(event) => setChapterId(event.target.value)}
         >
@@ -1421,20 +1440,40 @@ function Assessments({ userId }: { userId: string }) {
         <div className="segmented">
           <button
             className={mode === "quiz" ? "active" : ""}
+            disabled={selectedItemDirty}
             onClick={() => setMode("quiz")}
           >
             QUIZ
           </button>
           <button
             className={mode === "flashcards" ? "active" : ""}
+            disabled={selectedItemDirty}
             onClick={() => setMode("flashcards")}
           >
             FLASHCARDS
           </button>
         </div>
+        <div className="segmented assessment-view-toggle" aria-label="Editor view">
+          <button
+            className={view === "focused" ? "active" : ""}
+            disabled={selectedItemDirty}
+            onClick={() => setView("focused")}
+            type="button"
+          >
+            FOCUSED
+          </button>
+          <button
+            className={view === "all" ? "active" : ""}
+            disabled={selectedItemDirty}
+            onClick={() => setView("all")}
+            type="button"
+          >
+            ALL ITEMS
+          </button>
+        </div>
         <button
           className="button primary"
-          disabled={!lessons[0]}
+          disabled={!lessons[0] || selectedItemDirty}
           onClick={() =>
             void (
               mode === "quiz"
@@ -1468,45 +1507,87 @@ function Assessments({ userId }: { userId: string }) {
             </p>
             <h2>{String(selectedChapter?.definition.title)}</h2>
           </div>
-          <Badge>
+          <Badge>{assessmentRows.length} ITEMS</Badge>
+        </div>
+        {assessmentRows.length === 0 ? (
+          <Empty
+            title={`No ${mode === "quiz" ? "quiz questions" : "flashcards"}`}
+            detail="Add the first item for this chapter to begin authoring."
+          />
+        ) : view === "focused" ? (
+          <div className="assessment-workspace">
+            <aside className="assessment-navigator" aria-label={`${mode} items`}>
+              <div className="assessment-navigator-heading">
+                <strong>{mode === "quiz" ? "QUESTIONS" : "CARDS"}</strong>
+                <span>{assessmentRows.length}</span>
+              </div>
+              <div className="assessment-navigator-list">
+                {assessmentRows.map((row) => {
+                  const prompt = row.draft.prompt;
+                  const lessonTitle = lessons.find(({ id }) => id === row.lesson_id)?.draft.title;
+                  const selected = row.id === selectedId;
+                  return (
+                    <button
+                      aria-current={selected ? "true" : undefined}
+                      className={`assessment-navigator-item${selected ? " active" : ""}`}
+                      disabled={selectedItemDirty && !selected}
+                      key={row.id}
+                      onClick={() => setSelectedId(row.id)}
+                      title={selectedItemDirty && !selected ? "Save the current item before switching." : prompt}
+                      type="button"
+                    >
+                      <span>{mode === "quiz" ? "Q" : "C"}{String(row.position).padStart(2, "0")}</span>
+                      <strong>{prompt || `Untitled ${mode === "quiz" ? "question" : "card"}`}</strong>
+                      <small>{lessonTitle ?? "Lesson mapping unavailable"}</small>
+                    </button>
+                  );
+                })}
+              </div>
+              {selectedItemDirty ? (
+                <p className="assessment-unsaved" role="status">
+                  UNSAVED CHANGES / SAVE BEFORE SWITCHING
+                </p>
+              ) : null}
+            </aside>
+            <div className="assessment-editor-pane">
+              {mode === "quiz" ? (
+                <QuizEditor
+                  key={selectedId}
+                  row={selectedAssessment as QuizRow}
+                  lessons={lessons}
+                  userId={userId}
+                  onDirtyChange={setSelectedItemDirty}
+                  onDone={(message) => {
+                    setNotice(message);
+                    void load();
+                  }}
+                />
+              ) : (
+                <FlashcardEditor
+                  key={selectedId}
+                  row={selectedAssessment as FlashcardRow}
+                  lessons={lessons}
+                  userId={userId}
+                  onDirtyChange={setSelectedItemDirty}
+                  onDone={(message) => {
+                    setNotice(message);
+                    void load();
+                  }}
+                />
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="assessment-list">
             {mode === "quiz"
-              ? data.quiz.filter((item) => item.chapter_id === chapterId).length
-              : data.flashcards.filter((item) => item.chapter_id === chapterId)
-                  .length}{" "}
-            ITEMS
-          </Badge>
-        </div>
-        <div className="assessment-list">
-          {mode === "quiz"
-            ? data.quiz
-                .filter((item) => item.chapter_id === chapterId)
-                .map((row) => (
-                  <QuizEditor
-                    key={row.id}
-                    row={row}
-                    lessons={lessons}
-                    userId={userId}
-                    onDone={(message) => {
-                      setNotice(message);
-                      void load();
-                    }}
-                  />
+              ? (assessmentRows as QuizRow[]).map((row) => (
+                  <QuizEditor key={row.id} row={row} lessons={lessons} userId={userId} onDone={(message) => { setNotice(message); void load(); }} />
                 ))
-            : data.flashcards
-                .filter((item) => item.chapter_id === chapterId)
-                .map((row) => (
-                  <FlashcardEditor
-                    key={row.id}
-                    row={row}
-                    lessons={lessons}
-                    userId={userId}
-                    onDone={(message) => {
-                      setNotice(message);
-                      void load();
-                    }}
-                  />
+              : (assessmentRows as FlashcardRow[]).map((row) => (
+                  <FlashcardEditor key={row.id} row={row} lessons={lessons} userId={userId} onDone={(message) => { setNotice(message); void load(); }} />
                 ))}
-        </div>
+          </div>
+        )}
       </section>
     </>
   );
@@ -1516,13 +1597,17 @@ function QuizEditor({
   lessons,
   userId,
   onDone,
+  onDirtyChange,
 }: {
   row: QuizRow;
   lessons: LessonRow[];
   userId: string;
   onDone: (message: string) => void;
+  onDirtyChange?: (dirty: boolean) => void;
 }) {
   const [value, setValue] = useState(row);
+  const dirty = JSON.stringify(value) !== JSON.stringify(row);
+  useEffect(() => onDirtyChange?.(dirty), [dirty, onDirtyChange]);
   return (
     <article className="assessment-card">
       <div className="card-number">
@@ -1640,13 +1725,17 @@ function FlashcardEditor({
   lessons,
   userId,
   onDone,
+  onDirtyChange,
 }: {
   row: FlashcardRow;
   lessons: LessonRow[];
   userId: string;
   onDone: (message: string) => void;
+  onDirtyChange?: (dirty: boolean) => void;
 }) {
   const [value, setValue] = useState(row);
+  const dirty = JSON.stringify(value) !== JSON.stringify(row);
+  useEffect(() => onDirtyChange?.(dirty), [dirty, onDirtyChange]);
   return (
     <article className="assessment-card">
       <div className="card-number">

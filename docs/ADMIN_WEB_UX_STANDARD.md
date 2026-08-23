@@ -78,6 +78,14 @@ The selected section is represented in the URL hash. Browser refresh, history na
 - Long IDs, URLs, checksums, and JSON may wrap or scroll inside their own bounded region; they must not expand the whole page horizontally.
 - Empty states explain what is missing and, when possible, identify the action that creates it.
 
+### Dense authoring collections
+
+- Assessments and other repeated editable records default to a master-detail workspace instead of rendering every form at once.
+- The left navigator identifies each record by position, title or prompt, and its parent lesson. The right pane displays one complete editor.
+- A clearly labeled alternate view may display all records for bulk review, but it is not the default working mode.
+- Unsaved edits must not disappear when another record, chapter, content type, or view is selected. Selection controls remain unavailable until the current record is saved.
+- On narrow screens, the navigator becomes a bounded list above the editor so the interface retains the same mental model without horizontal page scrolling.
+
 ### Feedback and status
 
 - Routine success and validation messages appear inline without covering the workspace.
