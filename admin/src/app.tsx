@@ -10,9 +10,12 @@ import {
   ClipboardCheck,
   FileClock,
   FileText,
+  Eye,
+  EyeOff,
   Image,
   LayoutDashboard,
   Library,
+  LockKeyhole,
   LogOut,
   Menu,
   Plus,
@@ -185,6 +188,7 @@ function SetupRequired() {
 function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const submit = async (event: FormEvent) => {
@@ -197,59 +201,98 @@ function Login() {
     setBusy(false);
   };
   return (
-    <main className="auth-layout">
-      <section className="auth-brand">
-        <div className="brand-mark"><img alt="" src={netbiteLogo} /></div>
-        <p>NETBITE / INSTRUCTOR SYSTEM</p>
-        <h1>
-          Publish accurate networking lessons without rebuilding the learner
-          app.
-        </h1>
-        <p className="lead">
-          Draft safely, validate every dependency, and release only approved
-          material.
-        </p>
-        <div className="auth-points">
-          <span>
-            <ShieldCheck /> Server-verified roles
-          </span>
-          <span>
-            <FileClock /> Immutable release history
-          </span>
-          <span>
-            <CheckCircle2 /> Offline-safe Android delivery
-          </span>
-        </div>
-      </section>
-      <form className="auth-card" onSubmit={submit}>
-        <Badge tone="green">AUTHORIZED STAFF</Badge>
-        <h2>Sign in to the console</h2>
-        <p>
-          Use an account that has been assigned an editor or publisher role.
-        </p>
-        <Field label="Email address">
-          <input
-            autoComplete="email"
-            required
-            type="email"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-          />
-        </Field>
-        <Field label="Password">
-          <input
-            autoComplete="current-password"
-            required
-            type="password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-          />
-        </Field>
-        {error ? <div className="feedback error">{error}</div> : null}
-        <button className="button primary" disabled={busy}>
-          {busy ? "SIGNING IN..." : "SIGN IN"}
-        </button>
-      </form>
+    <main className="auth-page">
+      <header className="auth-topbar">
+        <span>NETBITE Instructor Console</span>
+        <span className="auth-system-status">
+          <i aria-hidden="true" /> System ready
+        </span>
+      </header>
+
+      <div className="auth-login-shell">
+        <section className="auth-brand auth-login-brand">
+          <div className="auth-identity">
+            <div className="brand-mark small"><img alt="" src={netbiteLogo} /></div>
+            <div>
+              <strong>NETBITE</strong>
+              <span>Instructor Console</span>
+            </div>
+          </div>
+          <h1>
+            Publish accurate networking lessons without rebuilding the learner
+            app.
+          </h1>
+          <p className="lead">
+            Draft safely, validate every dependency, and release only approved
+            material—straight to learners without another app submission.
+          </p>
+          <ul className="auth-benefits">
+            <li><CheckCircle2 aria-hidden="true" /> Server-verified editor and publisher roles</li>
+            <li><CheckCircle2 aria-hidden="true" /> Immutable, auditable release history</li>
+            <li><CheckCircle2 aria-hidden="true" /> Offline-safe delivery to the Android learner app</li>
+          </ul>
+
+          <section className="auth-pipeline" aria-label="Release pipeline">
+            <div className="auth-pipeline-heading">
+              <strong>Release pipeline</strong>
+              <span><i aria-hidden="true" /> Operational</span>
+            </div>
+            <ol>
+              <li><span>1</span><strong>Content validation</strong><small>Dependency checks</small></li>
+              <li><span>2</span><strong>Editorial review</strong><small>Role gated</small></li>
+              <li><span>3</span><strong>Immutable release</strong><small>Versioned package</small></li>
+              <li><span>4</span><strong>Android delivery</strong><small>Offline safe</small></li>
+            </ol>
+          </section>
+        </section>
+
+        <form className="auth-card auth-login-card" onSubmit={submit}>
+          <Badge><LockKeyhole aria-hidden="true" size={13} /> Authorized staff only</Badge>
+          <div>
+            <h2>Sign in to the console</h2>
+            <p>Use an account assigned an editor or publisher role.</p>
+          </div>
+          <Field label="Email address">
+            <input
+              autoComplete="email"
+              placeholder="instructor@netbite.local"
+              required
+              type="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+            />
+          </Field>
+          <Field label="Password">
+            <div className="password-field">
+              <input
+                autoComplete="current-password"
+                placeholder="Enter your password"
+                required
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+              />
+              <button
+                aria-label={showPassword ? "Hide password" : "Show password"}
+                aria-pressed={showPassword}
+                onClick={() => setShowPassword((visible) => !visible)}
+                type="button"
+              >
+                {showPassword ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}
+                <span>{showPassword ? "Hide" : "Show"}</span>
+              </button>
+            </div>
+          </Field>
+          {error ? <div className="feedback error" role="alert">{error}</div> : null}
+          <button className="button auth-submit" disabled={busy}>
+            {busy ? "Signing in..." : "Sign in"}
+          </button>
+          <footer className="auth-card-footer">
+            <span><i aria-hidden="true" /> Secure Supabase session</span>
+            <span>Role protected</span>
+          </footer>
+        </form>
+      </div>
     </main>
   );
 }
