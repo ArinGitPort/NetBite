@@ -28,15 +28,15 @@ export interface TransportExchange {
 export function simulateTransportExchange(exchange: TransportExchange) {
   if (!parseIPv4Address(exchange.source.address) || !parseIPv4Address(exchange.destination.address)
     || !validPort(exchange.source.port) || !validPort(exchange.destination.port)) {
-    return result(false, false, exchange, [], 'The endpoint tuple is malformed.', 'IPv4 addresses and ports 1-65535 identify the bounded endpoints.', 'No exchange was created.', 'Correct the address or port.');
+    return result(false, false, exchange, [], 'The endpoint information is not valid.', 'IPv4 addresses and ports 1-65535 identify the two endpoints.', 'No exchange was created.', 'Correct the address or port.');
   }
   if (!exchange.listeningPorts.includes(exchange.destination.port)) {
-    return result(true, false, exchange, ['DESTINATION HOST REACHED', 'NO LISTENING SERVICE'], 'The host was selected but no modeled process listens on the destination port.', 'Transport delivers toward the named port; IP reachability does not create an application service.', 'The application exchange cannot be accepted.', 'Verify the destination port and server service.');
+    return result(true, false, exchange, ['DESTINATION HOST REACHED', 'NO LISTENING SERVICE'], 'The host was reached, but no process listens on the destination port.', 'Transport delivers toward the named port; IP reachability does not create an application service.', 'The application exchange cannot be accepted.', 'Verify the destination port and server service.');
   }
   const events = exchange.protocol === 'tcp'
     ? ['SYN', 'SYN-ACK', 'ACK', exchange.dropDataUnit ? 'DATA MISSING' : 'DATA', ...(exchange.dropDataUnit ? ['RETRANSMIT'] : []), 'ACKNOWLEDGED']
     : ['UDP DATAGRAM', exchange.dropDataUnit ? 'NO DELIVERY CONFIRMATION' : 'DELIVERED TO PORT'];
-  return result(true, true, exchange, events, `${exchange.protocol.toUpperCase()} exchange accepted.`, exchange.protocol === 'tcp' ? 'TCP establishes state and acknowledges ordered bytes.' : 'UDP sends independent datagrams without TCP recovery state.', exchange.dropDataUnit && exchange.protocol === 'udp' ? 'UDP supplies no modeled retransmission.' : 'The destination process received the modeled data.', 'Inspect application behavior next.');
+  return result(true, true, exchange, events, `${exchange.protocol.toUpperCase()} exchange accepted.`, exchange.protocol === 'tcp' ? 'TCP establishes state and acknowledges ordered bytes.' : 'UDP sends independent datagrams without TCP recovery state.', exchange.dropDataUnit && exchange.protocol === 'udp' ? 'UDP supplies no automatic retransmission.' : 'The destination process received the data.', 'Inspect application behavior next.');
 }
 
 const validPort = (port: number) => Number.isInteger(port) && port >= 1 && port <= 65535;
@@ -58,7 +58,7 @@ export function allocateDhcpLease(state: DhcpState, clientId: string): Simulatio
   const existing = state.leases.find((lease) => lease.clientId === clientId);
   if (existing) {
     const leases = state.leases.map((lease) => lease.clientId === clientId ? { ...lease, state: 'bound' as const, leaseStepsRemaining: 4 } : lease);
-    return result(true, true, { ...state, leases }, ['DHCPREQUEST', 'DHCPACK'], `${clientId} renewed ${existing.address}.`, 'A known client can request its current valid binding.', 'The binding remains assigned and its modeled lease is refreshed.');
+    return result(true, true, { ...state, leases }, ['DHCPREQUEST', 'DHCPACK'], `${clientId} renewed ${existing.address}.`, 'A known client can request its current valid binding.', 'The binding remains assigned and its lease is refreshed.');
   }
   const used = new Set(state.leases.map(({ address }) => address));
   const address = addresses.find((candidate) => !used.has(candidate));
@@ -179,7 +179,7 @@ export function resolveIPv6Neighbor(cache: IPv6Neighbor[], target: string, owner
   if (!parsed) return { action: 'invalid' as const, cache, reason: 'The target IPv6 address is invalid.' };
   const existing = cache.find((entry) => parseIPv6Address(entry.address)?.expanded === parsed.expanded);
   if (existing) return { action: 'cache-hit' as const, cache, mac: existing.mac, reason: 'A neighbor-cache entry supplies the link-layer address.' };
-  if (!ownerMac) return { action: 'solicitation-unanswered' as const, cache, reason: 'Neighbor Solicitation received no modeled owner response.' };
+  if (!ownerMac) return { action: 'solicitation-unanswered' as const, cache, reason: 'Neighbor Solicitation received no response from the target address.' };
   const entry: IPv6Neighbor = { address: parsed.compressed, mac: ownerMac, state: 'reachable' };
   return { action: 'neighbor-advertisement' as const, cache: [...cache, entry], mac: ownerMac, reason: 'Neighbor Advertisement supplied the target link-layer address.' };
 }

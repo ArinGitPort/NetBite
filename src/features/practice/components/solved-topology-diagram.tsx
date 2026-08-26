@@ -40,7 +40,7 @@ export function SolvedTopologyDiagram({ topology, selectedId, onSelect }: { topo
         const toName = topology.nodes.find((node) => node.id === link.to)?.label ?? link.to;
         return <TopologyLinkLabels
           key={`${link.id}-labels`}
-          accessibilityLabel={`Connection from ${fromName} ${link.fromInterface ?? 'modeled port'} to ${toName} ${link.toInterface ?? 'modeled port'}. ${link.context ?? link.state ?? 'Connected'}.`}
+          accessibilityLabel={`Connection from ${fromName} ${link.fromInterface ?? 'interface'} to ${toName} ${link.toInterface ?? 'interface'}. ${link.context ?? link.state ?? 'Connected'}.`}
           contextLabel={link.context}
           contextTone={link.state === 'ATTENTION' || link.state === 'LINK DOWN' ? 'warning' : 'normal'}
           from={a}

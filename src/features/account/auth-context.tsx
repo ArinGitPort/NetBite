@@ -166,7 +166,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       setSyncStatus('synced');
     } catch {
       setSyncStatus('action-needed');
-      setError('Cloud progress could not be loaded. Local learning remains available.');
+      setError('Your online backup could not be opened. Learning on this device remains available.');
     }
   }, [applyOwnedProgress, markAccountEntryResolved]);
 
@@ -190,7 +190,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
         if (!active) return;
         setStatus('guest');
         setSyncStatus('local');
-        setError(operationMessage(nextError, 'Cloud accounts are temporarily unavailable. Local learning is ready.'));
+        setError(operationMessage(nextError, 'Online accounts are temporarily unavailable. Learning on this device is ready.'));
       }
     })();
     const deepLink = Linking.addEventListener('url', ({ url }) => {
@@ -240,7 +240,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
         setError(undefined);
       } catch {
         setSyncStatus('action-needed');
-        setError('Changes are safe on this device and will retry later.');
+        setError('Your progress is safe on this device. NetBite will try the online backup again later.');
       }
     })();
     syncInFlight.current = operation;
@@ -356,7 +356,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const signOut = async () => {
     if (session) await syncNow();
     try { if (supabase) await withTimeout(supabase.auth.signOut()); }
-    catch { setError('Cloud sign-out timed out. This device has returned to guest mode.'); }
+    catch { setError('Online sign-out took too long. This device has returned to guest mode.'); }
     const guest = readSnapshot(GUEST_SNAPSHOT_KEY) ?? emptyLearningProgress();
     applyOwnedProgress(guest, 'guest');
     resetAccountEntry();
@@ -384,7 +384,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       setEntitlement(nextEntitlement);
       return nextEntitlement?.status === 'active';
     } catch (nextError) {
-      setError(operationMessage(nextError, 'Entitlement refresh is temporarily unavailable.'));
+      setError(operationMessage(nextError, 'Pro access could not be checked right now.'));
       return entitlement?.status === 'active';
     }
   };

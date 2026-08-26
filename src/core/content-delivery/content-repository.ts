@@ -43,9 +43,9 @@ export class SupabaseContentRepository implements ContentRepository {
   }
 
   async downloadAndActivate(manifest: RemoteCurriculumManifest): Promise<ContentUpdateResult> {
-    if (!supabase) return { status: 'offline', changed: false, message: 'Cloud content is not configured.' };
+    if (!supabase) return { status: 'offline', changed: false, message: 'Online lesson updates are unavailable. Your current materials are ready.' };
     const client = supabase;
-    if (manifest.schemaVersion !== CONTENT_SCHEMA_VERSION) return { status: 'error', changed: false, message: 'This content release needs a newer content schema.' };
+    if (manifest.schemaVersion !== CONTENT_SCHEMA_VERSION) return { status: 'error', changed: false, message: 'Update NetBite before installing these learning materials.' };
     const appVersion = Constants.expoConfig?.version ?? '1.0.0';
     if (compareVersions(appVersion, manifest.minimumAppVersion) < 0) return { status: 'error', changed: false, message: 'Update NetBite before installing this curriculum release.' };
     let release = this.pendingRelease?.manifest.releaseId === manifest.releaseId ? this.pendingRelease : undefined;
@@ -54,22 +54,22 @@ export class SupabaseContentRepository implements ContentRepository {
       if (error) throw error;
       release = parsePublicContentRelease(data);
     }
-    if (!release || release.manifest.releaseId !== manifest.releaseId) return { status: 'error', changed: false, message: 'The published curriculum changed. Check for updates again.' };
+    if (!release || release.manifest.releaseId !== manifest.releaseId) return { status: 'error', changed: false, message: 'Newer learning materials became available. Check for updates again.' };
     const payload = release.package;
     const validation = validateRemoteCurriculumPayload(payload);
-    if (!validation.valid) return { status: 'error', changed: false, message: `Content validation failed: ${validation.issues[0]?.message ?? 'Unknown content error.'}` };
+    if (!validation.valid) return { status: 'error', changed: false, message: 'NetBite could not verify the downloaded materials. Your current lessons are unchanged.' };
     const checksum = await Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, canonicalize(payload));
-    if (checksum !== manifest.checksum) return { status: 'error', changed: false, message: 'Content checksum did not match the published release.' };
+    if (checksum !== manifest.checksum) return { status: 'error', changed: false, message: 'NetBite could not verify the downloaded materials. Your current lessons are unchanged.' };
     const content: RemoteCurriculumPackage = { ...payload, manifest };
-    if (!isRemoteCurriculumPackage(content)) return { status: 'error', changed: false, message: 'Published content is incomplete.' };
+    if (!isRemoteCurriculumPackage(content)) return { status: 'error', changed: false, message: 'The downloaded materials are incomplete. Your current lessons are unchanged.' };
     await cache.activate(content);
     this.pendingRelease = undefined;
-    return { status: 'updated', changed: true, message: `Learning materials updated to release ${manifest.releaseVersion}.`, manifest };
+    return { status: 'updated', changed: true, message: 'Your learning materials have been updated.', manifest };
   }
 
   async restorePreviousRelease(): Promise<ContentUpdateResult> {
     const restored = await cache.restorePrevious();
-    return restored ? { status: 'updated', changed: true, message: `Restored curriculum release ${restored.manifest.releaseVersion}.`, manifest: restored.manifest } : { status: 'current', changed: false, message: 'No previous curriculum release is stored.' };
+    return restored ? { status: 'updated', changed: true, message: 'Your previous learning materials have been restored.', manifest: restored.manifest } : { status: 'current', changed: false, message: 'No previous set of learning materials is available.' };
   }
 }
 

@@ -14,6 +14,7 @@ import { Text } from '@/shared/components/console-text';
 import { Screen } from '@/shared/components/screen';
 import { AppRoutes } from '@/shared/routes';
 import { navigateOnce } from '@/shared/navigation';
+import { getSimulatorBoundaryCopy, getSyncStatusLabel } from '@/shared/learner-facing-copy';
 import { Fonts, Palette, Space } from '@/shared/theme';
 import { useGameStore } from '@/store/use-game-store';
 import { useSandboxStore } from '@/store/use-sandbox-store';
@@ -99,7 +100,7 @@ export default function MainMenuScreen() {
         <ActionCard
           accessibilityHint={hasContentAccess ? 'Opens the autosaved network workspace' : 'Explains how to unlock Network Sandbox access'}
           badge={hasContentAccess ? `${sandboxDeviceCount} DEVICE${sandboxDeviceCount === 1 ? '' : 'S'}` : 'VIEW PRO ACCESS'}
-          detail={hasContentAccess ? 'Build and test a deterministic network.' : 'See what Pro unlocks before entering the tool.'}
+          detail={hasContentAccess ? 'Build, configure, and test your own network.' : 'See what Pro unlocks before entering the tool.'}
           endIcon={hasContentAccess ? 'arrow-right' : 'lock'}
           icon="sandbox"
           status={presentationActive ? 'DEMO ACCESS / NOT PURCHASED' : testProEnabled ? 'TEST ACCESS / NOT PURCHASED' : hasPro ? 'PRO / AUTOSAVED' : status === 'guest' ? 'GUEST ACCESS / OFFLINE READY' : 'PRO / LOCKED'}
@@ -110,7 +111,7 @@ export default function MainMenuScreen() {
 
         <Text variant="label" style={styles.groupLabel}>ACCOUNT & APP</Text>
         <ActionCard
-          detail={status === 'authenticated' ? `Cloud progress: ${syncStatus.replace('-', ' ')}.` : 'Sign in later for cloud backup.'}
+          detail={status === 'authenticated' ? `Online backup: ${getSyncStatusLabel(syncStatus).toLowerCase()}.` : 'Sign in later to back up progress online.'}
           icon="account"
           loading={status === 'authenticated' && syncStatus === 'syncing'}
           priority="utility"
@@ -118,9 +119,9 @@ export default function MainMenuScreen() {
           title={status === 'authenticated' ? (profile?.displayName?.toUpperCase() || 'MY ACCOUNT') : 'SIGN IN / REGISTER'}
           onPress={() => navigateOnce(status === 'authenticated' ? AppRoutes.account : AppRoutes.auth)}
         />
-        <ActionCard detail="Preferences, cloud sync, presentation, and local data." icon="settings" priority="utility" status="APP CONTROLS" title="SETTINGS" onPress={() => navigateOnce('/settings')} />
+        <ActionCard detail="Preferences, online backup, presentation, and saved data." icon="settings" priority="utility" status="APP CONTROLS" title="SETTINGS" onPress={() => navigateOnce('/settings')} />
       </View>
-      <Text variant="technical" style={styles.boundary}>STATE-BASED EDUCATIONAL SIMULATION / NO LIVE PACKETS OR TIMING</Text>
+      <Text variant="technical" style={styles.boundary}>{getSimulatorBoundaryCopy('app')}</Text>
     </Screen>
   );
 }

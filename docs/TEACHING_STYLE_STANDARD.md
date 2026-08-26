@@ -30,6 +30,22 @@ A learner should not merely recognize a networking term. After a lesson, the lea
 - Never make the learner infer missing task information from an empty field or a decorative diagram.
 - Do not introduce several new concepts in one paragraph.
 
+## Application interface language
+
+Learner-facing controls and status messages describe the learner's task, saved work, or observed result. They do not describe NetBite's implementation.
+
+- Use `Online backup`, not `cloud progress`.
+- Use `Pro access`, not `entitlement`.
+- Use `Backup of your previous work`, not `recovery copy`.
+- Use `Next step`, not `next modeled action`.
+- Use a result-specific label such as `Ping result`, `Route check`, or `DHCP exchange` instead of a generic `current evidence` label.
+- Use `Educational network simulator` or `practice`, not `deterministic state model` or `bounded model`.
+- Explain simulator limits in a complete sentence, such as `This practice does not send real network traffic.`
+- Keep schema versions, hydration, snapshots, runtime keys, storage engines, internal IDs, and raw service errors out of normal screens.
+- Place necessary support details behind an advanced disclosure and remove personal data, credentials, addresses, and command history.
+
+Accurate networking vocabulary remains visible. Terms such as ARP, frame, route, VLAN, OSPF, prefix length, TCP state, and verification are teaching content rather than implementation jargon.
+
 ## Required lesson structure
 
 Every lesson should follow this order.

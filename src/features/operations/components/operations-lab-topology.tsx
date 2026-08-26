@@ -8,6 +8,7 @@ import type { OperationsLabDefinition, OperationsTopologyNode } from '@/features
 import type { OperationsSimulationSession } from '@/features/operations/operations-simulator';
 import { deriveOperationsVisualTrace, getOperationsDeviceRecord } from '@/features/operations/operations-adapters';
 import { Text } from '@/shared/components/console-text';
+import { getLabResultLabel } from '@/shared/learner-facing-copy';
 import type { ResponsiveMode } from '@/shared/responsive-layout';
 import { Fonts, Palette, Space } from '@/shared/theme';
 
@@ -49,7 +50,7 @@ export function OperationsLabTopology({ definition, mode, session, stageId, fini
         </View>;
       })}
     </View>
-    {selected ? <View accessibilityLiveRegion="polite" style={styles.inspector}><View style={styles.inspectorHeading}><NodeImage node={selected} /><View style={styles.inspectorCopy}><Text variant="label" style={styles.orange}>SELECTED / {selected.label}</Text><Text variant="bodySmall">{selected.role}</Text></View></View>{selectedRecord?.lines.map((line) => <Text key={line} variant="technical" style={[styles.state, selectedRecord.status === 'attention' && styles.stateAttention]}>{line}</Text>)}{trace ? <Text variant="bodySmall" style={styles.trace}>CURRENT EVIDENCE / {trace.text}</Text> : null}</View> : null}
+    {selected ? <View accessibilityLiveRegion="polite" style={styles.inspector}><View style={styles.inspectorHeading}><NodeImage node={selected} /><View style={styles.inspectorCopy}><Text variant="label" style={styles.orange}>SELECTED / {selected.label}</Text><Text variant="bodySmall">{selected.role}</Text></View></View>{selectedRecord?.lines.map((line) => <Text key={line} variant="technical" style={[styles.state, selectedRecord.status === 'attention' && styles.stateAttention]}>{line}</Text>)}{trace ? <Text variant="bodySmall" style={styles.trace}>{getLabResultLabel(definition.id)} / {trace.text}</Text> : null}</View> : null}
   </View>;
 }
 

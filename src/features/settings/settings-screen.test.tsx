@@ -28,16 +28,16 @@ describe('settings reliability controls', () => {
 
   test('shows failed-sync guidance and provides a manual retry', async () => {
     const screen = await render(<SettingsScreen />);
-    expect(screen.getByText('ACTION NEEDED / LOCAL COPY IS SAFE')).toBeTruthy();
-    expect(screen.getByText(/automatically retries when internet access returns/i)).toBeTruthy();
-    await fireEvent.press(screen.getByText('Retry cloud sync'));
+    expect(screen.getByText('WAITING FOR INTERNET')).toBeTruthy();
+    expect(screen.getByText(/automatically tries again when internet access returns/i)).toBeTruthy();
+    await fireEvent.press(screen.getByText('Try backup again'));
     expect(mockSyncNow).toHaveBeenCalledTimes(1);
   });
 
   test('requires confirmation before destructive local actions', async () => {
     const screen = await render(<SettingsScreen />);
     expect(screen.queryByText('Reset learning progress')).toBeNull();
-    await fireEvent.press(screen.getByText('DESTRUCTIVE LOCAL DATA'));
+    await fireEvent.press(screen.getByText('RESET OR ERASE DATA'));
     await fireEvent.press(screen.getByText('Reset learning progress'));
     expect(screen.getByText('Reset learning progress?')).toBeTruthy();
     await fireEvent.press(screen.getByText('Cancel'));

@@ -92,7 +92,7 @@ const result = (passed: boolean, message: string, rows: string[], explanation?: 
   passed,
   message,
   events: rows.map((detail, index) => event(`step-${index + 1}`, detail, passed ? 'success' : 'warning')),
-  tables: [table('current-state', 'CURRENT MODELED STATE', rows)],
+  tables: [table('current-state', 'CURRENT DEVICE STATUS', rows)],
   explanation,
   protocolState,
 });
@@ -440,7 +440,7 @@ function deviceRecord(labId: string, deviceId: string, label: string, session: O
     else if (upper === 'R2') lines = [`FORWARD PREFIX ${text(c['cap.ipv6Forward'])}/64`, `RETURN PREFIX ${text(c['cap.ipv6Return'])}/64`, `PARENT ${ready.parentReady ? 'UP' : 'DOWN'}`];
     else lines = [`ADDRESS ${text(c['cap.ipv6Address'])}/64`, `ROUTER ${text(c['cap.ndp'])}`, `IPV6 TEST ${ready.ipv6Address && ready.neighborReady && ready.ipv6RoutesReady && ready.parentReady ? 'READY' : 'BLOCKED'}`];
   }
-  if (!lines.length) lines = ['NO MODELED STATE FOR THIS DEVICE'];
+  if (!lines.length) lines = ['NO CURRENT INFORMATION FOR THIS DEVICE'];
   return { id: `${labId}:${deviceId}`, title: label, lines, status: lines.some((line) => /NOT |NONE|MISSING|INCOMPLETE|DOWN|FAILED/.test(line)) ? 'attention' : 'ready' };
 }
 
@@ -479,7 +479,7 @@ function createAdapter(id: string): OperationsSimulationAdapter {
   return {
     id,
     createInitialState: () => ({}),
-    validateAction: (_state, action) => ({ accepted: Boolean(action && typeof action === 'object'), message: action && typeof action === 'object' ? undefined : 'The action must contain modeled configuration.' }),
+    validateAction: (_state, action) => ({ accepted: Boolean(action && typeof action === 'object'), message: action && typeof action === 'object' ? undefined : 'Enter a valid configuration change.' }),
     applyAction: (state, action) => ({ accepted: true, state: { ...state, ...action } }),
     inspectDevice: (deviceId, label, session) => deviceRecord(id, deviceId, label, session),
     deriveTables: (session) => evaluate(id, session.completedObjectiveIds.at(-1) ?? '', session).tables,

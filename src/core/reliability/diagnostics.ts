@@ -2,7 +2,6 @@ export interface DiagnosticFacts {
   appVersion: string;
   platform: string;
   storage: string;
-  schema: string;
   internet: string;
   cloud: string;
   authentication: string;
@@ -30,12 +29,11 @@ export function buildDiagnosticReport(facts: DiagnosticFacts) {
     '',
     `App: ${facts.appVersion}`,
     `Platform: ${facts.platform}`,
-    `Storage hydration: ${facts.storage}`,
-    `Local schemas: ${facts.schema}`,
+    `Saved data: ${facts.storage}`,
     `Internet: ${facts.internet}`,
-    `Supabase: ${facts.cloud}`,
-    `Authentication: ${facts.authentication}`,
-    `Cloud synchronization: ${facts.synchronization}`,
+    `Online services: ${facts.cloud}`,
+    `Account: ${facts.authentication}`,
+    `Online backup: ${facts.synchronization}`,
     `Sandbox: ${facts.sandbox}`,
     '',
     'Privacy: URLs, keys, tokens, email addresses, notes, IP configuration, and command history are excluded.',

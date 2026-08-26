@@ -6,6 +6,7 @@ import { createSandboxCliState, executeSandboxCliCommand, type SandboxWorkspace 
 import { resolveCanonicalCliCommand } from '@/core/network/cli-command-catalog';
 import { AppButton } from '@/shared/components/app-button';
 import { CliConsoleShell } from '@/shared/components/cli-console-shell';
+import { getSimulatorBoundaryCopy } from '@/shared/learner-facing-copy';
 import { useGameStore } from '@/store/use-game-store';
 
 interface TranscriptEntry extends CliOutputLine { id: number }
@@ -22,7 +23,7 @@ function SandboxCliSession({ visible, workspace, initialDeviceId, onClose, onCom
   const [deviceId, setDeviceId] = useState(initialDeviceId);
   const [session, setSession] = useState<CliNetworkState>(() => createSandboxCliState(workspace));
   const [input, setInput] = useState('');
-  const [transcript, setTranscript] = useState<TranscriptEntry[]>([{ id: 0, text: 'NETBITE CLI / BOUNDED EDUCATIONAL COMMAND MODEL', tone: 'muted' }]);
+  const [transcript, setTranscript] = useState<TranscriptEntry[]>([{ id: 0, text: 'NETBITE CLI / SUPPORTED PRACTICE COMMANDS', tone: 'muted' }]);
   const [history, setHistory] = useState<string[]>([]);
   const [historyIndex, setHistoryIndex] = useState(0);
   const scrollRef = useRef<ScrollView>(null);
@@ -53,7 +54,7 @@ function SandboxCliSession({ visible, workspace, initialDeviceId, onClose, onCom
   return (
     <CliConsoleShell
       accessibilityLabel={`${sessionDevice.name} full-screen CLI`}
-      boundary="CISCO-LIKE SUBSET / ORIGINAL NETBITE OUTPUT / NO LIVE DEVICE OS"
+      boundary={getSimulatorBoundaryCopy('cli')}
       devices={configurable.map((device) => ({ id: device.id, label: device.name }))}
       eyebrow="NETWORK SANDBOX / CLI"
       footerActions={<><AppButton label="Help" variant="secondary" onPress={() => setInput('help')} />{canonicalCommand ? <AppButton accessibilityHint={canonicalCommand.description} disabled={commandSaved} label={commandSaved ? 'Command saved' : 'Save command reference'} variant="utility" onPress={() => saveLearningItem({ targetType: 'cli-command', targetId: canonicalCommand.id, chapterId: 'sandbox', title: canonicalCommand.command, note: '' })} /> : null}</>}

@@ -18,7 +18,7 @@ const stage = (id: string, context: string, prompt: string, labels: string[], co
 export const practiceConfigs: Record<string, PracticeConfig> = {
   'ipv4-configurator': {
     id: 'ipv4-configurator', chapterId: '4', eyebrow: 'GUIDED PRACTICE / HOST CONFIG', title: 'CONFIGURE A /24 PC',
-    objective: 'Approve only unique, usable settings on 192.168.10.0/24.', scopeNote: 'FIXED /24 CONFIGURATION / VALIDATION MODEL',
+    objective: 'Approve only unique, usable settings on 192.168.10.0/24.', scopeNote: 'FIXED /24 ADDRESSING PRACTICE',
     stages: [
       stage('valid', 'PC1 / 192.168.10.25 /24 / GATEWAY 192.168.10.1', 'Is this configuration valid?', ['VALID', 'INVALID OCTET', 'WRONG NETWORK'], 0, 'The address and gateway are usable members of the same /24.', 'PC1 CONFIGURED'),
       stage('octet', 'PC2 / 192.168.10.300 /24', 'Why must this be rejected?', ['DUPLICATE', 'OCTET ABOVE 255', 'NETWORK ADDRESS'], 1, 'Every IPv4 octet must be from 0 through 255.', 'INVALID OCTET REJECTED'),

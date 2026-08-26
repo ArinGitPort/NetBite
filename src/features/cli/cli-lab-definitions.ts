@@ -107,7 +107,7 @@ export const diagnosticScenarios: DiagnosticScenario[] = [
     choices: [
       { id: 'roundtrip', label: 'THIS IP ROUND TRIP SUCCEEDED', feedback: 'Correct. The reply is evidence for this Echo exchange and path at this time.' },
       { id: 'all-apps', label: 'EVERY APPLICATION WORKS', feedback: 'Ping does not prove that every application or transport service is available.' },
-      { id: 'forever', label: 'THE PATH CAN NEVER FAIL', feedback: 'A successful test is current evidence, not a permanent guarantee.' },
+      { id: 'forever', label: 'THE PATH CAN NEVER FAIL', feedback: 'A successful test describes this attempt. It does not guarantee that the path will always work.' },
     ],
   },
 ];
@@ -239,7 +239,7 @@ export function createInterVlanState(): CliNetworkState {
 export const cliLabDefinitions: Record<string, CliLabDefinition> = {
   'ping-diagnostic-desk': {
     id: 'ping-diagnostic-desk', chapterId: '8', kind: 'diagnostic', eyebrow: 'CLI MINI LAB / DIAGNOSTICS', title: 'READ THE NETWORK EVIDENCE',
-    objective: 'Run the required commands, then make only the conclusion their output supports.', scopeNote: 'DETERMINISTIC STATE / NO LIVE PACKETS OR TIMING', createState: diagnosticScenarios[0].createState, diagnosticScenarios,
+    objective: 'Run the required commands, then make only the conclusion their output supports.', scopeNote: 'FIXED DIAGNOSTIC PRACTICE / DOES NOT CONTACT LIVE DEVICES', createState: diagnosticScenarios[0].createState, diagnosticScenarios,
     topology: diagnosticTopology,
   },
   'static-route-board': {
@@ -254,7 +254,7 @@ export const cliLabDefinitions: Record<string, CliLabDefinition> = {
   },
   'inter-vlan-routing-desk': {
     id: 'inter-vlan-routing-desk', chapterId: '12', kind: 'inter-vlan', eyebrow: 'CLI MINI LAB / ROUTER-ON-A-STICK', title: 'ROUTE BETWEEN TWO VLANs',
-    objective: 'Build the VLAN 10 and VLAN 20 router trunk, configure both gateway subinterfaces, and verify both directions.', scopeNote: 'FIXED TOPOLOGY / DETERMINISTIC 802.1Q + ROUTING STATE', createState: createInterVlanState,
+    objective: 'Build the VLAN 10 and VLAN 20 router trunk, configure both gateway subinterfaces, and verify both directions.', scopeNote: 'FIXED TOPOLOGY / 802.1Q AND ROUTING PRACTICE', createState: createInterVlanState,
     topology: interVlanTopology,
   },
 };

@@ -16,7 +16,7 @@ export function PremiumLockedScreen({ label = 'THIS ACTIVITY' }: { label?: strin
     <View style={styles.panel}>
       <Text variant="label" style={styles.eyebrow}>NETBITE PRO</Text>
       <Text variant="screenTitle" style={styles.title}>{label} IS LOCKED</Text>
-      <Text variant="body">Guest mode currently includes temporary local access to all chapters and the Network Sandbox. A signed-in account without an entitlement can return to guest mode or use development test access.</Text>
+      <Text variant="body">Guest mode currently includes temporary access to all chapters and the Network Sandbox on this device. A signed-in learner without Pro access can return to guest mode or enable development test access.</Text>
       <Text variant="technical" style={styles.test}>TEST MODE / NO REAL CHARGE</Text>
       <AppButton label="View NetBite Pro" onPress={() => router.replace(AppRoutes.pro)} />
       {status === 'guest' ? <AppButton label="Sign in" variant="secondary" onPress={() => router.push(AppRoutes.auth)} /> : null}

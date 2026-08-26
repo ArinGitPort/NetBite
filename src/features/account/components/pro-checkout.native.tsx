@@ -96,7 +96,7 @@ function NativeCheckout() {
           ? 'Checkout open...'
           : purchaseStatus === 'owned'
             ? 'Pro active'
-            : 'Verifying entitlement...';
+            : 'Confirming Pro access...';
 
   return (
     <>

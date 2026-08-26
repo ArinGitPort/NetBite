@@ -16,7 +16,7 @@ export default function ProScreen() {
   return (
     <Screen header={<PageHeader leading={{ accessibilityLabel: 'Back to previous screen', icon: 'arrow-left', label: 'BACK', onPress: () => goBackOrReplace('/') }} />}>
       <View style={styles.hero}>
-        <Text variant="label" style={styles.eyebrow}>PERMANENT ACADEMIC TEST ENTITLEMENT</Text>
+        <Text variant="label" style={styles.eyebrow}>ACADEMIC PRO ACCESS TEST</Text>
         <Text variant="screenTitle" style={styles.title}>NETBITE PRO</Text>
         <Text variant="sectionHeading" style={styles.price}>{'\u20B1'}149 / ONE TIME</Text>
         <Text variant="technical" style={styles.test}>TEST MODE / NO REAL CHARGE</Text>
@@ -27,12 +27,12 @@ export default function ProScreen() {
         <Text variant="body">Complete Network Operations course</Text>
         <Text variant="body">All advanced mini labs and CLI practices</Text>
         <Text variant="body">Network Sandbox</Text>
-        <Text variant="body">Account-based entitlement restoration</Text>
+        <Text variant="body">Restore Pro access after signing in again</Text>
       </View>
       {testProEnabled ? (
         <View style={styles.testOwned}>
           <Text variant="sectionHeading" style={styles.test}>DEVELOPMENT TEST ACCESS</Text>
-          <Text variant="bodySmall">All chapters, Network Operations modules, the Integrated Network Operations Lab, and Network Sandbox are unlocked on this development installation. No purchase or account entitlement was created.</Text>
+          <Text variant="bodySmall">All chapters, Network Operations modules, the Integrated Network Operations Lab, and Network Sandbox are unlocked for testing on this device. No purchase or permanent Pro access was created.</Text>
         </View>
       ) : hasPro ? (
         <View style={styles.owned}>
@@ -46,7 +46,7 @@ export default function ProScreen() {
         </View>
       ) : status !== 'authenticated' ? (
         <>
-          <Text variant="bodySmall" style={styles.message}>Sign in before purchasing so the entitlement can be restored securely.</Text>
+          <Text variant="bodySmall" style={styles.message}>Sign in before purchasing so NetBite can restore your Pro access later.</Text>
           <AppButton label="Sign in or register" onPress={() => router.push(AppRoutes.auth)} />
         </>
       ) : <ProCheckout />}

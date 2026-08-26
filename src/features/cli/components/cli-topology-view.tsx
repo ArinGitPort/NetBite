@@ -65,7 +65,7 @@ export function createCliVisualTrace(network: CliNetworkState, ping: PingSimulat
   return {
     destination,
     success: ping.success,
-    reason: ping.success ? 'The modeled Echo request and return path both succeeded.' : ping.reverse && !ping.reverse.success ? `The forward path arrived, but the return path stopped: ${ping.reverse.reason.replaceAll('-', ' ')}.` : `The forward path stopped: ${ping.forward.reason.replaceAll('-', ' ')}.`,
+    reason: ping.success ? 'The Echo request and return path both succeeded in this test.' : ping.reverse && !ping.reverse.success ? `The forward path arrived, but the return path stopped: ${ping.reverse.reason.replaceAll('-', ' ')}.` : `The forward path stopped: ${ping.forward.reason.replaceAll('-', ' ')}.`,
     forwardDeviceIds: expandHops(network, ping.forward.hops),
     reverseDeviceIds: expandHops(network, ping.reverse?.hops ?? []),
   };

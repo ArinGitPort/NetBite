@@ -18,10 +18,10 @@ export function ProgressMergeModal() {
         <Text variant="body">This device and your account can hold different progress. Nothing is changed until you choose.</Text>
         <View style={styles.compare}>
           <View style={styles.record}><Text variant="label">THIS DEVICE</Text><Text variant="sectionHeading">{localCount} COMPLETED ITEMS</Text></View>
-          <View style={styles.record}><Text variant="label">CLOUD ACCOUNT</Text><Text variant="sectionHeading">{cloudCount} COMPLETED ITEMS</Text></View>
+          <View style={styles.record}><Text variant="label">ONLINE BACKUP</Text><Text variant="sectionHeading">{cloudCount} COMPLETED ITEMS</Text></View>
         </View>
         <AppButton label="Merge device progress" onPress={() => void resolveProgressMerge('merge')} />
-        <AppButton label="Use cloud progress" variant="secondary" onPress={() => void resolveProgressMerge('cloud')} />
+        <AppButton label="Use online backup" variant="secondary" onPress={() => void resolveProgressMerge('cloud')} />
         <AppButton label="Cancel sign-in" variant="quiet" onPress={() => void resolveProgressMerge('cancel')} />
       </View>
     </View>

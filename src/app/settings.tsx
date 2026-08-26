@@ -12,6 +12,7 @@ import { Text } from '@/shared/components/console-text';
 import { Screen } from '@/shared/components/screen';
 import { goBackOrReplace, navigateOnce } from '@/shared/navigation';
 import { AppRoutes } from '@/shared/routes';
+import { getContentStatusLabel, getSyncStatusLabel } from '@/shared/learner-facing-copy';
 import { Fonts, Palette, Space } from '@/shared/theme';
 import { useGameStore } from '@/store/use-game-store';
 import { useSandboxStore } from '@/store/use-sandbox-store';
@@ -48,16 +49,10 @@ export default function SettingsScreen() {
   };
 
   const cloudLabel = presentationActive || researchActive
-    ? `PAUSED / ${researchActive ? 'RESEARCH' : 'PRESENTATION'} DATA STAYS LOCAL`
+    ? `ONLINE BACKUP PAUSED / ${researchActive ? 'USABILITY SESSION' : 'PRESENTATION'} IN PROGRESS`
     : status !== 'authenticated'
-      ? 'LOCAL / SIGN IN TO ENABLE CLOUD BACKUP'
-      : syncStatus === 'syncing'
-        ? 'SYNCING / SENDING LOCAL PROGRESS'
-        : syncStatus === 'synced'
-          ? 'SYNCED / CLOUD BACKUP CURRENT'
-          : syncStatus === 'action-needed'
-            ? 'ACTION NEEDED / LOCAL COPY IS SAFE'
-            : 'LOCAL / WAITING TO SYNC';
+      ? 'SAVED ON THIS DEVICE / SIGN IN FOR ONLINE BACKUP'
+      : getSyncStatusLabel(syncStatus);
 
   return (
     <Screen header={<PageHeader leading={{ accessibilityLabel: 'Back to main menu', icon: 'arrow-left', label: 'BACK / MENU', onPress: () => goBackOrReplace('/') }} />}>
@@ -65,32 +60,32 @@ export default function SettingsScreen() {
       <Text variant="screenTitle" style={styles.title}>SETTINGS</Text>
       <View accessibilityLiveRegion="polite" style={styles.section}>
         <View style={styles.syncHeader}>
-          <Text variant="sectionHeading" style={styles.heading}>CLOUD PROGRESS</Text>
-          {syncStatus === 'syncing' || manualSyncBusy ? <ActivityIndicator accessibilityLabel="Cloud progress is syncing" color={Palette.orange} size="small" /> : <View accessibilityLabel={cloudLabel} style={[styles.syncDot, syncStatus === 'synced' && styles.syncDotReady, syncStatus === 'action-needed' && styles.syncDotWarning]} />}
+          <Text variant="sectionHeading" style={styles.heading}>ONLINE BACKUP</Text>
+          {syncStatus === 'syncing' || manualSyncBusy ? <ActivityIndicator accessibilityLabel="Learning progress is being backed up" color={Palette.orange} size="small" /> : <View accessibilityLabel={cloudLabel} style={[styles.syncDot, syncStatus === 'synced' && styles.syncDotReady, syncStatus === 'action-needed' && styles.syncDotWarning]} />}
         </View>
         <Text variant="label" style={syncStatus === 'action-needed' ? styles.syncWarning : styles.syncLabel}>{cloudLabel}</Text>
-        <Text variant="bodySmall" style={styles.detail}>{status === 'authenticated' ? 'NetBite automatically retries when internet access returns and whenever the app becomes active.' : configured ? 'Guest learning is stored on this device. Sign in from the main menu when cloud backup is wanted.' : 'Supabase is not configured. All lessons and simulations remain available locally.'}</Text>
+        <Text variant="bodySmall" style={styles.detail}>{status === 'authenticated' ? 'NetBite automatically tries again when internet access returns. Your progress stays safe on this device until then.' : configured ? 'Guest progress stays on this device. Sign in when you want to back it up online.' : 'Online backup is unavailable. Lessons, labs, and saved progress continue to work on this device.'}</Text>
         {syncStatus === 'action-needed' && syncError ? <Text accessibilityRole="alert" variant="bodySmall" style={styles.syncWarning}>{syncError}</Text> : null}
-        {status === 'authenticated' ? <AppButton disabled={manualSyncBusy || syncStatus === 'syncing' || presentationActive || researchActive} label={manualSyncBusy || syncStatus === 'syncing' ? 'Syncing...' : syncStatus === 'action-needed' ? 'Retry cloud sync' : 'Sync now'} variant="secondary" onPress={() => void runManualSync()} /> : null}
+        {status === 'authenticated' ? <AppButton disabled={manualSyncBusy || syncStatus === 'syncing' || presentationActive || researchActive} label={manualSyncBusy || syncStatus === 'syncing' ? 'Backing up...' : syncStatus === 'action-needed' ? 'Try backup again' : 'Back up now'} variant="secondary" onPress={() => void runManualSync()} /> : null}
       </View>
       <View accessibilityLiveRegion="polite" style={styles.section}>
         <View style={styles.syncHeader}>
           <Text variant="sectionHeading" style={styles.heading}>LEARNING MATERIALS</Text>
           {contentBusy || contentStatus === 'checking' || contentStatus === 'updating' ? <ActivityIndicator accessibilityLabel="Learning materials are updating" color={Palette.orange} size="small" /> : <View accessibilityLabel={contentStatus} style={[styles.syncDot, (contentStatus === 'current' || contentStatus === 'updated') && styles.syncDotReady, (contentStatus === 'offline' || contentStatus === 'error') && styles.syncDotWarning]} />}
         </View>
-        <Text variant="label" style={contentStatus === 'error' || contentStatus === 'offline' ? styles.syncWarning : styles.syncLabel}>{contentStatus === 'updating' ? 'UPDATING MATERIALS' : contentStatus === 'updated' ? 'UPDATED' : contentStatus === 'current' ? 'CONTENT CURRENT' : contentStatus === 'offline' ? 'USING OFFLINE COPY' : contentStatus.toUpperCase()}</Text>
+        <Text variant="label" style={contentStatus === 'error' || contentStatus === 'offline' ? styles.syncWarning : styles.syncLabel}>{getContentStatusLabel(contentStatus)}</Text>
         <Text variant="bodySmall" style={styles.detail}>{contentMessage}</Text>
-        {contentManifest ? <Text variant="technical" style={styles.detail}>RELEASE {contentManifest.releaseVersion} / PUBLISHED {new Date(contentManifest.publishedAt).toLocaleDateString()}</Text> : <Text variant="technical" style={styles.detail}>BUNDLED CURRICULUM / OFFLINE FALLBACK</Text>}
+        {contentManifest ? <Text variant="bodySmall" style={styles.detail}>Materials version {contentManifest.releaseVersion} · Published {new Date(contentManifest.publishedAt).toLocaleDateString()}</Text> : <Text variant="bodySmall" style={styles.detail}>Built-in learning materials</Text>}
         <AppButton disabled={contentBusy} label={contentBusy ? 'Checking...' : 'Check for content updates'} variant="secondary" onPress={() => void runContentAction('check')} />
-        <DisclosureSection title="Content recovery" summary="Restore the previously downloaded curriculum release">
-          <Text variant="bodySmall" style={styles.detail}>Use this only if a newer lesson release needs to be rolled back on this device.</Text>
-          <AppButton disabled={contentBusy} label="Restore previous release" variant="utility" onPress={() => void runContentAction('restore')} />
+        <DisclosureSection title="Restore previous materials" summary="Return to the earlier downloaded lessons">
+          <Text variant="bodySmall" style={styles.detail}>Use this if recently updated learning materials do not open correctly on this device.</Text>
+          <AppButton disabled={contentBusy} label="Restore previous materials" variant="utility" onPress={() => void runContentAction('restore')} />
         </DisclosureSection>
       </View>
       {testProAvailable ? <View style={[styles.section, styles.testAccessSection]}>
         <Text variant="sectionHeading" style={styles.heading}>DEVELOPMENT TEST ACCESS</Text>
         <Text variant="label" style={testProEnabled ? styles.syncLabel : styles.syncWarning}>{testProEnabled ? 'ENABLED / NOT PURCHASED' : 'DISABLED / DEVELOPMENT ONLY'}</Text>
-        <Text variant="bodySmall" style={styles.detail}>Unlocks all Foundation chapters, every Network Operations module, the Integrated Network Operations Lab, and Network Sandbox on this development installation. It bypasses course prerequisites and module order without creating a purchase or Supabase entitlement.</Text>
+        <Text variant="bodySmall" style={styles.detail}>Unlocks all Foundation chapters, every Network Operations module, the Integrated Network Operations Lab, and Network Sandbox for testing on this device. It does not create a purchase or permanent Pro access.</Text>
         <AppButton label={testProEnabled ? 'Disable test access' : 'Enable test access'} variant={testProEnabled ? 'secondary' : 'primary'} onPress={() => setTestProEnabled(!testProEnabled)} />
       </View> : null}
       <Text variant="label" style={styles.groupLabel}>PREFERENCES</Text>
@@ -109,22 +104,43 @@ export default function SettingsScreen() {
       </View>
       {isDemoCapabilityEnabled ? <View style={styles.section}>
         <Text variant="sectionHeading" style={styles.heading}>PRESENTATION MODE</Text>
-        <Text variant="bodySmall" style={styles.detail}>Creates a reversible local demo snapshot, unlocks demo-only access, completes Chapter 1, and loads the routed sandbox preset. Cloud sync is paused.</Text>
+        <Text variant="bodySmall" style={styles.detail}>Temporarily saves your current work, unlocks presentation access, completes Chapter 1, and loads a prepared Sandbox network. Online backup pauses until your work is restored.</Text>
         <AppButton disabled={researchActive} label={presentationActive ? 'Restore my data' : researchActive ? 'Unavailable during research' : 'Start presentation session'} variant={presentationActive ? 'secondary' : 'primary'} onPress={() => setConfirm(presentationActive ? 'restore' : 'presentation')} />
       </View> : null}
       <View style={styles.section}>
         <Text variant="sectionHeading" style={styles.heading}>GUIDANCE & SUPPORT</Text>
-        <Text variant="bodySmall" style={styles.detail}>Open guidance when you want it, or inspect a redacted runtime report.</Text>
+        <Text variant="bodySmall" style={styles.detail}>Open the app guide or create a privacy-safe support report.</Text>
         <AppButton label="Open app guide" variant="utility" onPress={() => navigateOnce(AppRoutes.guide)} />
         <AppButton label="Open diagnostics" variant="utility" onPress={() => navigateOnce('/diagnostics')} />
         {isResearchCapabilityEnabled ? <AppButton label={researchActive ? 'Continue usability session' : 'Open usability toolkit'} variant="utility" onPress={() => navigateOnce('/research')} /> : null}
       </View>
-      <DisclosureSection danger summary="Reset progress or erase the sandbox workspace." title="DESTRUCTIVE LOCAL DATA">
-        <Text variant="bodySmall" style={styles.detail}>These actions affect separate local stores and always require confirmation.</Text>
+      <DisclosureSection danger summary="Reset progress or erase the Sandbox workspace." title="RESET OR ERASE DATA">
+        <Text variant="bodySmall" style={styles.detail}>NetBite asks for confirmation before removing anything.</Text>
         <AppButton accessibilityHint="Opens a confirmation before deleting learning progress" label="Reset learning progress" variant="danger" onPress={() => setConfirm('learning')} />
         <AppButton accessibilityHint="Opens a confirmation before deleting the sandbox workspace" label="Erase sandbox workspace" variant="danger" onPress={() => setConfirm('sandbox')} />
       </DisclosureSection>
-      <FeedbackModal visible={Boolean(confirm)} tone="warning" eyebrow={confirm === 'presentation' || confirm === 'restore' ? 'PRESENTATION SESSION' : 'CONFIRM LOCAL RESET'} title={confirm === 'learning' ? 'Reset learning progress?' : confirm === 'sandbox' ? 'Erase sandbox workspace?' : confirm === 'presentation' ? 'Start presentation session?' : 'Restore your saved data?'} message={confirm === 'learning' ? 'Completed lessons, labs, quiz scores, and flashcard reviews will be cleared.' : confirm === 'sandbox' ? 'Every sandbox device, cable, and configuration will be removed.' : confirm === 'presentation' ? 'NetBite will preserve the current game and sandbox stores before loading temporary demonstration data.' : 'The exact local game and sandbox snapshot from before the presentation will be restored.'} detail={confirm === 'presentation' || confirm === 'restore' ? 'Authentication tokens and cloud data are never included in the snapshot.' : 'This action cannot be undone after leaving this screen.'} icon="reset" onRequestClose={() => setConfirm(undefined)} secondaryAction={{ label: 'Cancel', variant: 'secondary', onPress: () => setConfirm(undefined) }} primaryAction={{ label: confirm === 'learning' ? 'Reset learning' : confirm === 'sandbox' ? 'Erase workspace' : confirm === 'presentation' ? 'Start presentation' : 'Restore my data', variant: confirm === 'learning' || confirm === 'sandbox' ? 'danger' : 'primary', onPress: () => { if (confirm === 'learning') resetLearningProgress(); else if (confirm === 'sandbox') newNetwork(); else if (confirm === 'presentation') startPresentation(); else restorePresentation(); setConfirm(undefined); } }} />
+      <FeedbackModal
+        visible={Boolean(confirm)}
+        tone="warning"
+        eyebrow={confirm === 'presentation' || confirm === 'restore' ? 'PRESENTATION SESSION' : 'CONFIRM LOCAL RESET'}
+        title={confirm === 'learning' ? 'Reset learning progress?' : confirm === 'sandbox' ? 'Erase sandbox workspace?' : confirm === 'presentation' ? 'Start presentation session?' : 'Restore your saved data?'}
+        message={confirm === 'learning' ? 'Completed lessons, labs, quiz scores, and flashcard reviews will be cleared.' : confirm === 'sandbox' ? 'Every sandbox device, cable, and configuration will be removed.' : confirm === 'presentation' ? 'NetBite will save your current learning and Sandbox work before loading temporary presentation data.' : 'Your learning and Sandbox work from before the presentation will be restored.'}
+        detail={confirm === 'presentation' || confirm === 'restore' ? 'Account sign-in information and online data are not changed.' : 'This action cannot be undone after leaving this screen.'}
+        icon="reset"
+        onRequestClose={() => setConfirm(undefined)}
+        secondaryAction={{ label: 'Cancel', variant: 'secondary', onPress: () => setConfirm(undefined) }}
+        primaryAction={{
+          label: confirm === 'learning' ? 'Reset learning' : confirm === 'sandbox' ? 'Erase workspace' : confirm === 'presentation' ? 'Start presentation' : 'Restore my data',
+          variant: confirm === 'learning' || confirm === 'sandbox' ? 'danger' : 'primary',
+          onPress: () => {
+            if (confirm === 'learning') resetLearningProgress();
+            else if (confirm === 'sandbox') newNetwork();
+            else if (confirm === 'presentation') startPresentation();
+            else restorePresentation();
+            setConfirm(undefined);
+          },
+        }}
+      />
     </Screen>
   );
 }

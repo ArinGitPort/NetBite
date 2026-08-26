@@ -32,7 +32,7 @@ export function ContentProvider({ children }: PropsWithChildren) {
   const applyStored = useCallback(async () => {
     const stored = await contentRepository.getActiveCurriculum();
     if (stored && isRemoteCurriculumPackage(stored)) {
-      activateRemoteCurriculum(stored); manifestRef.current = stored.manifest; setManifest(stored.manifest); setRuntimeKey(stored.manifest.releaseId); setStatus('current'); setMessage(`Curriculum release ${stored.manifest.releaseVersion} is stored locally.`);
+      activateRemoteCurriculum(stored); manifestRef.current = stored.manifest; setManifest(stored.manifest); setRuntimeKey(stored.manifest.releaseId); setStatus('current'); setMessage('Downloaded learning materials are ready offline.');
     } else restoreBundledCurriculum();
     setResolved(true);
   }, []);
@@ -44,10 +44,10 @@ export function ContentProvider({ children }: PropsWithChildren) {
       try {
         const latest = await contentRepository.checkForUpdate();
         if (!latest || latest.releaseId === manifestRef.current?.releaseId) {
-          const result = { status: 'current' as const, changed: false, message: latest ? `Curriculum release ${latest.releaseVersion} is current.` : 'Bundled learning materials are current.', manifest: latest ?? manifestRef.current };
+          const result = { status: 'current' as const, changed: false, message: latest ? 'Your downloaded learning materials are up to date.' : 'Built-in learning materials are ready.', manifest: latest ?? manifestRef.current };
           setStatus(result.status); setMessage(result.message); if (latest) { manifestRef.current = latest; setManifest(latest); } return result;
         }
-        setStatus('updating'); setMessage('Downloading and validating published learning materials.');
+        setStatus('updating'); setMessage('Downloading and checking the latest learning materials.');
         const result = await contentRepository.downloadAndActivate(latest);
         setStatus(result.status); setMessage(result.message);
         if (result.changed) {

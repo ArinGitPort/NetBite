@@ -42,6 +42,7 @@ import { selectionHaptic, successHaptic, warningHaptic } from '@/shared/haptics'
 import { Fonts, Palette, Space } from '@/shared/theme';
 import { useGameStore } from '@/store/use-game-store';
 import { returnToOwningChapter } from '@/shared/navigation';
+import { getSimulatorBoundaryCopy } from '@/shared/learner-facing-copy';
 
 interface TranscriptEntry { id: number; prompt?: string; lines: CliOutputLine[] }
 
@@ -362,7 +363,7 @@ export function CliLab({ definition }: { definition: CliLabDefinition }) {
       <GuideModal onClose={closeGuide} visible={guideVisible} />
       <CliConsoleShell
         accessibilityLabel={`${activeDevice.name} full-screen CLI`}
-        boundary="CISCO-LIKE SUBSET / ORIGINAL NETBITE OUTPUT / NO LIVE DEVICE OS"
+        boundary={getSimulatorBoundaryCopy('cli')}
         devices={visibleDevices.map((device) => ({ id: device.id, label: device.name }))}
         eyebrow={definition.eyebrow}
         footerActions={<AppButton disabled={!snapshots.length} label="Undo config" style={styles.actionButton} variant="secondary" onPress={undo} />}
@@ -383,7 +384,7 @@ export function CliLab({ definition }: { definition: CliLabDefinition }) {
         transcriptRef={transcriptRef}
         visible={cliVisible}
       />
-      <FeedbackModal visible={resetVisible} tone="warning" eyebrow="CONFIRM ACTION" title="Reset this CLI lab?" message="Clear configuration, transcript, history, and current evidence." icon="reset" onRequestClose={() => setResetVisible(false)} secondaryAction={{ label: 'Keep working', variant: 'secondary', onPress: () => setResetVisible(false) }} primaryAction={{ label: 'Reset lab', variant: 'danger', onPress: reset }} />
+      <FeedbackModal visible={resetVisible} tone="warning" eyebrow="CONFIRM ACTION" title="Reset this CLI lab?" message="Clear the configuration, command transcript, history, and test results." icon="reset" onRequestClose={() => setResetVisible(false)} secondaryAction={{ label: 'Keep working', variant: 'secondary', onPress: () => setResetVisible(false) }} primaryAction={{ label: 'Reset lab', variant: 'danger', onPress: reset }} />
       <FeedbackModal visible={completionVisible} tone="success" eyebrow="CLI LAB COMPLETE" title={definition.title} message="The required configuration and evidence checks are complete." detail="Your progress has been saved." icon="check" onRequestClose={() => setCompletionVisible(false)} secondaryAction={{ label: 'Review lab', variant: 'secondary', onPress: () => setCompletionVisible(false) }} primaryAction={{ label: 'Back to chapter', leadingIcon: 'arrow-left', onPress: () => returnToOwningChapter('lab', definition.id) }} />
     </Screen>
   );

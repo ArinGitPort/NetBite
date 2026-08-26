@@ -569,7 +569,7 @@ export function executeCliCommand(state: CliNetworkState, deviceId: string, comm
   const selected = findInterface(device, device.selectedInterface);
   if (selected && (device.mode === 'interface-config' || device.mode === 'subinterface-config') && device.type === 'router' && command.kind === 'ip-address') {
     if (!command.remove && !selected.parentInterface && device.interfaces.some((item) => item.parentInterface === selected.name)) {
-      return reject([warning('NETBITE: Remove logical subinterfaces before addressing their physical parent in this bounded model.')]);
+      return reject([warning('NETBITE: Remove logical subinterfaces before assigning an address to their physical parent interface.')]);
     }
     const parent = selected.parentInterface ? findInterface(device, selected.parentInterface) : undefined;
     if (!command.remove && parent?.ipv4) {

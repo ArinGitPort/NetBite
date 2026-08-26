@@ -18,4 +18,8 @@ describe('recoverable operations', () => {
   ])('classifies %s as %s', (message, kind) => {
     expect(describeOperationError(new Error(message)).kind).toBe(kind);
   });
+
+  test('does not expose unknown service messages', () => {
+    expect(describeOperationError(new Error('database policy cms_internal failed'), 'Please try again later.').message).toBe('Please try again later.');
+  });
 });

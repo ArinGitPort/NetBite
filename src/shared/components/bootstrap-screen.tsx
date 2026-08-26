@@ -11,9 +11,9 @@ interface BootstrapScreenProps {
 
 const phaseLabel: Record<BootstrapPhase, string> = {
   fonts: 'LOADING INTERFACE',
-  storage: 'RESTORING LOCAL DATA',
-  auth: 'CHECKING ACCOUNT SESSION',
-  degraded: 'LOCAL MODE READY',
+  storage: 'OPENING SAVED LEARNING',
+  auth: 'CHECKING YOUR ACCOUNT',
+  degraded: 'CONTINUE OFFLINE',
 };
 
 export function BootstrapScreen({ phase, detail, onRetry, onContinue }: BootstrapScreenProps) {
@@ -22,11 +22,11 @@ export function BootstrapScreen({ phase, detail, onRetry, onContinue }: Bootstra
       <View style={styles.mark}><Text style={styles.markText}>N</Text></View>
       <Text style={styles.title}>NETBITE</Text>
       <Text style={styles.phase}>{phaseLabel[phase]}</Text>
-      <Text style={styles.detail}>{detail ?? 'Preparing the local learning system.'}</Text>
+      <Text style={styles.detail}>{detail ?? 'Preparing NetBite for learning.'}</Text>
       <View style={styles.track}><View style={styles.signal} /></View>
       {onRetry || onContinue ? <View style={styles.actions}>
-        {onRetry ? <Pressable accessibilityRole="button" onPress={onRetry} style={styles.button}><Text style={styles.buttonText}>RETRY</Text></Pressable> : null}
-        {onContinue ? <Pressable accessibilityRole="button" onPress={onContinue} style={styles.button}><Text style={styles.buttonText}>CONTINUE LOCALLY</Text></Pressable> : null}
+        {onRetry ? <Pressable accessibilityRole="button" onPress={onRetry} style={styles.button}><Text style={styles.buttonText}>TRY AGAIN</Text></Pressable> : null}
+        {onContinue ? <Pressable accessibilityRole="button" onPress={onContinue} style={styles.button}><Text style={styles.buttonText}>CONTINUE OFFLINE</Text></Pressable> : null}
       </View> : null}
     </View>
   );

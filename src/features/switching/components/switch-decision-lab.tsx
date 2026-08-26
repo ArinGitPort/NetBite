@@ -24,6 +24,7 @@ import { selectionHaptic, successHaptic, warningHaptic } from '@/shared/haptics'
 import { Fonts, Palette, Space } from '@/shared/theme';
 import { useGameStore } from '@/store/use-game-store';
 import { returnToOwningChapter } from '@/shared/navigation';
+import { getSimulatorBoundaryCopy } from '@/shared/learner-facing-copy';
 
 const LAB_ID = 'switch-decision-desk';
 
@@ -224,7 +225,7 @@ export function SwitchDecisionLab() {
         eyebrow="OBJECTIVE COMPLETE"
         title="Switch table learned"
         message="You learned source addresses, forwarded known unicasts, and flooded unknown and broadcast destinations."
-        detail="The desk is a deterministic teaching model, not live Ethernet traffic."
+        detail={getSimulatorBoundaryCopy('switching')}
         icon="check"
         onRequestClose={() => setCompletionVisible(false)}
         secondaryAction={{ label: 'Review desk', variant: 'secondary', onPress: () => setCompletionVisible(false) }}

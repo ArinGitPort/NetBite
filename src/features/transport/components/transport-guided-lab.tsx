@@ -24,6 +24,7 @@ import { Text } from '@/shared/components/console-text';
 import { useMeasuredResponsiveLayout } from '@/shared/responsive-layout';
 import { returnToOwningChapter } from '@/shared/navigation';
 import { Fonts, Palette, Space } from '@/shared/theme';
+import { getRecoveryMessage, getSimulatorBoundaryCopy } from '@/shared/learner-facing-copy';
 import { useGameStore } from '@/store/use-game-store';
 import { useOperationsLabStore } from '@/store/use-operations-lab-store';
 import { useProtocolLabStore } from '@/store/use-protocol-lab-store';
@@ -152,7 +153,7 @@ export function TransportGuidedLab() {
 
   return (
     <GuidedProtocolLabShell
-      autosaveLabel="LOCAL AUTOSAVE / TRANSPORT V1"
+      autosaveLabel="SAVED ON THIS DEVICE"
       labId={LAB_ID}
       objectiveLabel={result.complete ? 'SIMULATION COMPLETE' : `OBJECTIVE ${state.objectiveIndex + 1} OF ${objectives.length}`}
       onBack={() => returnToOwningChapter('lab', LAB_ID)}
@@ -160,7 +161,7 @@ export function TransportGuidedLab() {
       subtitle="FIXED CLIENT / IP PATH / SERVER TOPOLOGY"
       title={definition.title}>
       <View onLayout={onLayout}>
-        {recoveryVisible ? <View style={styles.warningPanel}><Text variant="label" style={styles.orange}>LAB FORMAT UPGRADED</Text><Text variant="bodySmall" style={styles.muted}>The previous unfinished Transport format was preserved as a recovery copy. Earned completion was not changed.</Text><AppButton label="Dismiss notice" variant="utility" onPress={() => { dismissProtocolRecovery(LAB_ID); dismissLegacyRecovery(LAB_ID); }} /></View> : null}
+        {recoveryVisible ? <View style={styles.warningPanel}><Text variant="label" style={styles.orange}>LAB UPDATED</Text><Text variant="bodySmall" style={styles.muted}>{getRecoveryMessage('lab')} Earned completion was not changed.</Text><AppButton label="Dismiss notice" variant="utility" onPress={() => { dismissProtocolRecovery(LAB_ID); dismissLegacyRecovery(LAB_ID); }} /></View> : null}
 
         <TransportTopology compact={compact} selected={state.selectedDeviceId} state={state} onSelect={(deviceId) => run({ type: 'select-device', deviceId }, false)} />
         <DeviceInspector state={state} />
@@ -173,7 +174,7 @@ export function TransportGuidedLab() {
 
         {showConfig && !result.complete ? <ConfigurationPanel draft={draft} error={formError ?? state.lastError} onChange={(change) => { setDraftOverride((value) => ({ ...(value ?? draftFromState(state)), ...change })); setFormError(undefined); }} /> : formError ? <Text accessibilityLiveRegion="assertive" variant="bodySmall" style={styles.error}>{formError}</Text> : null}
 
-        {!result.complete && nextAction ? <View style={styles.primaryAction}><Text variant="technical" style={styles.muted}>NEXT MODELED ACTION</Text><AppButton label={nextAction.label} onPress={nextAction.onPress} /></View> : null}
+        {!result.complete && nextAction ? <View style={styles.primaryAction}><Text variant="technical" style={styles.muted}>NEXT STEP</Text><AppButton label={nextAction.label} onPress={nextAction.onPress} /></View> : null}
 
         <StateTables rows={[...tables.endpoints, ...tables.listeners, ...tables.connection]} />
         <EventTrace evidenceCount={state.evidence.length} selected={selectedEvidence} traceIndex={effectiveTraceIndex} onChange={setTraceIndex} />
@@ -190,9 +191,9 @@ export function TransportGuidedLab() {
         {!result.complete && usedHints.length < currentHints.length ? <AppButton label={usedHints.length ? 'Show next hint' : 'Show a hint'} variant="secondary" onPress={() => run({ type: 'add-hint', hint: `${current.id} / ${currentHints[usedHints.length]}` }, false)} /> : null}
 
         <View style={styles.tools}><Text variant="label" style={styles.muted}>SESSION TOOLS</Text><AppButton disabled={undoCount === 0} label="Undo latest change" variant="utility" onPress={() => { undo(LAB_ID); setDraftOverride(undefined); setFormError(undefined); }} /><AppButton label="Reset simulator" variant="danger" onPress={() => setResetVisible(true)} /></View>
-        <Text variant="technical" style={styles.boundary}>MODEL BOUNDARY / DETERMINISTIC ENDPOINT STATE ONLY. NO REAL SOCKETS, TIMERS, RANDOM LOSS, CONGESTION, OR DEVICE OPERATING SYSTEM.</Text>
+        <Text variant="bodySmall" style={styles.boundary}>{getSimulatorBoundaryCopy('transport')}</Text>
       </View>
-      <FeedbackModal visible={resetVisible} tone="warning" eyebrow="CONFIRM SIMULATOR RESET" title="Reset Transport lab?" message="Endpoint configuration, protocol state, evidence, hints, and undo history will be removed." detail="Earned course completion remains recorded." onRequestClose={() => setResetVisible(false)} secondaryAction={{ label: 'Keep working', variant: 'secondary', onPress: () => setResetVisible(false) }} primaryAction={{ label: 'Reset simulator', variant: 'danger', onPress: () => { reset(LAB_ID); setResetVisible(false); setDraftOverride(undefined); setFormError(undefined); } }} />
+      <FeedbackModal visible={resetVisible} tone="warning" eyebrow="CONFIRM LAB RESET" title="Reset Transport lab?" message="Endpoint settings, connection status, test results, hints, and undo history will be removed." detail="Earned course completion remains recorded." onRequestClose={() => setResetVisible(false)} secondaryAction={{ label: 'Keep working', variant: 'secondary', onPress: () => setResetVisible(false) }} primaryAction={{ label: 'Reset lab', variant: 'danger', onPress: () => { reset(LAB_ID); setResetVisible(false); setDraftOverride(undefined); setFormError(undefined); } }} />
     </GuidedProtocolLabShell>
   );
 }

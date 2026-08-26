@@ -11,8 +11,10 @@ describe('diagnostic privacy', () => {
   });
 
   it('builds a readable report from safe facts', () => {
-    const report = buildDiagnosticReport({ appVersion: '1.0.0', platform: 'android', storage: 'ready', schema: 'learning v7', internet: 'available', cloud: 'configured', authentication: 'guest', synchronization: 'local', sandbox: '3 devices / 2 links' });
+    const report = buildDiagnosticReport({ appVersion: '1.0.0', platform: 'android', storage: 'ready', internet: 'available', cloud: 'available', authentication: 'guest mode', synchronization: 'saved on this device', sandbox: '3 devices / 2 links' });
     expect(report).toContain('NETBITE DIAGNOSTIC REPORT');
     expect(report).toContain('3 devices / 2 links');
+    expect(report).not.toContain('schema');
+    expect(report).not.toContain('hydration');
   });
 });

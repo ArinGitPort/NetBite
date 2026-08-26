@@ -28,7 +28,11 @@ export function describeOperationError(error: unknown, fallback = 'The service i
   const normalized = message.toLowerCase();
   if (error instanceof OperationTimeoutError || normalized.includes('timeout') || normalized.includes('timed out')) return { ok: false, kind: 'timeout', message: 'The request timed out. Local learning is still available.' };
   if (normalized.includes('cancel')) return { ok: false, kind: 'cancellation', message: 'The request was canceled.' };
-  if (normalized.includes('network') || normalized.includes('fetch') || normalized.includes('dns') || normalized.includes('offline')) return { ok: false, kind: 'offline', message: 'No cloud connection is available. Local learning is still available.' };
-  if (normalized.includes('invalid') || normalized.includes('required') || normalized.includes('password')) return { ok: false, kind: 'validation', message };
-  return { ok: false, kind: 'service', message: message || fallback };
+  if (normalized.includes('network') || normalized.includes('fetch') || normalized.includes('dns') || normalized.includes('offline')) return { ok: false, kind: 'offline', message: 'No internet connection is available. Learning on this device still works.' };
+  if (normalized.includes('invalid login') || normalized.includes('invalid credentials')) return { ok: false, kind: 'validation', message: 'Email or password is incorrect.' };
+  if (normalized.includes('email not confirmed')) return { ok: false, kind: 'validation', message: 'Verify your email before signing in.' };
+  if (normalized.includes('already registered') || normalized.includes('already exists')) return { ok: false, kind: 'validation', message: 'An account already uses this email address.' };
+  if (normalized.includes('password')) return { ok: false, kind: 'validation', message: 'The password does not meet the requirements shown.' };
+  if (normalized.includes('invalid') || normalized.includes('required')) return { ok: false, kind: 'validation', message: 'Check the highlighted information and try again.' };
+  return { ok: false, kind: 'service', message: fallback };
 }

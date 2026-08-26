@@ -720,7 +720,7 @@ export function processSandboxFrame(state: SandboxWorkspace, sourceDeviceId: str
   return {
     success: true,
     reason: destination ? `Frame delivered in VLAN ${vlan}.` : `Broadcast emitted in VLAN ${vlan}.`,
-    conclusion: destination ? 'The selected Layer 2 path is available.' : 'Broadcasts remain inside the modeled VLAN broadcast domain.',
+    conclusion: destination ? 'The selected Layer 2 path is available.' : 'Broadcasts remain inside the selected VLAN broadcast domain.',
     events: [
       event('frame-source', 'FRAME CREATED', `${source.name} uses source MAC ${sourceInterface.macAddress}.`, [source.id], [], 'active'),
       event('frame-path', destination ? destinationKnown ? 'KNOWN UNICAST FORWARDED' : 'UNKNOWN UNICAST FLOODED' : 'BROADCAST FLOODED', destination ? destinationKnown ? `The switch uses its VLAN ${vlan} MAC entry for the selected path.` : `The unknown destination is flooded in VLAN ${vlan}; only the addressed endpoint accepts it.` : `Switches flood VLAN ${vlan} except toward each ingress port.`, devices, links, 'success'),
@@ -733,7 +733,7 @@ function event(id: string, title: string, detail: string, deviceIds: string[], l
   return { id, title, detail, deviceIds, linkIds, tone };
 }
 function failure(state: SandboxWorkspace, reason: string, conclusion: string, suggestion: string, events: SandboxTraceEvent[] = []): SandboxTraceResult {
-  return { success: false, reason, conclusion, suggestion, events: [...events, event('failure', 'TRACE STOPPED', reason, [], [], 'warning')], state };
+  return { success: false, reason, conclusion, suggestion, events: [...events, event('failure', 'PATH STOPPED', reason, [], [], 'warning')], state };
 }
 
 function activeInterfaceWithAddress(device: SandboxDevice) { return device.interfaces.find((item) => interfaceOperational(device, item) && item.ipv4 && item.prefix !== undefined); }
@@ -880,7 +880,7 @@ export function simulateSandboxPing(state: SandboxWorkspace, sourceDeviceId: str
   });
   return {
     success: true,
-    reason: 'The modeled ICMP Echo round trip succeeded.',
+    reason: 'The ICMP Echo Request and Reply completed successfully.',
     conclusion: 'This confirms reachability for this configured path; it does not measure latency or prove every application works.',
     events: [
       event('ping-forward', 'ECHO REQUEST CREATED', `${source?.name} sends toward ${destinationIp}.`, [sourceIdOrEmpty(source)], [], 'active'),
@@ -899,7 +899,7 @@ function explainPingFailure(reason: string, phase: 'forward' | 'return') {
   if (reason === 'no-layer2-path') return { reason: `${direction} stopped: no active Layer 2 path reaches the next hop.`, conclusion: 'The required endpoint or gateway cannot be reached over the current links.', suggestion: 'Check cabling and interface state.' };
   if (reason === 'no-default-gateway' || reason === 'gateway-off-subnet') return { reason: `${direction} stopped: ${reason.replaceAll('-', ' ')}.`, conclusion: 'Remote traffic has no usable local gateway.', suggestion: 'Configure a gateway inside the source subnet.' };
   if (reason === 'no-route' || reason === 'no-exit-interface' || reason === 'next-hop-unresolved') return { reason: `${direction} stopped: ${reason.replaceAll('-', ' ')}.`, conclusion: phase === 'forward' ? 'No usable route to the destination was found.' : 'The destination was reached, but no usable return route was found.', suggestion: 'Inspect connected and static routes plus the selected next hop.' };
-  return { reason: `${direction} stopped: ${reason.replaceAll('-', ' ')}.`, conclusion: phase === 'forward' ? 'No Echo Reply can be established from the modeled state.' : 'The destination was reached, but no Echo Reply returned.', suggestion: 'Inspect addressing, links, gateways, VLANs, and routes.' };
+  return { reason: `${direction} stopped: ${reason.replaceAll('-', ' ')}.`, conclusion: phase === 'forward' ? 'The current configuration cannot produce an Echo Reply.' : 'The destination was reached, but no Echo Reply returned.', suggestion: 'Inspect addressing, links, gateways, VLANs, and routes.' };
 }
 
 function sourceIdOrEmpty(device: SandboxDevice | undefined) { return device ? device.id : ''; }

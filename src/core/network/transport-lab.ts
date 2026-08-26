@@ -95,11 +95,11 @@ const validPort = (port: number) => Number.isInteger(port) && port >= 1 && port 
 const explanations = {
   configure: explanation('Endpoint values are ready to be checked.', 'IP identifies a host while a transport port identifies a process on that host.', 'No connection exists until a matching listening service is verified.', 'Verify the endpoint tuple and listening service.'),
   handshake: explanation('TCP control segments are synchronizing both endpoints.', 'SYN, SYN-ACK, and ACK establish sequence state before application data.', 'A control exchange does not yet prove application data was delivered.', 'Send the next required handshake segment.'),
-  established: explanation('Both endpoints reached ESTABLISHED.', 'The final ACK confirms the server SYN and completes this modeled three-way handshake.', 'The endpoints now have synchronized TCP connection state.', 'Send application data and observe its acknowledgment.'),
-  missing: explanation('The modeled data segment did not reach the server.', 'TCP retains unacknowledged data so an endpoint can retransmit it; NetBite does not invent a timer.', 'The missing acknowledgment means delivery has not been established.', 'Retransmit the outstanding sequence range.'),
-  recovery: explanation('The retransmitted bytes arrived and were acknowledged.', 'A cumulative acknowledgment names the next byte the receiver expects.', 'The modeled TCP data reached the listening process after recovery.', 'Reset the conversation and compare UDP.'),
-  udp: explanation('The UDP datagram was delivered to a matching listening port.', 'UDP sends independent datagrams without TCP connection or acknowledgment state.', 'This modeled datagram reached the process, but no TCP-style session was created.', 'Inject one missing UDP datagram and compare the available evidence.'),
-  udpMissing: explanation('The modeled UDP datagram has no delivery confirmation.', 'UDP does not provide TCP sequence, acknowledgment, or retransmission state.', 'The sender cannot conclude why no application response arrived from UDP alone.', 'The application must decide whether and how to retry.'),
+  established: explanation('Both endpoints reached ESTABLISHED.', 'The final ACK confirms the server SYN and completes this three-way handshake.', 'The endpoints now have synchronized TCP connection state.', 'Send application data and observe its acknowledgment.'),
+  missing: explanation('The data segment did not reach the server.', 'TCP retains unacknowledged data so an endpoint can retransmit it; this practice does not invent a timer.', 'The missing acknowledgment means delivery has not been established.', 'Retransmit the outstanding sequence range.'),
+  recovery: explanation('The retransmitted bytes arrived and were acknowledged.', 'A cumulative acknowledgment names the next byte the receiver expects.', 'The TCP data reached the listening process after recovery.', 'Reset the conversation and compare UDP.'),
+  udp: explanation('The UDP datagram was delivered to a matching listening port.', 'UDP sends independent datagrams without TCP connection or acknowledgment state.', 'The datagram reached the process, but no TCP-style session was created.', 'Inject one missing UDP datagram and compare the available evidence.'),
+  udpMissing: explanation('The UDP datagram has no delivery confirmation.', 'UDP does not provide TCP sequence, acknowledgment, or retransmission state.', 'The sender cannot conclude why no application response arrived from UDP alone.', 'The application must decide whether and how to retry.'),
 };
 
 export function createTransportLabState(): TransportLabState {
@@ -197,8 +197,8 @@ function verifyEndpoints(state: TransportLabState): TransportActionResult {
   if (state.objectiveIndex !== 0) return failure(state, 'Endpoint verification belongs to objective 1.', explanations.configure);
   if (!state.configured) return failure(state, 'Save the endpoint and listener configuration before verification.', explanations.configure);
   const listenerError = listenerMismatch(state, 'tcp');
-  if (listenerError) return modeledFailure(state, listenerError, 'The endpoint host is known, but no matching TCP process accepts this destination tuple.', 'Correct the protocol, destination port, or listening state.');
-  if (state.protocol !== 'tcp') return modeledFailure(state, 'The client is configured for UDP while this objective requires TCP.', 'Both endpoints must use the same transport protocol.', 'Select TCP on the client.');
+  if (listenerError) return transportFailure(state, listenerError, 'The endpoint host is known, but no matching TCP process accepts this destination tuple.', 'Correct the protocol, destination port, or listening state.');
+  if (state.protocol !== 'tcp') return transportFailure(state, 'The client is configured for UDP while this objective requires TCP.', 'Both endpoints must use the same transport protocol.', 'Select TCP on the client.');
   return success(completeObjective({ ...state, phase: 'ready', serverTcpState: 'LISTEN', evidence: [evidence('listener', `SERVER LISTEN / TCP ${state.listener.port}`, 'success')] }, 'endpoints'), explanations.configure);
 }
 
@@ -254,7 +254,7 @@ function prepareUdp(state: TransportLabState): TransportActionResult {
 function sendUdp(state: TransportLabState): TransportActionResult {
   if (state.objectiveIndex !== 3 || state.phase !== 'configure' || !state.configured) return failure(state, 'Prepare and save the UDP comparison before sending its first datagram.', explanations.udp);
   const mismatch = listenerMismatch(state, 'udp');
-  if (state.protocol !== 'udp' || mismatch) return modeledFailure(state, mismatch ?? 'The client protocol is not UDP.', 'UDP delivery still requires a matching destination protocol and port.', 'Correct the UDP endpoint and listener configuration.');
+  if (state.protocol !== 'udp' || mismatch) return transportFailure(state, mismatch ?? 'The client protocol is not UDP.', 'UDP delivery still requires a matching destination protocol and port.', 'Correct the UDP endpoint and listener configuration.');
   const datagram = makeSegment('udp-delivered', 'UDP DATAGRAM', 'udp', 'client-to-server', 'delivered');
   return success({ ...state, phase: 'udp-delivered', segments: [datagram], evidence: [...state.evidence, evidence('udp-delivered', `UDP DATAGRAM DELIVERED / ${socketPair(state)}`, 'success', datagram.id)], lastExplanation: explanations.udp, lastError: undefined, updatedAt: now() }, explanations.udp);
 }
@@ -283,7 +283,7 @@ function requirePhase(state: TransportLabState, expected: TransportLabState['pha
   return state.phase === expected ? operation() : failure(state, `That action is out of order. The current state is ${state.phase.replaceAll('-', ' ').toUpperCase()}.`, state.lastExplanation);
 }
 
-function modeledFailure(state: TransportLabState, observation: string, rule: string, nextCheck: string): TransportActionResult {
+function transportFailure(state: TransportLabState, observation: string, rule: string, nextCheck: string): TransportActionResult {
   const detail = explanation(observation, rule, 'The requested exchange has not been established.', nextCheck);
   return success({ ...state, evidence: [...state.evidence, evidence(`failure-${state.evidence.length}`, observation, 'warning')], lastExplanation: detail, lastError: observation, updatedAt: now() }, detail);
 }

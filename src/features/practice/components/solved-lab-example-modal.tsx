@@ -34,7 +34,7 @@ function SolvedContent({ snapshot }: { snapshot: SolvedLabExampleSnapshot }) {
   return <>
     <View style={styles.intro}><Text variant="screenTitle">{snapshot.title}</Text><Text variant="body">{snapshot.goal}</Text><Text variant="bodySmall" style={styles.muted}>This completed copy is separate from your lab. It cannot change your configuration, commands, hints, evidence, or completion.</Text></View>
     <View style={styles.studyGuide}><Text variant="sectionHeading" style={styles.green}>HOW TO STUDY THIS EXAMPLE</Text><NumberedStepRow number={1}>Inspect the completed topology and its connections.</NumberedStepRow><NumberedStepRow number={2}>Select one device and compare its configuration.</NumberedStepRow><NumberedStepRow number={3}>Open commands and verification evidence when you are ready.</NumberedStepRow></View>
-    {snapshot.topology ? <View style={styles.panel}><Text variant="sectionHeading">COMPLETED TOPOLOGY</Text><Text variant="bodySmall" style={styles.muted}>{snapshot.topology.description}</Text><SolvedTopologyDiagram topology={snapshot.topology} selectedId={selectedNodeId} onSelect={setSelectedNodeId} />{selectedNode ? <Text accessibilityLiveRegion="polite" variant="technical" style={styles.selection}>SELECTED / {selectedNode.label}</Text> : null}<DisclosureSection title="CONNECTION DETAILS" summary={`${snapshot.topology.links.length} modeled connection${snapshot.topology.links.length === 1 ? '' : 's'}`}>
+    {snapshot.topology ? <View style={styles.panel}><Text variant="sectionHeading">COMPLETED TOPOLOGY</Text><Text variant="bodySmall" style={styles.muted}>{snapshot.topology.description}</Text><SolvedTopologyDiagram topology={snapshot.topology} selectedId={selectedNodeId} onSelect={setSelectedNodeId} />{selectedNode ? <Text accessibilityLiveRegion="polite" variant="technical" style={styles.selection}>SELECTED / {selectedNode.label}</Text> : null}<DisclosureSection title="CONNECTION DETAILS" summary={`${snapshot.topology.links.length} connection${snapshot.topology.links.length === 1 ? '' : 's'}`}>
       {snapshot.topology.links.map((link, index) => { const a = snapshot.topology?.nodes.find((node) => node.id === link.from); const b = snapshot.topology?.nodes.find((node) => node.id === link.to); return <LinkConnectionRecord key={link.id} index={index + 1} a={{ deviceName: a?.label ?? link.from, interfaceName: link.fromInterface ?? connectionPort(link.label, 'a') }} b={{ deviceName: b?.label ?? link.to, interfaceName: link.toInterface ?? connectionPort(link.label, 'b') }} context={link.context} state={link.state ?? 'UP'} />; })}
     </DisclosureSection></View> : null}
     {snapshot.family === 'cli' ? <View style={styles.addressingNote}><Text variant="label" style={styles.green}>ADDRESSING NOTE</Text><Text variant="bodySmall">A prefix length and subnet mask describe the same network boundary. In this example, /24 means 255.255.255.0 and /30 means 255.255.255.252.</Text></View> : null}
@@ -74,9 +74,9 @@ function rowsForDevice(rows: string[], selected: string, deviceLabels: string[])
 }
 
 function connectionPort(label: string | undefined, endpoint: 'a' | 'b') {
-  if (!label) return 'MODELED PORT';
+  if (!label) return 'INTERFACE';
   const parts = label.replaceAll('—', '-').split(/\s+-\s+|\s+↔\s+/).map((part) => part.trim());
-  return (endpoint === 'a' ? parts[0] : parts[1]) || 'MODELED PORT';
+  return (endpoint === 'a' ? parts[0] : parts[1]) || 'INTERFACE';
 }
 function Reason({ label, value }: { label: string; value: string }) { return <View style={styles.reason}><Text variant="label" style={styles.orange}>{label}</Text><Text selectable variant="bodySmall">{value}</Text></View>; }
 function Unavailable({ detail }: { detail?: string }) { return <View style={styles.panel}><Text variant="sectionHeading">EXAMPLE TEMPORARILY UNAVAILABLE</Text><Text variant="bodySmall" style={styles.muted}>Your lab is safe and unchanged. Return to the lab and try this example again later.</Text>{__DEV__ && detail ? <Text variant="technical" style={styles.muted}>{detail}</Text> : null}</View>; }

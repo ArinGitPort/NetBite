@@ -50,7 +50,7 @@ function SandboxNode({
   const nodeHeight = displayedNodeHeight(scale, fontScale);
   const addressedInterfaces = device.interfaces.filter((item) => item.ipv4 && item.prefix !== undefined);
   const accessibilityAddress = device.type === 'switch'
-    ? ', Layer 2 switch, management IP not modeled in this sandbox'
+    ? ', Layer 2 switch, management IP configuration is not available in this sandbox'
     : addressedInterfaces.length
       ? `, ${addressedInterfaces.map((item) => `${device.type === 'router' ? `${item.id}, ` : ''}IP address ${item.ipv4}/${item.prefix}${item.adminUp ? '' : ', down'}`).join(', ')}`
       : ', IP address not set';

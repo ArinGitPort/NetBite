@@ -40,14 +40,14 @@ describe('account authentication screens', () => {
   });
 
   test('keeps the sign-in form visible and explains invalid credentials', async () => {
-    mockSignInEmail.mockResolvedValue('Invalid login credentials');
+    mockSignInEmail.mockResolvedValue('Email or password is incorrect.');
     const screen = await render(<SignInScreen />);
     await fireEvent.changeText(screen.getByLabelText('EMAIL'), 'learner@example.com');
     await fireEvent.changeText(screen.getByLabelText('PASSWORD'), 'incorrect-password');
     await fireEvent.press(screen.getByText('Sign in'));
 
     expect(mockSignInEmail).toHaveBeenCalledWith('learner@example.com', 'incorrect-password');
-    expect(await screen.findByText('Invalid login credentials')).toBeTruthy();
+    expect(await screen.findByText('Email or password is incorrect.')).toBeTruthy();
     expect(mockReplace).not.toHaveBeenCalled();
   });
 

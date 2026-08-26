@@ -22,6 +22,7 @@ import { PageHeader } from '@/shared/components/page-header';
 import { BootstrapScreen } from '@/shared/components/bootstrap-screen';
 import { Text } from '@/shared/components/console-text';
 import { Screen } from '@/shared/components/screen';
+import { getRecoveryMessage } from '@/shared/learner-facing-copy';
 import { useGameStore } from '@/store/use-game-store';
 import { useExperienceStore } from '@/store/use-experience-store';
 import { gameStorage } from '@/store/game-storage';
@@ -39,7 +40,7 @@ function ResolvedApplication() {
   const { status, continueAsGuest, error } = useAuth();
   const { resolved: contentResolved, runtimeKey } = useContentDelivery();
   if (!contentResolved) return <BootstrapScreen phase="storage" detail="Loading the latest verified learning materials from this device." />;
-  if (status === 'loading') return <BootstrapScreen phase="auth" detail={error ?? 'Cloud account checks are bounded. Local learning remains available.'} onContinue={continueAsGuest} />;
+  if (status === 'loading') return <BootstrapScreen phase="auth" detail={error ?? 'Checking whether your online backup is available. You can continue offline at any time.'} onContinue={continueAsGuest} />;
   return (
     <View style={styles.application}>
       <StatusBar style="light" />
@@ -92,7 +93,7 @@ export default function RootLayout() {
 
   if (!fontsLoaded && !fontError) return <BootstrapScreen phase="fonts" detail="Loading the readable console typeface." />;
   if (storageState === 'loading') return <BootstrapScreen phase="storage" detail="Restoring lessons, settings, and the sandbox workspace from this device." />;
-  if (storageState === 'degraded') return <BootstrapScreen phase="degraded" detail="Local data could not be restored after two attempts. Retry, or preserve a recovery copy and continue with safe local defaults." onRetry={() => { setStorageState('loading'); setHydrateAttempt((value) => value + 1); }} onContinue={() => { void preserveRecoveryCopy().finally(() => setStorageState('ready')); }} />;
+  if (storageState === 'degraded') return <BootstrapScreen phase="degraded" detail={getRecoveryMessage('app-data')} onRetry={() => { setStorageState('loading'); setHydrateAttempt((value) => value + 1); }} onContinue={() => { void preserveRecoveryCopy().finally(() => setStorageState('ready')); }} />;
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -129,7 +130,7 @@ export function ErrorBoundary({ retry, error }: ErrorBoundaryProps) {
     <Screen header={<PageHeader leading={{ accessibilityLabel: 'Return to main menu', icon: 'arrow-left', label: 'MAIN MENU', onPress: () => router.replace('/') }} />}>
       <Text variant="screenTitle">SCREEN INTERRUPTED</Text>
       <Text variant="body">NetBite stopped this screen before it could affect local learning data.</Text>
-      <Text variant="technical">DIAGNOSTIC / {error instanceof Error ? error.name : 'ROUTE ERROR'} / NO KEYS OR ACCOUNT DATA SHOWN</Text>
+      <Text variant="bodySmall">No learning progress was changed. Open Diagnostics from Settings if the problem continues.</Text>
       <AppButton label="Try again" onPress={() => void retry()} />
       <AppButton label="Learning path" variant="secondary" onPress={() => router.replace('/learn')} />
       <AppButton label="Main menu" variant="secondary" onPress={() => router.replace('/')} />

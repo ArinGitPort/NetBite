@@ -13,6 +13,7 @@ import { Text } from '@/shared/components/console-text';
 import { Screen } from '@/shared/components/screen';
 import { goBackOrReplace } from '@/shared/navigation';
 import { Fonts, Palette, Space } from '@/shared/theme';
+import { getSyncStatusLabel } from '@/shared/learner-facing-copy';
 import { useExperienceStore } from '@/store/use-experience-store';
 import { useGameStore } from '@/store/use-game-store';
 import { useResearchStore } from '@/store/use-research-store';
@@ -43,19 +44,18 @@ export default function DiagnosticsScreen() {
           `experience ${useExperienceStore.persist.hasHydrated() ? 'ready' : 'pending'}`,
           `research ${useResearchStore.persist.hasHydrated() ? 'ready' : 'pending'}`,
         ].join(', '),
-        schema: `learning v7, sandbox v${workspace.schemaVersion}, experience v3, research v1`,
         internet: network.isConnected && network.isInternetReachable !== false ? 'available' : network.isConnected ? 'local connection only' : 'offline',
-        cloud: configured ? 'configured; endpoint and key intentionally omitted' : 'not configured',
-        authentication: status,
-        synchronization: syncStatus,
-        sandbox: `${workspace.devices.length} devices / ${workspace.links.length} links / schema ${workspace.schemaVersion}`,
+        cloud: configured ? 'available; private connection details omitted' : 'unavailable',
+        authentication: status === 'authenticated' ? 'signed in' : status === 'guest' ? 'guest mode' : 'checking account',
+        synchronization: getSyncStatusLabel(syncStatus).toLowerCase(),
+        sandbox: `${workspace.devices.length} devices / ${workspace.links.length} links`,
       }));
     } catch {
       setNotice('The network check failed. Local storage information is still safe; retry when ready.');
     } finally {
       setChecking(false);
     }
-  }, [configured, status, syncStatus, workspace.devices.length, workspace.links.length, workspace.schemaVersion]);
+  }, [configured, status, syncStatus, workspace.devices.length, workspace.links.length]);
 
   useEffect(() => {
     const timer = setTimeout(() => void runChecks(), 0);
@@ -70,9 +70,9 @@ export default function DiagnosticsScreen() {
   return <Screen header={<PageHeader leading={{ accessibilityLabel: 'Back to Settings', icon: 'arrow-left', label: 'BACK / SETTINGS', onPress: () => goBackOrReplace('/settings') }} />}>
     <Text variant="label" style={styles.eyebrow}>SUPPORT / LOCAL CHECKS</Text>
     <Text variant="screenTitle" style={styles.title}>DIAGNOSTICS</Text>
-    <Text variant="body" style={styles.body}>This report describes runtime readiness without including personal content or credentials. Metro, ADB, and emulator checks remain in <Text variant="technical">npm run demo:check</Text>.</Text>
+    <Text variant="body" style={styles.body}>This privacy-safe report checks saved data, internet access, online backup, and the Sandbox without including personal content or credentials.</Text>
     <View style={styles.panel}>
-      <Text selectable variant="technical" style={styles.report}>{report || (checking ? 'RUNNING REDACTED CHECKS...' : 'NO REPORT AVAILABLE')}</Text>
+      <Text selectable variant="technical" style={styles.report}>{report || (checking ? 'CHECKING APP STATUS...' : 'NO REPORT AVAILABLE')}</Text>
     </View>
     {notice ? <Text accessibilityLiveRegion="polite" variant="bodySmall" style={styles.notice}>{notice}</Text> : null}
     <View style={styles.actions}>

@@ -62,7 +62,7 @@ describe('sandbox screen', () => {
     await fireEvent.press(screen.getByRole('button', { name: /^ping$/i }));
     expect(screen.getByLabelText('Ping destination IPv4 address').props.value).toBe('192.168.20.20');
     await fireEvent.press(screen.getByRole('button', { name: /run ping/i }));
-    expect(screen.getByText(/TRACE COMPLETE/)).toBeTruthy();
+    expect(screen.getByText(/PATH COMPLETE/)).toBeTruthy();
   });
 
   test('restores useful ping defaults when an autosaved routed preset is reopened', async () => {
@@ -90,7 +90,7 @@ describe('sandbox screen', () => {
     expect(screen.getByText('BEGINNER LAN AVAILABLE')).toBeTruthy();
     expect(screen.getByText(/PC1 does not have a saved IPv4 address and prefix/i)).toBeTruthy();
     expect(screen.getByRole('button', { name: /run ping/i }).props.accessibilityState.disabled).toBe(true);
-    expect(screen.queryByText(/TRACE STOPPED/)).toBeNull();
+    expect(screen.queryByText(/PATH STOPPED/)).toBeNull();
 
     await fireEvent.press(screen.getByRole('button', { name: /set up beginner lan/i }));
     expect(screen.getByText(/PC1: NOT CONFIGURED.*192\.168\.10\.10\/24/s)).toBeTruthy();
@@ -99,7 +99,7 @@ describe('sandbox screen', () => {
     expect(screen.getByLabelText('Ping destination IPv4 address').props.value).toBe('192.168.10.20');
     expect(screen.getByRole('button', { name: /run ping/i }).props.accessibilityState.disabled).toBe(false);
     await fireEvent.press(screen.getByRole('button', { name: /run ping/i }));
-    expect(screen.getByText(/TRACE COMPLETE/)).toBeTruthy();
+    expect(screen.getByText(/PATH COMPLETE/)).toBeTruthy();
   });
 
   test('treats malformed destinations as form validation rather than a stopped trace', async () => {
@@ -110,7 +110,7 @@ describe('sandbox screen', () => {
     await fireEvent.changeText(screen.getByLabelText('Ping destination IPv4 address'), '192.168.bad');
     expect(screen.getByText(/Enter a valid destination such as 192\.168\.10\.20/i)).toBeTruthy();
     expect(screen.getByRole('button', { name: /run ping/i }).props.accessibilityState.disabled).toBe(true);
-    expect(screen.queryByText(/TRACE STOPPED/)).toBeNull();
+    expect(screen.queryByText(/PATH STOPPED/)).toBeNull();
   });
 
   test('shows the router interface selected for the destination route', async () => {
@@ -128,12 +128,12 @@ describe('sandbox screen', () => {
     await fireEvent.press(screen.getByRole('button', { name: /^test$/i }));
     await fireEvent.press(screen.getByRole('button', { name: /^ping$/i }));
     await fireEvent.press(screen.getByRole('button', { name: /run ping/i }));
-    expect(screen.getByText(/TRACE COMPLETE/)).toBeTruthy();
+    expect(screen.getByText(/PATH COMPLETE/)).toBeTruthy();
     await fireEvent.press(screen.getByRole('button', { name: /^add$/i }));
     await fireEvent.press(screen.getByRole('button', { name: /^router$/i }));
     await fireEvent.press(screen.getByRole('button', { name: /^test$/i }));
-    expect(screen.queryByText(/TRACE COMPLETE/)).toBeNull();
-    expect(screen.queryByText(/TRACE STOPPED/)).toBeNull();
+    expect(screen.queryByText(/PATH COMPLETE/)).toBeNull();
+    expect(screen.queryByText(/PATH STOPPED/)).toBeNull();
   });
 
   test('adds an autosaved device and exposes a readable inspector', async () => {
