@@ -8,7 +8,7 @@ import { App } from './app';
 describe('admin application', () => {
   test('shows safe configuration guidance without credentials', () => {
     render(<App />);
-    expect(screen.getByText('Connect the admin portal')).toBeInTheDocument();
-    expect(screen.getByText(/VITE_SUPABASE_PUBLISHABLE_KEY/)).toBeInTheDocument();
+    expect(screen.getByText('Admin services are not connected')).toBeInTheDocument();
+    expect(screen.queryByText(/sb_publishable_/)).not.toBeInTheDocument();
   });
 });

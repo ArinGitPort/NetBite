@@ -42,15 +42,15 @@ import {
 import { configured, supabase } from "./lib/supabase";
 import * as api from "./lib/content-api";
 import type {
-  AdminRole,
+  AdminAccess,
   AdminView,
   AssetRow,
-  AuditRow,
   ChapterRow,
   FlashcardRow,
   LessonRow,
   QuizRow,
   ReleaseRow,
+  SafeAuditEntry,
   SourceRow,
 } from "./lib/content-api";
 import netbiteLogo from "../../assets/images/branding/netbite-menu-logo-mobile.png";
@@ -66,7 +66,7 @@ const navigation: Array<{
   { id: "sources", label: "Sources", icon: BookOpen },
   { id: "assets", label: "Media library", icon: Image },
   { id: "releases", label: "Publishing", icon: Rocket },
-  { id: "audit", label: "Audit history", icon: FileClock },
+  { id: "audit", label: "Activity history", icon: FileClock },
 ];
 
 export function resolveAdminView(hash = window.location.hash): AdminView {
@@ -299,7 +299,7 @@ function SignOutButton() {
     setError("");
     const result = await supabase.auth.signOut();
     if (result.error) {
-      setError(result.error.message);
+      setError("Sign-out could not be completed. Check your connection and try again.");
       setBusy(false);
     }
   };
@@ -321,10 +321,7 @@ function SignOutButton() {
 
 export function App() {
   const [session, setSession] = useState<Session | null>();
-  const [roleState, setRoleState] = useState<{
-    userId: string;
-    roles: AdminRole[];
-  } | null>(null);
+  const [accessState, setAccessState] = useState<AdminAccess | null>(null);
 
   useEffect(() => {
     if (!supabase) {
@@ -340,41 +337,45 @@ export function App() {
     return () => data.subscription.unsubscribe();
   }, []);
   const userId = session?.user.id;
+  const accessToken = session?.access_token;
   useEffect(() => {
     if (!userId) {
-      setRoleState(null);
+      setAccessState(null);
       return;
     }
     let active = true;
     void api
-      .getRoles(userId)
-      .then((roles) => {
-        if (active) setRoleState({ userId, roles });
+      .getAdminAccess(userId)
+      .then((access) => {
+        if (active) setAccessState(access);
+      })
+      .catch(() => {
+        if (active) setAccessState({ userId, authorized: false });
       });
     return () => {
       active = false;
     };
-  }, [userId]);
+  }, [accessToken, userId]);
 
   if (!configured) return <SetupRequired />;
   if (
     session === undefined ||
-    (session && roleState?.userId !== session.user.id)
+    (session && accessState?.userId !== session.user.id)
   )
     return <Loading />;
   if (!session) return <Login />;
-  const roles = roleState?.roles ?? [];
-  if (!roles.length)
+  if (!accessState?.authorized)
     return (
       <Unauthorized
         email={session.user.email ?? "Signed-in account"}
         onLogout={() => void supabase?.auth.signOut()}
       />
     );
-  return <AdminShell session={session} roles={roles} />;
+  return <AdminShell session={session} />;
 }
 
 function SetupRequired() {
+  const development = import.meta.env.DEV;
   return (
     <main className="auth-layout">
       <section className="auth-brand">
@@ -382,21 +383,13 @@ function SetupRequired() {
         <p>NETBITE / INSTRUCTOR SYSTEM</p>
         <h1>Curriculum administration with controlled publishing.</h1>
         <p className="lead">
-          Configure the Supabase project URL and publishable key to open the
-          protected workspace.
+          The instructor portal is temporarily unavailable.
         </p>
       </section>
       <section className="auth-card">
-        <Badge tone="orange">SETUP REQUIRED</Badge>
-        <h2>Connect the admin portal</h2>
-        <p>
-          Create <code>admin/.env.local</code> or use the existing root
-          environment file.
-        </p>
-        <pre>
-          VITE_SUPABASE_URL=https://YOUR_PROJECT.supabase.co{`\n`}
-          VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
-        </pre>
+        <Badge tone="orange">SERVICE UNAVAILABLE</Badge>
+        <h2>Admin services are not connected</h2>
+        <p>{development ? "Add the two VITE_SUPABASE values documented in admin/.env.example, then restart the development server." : "Try again later or contact the NetBite project owner."}</p>
       </section>
     </main>
   );
@@ -425,9 +418,12 @@ function Login() {
         supabase.auth.signInWithPassword({ email: email.trim(), password }),
         timeout,
       ]);
-      if (result.error) setError(result.error.message);
+      if (result.error) {
+        const normalized = result.error.message.toLowerCase();
+        setError(normalized.includes("invalid login") ? "The email address or password is incorrect." : normalized.includes("email not confirmed") ? "Confirm this email address before signing in." : "Sign-in could not be completed. Try again.");
+      }
     } catch (nextError) {
-      setError((nextError as Error).message || "Sign-in could not be completed.");
+      setError((nextError as Error).message.includes("timed out") ? "Sign-in timed out. Check your connection and try again." : "Sign-in could not be completed. Try again.");
     } finally {
       if (timeoutId) clearTimeout(timeoutId);
       setBusy(false);
@@ -438,7 +434,7 @@ function Login() {
       <header className="auth-topbar">
         <span>NETBITE Instructor Console</span>
         <span className="auth-system-status">
-          <i aria-hidden="true" /> System ready
+          Instructor administration
         </span>
       </header>
 
@@ -456,25 +452,24 @@ function Login() {
             app.
           </h1>
           <p className="lead">
-            Draft safely, validate every dependency, and release only approved
-            material—straight to learners without another app submission.
+            Prepare lessons, check related content, and publish approved
+            materials to connected Android learners.
           </p>
           <ul className="auth-benefits">
-            <li><CheckCircle2 aria-hidden="true" /> Server-verified editor and publisher roles</li>
-            <li><CheckCircle2 aria-hidden="true" /> Immutable, auditable release history</li>
-            <li><CheckCircle2 aria-hidden="true" /> Offline-safe delivery to the Android learner app</li>
+            <li><CheckCircle2 aria-hidden="true" /> Administrator access verified by NetBite</li>
+            <li><CheckCircle2 aria-hidden="true" /> Locked history of published versions</li>
+            <li><CheckCircle2 aria-hidden="true" /> Learning updates available offline after download</li>
           </ul>
 
-          <section className="auth-pipeline" aria-label="Release pipeline">
+          <section className="auth-pipeline" aria-label="Publishing workflow">
             <div className="auth-pipeline-heading">
-              <strong>Release pipeline</strong>
-              <span><i aria-hidden="true" /> Operational</span>
+              <strong>Publishing workflow</strong>
             </div>
             <ol>
-              <li><span>1</span><strong>Content validation</strong><small>Dependency checks</small></li>
-              <li><span>2</span><strong>Editorial review</strong><small>Role gated</small></li>
-              <li><span>3</span><strong>Immutable release</strong><small>Versioned package</small></li>
-              <li><span>4</span><strong>Android delivery</strong><small>Offline safe</small></li>
+              <li><span>1</span><strong>Prepare content</strong><small>Edit lessons and assessments</small></li>
+              <li><span>2</span><strong>Check content</strong><small>Review required fields and links</small></li>
+              <li><span>3</span><strong>Publish version</strong><small>Save one complete update</small></li>
+              <li><span>4</span><strong>Android delivery</strong><small>Available after download</small></li>
             </ol>
           </section>
         </section>
@@ -483,7 +478,7 @@ function Login() {
           <Badge><LockKeyhole aria-hidden="true" size={13} /> Authorized staff only</Badge>
           <div>
             <h2>Sign in to the console</h2>
-            <p>Use an account assigned an editor or publisher role.</p>
+            <p>Use an account approved as a NetBite administrator.</p>
           </div>
           <Field label="Email address">
             <input
@@ -521,8 +516,8 @@ function Login() {
             {busy ? "Signing in..." : "Sign in"}
           </button>
           <footer className="auth-card-footer">
-            <span><i aria-hidden="true" /> Secure Supabase session</span>
-            <span>Role protected</span>
+            <span><i aria-hidden="true" /> Protected administrator session</span>
+            <span>Access verified after sign-in</span>
           </footer>
         </form>
       </div>
@@ -543,10 +538,7 @@ function Unauthorized({
         <Badge tone="red">ACCESS NOT ASSIGNED</Badge>
         <h2>This account is not an instructor</h2>
         <p>{email}</p>
-        <p>
-          A Supabase project owner must assign the <code>editor</code> or{" "}
-          <code>publisher</code> role. The portal cannot grant itself access.
-        </p>
+        <p>A NetBite project owner must approve this account as an administrator. The portal cannot grant access to itself.</p>
         <button className="button secondary" onClick={onLogout}>
           SIGN OUT
         </button>
@@ -555,16 +547,9 @@ function Unauthorized({
   );
 }
 
-function AdminShell({
-  session,
-  roles,
-}: {
-  session: Session;
-  roles: AdminRole[];
-}) {
+function AdminShell({ session }: { session: Session }) {
   const [view, setView] = useState<AdminView>(resolveAdminView);
   const [mobileNav, setMobileNav] = useState(false);
-  const canPublish = roles.includes("publisher");
   useEffect(() => {
     const syncViewFromLocation = () => setView(resolveAdminView());
     window.addEventListener("hashchange", syncViewFromLocation);
@@ -648,27 +633,27 @@ function AdminShell({
             <Menu />
           </button>
           <div>
-            <small>CONTENT OPERATIONS</small>
+            <small>INSTRUCTOR WORKSPACE</small>
             <strong>{navigation.find(({ id }) => id === view)?.label}</strong>
           </div>
           <div className="topbar-status">
             <span className="status-dot" />
-            <span>SUPABASE CONNECTED</span>
+            <span>ADMIN ACCESS VERIFIED</span>
           </div>
         </header>
         <main className="content">
           {view === "dashboard" ? (
             <Dashboard onNavigate={navigate} />
           ) : view === "curriculum" ? (
-            <Curriculum userId={session.user.id} />
+            <Curriculum />
           ) : view === "assessments" ? (
-            <Assessments userId={session.user.id} />
+            <Assessments />
           ) : view === "sources" ? (
-            <Sources userId={session.user.id} />
+            <Sources />
           ) : view === "assets" ? (
-            <Assets userId={session.user.id} />
+            <Assets />
           ) : view === "releases" ? (
-            <Releases canPublish={canPublish} />
+            <Releases />
           ) : (
             <Audit />
           )}
@@ -718,8 +703,8 @@ function Dashboard({ onNavigate }: { onNavigate: (view: AdminView) => void }) {
   if (error)
     return (
       <Empty
-        title="Content tables are not ready"
-        detail={`${error}. Apply the CMS migration and seed the bundled curriculum.`}
+        title="Curriculum workspace unavailable"
+        detail="The instructor workspace could not be loaded. Check your connection and try again."
       />
     );
   const supplemental = data!.lessons.filter(
@@ -728,9 +713,9 @@ function Dashboard({ onNavigate }: { onNavigate: (view: AdminView) => void }) {
   return (
     <>
       <PageIntro
-        eyebrow="PUBLISHING CONTROL"
+        eyebrow="CURRICULUM STATUS"
         title="Curriculum overview"
-        detail="Review the current authoring state before releasing learning materials to Android devices."
+        detail="Review drafts and published materials before sending an update to Android learners."
         action={
           <button
             className="button primary"
@@ -758,12 +743,12 @@ function Dashboard({ onNavigate }: { onNavigate: (view: AdminView) => void }) {
           note={`${supplemental} supplemental`}
         />
         <Metric
-          label="Published releases"
+          label="Published versions"
           value={releases.length}
           note={
             releases[0]
               ? `Latest: v${releases[0].release_version}`
-              : "No remote release"
+              : "No published version"
           }
         />
       </div>
@@ -771,10 +756,10 @@ function Dashboard({ onNavigate }: { onNavigate: (view: AdminView) => void }) {
         <section className="panel">
           <div className="panel-heading">
             <div>
-              <p className="eyebrow">AUTHORING PIPELINE</p>
+              <p className="eyebrow">PUBLISHING WORKFLOW</p>
               <h2>Content readiness</h2>
             </div>
-            <Badge tone="green">OFFLINE FALLBACK SAFE</Badge>
+            <Badge tone="green">OFFLINE COPY AVAILABLE</Badge>
           </div>
           <div className="pipeline">
             <PipelineStep
@@ -785,22 +770,22 @@ function Dashboard({ onNavigate }: { onNavigate: (view: AdminView) => void }) {
             <PipelineStep
               number="02"
               title="Validate"
-              detail="Check identifiers, mappings, required fields, and assets."
+              detail="Check required fields, lesson links, assessments, and images."
             />
             <PipelineStep
               number="03"
               title="Publish"
-              detail="Create an immutable release and activate it atomically."
+              detail="Publish one complete curriculum update."
             />
             <PipelineStep
               number="04"
               title="Android delivery"
-              detail="Connected devices validate and cache the release in SQLite."
+              detail="Connected devices verify and save the update for offline use."
             />
           </div>
         </section>
         <section className="panel">
-          <p className="eyebrow">LATEST RELEASE</p>
+          <p className="eyebrow">LATEST PUBLISHED VERSION</p>
           {releases[0] ? (
             <>
               <h2>Release {releases[0].release_version}</h2>
@@ -814,18 +799,12 @@ function Dashboard({ onNavigate }: { onNavigate: (view: AdminView) => void }) {
                   <dt>Minimum app</dt>
                   <dd>{releases[0].minimum_app_version}</dd>
                 </div>
-                <div>
-                  <dt>Checksum</dt>
-                  <dd className="mono">
-                    {releases[0].checksum.slice(0, 18)}...
-                  </dd>
-                </div>
               </dl>
             </>
           ) : (
             <Empty
-              title="No release published"
-              detail="Seed and validate the bundled curriculum, then create the first release."
+              title="No version published"
+              detail="Import and check the current curriculum, then publish the first version."
             />
           )}
         </section>
@@ -870,7 +849,7 @@ function PipelineStep({
   );
 }
 
-function Curriculum({ userId }: { userId: string }) {
+function Curriculum() {
   const [data, setData] =
     useState<Awaited<ReturnType<typeof api.getCurriculum>>>();
   const [chapterId, setChapterId] = useState("1");
@@ -941,7 +920,7 @@ function Curriculum({ userId }: { userId: string }) {
     if (!data || busy) return;
     if (!stableId || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(stableId))
       return setNotice(
-        "Use a lowercase stable ID such as network-service-review.",
+        "Use a lowercase permanent lesson code such as network-service-review.",
       );
     setBusy(true);
     try {
@@ -955,13 +934,7 @@ function Curriculum({ userId }: { userId: string }) {
       const illustration =
         data.lessons.find((item) => item.chapter_id === chapterId)?.draft
           .illustration ?? "network";
-      await api.createLesson(
-        chapterId,
-        stableId,
-        position,
-        illustration,
-        userId,
-      );
+      await api.createLesson(chapterId, stableId, position, illustration);
       await load();
       setLessonId(stableId);
       setStableId("");
@@ -978,7 +951,7 @@ function Curriculum({ userId }: { userId: string }) {
     <>
       <PageIntro
         eyebrow="CURRICULUM"
-        title="Lesson authoring"
+        title="Lesson editor"
         detail="Edit content inside the fixed NetBite course structure. New lessons are supplemental and never revoke existing completion."
         action={
           <button
@@ -1008,7 +981,7 @@ function Curriculum({ userId }: { userId: string }) {
             }}
           >
             <Field
-              label="Stable lesson ID"
+              label="Permanent lesson code"
               hint="Lowercase letters and numbers separated by hyphens. Example: network-service-review."
             >
               <input
@@ -1170,7 +1143,6 @@ function Curriculum({ userId }: { userId: string }) {
           {selected ? (
             <LessonEditor
               row={selected}
-              userId={userId}
               onChange={updateSelected}
               onMove={moveSelected}
               onSaved={(message) => {
@@ -1192,13 +1164,11 @@ function Curriculum({ userId }: { userId: string }) {
 
 function LessonEditor({
   row,
-  userId,
   onChange,
   onMove,
   onSaved,
 }: {
   row: LessonRow;
-  userId: string;
   onChange: (row: LessonRow) => void;
   onMove: (direction: -1 | 1) => void;
   onSaved: (message: string) => void;
@@ -1211,7 +1181,7 @@ function LessonEditor({
   const save = async () => {
     setBusy(true);
     try {
-      await api.saveLesson(row, userId);
+      await api.saveLesson(row);
       onSaved(
         "Lesson draft saved. It is not visible to learners until publication.",
       );
@@ -1224,7 +1194,7 @@ function LessonEditor({
   const archive = async () => {
     setBusy(true);
     try {
-      await api.setLessonArchived(row.id, !row.archived, userId);
+      await api.setLessonArchived(row.id, !row.archived);
       onSaved(row.archived ? "Lesson restored." : "Lesson archived.");
     } finally {
       setBusy(false);
@@ -1264,14 +1234,14 @@ function LessonEditor({
             />
           </Field>
           <div className="field-grid">
-            <Field label="Eyebrow">
+            <Field label="Section label">
               <input
                 value={draft.eyebrow}
                 onChange={(event) => change({ eyebrow: event.target.value })}
               />
             </Field>
             <Field
-              label="Illustration ID"
+              label="Lesson visual"
               hint="Must already exist in the Android application."
             >
               <input
@@ -1385,8 +1355,8 @@ function LessonEditor({
               confirmLabel={row.archived ? "RESTORE LESSON" : "ARCHIVE LESSON"}
               detail={
                 row.archived
-                  ? "The draft will return to the active authoring list. Existing published releases are unchanged."
-                  : "The draft will leave the active authoring list. Existing published releases remain immutable."
+                  ? "The draft will return to the active lesson list. Existing published versions are unchanged."
+                  : "The draft will leave the active lesson list. Existing published versions remain unchanged."
               }
               disabled={busy}
               eyebrow={row.archived ? "RESTORE DRAFT" : "ARCHIVE DRAFT"}
@@ -1434,7 +1404,7 @@ function MobilePreview({ row }: { row: LessonRow }) {
   );
 }
 
-function Assessments({ userId }: { userId: string }) {
+function Assessments() {
   const [data, setData] =
     useState<Awaited<ReturnType<typeof api.getCurriculum>>>();
   const [chapterId, setChapterId] = useState("1");
@@ -1473,9 +1443,9 @@ function Assessments({ userId }: { userId: string }) {
   return (
     <>
       <PageIntro
-        eyebrow="ASSESSMENT AUTHORING"
-        title="Quiz and active-recall content"
-        detail="Assessment edits are validated against stable lesson IDs before publication."
+        eyebrow="ASSESSMENTS"
+        title="Quizzes and flashcards"
+        detail="Each question and flashcard must be linked to an existing lesson before publication."
       />
       {notice ? <div className="feedback">{notice}</div> : null}
       <div className="toolbar">
@@ -1537,7 +1507,6 @@ function Assessments({ userId }: { userId: string }) {
                     lessons[0].id,
                     data.quiz.filter((item) => item.chapter_id === chapterId)
                       .length + 1,
-                    userId,
                   )
                 : api.createFlashcard(
                     chapterId,
@@ -1545,7 +1514,6 @@ function Assessments({ userId }: { userId: string }) {
                     data.flashcards.filter(
                       (item) => item.chapter_id === chapterId,
                     ).length + 1,
-                    userId,
                   )
             ).then(load)
           }
@@ -1567,7 +1535,7 @@ function Assessments({ userId }: { userId: string }) {
         {assessmentRows.length === 0 ? (
           <Empty
             title={`No ${mode === "quiz" ? "quiz questions" : "flashcards"}`}
-            detail="Add the first item for this chapter to begin authoring."
+            detail="Add the first item for this chapter to begin editing."
           />
         ) : view === "focused" ? (
           <div className="assessment-workspace">
@@ -1610,7 +1578,6 @@ function Assessments({ userId }: { userId: string }) {
                   key={selectedId}
                   row={selectedAssessment as QuizRow}
                   lessons={lessons}
-                  userId={userId}
                   onDirtyChange={setSelectedItemDirty}
                   onDone={(message) => {
                     setNotice(message);
@@ -1622,7 +1589,6 @@ function Assessments({ userId }: { userId: string }) {
                   key={selectedId}
                   row={selectedAssessment as FlashcardRow}
                   lessons={lessons}
-                  userId={userId}
                   onDirtyChange={setSelectedItemDirty}
                   onDone={(message) => {
                     setNotice(message);
@@ -1636,10 +1602,10 @@ function Assessments({ userId }: { userId: string }) {
           <div className="assessment-list">
             {mode === "quiz"
               ? (assessmentRows as QuizRow[]).map((row) => (
-                  <QuizEditor key={row.id} row={row} lessons={lessons} userId={userId} onDone={(message) => { setNotice(message); void load(); }} />
+                  <QuizEditor key={row.id} row={row} lessons={lessons} onDone={(message) => { setNotice(message); void load(); }} />
                 ))
               : (assessmentRows as FlashcardRow[]).map((row) => (
-                  <FlashcardEditor key={row.id} row={row} lessons={lessons} userId={userId} onDone={(message) => { setNotice(message); void load(); }} />
+                  <FlashcardEditor key={row.id} row={row} lessons={lessons} onDone={(message) => { setNotice(message); void load(); }} />
                 ))}
           </div>
         )}
@@ -1650,13 +1616,11 @@ function Assessments({ userId }: { userId: string }) {
 function QuizEditor({
   row,
   lessons,
-  userId,
   onDone,
   onDirtyChange,
 }: {
   row: QuizRow;
   lessons: LessonRow[];
-  userId: string;
   onDone: (message: string) => void;
   onDirtyChange?: (dirty: boolean) => void;
 }) {
@@ -1681,7 +1645,7 @@ function QuizEditor({
             disabled={!dirty}
             onClick={() =>
               void api
-                .saveQuiz(value, userId)
+                .saveQuiz(value)
                 .then(() => onDone("Quiz question saved."))
             }
           >
@@ -1692,7 +1656,7 @@ function QuizEditor({
             className="button danger-outline"
             ariaLabel="Delete quiz question"
             confirmLabel="DELETE QUESTION"
-            detail="This removes the draft question from the authoring workspace. Published releases remain unchanged."
+            detail="This removes the draft question from the assessment workspace. Published versions remain unchanged."
             onConfirm={() =>
               api
                 .deleteAssessment("content_quiz_questions", row.id)
@@ -1788,13 +1752,11 @@ function QuizEditor({
 function FlashcardEditor({
   row,
   lessons,
-  userId,
   onDone,
   onDirtyChange,
 }: {
   row: FlashcardRow;
   lessons: LessonRow[];
-  userId: string;
   onDone: (message: string) => void;
   onDirtyChange?: (dirty: boolean) => void;
 }) {
@@ -1819,7 +1781,7 @@ function FlashcardEditor({
             disabled={!dirty}
             onClick={() =>
               void api
-                .saveFlashcard(value, userId)
+                .saveFlashcard(value)
                 .then(() => onDone("Flashcard saved."))
             }
           >
@@ -1830,7 +1792,7 @@ function FlashcardEditor({
             className="button danger-outline"
             ariaLabel="Delete flashcard"
             confirmLabel="DELETE FLASHCARD"
-            detail="This removes the draft flashcard from the authoring workspace. Published releases remain unchanged."
+            detail="This removes the draft flashcard from the assessment workspace. Published versions remain unchanged."
             onConfirm={() =>
               api
                 .deleteAssessment("content_flashcards", row.id)
@@ -1903,7 +1865,7 @@ function FlashcardEditor({
   );
 }
 
-function Sources({ userId }: { userId: string }) {
+function Sources() {
   const [rows, setRows] = useState<SourceRow[]>([]);
   const [lessons, setLessons] = useState<LessonRow[]>([]);
   const [form, setForm] = useState<Partial<SourceRow>>({
@@ -1919,7 +1881,7 @@ function Sources({ userId }: { userId: string }) {
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     try {
-      await api.saveSource(form, userId);
+      await api.saveSource(form);
       setForm({ label: "", url: "https://", notes: "" });
       setNotice("Source saved.");
       await load();
@@ -1930,7 +1892,7 @@ function Sources({ userId }: { userId: string }) {
   return (
     <>
       <PageIntro
-        eyebrow="TECHNICAL INTEGRITY"
+        eyebrow="SOURCE REFERENCES"
         title="Source references"
         detail="Record the primary RFC, IEEE/IANA, or official vendor material supporting authored claims."
       />
@@ -1963,7 +1925,7 @@ function Sources({ userId }: { userId: string }) {
               }
             />
           </Field>
-          <Field label="Authoring note">
+          <Field label="Internal note" hint="Visible only to administrators. It is never included in learner updates.">
             <textarea
               rows={4}
               value={form.notes ?? ""}
@@ -2020,7 +1982,7 @@ function Sources({ userId }: { userId: string }) {
   );
 }
 
-function Assets({ userId }: { userId: string }) {
+function Assets() {
   const [rows, setRows] = useState<AssetRow[]>([]);
   const [lessons, setLessons] = useState<LessonRow[]>([]);
   const [lessonId, setLessonId] = useState("");
@@ -2044,7 +2006,7 @@ function Assets({ userId }: { userId: string }) {
     try {
       const dimensions = await imageDimensions(file);
       if (dimensions.width > 4096 || dimensions.height > 4096) throw new Error("Image dimensions must not exceed 4096 × 4096 pixels.");
-      await api.uploadAsset(file, altText, dimensions, userId, lessonId || undefined);
+      await api.uploadAsset(file, altText, dimensions, lessonId || undefined);
       setFile(undefined);
       setAltText("");
       setNotice("Image uploaded to the private draft library.");
@@ -2060,7 +2022,7 @@ function Assets({ userId }: { userId: string }) {
       <PageIntro
         eyebrow="SUPPORTING MEDIA"
         title="Accessible image library"
-        detail="Uploaded images support recognition. Networking values and calculated facts remain code-rendered in the Android app."
+        detail="Uploaded images support recognition. Networking values and calculated facts remain displayed directly in the Android app."
       />
       {notice ? <div className="feedback">{notice}</div> : null}
       <div className="two-column">
@@ -2129,7 +2091,7 @@ function Assets({ userId }: { userId: string }) {
                   title="Delete this draft image?"
                   triggerTitle={
                     asset.published
-                      ? "Published assets are immutable"
+                      ? "Published images cannot be changed"
                       : "Delete draft image"
                   }
                 >
@@ -2162,7 +2124,7 @@ function imageDimensions(file: File) {
   });
 }
 
-function Releases({ canPublish }: { canPublish: boolean }) {
+function Releases() {
   const [rows, setRows] = useState<ReleaseRow[]>([]);
   const [validation, setValidation] =
     useState<Awaited<ReturnType<typeof api.validateRelease>>>();
@@ -2170,6 +2132,8 @@ function Releases({ canPublish }: { canPublish: boolean }) {
   const [minimum, setMinimum] = useState("1.0.0");
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
+  const publishRequestIds = useRef(new Map<string, string>());
+  const restoreRequestIds = useRef(new Map<string, string>());
   const load = () => api.getReleases().then(setRows);
   useEffect(() => {
     void load();
@@ -2181,8 +2145,8 @@ function Releases({ canPublish }: { canPublish: boolean }) {
       setValidation(result);
       setNotice(
         result.valid
-          ? "Draft passed publication validation."
-          : `${result.issues.length} issue(s) must be corrected.`,
+          ? "The draft is ready to publish."
+          : `${result.issues.length} ${result.issues.length === 1 ? "issue must" : "issues must"} be corrected.`,
       );
     } catch (error) {
       setNotice((error as Error).message);
@@ -2191,11 +2155,15 @@ function Releases({ canPublish }: { canPublish: boolean }) {
     }
   };
   const publish = async () => {
-    if (!canPublish || !validation?.valid) return;
+    if (!validation?.valid) return;
+    const requestKey = `${minimum.trim()}\u0000${changelog.trim()}`;
+    const operationId = publishRequestIds.current.get(requestKey) ?? crypto.randomUUID();
+    publishRequestIds.current.set(requestKey, operationId);
     setBusy(true);
     try {
-      const result = await api.publishRelease(changelog, minimum);
-      setNotice(`Release ${result.releaseVersion} published.`);
+      const result = await api.publishRelease(changelog, minimum, operationId);
+      publishRequestIds.current.delete(requestKey);
+      setNotice(`Version ${result.releaseVersion} published.`);
       setChangelog("");
       setValidation(undefined);
       await load();
@@ -2208,16 +2176,16 @@ function Releases({ canPublish }: { canPublish: boolean }) {
   return (
     <>
       <PageIntro
-        eyebrow="CONTROLLED DELIVERY"
+        eyebrow="PUBLISHING"
         title="Validate and publish"
-        detail="Learners receive only complete, immutable releases. Draft saves never change the Android curriculum."
+        detail="Learners receive only complete published versions. Saving a draft never changes the Android curriculum."
       />
       {notice ? <div className="feedback">{notice}</div> : null}
       <div className="release-layout">
         <section className="panel publish-panel">
           <div className="panel-heading">
             <div>
-              <p className="eyebrow">PUBLICATION CHECK</p>
+              <p className="eyebrow">CONTENT CHECK</p>
               <h2>Prepare the next release</h2>
             </div>
             <Badge
@@ -2238,7 +2206,7 @@ function Releases({ canPublish }: { canPublish: boolean }) {
             onClick={() => void validate()}
           >
             <RefreshCw />
-            VALIDATE CURRENT DRAFT
+            CHECK CURRENT DRAFT
           </button>
           {validation ? (
             <div className="validation-results">
@@ -2249,19 +2217,19 @@ function Releases({ canPublish }: { canPublish: boolean }) {
                 </span>
               ))}
               {validation.issues.map((issue) => (
-                <div className="issue" key={`${issue.path}-${issue.message}`}>
-                  <strong>{issue.path}</strong>
+                <div className="issue" key={`${issue.area}-${issue.message}`}>
+                  <strong>{issue.area}</strong>
                   <p>{issue.message}</p>
                 </div>
               ))}
             </div>
           ) : null}
-          <Field label="Release changelog">
+          <Field label="What changed in this version?">
             <textarea
               rows={4}
               value={changelog}
               onChange={(event) => setChangelog(event.target.value)}
-              placeholder="Explain what learners and instructors should know about this release."
+              placeholder="Explain what learners and instructors should know about this version."
             />
           </Field>
           <Field label="Minimum Android app version">
@@ -2271,33 +2239,26 @@ function Releases({ canPublish }: { canPublish: boolean }) {
               onChange={(event) => setMinimum(event.target.value)}
             />
           </Field>
-          {!canPublish ? (
-            <div className="feedback warning">
-              Publisher permission is required. Editors can validate but cannot
-              release content.
-            </div>
-          ) : null}
           <ConfirmAction
             className="button primary"
             confirmLabel="PUBLISH RELEASE"
-            detail="This creates an immutable curriculum release and makes it available to connected Android devices. Drafts remain editable for the next release."
+            detail="This publishes one complete curriculum version to connected Android devices. Your drafts remain available for future changes."
             disabled={
               busy ||
-              !canPublish ||
               !validation?.valid ||
               changelog.trim().length < 3
             }
-            eyebrow="IMMUTABLE DELIVERY"
+            eyebrow="PUBLISH CURRICULUM"
             onConfirm={publish}
-            title="Publish this curriculum release?"
+            title="Publish this curriculum version?"
             tone="warning"
           >
             <Rocket />
-            PUBLISH IMMUTABLE RELEASE
+            PUBLISH VERSION
           </ConfirmAction>
         </section>
         <section className="panel">
-          <h2>Release history</h2>
+          <h2>Published versions</h2>
           {rows.map((row, index) => (
             <article className="release-row" key={row.id}>
               <div className="release-version">V{row.release_version}</div>
@@ -2307,39 +2268,48 @@ function Releases({ canPublish }: { canPublish: boolean }) {
                   {index === 0 ? (
                     <Badge tone="green">ACTIVE</Badge>
                   ) : row.rollback_of ? (
-                    <Badge tone="orange">ROLLBACK</Badge>
+                    <Badge tone="orange">RESTORED</Badge>
                   ) : null}
                 </div>
                 <p>
-                  {new Date(row.published_at).toLocaleString()} / App{" "}
+                  {new Date(row.published_at).toLocaleString()} · Android{" "}
                   {row.minimum_app_version}+
                 </p>
-                <small className="mono">SHA-256 {row.checksum}</small>
+                <details className="technical-details">
+                  <summary>Technical details</summary>
+                  <dl className="details">
+                    <div><dt>Release ID</dt><dd className="mono">{row.id}</dd></div>
+                    <div><dt>Checksum</dt><dd className="mono">{row.checksum.slice(0, 16)}…</dd></div>
+                  </dl>
+                </details>
               </div>
-              {canPublish && index > 0 ? (
+              {index > 0 ? (
                 <ConfirmAction
                   className="button tertiary"
-                  confirmLabel="PUBLISH ROLLBACK"
-                  detail={`Release ${row.release_version} will be republished as a new immutable release. Historical releases will not be edited or deleted.`}
-                  eyebrow="ROLLBACK RELEASE"
-                  onConfirm={() =>
-                    api.rollbackRelease(row.id).then(() => {
-                      setNotice("Rollback release published.");
+                  confirmLabel="RESTORE VERSION"
+                  detail={`Version ${row.release_version} will be copied into a new published version. Existing history will remain unchanged.`}
+                  eyebrow="RESTORE PREVIOUS VERSION"
+                  onConfirm={() => {
+                    const operationId = restoreRequestIds.current.get(row.id) ?? crypto.randomUUID();
+                    restoreRequestIds.current.set(row.id, operationId);
+                    return api.rollbackRelease(row.id, operationId).then(() => {
+                      restoreRequestIds.current.delete(row.id);
+                      setNotice("Previous curriculum version restored.");
                       return load();
-                    })
-                  }
-                  title={`Return learners to release ${row.release_version}?`}
+                    });
+                  }}
+                  title={`Restore version ${row.release_version}?`}
                   tone="warning"
                 >
-                  ROLL BACK TO THIS
+                  RESTORE THIS VERSION
                 </ConfirmAction>
               ) : null}
             </article>
           ))}
           {!rows.length ? (
             <Empty
-              title="No remote releases"
-              detail="Validate and publish the seeded curriculum to create version one."
+              title="No published versions"
+              detail="Import, check, and publish the current curriculum to create version one."
             />
           ) : null}
         </section>
@@ -2349,16 +2319,16 @@ function Releases({ canPublish }: { canPublish: boolean }) {
 }
 
 function Audit() {
-  const [rows, setRows] = useState<AuditRow[]>([]);
+  const [rows, setRows] = useState<SafeAuditEntry[]>([]);
   useEffect(() => {
-    void api.getAuditLog().then(setRows);
+    void api.getSanitizedAuditHistory().then(setRows);
   }, []);
   return (
     <>
       <PageIntro
         eyebrow="ACCOUNTABILITY"
-        title="Audit history"
-        detail="Draft changes, publishing, and rollback operations are retained as append-only administrative evidence."
+        title="Activity history"
+        detail="Review important curriculum changes and publishing activity. History cannot be edited from this portal."
       />
       <section className="panel">
         <div className="audit-list">
@@ -2369,19 +2339,18 @@ function Audit() {
               </div>
               <div>
                 <strong>
-                  {row.action.toUpperCase()} / {row.entity_type}
+                  {row.actionLabel} · {row.contentLabel}
                 </strong>
-                <p>{row.entity_id}</p>
-                <small>{new Date(row.created_at).toLocaleString()}</small>
+                <p>{row.summary}</p>
+                <small>{row.administratorName} · {new Date(row.occurredAt).toLocaleString()}</small>
               </div>
-              <pre>{JSON.stringify(row.detail, null, 2)}</pre>
             </article>
           ))}
         </div>
         {!rows.length ? (
           <Empty
-            title="No administrative events"
-            detail="Publishing and rollback records will appear here."
+            title="No activity recorded"
+            detail="Curriculum changes and published versions will appear here."
           />
         ) : null}
       </section>

@@ -11,8 +11,8 @@ This standard applies to the responsive website under `admin/`. It does not chan
 1. **Editorial clarity before decoration.** Page titles, current status, and the next useful action must be recognizable without reading every panel.
 2. **Familiar web controls.** Navigation, forms, tabs, buttons, dialogs, tables, and disclosures should behave like conventional administrative software.
 3. **One dominant action per task.** Save, Validate, Publish, or Upload may be primary for the current task. Supporting actions remain visually quieter.
-4. **Progressive disclosure.** Dense configuration, validation details, audit JSON, and advanced metadata appear only where they help the current decision.
-5. **Error prevention.** Destructive or immutable actions require clear wording and confirmation. Disabled controls explain the missing prerequisite nearby.
+4. **Progressive disclosure.** Advanced release metadata appears only where it helps the current decision. Raw database records and audit payloads never appear in the portal.
+5. **Error prevention.** Destructive and publishing actions require clear wording and confirmation. Disabled controls explain the missing prerequisite nearby.
 6. **State is never color-only.** Labels, icons, wording, borders, and color work together for draft, valid, warning, published, archived, and unavailable states.
 7. **Responsive reflow instead of shrinking.** Columns stack or recompose before labels, inputs, and technical values become unreadable.
 
@@ -21,7 +21,7 @@ This standard applies to the responsive website under `admin/`. It does not chan
 ### Typography
 
 - **Inter** is the primary interface typeface for headings, navigation, buttons, forms, help text, and prose.
-- **Fira Code** is reserved for stable IDs, checksums, technical values, schema information, and small system labels.
+- **Fira Code** is reserved for permanent lesson codes, abbreviated checksums, technical values, and small system labels.
 - Large headings use compact letter spacing and short line lengths. Body copy uses comfortable line height and avoids all-uppercase paragraphs.
 - Controls and explanatory text must remain readable under browser zoom and operating-system text scaling.
 
@@ -48,7 +48,7 @@ Every authenticated page uses:
 1. Persistent sidebar navigation on wide screens.
 2. Off-canvas navigation with a dismissible backdrop on smaller screens.
 3. Sticky workspace header showing the current section and connection state.
-4. Page introduction containing an eyebrow, clear title, one-sentence purpose, and at most one primary action.
+4. Page introduction containing a section label, clear title, one-sentence purpose, and at most one primary action.
 5. Responsive content panels organized by task rather than by database table alone.
 
 The selected section is represented in the URL hash. Browser refresh, history navigation, and Supabase token refresh must preserve the learner's current administrative section.
@@ -57,7 +57,7 @@ The selected section is represented in the URL hash. Browser refresh, history na
 
 ### Buttons
 
-- Primary buttons use a high-contrast neutral fill and describe the result: `SAVE DRAFT`, `VALIDATE CURRENT DRAFT`, or `PUBLISH IMMUTABLE RELEASE`.
+- Primary buttons use a high-contrast neutral fill and describe the result: `SAVE DRAFT`, `CHECK CURRENT DRAFT`, or `PUBLISH VERSION`.
 - Secondary buttons use a quieter outlined treatment.
 - Tertiary buttons support nearby actions such as moving or editing.
 - Destructive buttons use explicit verbs and a danger treatment.
@@ -75,7 +75,7 @@ The selected section is represented in the URL hash. Browser refresh, history na
 
 - Panels group one recognizable task or information set.
 - Lists use consistent row height, selection treatment, and alignment.
-- Long IDs, URLs, checksums, and JSON may wrap or scroll inside their own bounded region; they must not expand the whole page horizontally.
+- Long lesson codes and URLs may wrap inside their own bounded region. Release identifiers and abbreviated checksums belong inside a collapsed Technical details section.
 - Empty states explain what is missing and, when possible, identify the action that creates it.
 
 ### Dense authoring collections
@@ -120,6 +120,19 @@ Horizontal page scrolling is not an accepted responsive strategy. A bounded tech
 - Icons are decorative when adjacent text already communicates their meaning.
 - Motion respects `prefers-reduced-motion`.
 - Color contrast and control sizes remain usable at browser zoom up to 200 percent.
+
+## Approved terminology
+
+- Use **Quizzes and flashcards**, not “active-recall content.”
+- Use **Permanent lesson code**, not “stable lesson ID.”
+- Use **Section label**, not “eyebrow.”
+- Use **Lesson visual**, not “illustration ID.”
+- Use **Publishing workflow**, not “authoring pipeline.”
+- Use **Published version**, not “immutable release.”
+- Use **Restore previous version**, not “rollback.”
+- Use **Import current curriculum**, not “seed bundled curriculum.”
+- Keep RFC, IEEE/IANA, IPv4, OSPF, VLAN, and other necessary networking terms.
+- Never display table names, policy names, storage paths, raw service errors, raw audit JSON, tokens, keys, or administrator UUIDs.
 
 ## Acceptance checklist
 

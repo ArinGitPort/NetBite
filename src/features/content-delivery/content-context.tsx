@@ -76,7 +76,7 @@ export function ContentProvider({ children }: PropsWithChildren) {
   useEffect(() => {
     const appState = AppState.addEventListener('change', (next) => { if (next === 'active') void checkNow(); });
     const network = NetInfo.addEventListener((state) => { if (state.isConnected) void checkNow(); });
-    const channel = supabase?.channel('netbite-content-publication').on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'content_publication' }, () => { void checkNow(); }).subscribe();
+    const channel = supabase?.channel('netbite-content-publication').on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'content_publication_notice' }, () => { void checkNow(); }).subscribe();
     return () => { appState.remove(); network(); if (channel) void supabase?.removeChannel(channel); };
   }, [checkNow]);
 

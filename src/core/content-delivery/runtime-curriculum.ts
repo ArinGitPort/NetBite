@@ -15,7 +15,7 @@ function replaceArray<T>(target: T[], source: T[]) {
 export function activateRemoteCurriculum(content: RemoteCurriculumPackage) {
   const nextChapters = clone(content.chapters) as ChapterDefinition[];
   for (const chapter of nextChapters) for (const lesson of chapter.lessons) {
-    lesson.sources = content.sources.filter(({ lessonId }) => lessonId === lesson.id).map(({ id, label, url, notes }) => ({ id, label, url, notes }));
+    lesson.sources = content.sources.filter(({ lessonId }) => lessonId === lesson.id).map(({ id, label, url }) => ({ id, label, url }));
     lesson.supportingAssets = content.assets.filter(({ lessonId }) => lessonId === lesson.id).map(({ id, url, mimeType, width, height, altText }) => ({ id, url, mimeType, width, height, altText }));
   }
   replaceArray(courses, clone(content.courses) as CourseDefinition[]);

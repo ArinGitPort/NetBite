@@ -1,6 +1,5 @@
 import type { ChapterDefinition, CourseDefinition, LessonIllustration } from '@/content/types';
 
-export type AdminRole = 'editor' | 'publisher';
 export type ContentUpdateStatus = 'bundled' | 'checking' | 'current' | 'updating' | 'updated' | 'offline' | 'error';
 
 export interface RemoteCurriculumManifest {
@@ -28,7 +27,6 @@ export interface RemoteContentSource {
   lessonId?: string;
   label: string;
   url: string;
-  notes: string;
 }
 
 export interface RemoteChapterDefinition extends ChapterDefinition {
@@ -48,6 +46,11 @@ export interface RemoteCurriculumPayload {
 
 export interface RemoteCurriculumPackage extends RemoteCurriculumPayload {
   manifest: RemoteCurriculumManifest;
+}
+
+export interface PublicCurriculumRelease {
+  manifest: RemoteCurriculumManifest;
+  package: RemoteCurriculumPayload;
 }
 
 export interface ContentUpdateResult {

@@ -1,47 +1,46 @@
-# NetBite Instructor Admin CMS
+# NetBite Instructor Administration
 
-The portal's visual hierarchy, responsive behavior, accessibility rules, and
-shared web components are defined in
-[`ADMIN_WEB_UX_STANDARD.md`](./ADMIN_WEB_UX_STANDARD.md).
+The instructor portal is a separate React website for approved NetBite administrators. It shares the Supabase project used by the Android learner application but is not included in the APK.
 
-The instructor portal is a separate React website. It uses the same Supabase project as the Android app, but it is not included in the learner APK.
+The visual and language standards are documented in [`ADMIN_WEB_UX_STANDARD.md`](./ADMIN_WEB_UX_STANDARD.md).
 
 ## Security boundary
 
-- Editors may work with drafts, sources, assessments, and draft images.
-- Publishers inherit editor access and may create immutable releases or roll back to a previous release.
-- Learners can read only the active published release.
-- No screen can grant administrator access. The first role is assigned by the Supabase project owner.
-- Simulator engines, CLI grammars, navigation, and code-rendered illustration types remain application code.
+- Only accounts listed in `public.content_admins` may open curriculum drafts.
+- Every approved administrator may edit, check, publish, restore, and review sanitized activity history.
+- The portal cannot register administrators or grant access to itself.
+- Learners receive only the active public curriculum package and published supporting images.
+- Draft images remain private and use expiring preview links.
+- Simulator engines, CLI behavior, application navigation, and supported technical visuals remain Android application code.
 
-Never place a Supabase secret or service-role key in the Android app, the admin portal, Git, screenshots, or chat.
+Never place a Supabase secret or service-role key in the Android app, portal, repository, screenshots, or chat. The browser uses only the project URL and publishable key; RLS enforces access.
 
-## 1. Apply the database migration
+## Apply the database changes
 
-Link the local Supabase directory to the intended project, then review and apply the migrations:
+Review and apply the migrations to the intended Supabase project:
 
 ```powershell
 supabase link --project-ref YOUR_PROJECT_REF
 supabase db push
 ```
 
-The CMS migration creates the authoring tables, role policies, immutable release records, audit log, and private/public content buckets.
+The security-hardening migration automatically copies all existing editor and publisher accounts into the single administrator list.
 
-## 2. Assign the first administrator
+## Approve the first administrator
 
-Find the existing account in Supabase Authentication, copy its user UUID, and run this in the Supabase SQL editor:
+Find the existing account in Supabase Authentication, copy its user UUID, and run this once in the Supabase SQL editor:
 
 ```sql
-insert into public.content_admin_roles (user_id, role)
-values
-  ('REPLACE_WITH_AUTH_USER_UUID', 'editor'),
-  ('REPLACE_WITH_AUTH_USER_UUID', 'publisher')
+insert into public.content_admins (user_id)
+values ('REPLACE_WITH_AUTH_USER_UUID')
 on conflict do nothing;
 ```
 
-One account may hold both roles. Do not build a public administrator-registration screen.
+Do not add a public administrator-registration screen.
 
-## 3. Deploy the authenticated functions
+## Deploy the protected functions
+
+Set `ADMIN_ALLOWED_ORIGINS` as a comma-separated list containing the deployed portal origin. Local development on port `4174` is allowed automatically.
 
 ```powershell
 supabase functions deploy validate-content-release
@@ -49,38 +48,47 @@ supabase functions deploy publish-content-release
 supabase functions deploy rollback-content-release
 ```
 
-The existing Supabase function secrets provide `SUPABASE_URL`, the publishable/anonymous key, and `SUPABASE_SERVICE_ROLE_KEY`. Confirm them in the Supabase dashboard without copying their values into application environment files.
+Supabase supplies the project URL and server secrets to the functions. Confirm secrets in the dashboard without copying their values into browser environment files.
 
-## 4. Seed the bundled curriculum
+## Import the current curriculum
 
-Run the seeder once after applying the CMS migration. Supply the service-role key only to the current terminal session:
-
-```powershell
-$env:SUPABASE_URL = 'https://YOUR_PROJECT_REF.supabase.co'
-$env:SUPABASE_SERVICE_ROLE_KEY = 'YOUR_TEMPORARY_SERVICE_ROLE_VALUE'
-npm run content:seed
-Remove-Item Env:SUPABASE_SERVICE_ROLE_KEY
-```
-
-The seeder preserves all stable course, chapter, lesson, quiz, flashcard, and lab mappings. Existing lessons are marked `core`; lessons created through the portal default to `supplemental`.
-
-You can validate the local seed input without a secret or database write:
+Validate the local input before performing a database write:
 
 ```powershell
 npm run content:seed:check
 ```
 
-## 5. Run the portal locally
+For the one-time import, provide the server credential only to the current terminal session and remove it immediately afterward:
 
-The Vite configuration can reuse the root `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` values. It also accepts the equivalent `VITE_` names documented in `admin/.env.example`.
+```powershell
+$env:SUPABASE_URL = 'https://YOUR_PROJECT_REF.supabase.co'
+$env:SUPABASE_SERVICE_ROLE_KEY = 'YOUR_TEMPORARY_SERVER_VALUE'
+npm run content:seed
+Remove-Item Env:SUPABASE_SERVICE_ROLE_KEY
+```
+
+Existing lessons remain core requirements. Lessons created in the portal are supplemental.
+
+## Run the portal locally
+
+Run `npm run admin:configure` once to create `admin/.env.local` from the existing local Android configuration, or create it from `admin/.env.example`. The command copies only the project URL and publishable key, prints no values, and does not make the portal read Android variables at build time.
 
 ```powershell
 npm run admin:dev
 ```
 
-Open `http://localhost:4174`, sign in with the assigned account, and validate the seeded curriculum before publishing the first release.
+Open `http://localhost:4174` and sign in with an approved administrator account.
 
-## 6. Production build
+## Publishing workflow
+
+1. Prepare lesson, assessment, reference, or supporting-image drafts.
+2. Check required fields, lesson relationships, answer mappings, URLs, and image metadata.
+3. Describe the changes and publish one complete curriculum version.
+4. Connected Android devices verify the checksum and save the update in SQLite.
+5. Offline devices continue using their current downloaded or bundled curriculum.
+6. Restoring an older version creates a new published version; history is never rewritten.
+
+## Production requirements
 
 ```powershell
 npm run admin:typecheck
@@ -88,25 +96,21 @@ npm run admin:test
 npm run admin:build
 ```
 
-The deployable static site is generated in `admin/dist`. Configure the chosen static host with the Supabase URL and publishable key as build-time environment values.
+The deployable site is generated in `admin/dist` without public source maps. Configure HTTPS and these response headers on the selected static host:
 
-## Publishing workflow
-
-1. An editor changes a draft.
-2. The portal validates identifiers, mappings, required fields, assessment answers, and image accessibility metadata.
-3. A publisher adds a changelog and minimum Android version.
-4. Publishing creates a new immutable release and activates it.
-5. Connected Android devices detect, validate, checksum, and store the release in SQLite.
-6. Offline devices keep their current local or bundled curriculum until connectivity returns.
-7. Rollback republishes an earlier package as a new audited release; history is never rewritten.
+- `Content-Security-Policy` restricted to the portal, Supabase project, and published image origin.
+- `X-Content-Type-Options: nosniff`
+- `Referrer-Policy: no-referrer`
+- `X-Frame-Options: DENY` or CSP `frame-ancestors 'none'`.
+- `Permissions-Policy` disabling capabilities the portal does not use.
 
 ## Update limitations
 
-The CMS may update lesson content, existing assessments, source records, supporting images, and supplemental lessons inside existing chapters. These still require a new Android build:
+The portal may update lesson text, assessments, references, supporting images, and supplemental lessons inside existing chapters. These changes still require a new Android build:
 
-- New courses or chapters
-- New simulator and protocol behavior
-- New CLI commands
-- New navigation or application features
-- New code-rendered illustration families
-- Bug and security fixes
+- New courses or chapters.
+- New simulator or protocol behavior.
+- New CLI commands.
+- New navigation or application features.
+- New technical visual families.
+- Bug and security fixes.

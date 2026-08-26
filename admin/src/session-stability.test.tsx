@@ -23,8 +23,8 @@ const authHarness = vi.hoisted(() => ({
 }));
 
 const apiHarness = vi.hoisted(() => ({
-  getRoles: vi.fn(async () => ['editor', 'publisher']),
-  getAuditLog: vi.fn(async () => []),
+  getAdminAccess: vi.fn(async (userId: string) => ({ userId, authorized: true })),
+  getSanitizedAuditHistory: vi.fn(async () => []),
   getCurriculum: vi.fn(async () => ({
     courses: [
       { id: 'foundations', definition: { title: 'Network Foundations' } },
@@ -89,8 +89,8 @@ vi.mock('./lib/supabase', () => ({
 }));
 
 vi.mock('./lib/content-api', () => ({
-  getRoles: apiHarness.getRoles,
-  getAuditLog: apiHarness.getAuditLog,
+  getAdminAccess: apiHarness.getAdminAccess,
+  getSanitizedAuditHistory: apiHarness.getSanitizedAuditHistory,
   getCurriculum: apiHarness.getCurriculum,
 }));
 
@@ -102,8 +102,8 @@ describe('admin session stability', () => {
   beforeEach(() => {
     window.location.hash = '#audit';
     authHarness.currentSession = authHarness.session;
-    apiHarness.getRoles.mockClear();
-    apiHarness.getAuditLog.mockClear();
+    apiHarness.getAdminAccess.mockClear();
+    apiHarness.getSanitizedAuditHistory.mockClear();
     apiHarness.getCurriculum.mockClear();
     authHarness.signOut.mockClear();
     authHarness.signInWithPassword.mockClear();
@@ -113,7 +113,7 @@ describe('admin session stability', () => {
     render(<App />);
 
     expect(
-      await screen.findByRole('heading', { name: 'Audit history' }),
+      await screen.findByRole('heading', { name: 'Activity history' }),
     ).toBeInTheDocument();
 
     await act(async () => {
@@ -124,9 +124,9 @@ describe('admin session stability', () => {
       });
     });
 
-    await waitFor(() => expect(apiHarness.getRoles).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(apiHarness.getAdminAccess).toHaveBeenCalledTimes(2));
     expect(
-      screen.getByRole('heading', { name: 'Audit history' }),
+      screen.getByRole('heading', { name: 'Activity history' }),
     ).toBeInTheDocument();
     expect(
       screen.queryByText('Loading instructor workspace'),

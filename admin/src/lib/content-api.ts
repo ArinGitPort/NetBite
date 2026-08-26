@@ -1,6 +1,14 @@
 import { supabase } from "./supabase";
 
-export type AdminRole = "editor" | "publisher";
+export interface AdminAccess {
+  userId: string;
+  authorized: boolean;
+}
+export interface SafeAdminError {
+  code: string;
+  message: string;
+  requestId?: string;
+}
 export type AdminView =
   | "dashboard"
   | "curriculum"
@@ -100,52 +108,83 @@ export interface ReleaseRow {
   published_at: string;
   rollback_of?: string;
 }
-export interface AuditRow {
+export interface SafeAuditEntry {
   id: number;
-  action: string;
-  entity_type: string;
-  entity_id: string;
-  detail: Record<string, unknown>;
-  created_at: string;
+  actionLabel: string;
+  contentLabel: string;
+  administratorName?: string;
+  summary: string;
+  occurredAt: string;
 }
 
 function client() {
   if (!supabase) throw new Error("Supabase is not configured.");
   return supabase;
 }
-function fail(error: { message: string } | null) {
-  if (error) throw new Error(error.message);
+export function mapAdminServiceError(value: unknown, fallback = "The action could not be completed."): SafeAdminError {
+  const candidate = value as { code?: string; message?: string; context?: { body?: { error?: SafeAdminError } }; error?: SafeAdminError } | undefined;
+  const structured = candidate?.context?.body?.error ?? candidate?.error;
+  const approvedMessages: Record<string, string> = {
+    AUTH_REQUIRED: "Sign in to continue.",
+    ADMIN_REQUIRED: "This account does not have administrator access.",
+    METHOD_NOT_ALLOWED: "This request is not supported.",
+    CHANGELOG_REQUIRED: "Describe what changed before publishing.",
+    INVALID_APP_VERSION: "Use an Android app version such as 1.0.0.",
+    REQUEST_ID_REQUIRED: "Start a new publish request and try again.",
+    VALIDATION_FAILED: "Resolve the listed content issues before publishing.",
+    INVALID_RESTORE_REQUEST: "Choose a published version and try again.",
+    RELEASE_NOT_FOUND: "That published version is no longer available.",
+    ADMIN_SERVICE_ERROR: "The service could not complete the request. Try again.",
+  };
+  if (structured?.code && approvedMessages[structured.code]) {
+    return {
+      code: structured.code,
+      message: approvedMessages[structured.code],
+      ...(structured.requestId ? { requestId: structured.requestId } : {}),
+    };
+  }
+  const code = candidate?.code ?? "SERVICE_UNAVAILABLE";
+  if (code === "23505") return { code, message: "That record already exists. Use a different permanent code or position." };
+  if (code === "42501" || code === "PGRST301") return { code, message: "Your administrator access could not be verified. Sign in again." };
+  return { code, message: fallback };
 }
 
-export async function getRoles(userId: string) {
+function fail(error: unknown, fallback?: string) {
+  if (error) {
+    const safe = mapAdminServiceError(error, fallback);
+    throw Object.assign(new Error(safe.message), safe);
+  }
+}
+
+export async function getAdminAccess(userId: string): Promise<AdminAccess> {
   const { data, error } = await client()
-    .from("content_admin_roles")
-    .select("role")
+    .from("content_admins")
+    .select("user_id")
     .eq("user_id", userId);
-  fail(error);
-  return (data ?? []).map(({ role }) => role as AdminRole);
+  fail(error, "Administrator access could not be verified.");
+  return { userId, authorized: Boolean(data?.length) };
 }
 export async function getCurriculum() {
   const [courses, chapters, lessons, quiz, flashcards] = await Promise.all([
-    client().from("content_courses").select("*").order("position"),
+    client().from("content_courses").select("id,position,definition").order("position"),
     client()
       .from("content_chapters")
-      .select("*")
+      .select("id,course_id,position,definition")
       .order("course_id")
       .order("position"),
     client()
       .from("content_lessons")
-      .select("*")
+      .select("id,chapter_id,position,requirement,draft,archived,updated_at")
       .order("chapter_id")
       .order("position"),
     client()
       .from("content_quiz_questions")
-      .select("*")
+      .select("id,chapter_id,lesson_id,position,draft,archived")
       .order("chapter_id")
       .order("position"),
     client()
       .from("content_flashcards")
-      .select("*")
+      .select("id,chapter_id,lesson_id,position,draft,archived")
       .order("chapter_id")
       .order("position"),
   ]);
@@ -165,7 +204,6 @@ export async function createLesson(
   id: string,
   position: number,
   illustration: string,
-  userId: string,
 ) {
   const draft: LessonDraft = {
     id,
@@ -186,12 +224,10 @@ export async function createLesson(
       position,
       requirement: "supplemental",
       draft,
-      created_by: userId,
-      updated_by: userId,
     });
   fail(error);
 }
-export async function saveLesson(row: LessonRow, userId: string) {
+export async function saveLesson(row: LessonRow) {
   const { error } = await client()
     .from("content_lessons")
     .update({
@@ -201,7 +237,6 @@ export async function saveLesson(row: LessonRow, userId: string) {
         chapterId: row.chapter_id,
         order: row.position,
       },
-      updated_by: userId,
     })
     .eq("id", row.id);
   fail(error);
@@ -209,18 +244,17 @@ export async function saveLesson(row: LessonRow, userId: string) {
 export async function setLessonArchived(
   id: string,
   archived: boolean,
-  userId: string,
 ) {
   const { error } = await client()
     .from("content_lessons")
-    .update({ archived, updated_by: userId })
+    .update({ archived })
     .eq("id", id);
   fail(error);
 }
-export async function saveQuiz(row: QuizRow, userId: string) {
+export async function saveQuiz(row: QuizRow) {
   const { error } = await client()
     .from("content_quiz_questions")
-    .update({ lesson_id: row.lesson_id, draft: row.draft, updated_by: userId })
+    .update({ lesson_id: row.lesson_id, draft: row.draft })
     .eq("id", row.id);
   fail(error);
 }
@@ -228,7 +262,6 @@ export async function createQuiz(
   chapterId: string,
   lessonId: string,
   position: number,
-  userId: string,
 ) {
   const id = `remote-quiz-${crypto.randomUUID()}`;
   const draft = {
@@ -247,14 +280,13 @@ export async function createQuiz(
       lesson_id: lessonId,
       position,
       draft,
-      updated_by: userId,
     });
   fail(error);
 }
-export async function saveFlashcard(row: FlashcardRow, userId: string) {
+export async function saveFlashcard(row: FlashcardRow) {
   const { error } = await client()
     .from("content_flashcards")
-    .update({ lesson_id: row.lesson_id, draft: row.draft, updated_by: userId })
+    .update({ lesson_id: row.lesson_id, draft: row.draft })
     .eq("id", row.id);
   fail(error);
 }
@@ -269,7 +301,6 @@ export async function createFlashcard(
   chapterId: string,
   lessonId: string,
   position: number,
-  userId: string,
 ) {
   const id = `remote-card-${crypto.randomUUID()}`;
   const draft = {
@@ -287,7 +318,6 @@ export async function createFlashcard(
       lesson_id: lessonId,
       position,
       draft,
-      updated_by: userId,
     });
   fail(error);
 }
@@ -301,18 +331,39 @@ export async function deleteAssessment(
 export async function getSources() {
   const { data, error } = await client()
     .from("content_sources")
-    .select("*")
+    .select("id,lesson_id,label,url,notes")
     .order("created_at", { ascending: false });
   fail(error);
   return (data ?? []) as SourceRow[];
 }
-export async function saveSource(source: Partial<SourceRow>, userId: string) {
+export async function saveSource(source: Partial<SourceRow>) {
+  const rawUrl = source.url?.trim() ?? "";
+  let parsedUrl: URL;
+  try {
+    parsedUrl = new URL(rawUrl);
+  } catch {
+    throw new Error("Enter a complete HTTPS source address.");
+  }
+  const host = parsedUrl.hostname.toLowerCase();
+  if (
+    parsedUrl.protocol !== "https:" ||
+    parsedUrl.username ||
+    parsedUrl.password ||
+    host === "localhost" ||
+    host === "::1" ||
+    /^127\./.test(host) ||
+    /^10\./.test(host) ||
+    /^192\.168\./.test(host) ||
+    /^169\.254\./.test(host) ||
+    /^172\.(1[6-9]|2\d|3[01])\./.test(host)
+  ) {
+    throw new Error("Use a public HTTPS source address without embedded credentials.");
+  }
   const payload = {
     lesson_id: source.lesson_id || null,
     label: source.label?.trim(),
-    url: source.url?.trim(),
+    url: parsedUrl.toString(),
     notes: source.notes ?? "",
-    updated_by: userId,
   };
   const query = source.id
     ? client().from("content_sources").update(payload).eq("id", source.id)
@@ -330,11 +381,11 @@ export async function deleteSource(id: string) {
 export async function getAssets() {
   const { data, error } = await client()
     .from("content_assets")
-    .select("*")
+    .select("id,lesson_id,object_path,mime_type,byte_size,width,height,alt_text,published")
     .order("created_at", { ascending: false });
   fail(error);
   return Promise.all(((data ?? []) as AssetRow[]).map(async (asset) => {
-    const { data: signed } = await client().storage.from("netbite-content").createSignedUrl(asset.object_path, 3600);
+    const { data: signed } = await client().storage.from("netbite-content").createSignedUrl(asset.object_path, 300);
     return { ...asset, preview_url: signed?.signedUrl };
   }));
 }
@@ -342,7 +393,6 @@ export async function uploadAsset(
   file: File,
   altText: string,
   dimensions: { width: number; height: number },
-  userId: string,
   lessonId?: string,
 ) {
   const extension = file.name.split(".").pop()?.toLowerCase() ?? "bin";
@@ -361,9 +411,11 @@ export async function uploadAsset(
       width: dimensions.width,
       height: dimensions.height,
       alt_text: altText.trim(),
-      uploaded_by: userId,
     });
-  fail(error);
+  if (error) {
+    await client().storage.from("netbite-content").remove([path]);
+    fail(error, "The image details could not be saved. The upload was removed safely.");
+  }
 }
 export async function deleteAsset(asset: AssetRow) {
   const { error: storageError } = await client()
@@ -384,20 +436,21 @@ export async function validateRelease() {
   fail(error);
   return data as {
     valid: boolean;
-    issues: Array<{ path: string; message: string }>;
+    issues: Array<{ area: string; message: string }>;
     totals: Record<string, number>;
   };
 }
 export async function publishRelease(
   changelog: string,
   minimumAppVersion: string,
+  requestId: string,
 ) {
   const { data, error } = await client().functions.invoke(
     "publish-content-release",
-    { body: { changelog, minimumAppVersion } },
+    { body: { changelog, minimumAppVersion, requestId } },
   );
   fail(error);
-  if (data?.error) throw new Error(data.error);
+  if (data?.error) fail(data.error, "The curriculum could not be published.");
   return data;
 }
 export async function getReleases() {
@@ -410,21 +463,25 @@ export async function getReleases() {
   fail(error);
   return (data ?? []) as ReleaseRow[];
 }
-export async function rollbackRelease(releaseId: string) {
+export async function rollbackRelease(releaseId: string, requestId: string) {
   const { data, error } = await client().functions.invoke(
     "rollback-content-release",
-    { body: { releaseId } },
+    { body: { releaseId, requestId } },
   );
   fail(error);
-  if (data?.error) throw new Error(data.error);
+  if (data?.error) fail(data.error, "The previous version could not be restored.");
   return data;
 }
-export async function getAuditLog() {
+export async function getSanitizedAuditHistory() {
   const { data, error } = await client()
-    .from("content_audit_log")
-    .select("*")
-    .order("created_at", { ascending: false })
-    .limit(100);
-  fail(error);
-  return (data ?? []) as AuditRow[];
+    .rpc("get_sanitized_content_audit", { requested_limit: 100 });
+  fail(error, "Activity history could not be loaded.");
+  return (data ?? []).map((row: Record<string, unknown>) => ({
+    id: Number(row.id),
+    actionLabel: String(row.action_label),
+    contentLabel: String(row.content_label),
+    administratorName: row.administrator_name ? String(row.administrator_name) : undefined,
+    summary: String(row.summary),
+    occurredAt: String(row.occurred_at),
+  })) as SafeAuditEntry[];
 }
