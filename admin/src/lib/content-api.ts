@@ -3,6 +3,7 @@ import { supabase } from "./supabase";
 export interface AdminAccess {
   userId: string;
   authorized: boolean;
+  accessLevel: "administrator" | "instructor" | "none";
 }
 export interface SafeAdminError {
   code: string;
@@ -16,7 +17,71 @@ export type AdminView =
   | "sources"
   | "assets"
   | "releases"
-  | "audit";
+  | "audit"
+  | "workshops"
+  | "classes"
+  | "workshop-assessments"
+  | "gradebook"
+  | "instructors";
+
+export interface WorkshopRow {
+  id: string;
+  title: string;
+  description: string;
+  archived: boolean;
+  current_version_id?: string;
+  updated_at: string;
+}
+export interface WorkshopLessonRow {
+  id: string;
+  workshop_id: string;
+  stable_id: string;
+  position: number;
+  draft: Record<string, unknown>;
+  archived: boolean;
+}
+export interface WorkshopTopologyRow {
+  id: string;
+  workshop_id: string;
+  stable_id: string;
+  definition: Record<string, unknown>;
+}
+export interface WorkshopAssessmentRow {
+  id: string;
+  workshop_id: string;
+  stable_id: string;
+  title: string;
+  mode: "practice" | "graded";
+  draft: Record<string, unknown>;
+  settings: Record<string, unknown>;
+  archived: boolean;
+}
+export interface WorkshopClassRow {
+  id: string;
+  workshop_id: string;
+  version_id: string;
+  title: string;
+  join_code: string;
+  archived: boolean;
+  join_enabled: boolean;
+  created_at: string;
+}
+export interface InstructorRequestRow {
+  user_id: string;
+  display_name: string;
+  institution: string;
+  reason: string;
+  status: "pending" | "approved" | "declined" | "revoked";
+  requested_at: string;
+  reviewed_at?: string;
+}
+export interface WorkshopVersionRow {
+  id: string;
+  workshop_id: string;
+  version: number;
+  checksum: string;
+  published_at: string;
+}
 export interface CourseRow {
   id: string;
   position: number;
@@ -157,12 +222,153 @@ function fail(error: unknown, fallback?: string) {
 }
 
 export async function getAdminAccess(userId: string): Promise<AdminAccess> {
-  const { data, error } = await client()
+  const [{ data: administrators, error: adminError }, { data: instructors, error: instructorError }] = await Promise.all([
+    client()
     .from("content_admins")
     .select("user_id")
-    .eq("user_id", userId);
-  fail(error, "Administrator access could not be verified.");
-  return { userId, authorized: Boolean(data?.length) };
+    .eq("user_id", userId),
+    client().from("instructors").select("user_id").eq("user_id", userId).is("revoked_at", null),
+  ]);
+  fail(adminError ?? instructorError, "Portal access could not be verified.");
+  const accessLevel = administrators?.length ? "administrator" : instructors?.length ? "instructor" : "none";
+  return { userId, authorized: accessLevel !== "none", accessLevel };
+}
+
+export async function getWorkshops() {
+  const { data, error } = await client().from("workshops")
+    .select("id,title,description,archived,current_version_id,updated_at")
+    .order("updated_at", { ascending: false });
+  fail(error, "Workshops could not be loaded.");
+  return (data ?? []) as WorkshopRow[];
+}
+
+export async function createWorkshop(title: string, description: string) {
+  const { data, error } = await client().from("workshops")
+    .insert({ title: title.trim(), description: description.trim() })
+    .select("id,title,description,archived,current_version_id,updated_at").single();
+  fail(error, "The workshop could not be created.");
+  return data as WorkshopRow;
+}
+
+export async function saveWorkshop(workshop: WorkshopRow) {
+  const { data, error } = await client().from("workshops").update({
+    title: workshop.title.trim(), description: workshop.description.trim(), archived: workshop.archived,
+  }).eq("id", workshop.id)
+    .select("id,title,description,archived,current_version_id,updated_at")
+    .single();
+  fail(error, "The workshop could not be saved.");
+  return data as WorkshopRow;
+}
+
+export async function deleteWorkshop(workshopId: string) {
+  const { data, error } = await client().from("workshops")
+    .delete()
+    .eq("id", workshopId)
+    .select("id")
+    .single();
+  fail(error, "This workshop could not be deleted. Archive it if students or published versions depend on it.");
+  if (!data?.id) throw new Error("The workshop deletion could not be confirmed.");
+  return data.id as string;
+}
+export async function getWorkshopVersions(workshopId: string) {
+  const { data, error } = await client().from("workshop_versions")
+    .select("id,workshop_id,version,checksum,published_at").eq("workshop_id", workshopId).order("version", { ascending: false });
+  fail(error, "Workshop version history could not be loaded.");
+  return (data ?? []) as WorkshopVersionRow[];
+}
+
+export async function getWorkshopContent(workshopId: string) {
+  const [lessons, topologies, assessments, flashcards] = await Promise.all([
+    client().from("workshop_lessons").select("id,workshop_id,stable_id,position,draft,archived").eq("workshop_id", workshopId).order("position"),
+    client().from("workshop_topologies").select("id,workshop_id,stable_id,definition").eq("workshop_id", workshopId).order("stable_id"),
+    client().from("workshop_assessments").select("id,workshop_id,stable_id,title,mode,draft,settings,archived").eq("workshop_id", workshopId).order("stable_id"),
+    client().from("workshop_flashcards").select("*").eq("workshop_id", workshopId).order("position"),
+  ]);
+  fail(lessons.error ?? topologies.error ?? assessments.error ?? flashcards.error, "Workshop content could not be loaded.");
+  return {
+    lessons: (lessons.data ?? []) as WorkshopLessonRow[],
+    topologies: (topologies.data ?? []) as WorkshopTopologyRow[],
+    assessments: (assessments.data ?? []) as WorkshopAssessmentRow[],
+    flashcards: flashcards.data ?? [],
+  };
+}
+
+export async function createWorkshopLesson(workshopId: string, position: number) {
+  const stableId = `lesson-${crypto.randomUUID()}`;
+  const { data, error } = await client().from("workshop_lessons").insert({
+    workshop_id: workshopId, stable_id: stableId, position,
+    draft: { id: stableId, title: "New lesson", summary: "", blocks: [] },
+  }).select("id,workshop_id,stable_id,position,draft,archived").single();
+  fail(error, "The lesson could not be added.");
+  return data as WorkshopLessonRow;
+}
+
+export async function saveWorkshopLesson(row: WorkshopLessonRow) {
+  const { error } = await client().from("workshop_lessons").update({ draft: row.draft, archived: row.archived }).eq("id", row.id);
+  fail(error, "The lesson could not be saved.");
+}
+
+export async function saveWorkshopTopology(row: WorkshopTopologyRow) {
+  const payload = { workshop_id: row.workshop_id, stable_id: row.stable_id, definition: row.definition };
+  const { data, error } = row.id
+    ? await client().from("workshop_topologies").update(payload).eq("id", row.id).select("id,workshop_id,stable_id,definition").single()
+    : await client().from("workshop_topologies").insert(payload).select("id,workshop_id,stable_id,definition").single();
+  fail(error, "The topology could not be saved.");
+  return data as WorkshopTopologyRow;
+}
+
+export async function createWorkshopAssessment(workshopId: string, mode: "practice" | "graded") {
+  const stableId = `assessment-${crypto.randomUUID()}`;
+  const { data, error } = await client().from("workshop_assessments").insert({
+    workshop_id: workshopId, stable_id: stableId, title: "New assessment", mode,
+    draft: { instructions: "Answer every question.", questions: [] },
+    settings: mode === "graded" ? { maximumAttempts: 1, gradePolicy: "highest", passingPercentage: 80, feedbackRelease: "final-attempt", shuffleQuestions: false, shuffleAnswers: false } : {},
+  }).select("id,workshop_id,stable_id,title,mode,draft,settings,archived").single();
+  fail(error, "The assessment could not be added.");
+  return data as WorkshopAssessmentRow;
+}
+
+export async function saveWorkshopAssessment(row: WorkshopAssessmentRow) {
+  const { error } = await client().from("workshop_assessments").update({ title: row.title, mode: row.mode, draft: row.draft, settings: row.settings, archived: row.archived }).eq("id", row.id);
+  fail(error, "The assessment could not be saved.");
+}
+
+async function workshopAction(body: Record<string, unknown>) {
+  const { data, error } = await client().functions.invoke("workshop-service", { body });
+  fail(error, "The workshop service is unavailable.");
+  if (data?.error) fail(data.error, "The workshop request could not be completed.");
+  return data;
+}
+
+export function publishWorkshop(workshopId: string) {
+  return workshopAction({ action: "publish", workshopId, requestId: crypto.randomUUID() });
+}
+export function createWorkshopClass(workshopId: string, title: string) {
+  return workshopAction({ action: "create-class", workshopId, title });
+}
+export async function getWorkshopClasses() {
+  const { data, error } = await client().from("workshop_classes")
+    .select("id,workshop_id,version_id,title,join_code,archived,join_enabled,created_at").order("created_at", { ascending: false });
+  fail(error, "Classes could not be loaded.");
+  return (data ?? []) as WorkshopClassRow[];
+}
+export async function setWorkshopClassEnrollment(classId: string, enabled: boolean) {
+  const { error } = await client().from("workshop_classes").update({ join_enabled: enabled }).eq("id", classId);
+  fail(error, "Class enrollment could not be updated.");
+}
+export function getWorkshopGradebook(classId: string) {
+  return workshopAction({ action: "gradebook", classId }) as Promise<{ rows: Array<Record<string, unknown>> }>;
+}
+export async function getInstructorRequests() {
+  const { data, error } = await client().from("instructor_requests")
+    .select("user_id,display_name,institution,reason,status,requested_at,reviewed_at")
+    .order("requested_at", { ascending: false });
+  fail(error, "Instructor requests could not be loaded.");
+  return (data ?? []) as InstructorRequestRow[];
+}
+export async function reviewInstructorRequest(userId: string, decision: "approved" | "declined" | "revoked") {
+  const { error } = await client().rpc("review_instructor_request", { p_user_id: userId, p_decision: decision });
+  fail(error, "The instructor request could not be updated.");
 }
 export async function getCurriculum() {
   const [courses, chapters, lessons, quiz, flashcards] = await Promise.all([

@@ -32,6 +32,7 @@ import { useResearchStore } from '@/store/use-research-store';
 import { useOperationsLabStore } from '@/store/use-operations-lab-store';
 import { useProtocolLabStore } from '@/store/use-protocol-lab-store';
 import { useStandardsStore } from '@/store/use-standards-store';
+import { useWorkshopStore } from '@/store/use-workshop-store';
 
 SplashScreen.preventAutoHideAsync();
 if (!isRunningInExpoGo()) SplashScreen.setOptions({ duration: 450, fade: true });
@@ -73,6 +74,7 @@ export default function RootLayout() {
         { id: 'operations-labs', hydrate: useOperationsLabStore.persist.rehydrate, hasHydrated: useOperationsLabStore.persist.hasHydrated },
         { id: 'protocol-labs', hydrate: useProtocolLabStore.persist.rehydrate, hasHydrated: useProtocolLabStore.persist.hasHydrated },
         { id: 'standards', hydrate: useStandardsStore.persist.rehydrate, hasHydrated: useStandardsStore.persist.hasHydrated },
+        { id: 'workshops', hydrate: useWorkshopStore.persist.rehydrate, hasHydrated: useWorkshopStore.persist.hasHydrated },
       ]);
       if (!active) return;
       if (result.status === 'failed') {
@@ -112,9 +114,10 @@ async function preserveRecoveryCopy() {
     operationsLabs: await gameStorage.getItem('netbite-operations-labs-v1'),
     protocolLabs: await gameStorage.getItem('netbite-protocol-labs-v1'),
     standards: await gameStorage.getItem('netbite-standards-cache-v1'),
+    workshops: await gameStorage.getItem('netbite-workshops-v1'),
   };
   await gameStorage.setItem(`netbite-recovery-${Date.now()}`, JSON.stringify(recovery));
-  await Promise.all([useGameStore.persist.clearStorage(), useSandboxStore.persist.clearStorage(), usePresentationStore.persist.clearStorage(), useResearchStore.persist.clearStorage(), useOperationsLabStore.persist.clearStorage(), useProtocolLabStore.persist.clearStorage(), useStandardsStore.persist.clearStorage()]);
+  await Promise.all([useGameStore.persist.clearStorage(), useSandboxStore.persist.clearStorage(), usePresentationStore.persist.clearStorage(), useResearchStore.persist.clearStorage(), useOperationsLabStore.persist.clearStorage(), useProtocolLabStore.persist.clearStorage(), useStandardsStore.persist.clearStorage(), useWorkshopStore.persist.clearStorage()]);
   useGameStore.getState().resetLearningProgress();
   useGameStore.getState().resetLab();
   useSandboxStore.setState({ workspace: createEmptySandboxWorkspace(), guideSeen: false, past: [], future: [] });
@@ -123,6 +126,7 @@ async function preserveRecoveryCopy() {
   useOperationsLabStore.setState({ sessions: {}, history: {} });
   useProtocolLabStore.setState({ sessions: {}, history: {} });
   useStandardsStore.setState({ cache: {} });
+  useWorkshopStore.getState().clearWorkshops();
 }
 
 export function ErrorBoundary({ retry, error }: ErrorBoundaryProps) {

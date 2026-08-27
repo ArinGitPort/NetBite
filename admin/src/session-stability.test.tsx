@@ -23,7 +23,7 @@ const authHarness = vi.hoisted(() => ({
 }));
 
 const apiHarness = vi.hoisted(() => ({
-  getAdminAccess: vi.fn(async (userId: string) => ({ userId, authorized: true })),
+  getAdminAccess: vi.fn(async (userId: string) => ({ userId, authorized: true, accessLevel: 'administrator' as const })),
   getSanitizedAuditHistory: vi.fn(async () => []),
   getCurriculum: vi.fn(async () => ({
     courses: [
@@ -168,8 +168,8 @@ describe('admin session stability', () => {
   test('uses a focused assessment navigator with an alternate all-items view', async () => {
     render(<App />);
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Assessments' }));
-    expect(await screen.findByRole('button', { name: 'FOCUSED' })).toHaveClass('active');
+    fireEvent.click(await screen.findByRole('link', { name: 'Assessments' }));
+    expect(await screen.findByRole('button', { name: 'FOCUSED' })).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getAllByLabelText('Scenario question')).toHaveLength(1);
     expect(screen.getByRole('button', { name: 'SAVE CHANGES' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Delete quiz question' })).toHaveTextContent(
@@ -188,7 +188,7 @@ describe('admin session stability', () => {
   test('shows one expanded course at a time in curriculum authoring', async () => {
     render(<App />);
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Curriculum' }));
+    fireEvent.click(await screen.findByRole('link', { name: 'Curriculum' }));
     const foundations = await screen.findByRole('button', {
       name: /Network Foundations.*1 chapters/i,
     });

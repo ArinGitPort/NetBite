@@ -13,6 +13,8 @@ import { createSessionFromUrl, isCloudConfigured, supabase } from '@/services/su
 import { useGameStore } from '@/store/use-game-store';
 import { usePresentationStore } from '@/store/use-presentation-store';
 import { useResearchStore } from '@/store/use-research-store';
+import type { MobileAccountRole } from '@/core/workshops/types';
+import { fetchMobileAccountRole } from '@/core/workshops/workshop-service';
 
 type AuthStatus = 'loading' | 'guest' | 'authenticated';
 interface MergeRequest { local: CloudProgressSnapshot; cloud: CloudProgressSnapshot; userId: string }
@@ -22,6 +24,7 @@ interface AuthContextValue {
   configured: boolean;
   accountEntryResolved: boolean;
   user?: User;
+  accountRole: MobileAccountRole;
   profile?: UserProfile;
   entitlement?: Entitlement;
   hasPro: boolean;
@@ -93,6 +96,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const localSessionActive = presentationActive || researchActive;
   const [status, setStatus] = useState<AuthStatus>(isCloudConfigured ? 'loading' : 'guest');
   const [session, setSession] = useState<Session>();
+  const [accountRole, setAccountRole] = useState<MobileAccountRole>('student');
   const [profile, setProfile] = useState<UserProfile>();
   const [entitlement, setEntitlement] = useState<Entitlement>();
   const [syncStatus, setSyncStatus] = useState<SyncStatus>('local');
@@ -137,6 +141,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     markAccountEntryResolved();
     setSession(nextSession);
     setStatus('authenticated');
+    void fetchMobileAccountRole().then(setAccountRole);
     setSyncStatus('syncing');
     setError(undefined);
     try {
@@ -203,6 +208,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       if (nextSession && nextSession.user.id !== session?.user.id) void loadSession(nextSession);
       if (!nextSession) {
         setSession(undefined);
+        setAccountRole('student');
         setProfile(undefined);
         setEntitlement(undefined);
         setMergeRequest(undefined);
@@ -396,6 +402,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     configured: isCloudConfigured,
     accountEntryResolved,
     user: session?.user,
+    accountRole,
     profile,
     entitlement,
     hasPro,

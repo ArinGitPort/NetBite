@@ -1,0 +1,96 @@
+@layer base {
+  * {
+    box-sizing: border-box;
+    scrollbar-color: var(--color-raised) var(--color-canvas);
+    scrollbar-width: thin;
+  }
+
+  *::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: var(--color-canvas);
+  }
+
+  *::-webkit-scrollbar-thumb {
+    min-height: 44px;
+    border: 2px solid var(--color-canvas);
+    border-radius: 999px;
+    background: var(--color-raised);
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background: var(--color-line);
+  }
+
+  *::-webkit-scrollbar-thumb:active {
+    background: var(--color-signal-orange);
+  }
+
+  *::-webkit-scrollbar-corner {
+    background: var(--color-canvas);
+  }
+
+  html {
+    min-width: 320px;
+    color-scheme: dark;
+  }
+
+  body {
+    min-height: 100vh;
+    margin: 0;
+    background-color: var(--color-canvas);
+    color: var(--color-copy);
+    font-family: var(--font-sans);
+    background-image: var(--nb-grid);
+    background-size: 32px 32px;
+  }
+
+  button,
+  input,
+  textarea,
+  select {
+    font: inherit;
+  }
+
+  button,
+  a {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  h1,
+  h2,
+  h3,
+  p {
+    margin-top: 0;
+  }
+
+  input,
+  textarea,
+  select {
+    @apply min-h-11 w-full rounded-control border border-line bg-canvas px-3 py-2.5 text-sm text-copy outline-none transition-colors placeholder:text-muted/70;
+    @apply hover:border-muted focus:border-signal-orange focus:ring-2 focus:ring-signal-orange/15;
+  }
+
+  textarea {
+    @apply min-h-[92px] resize-y leading-6;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-signal-orange);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      scroll-behavior: auto !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}

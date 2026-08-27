@@ -4,6 +4,14 @@ The instructor portal is a separate React website for approved NetBite administr
 
 The visual and language standards are documented in [`ADMIN_WEB_UX_STANDARD.md`](./ADMIN_WEB_UX_STANDARD.md).
 
+Instructor-created class material is documented separately in [`INSTRUCTOR_WORKSHOPS.md`](./INSTRUCTOR_WORKSHOPS.md). The same website hosts both tools, but their permissions and data remain separate:
+
+- approved instructors manage only their own workshops and classes;
+- administrators manage official NetBite curriculum and approve instructors;
+- publishing a workshop never changes an official course release.
+
+The portal sections **My Workshops**, **Classes**, **Workshop Assessments**, and **Gradebook** provide structured lesson authoring, read-only topology composition, private enrollment, and recorded assessment results. Android instructors can monitor and share; full editing remains on this website.
+
 ## Security boundary
 
 - Only accounts listed in `public.content_admins` may open curriculum drafts.

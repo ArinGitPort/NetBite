@@ -1,4 +1,4 @@
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
@@ -14,6 +14,7 @@ import { AppRoutes } from '@/shared/routes';
 import { Fonts, Palette, Space } from '@/shared/theme';
 
 export default function SignInScreen() {
+  const params = useLocalSearchParams<{ returnTo?: string; code?: string }>();
   const { configured, signInEmail, signInGoogle } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -24,7 +25,9 @@ export default function SignInScreen() {
     setBusy(true); setMessage(undefined);
     const next = await action();
     setBusy(false);
-    if (next) setMessage(next); else router.replace('/');
+    if (next) setMessage(next);
+    else if (params.returnTo === '/workshops/join') router.replace({ pathname: '/workshops/join', params: { code: params.code ?? '' } });
+    else router.replace('/');
   };
   return <Screen header={<PageHeader leading={{ accessibilityLabel: 'Back to account options', icon: 'arrow-left', label: 'BACK', onPress: () => goBackOrReplace(AppRoutes.authWelcome) }} />}>
     <View style={styles.header}><Text variant="label" style={styles.eyebrow}>RETURNING LEARNER</Text><Text variant="screenTitle" style={styles.title}>SIGN IN</Text><Text variant="bodySmall">Back up progress, use it across devices, and restore account access.</Text></View>

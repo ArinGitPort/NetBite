@@ -22,7 +22,15 @@ export const AppRoutes = {
   standards: '/standards' as Href,
   guide: '/guide' as Href,
   research: '/research' as Href,
+  workshops: '/workshops' as Href,
+  workshopJoin: '/workshops/join' as Href,
+  instructor: '/instructor' as Href,
+  instructorRequest: '/instructor-request' as Href,
 };
+
+export const workshopRoute = (classId: string) => ({ pathname: '/workshops/[classId]', params: { classId } }) as Href;
+export const workshopLessonRoute = (classId: string, lessonId: string) => ({ pathname: '/workshops/lesson/[classId]/[lessonId]', params: { classId, lessonId } }) as Href;
+export const workshopAssessmentRoute = (classId: string, assessmentId: string) => ({ pathname: '/workshops/assessment/[classId]/[assessmentId]', params: { classId, assessmentId } }) as Href;
 
 export const chapterRoute = (chapterId: string) => ({ pathname: '/chapter/[chapterId]', params: { chapterId } }) as Href;
 export const lessonRoute = (lessonId: string, options?: { fromLabId?: string }) => ({

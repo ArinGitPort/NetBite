@@ -21,7 +21,7 @@ import { useSandboxStore } from '@/store/use-sandbox-store';
 import { useResearchStore } from '@/store/use-research-store';
 
 export default function MainMenuScreen() {
-  const { status, profile, hasPro, hasContentAccess, testProEnabled, presentationActive, syncStatus, accountEntryResolved } = useAuth();
+  const { status, profile, accountRole, hasPro, hasContentAccess, testProEnabled, presentationActive, syncStatus, accountEntryResolved } = useAuth();
   const completedLessonIds = useGameStore((state) => state.completedLessonIds);
   const completedLabIds = useGameStore((state) => state.completedLabIds);
   const quizScores = useGameStore((state) => state.quizScores);
@@ -107,6 +107,16 @@ export default function MainMenuScreen() {
           title="NETWORK SANDBOX"
           tone="sandbox"
           onPress={() => navigateOnce(hasContentAccess ? '/sandbox' : AppRoutes.pro)}
+        />
+
+        <Text variant="label" style={styles.groupLabel}>INSTRUCTOR-LED LEARNING</Text>
+        <ActionCard
+          detail={status === 'authenticated' ? 'Open private classes, saved lessons, and instructor assessments.' : 'Sign in to join a private class with a code or link.'}
+          icon="learn"
+          priority="utility"
+          status={accountRole === 'instructor' ? 'STUDENT & INSTRUCTOR ACCESS' : status === 'authenticated' ? 'PRIVATE CLASSES' : 'ACCOUNT REQUIRED'}
+          title="MY CLASSES"
+          onPress={() => navigateOnce(status === 'authenticated' ? AppRoutes.workshops : AppRoutes.auth)}
         />
 
         <Text variant="label" style={styles.groupLabel}>ACCOUNT & APP</Text>

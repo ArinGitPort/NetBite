@@ -15,3 +15,6 @@ verify_jwt = true
 
 [functions.rollback-content-release]
 verify_jwt = true
+
+[functions.workshop-service]
+verify_jwt = true

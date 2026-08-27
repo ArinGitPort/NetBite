@@ -10,8 +10,10 @@ const mockSignInEmail = jest.fn();
 const mockSignInGoogle = jest.fn();
 const mockRegisterEmail = jest.fn();
 let mockConfigured = true;
+let mockSearchParams: { returnTo?: string; code?: string } = {};
 
 jest.mock('expo-router', () => ({
+  useLocalSearchParams: () => mockSearchParams,
   router: {
     back: (...args: unknown[]) => mockBack(...args),
     push: (...args: unknown[]) => mockPush(...args),
@@ -37,6 +39,7 @@ describe('account authentication screens', () => {
     mockSignInGoogle.mockReset();
     mockRegisterEmail.mockReset();
     mockConfigured = true;
+    mockSearchParams = {};
   });
 
   test('keeps the sign-in form visible and explains invalid credentials', async () => {
@@ -59,6 +62,17 @@ describe('account authentication screens', () => {
 
     expect(mockSignInGoogle).toHaveBeenCalledTimes(1);
     expect(mockReplace).toHaveBeenCalledWith('/');
+  });
+
+  test('returns to a class join link after email sign-in', async () => {
+    mockSearchParams = { returnTo: '/workshops/join', code: 'ABC234XY' };
+    mockSignInEmail.mockResolvedValue(undefined);
+    const screen = await render(<SignInScreen />);
+    await fireEvent.changeText(screen.getByLabelText('EMAIL'), 'learner@example.com');
+    await fireEvent.changeText(screen.getByLabelText('PASSWORD'), 'networking123');
+    await fireEvent.press(screen.getByText('Sign in'));
+
+    expect(mockReplace).toHaveBeenCalledWith({ pathname: '/workshops/join', params: { code: 'ABC234XY' } });
   });
 
   test('shows verification guidance and a return-to-sign-in action', async () => {

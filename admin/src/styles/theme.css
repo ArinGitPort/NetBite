@@ -1,0 +1,27 @@
+@theme {
+  --font-sans: "Inter", system-ui, sans-serif;
+  --font-mono: "Fira Code", ui-monospace, monospace;
+
+  --color-canvas: #100e11;
+  --color-sidebar: #151216;
+  --color-surface: #1d171e;
+  --color-raised: #28212b;
+  --color-line: #443a46;
+  --color-copy: #e9e5e7;
+  --color-muted: #a49ca5;
+  --color-signal-red: #e04f56;
+  --color-signal-orange: #db9258;
+  --color-signal-green: #73a99b;
+  --color-signal-red-soft: #3a171b;
+  --color-signal-orange-soft: #3a2518;
+  --color-signal-green-soft: #1a302b;
+
+  --radius-control: 8px;
+  --radius-panel: 12px;
+  --shadow-panel: 0 18px 45px rgb(0 0 0 / 28%);
+}
+
+:root {
+  --nb-grid: linear-gradient(rgb(255 255 255 / 2.5%) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(255 255 255 / 2.5%) 1px, transparent 1px);
+}
