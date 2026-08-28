@@ -1,21 +1,29 @@
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
 const authHarness = vi.hoisted(() => ({
-  callback: undefined as undefined | ((event: string, session: unknown) => void),
+  callback: undefined as
+    undefined | ((event: string, session: unknown) => void),
   currentSession: null as unknown,
   session: {
-    access_token: 'access-token',
-    refresh_token: 'refresh-token',
+    access_token: "access-token",
+    refresh_token: "refresh-token",
     expires_in: 3600,
-    token_type: 'bearer',
+    token_type: "bearer",
     user: {
-      id: 'instructor-1',
-      email: 'instructor@netbite.local',
+      id: "instructor-1",
+      email: "instructor@netbite.local",
       app_metadata: {},
       user_metadata: {},
-      aud: 'authenticated',
-      created_at: '2026-08-24T00:00:00.000Z',
+      aud: "authenticated",
+      created_at: "2026-08-24T00:00:00.000Z",
     },
   },
   signOut: vi.fn(async () => ({ error: null })),
@@ -23,49 +31,72 @@ const authHarness = vi.hoisted(() => ({
 }));
 
 const apiHarness = vi.hoisted(() => ({
-  getAdminAccess: vi.fn(async (userId: string) => ({ userId, authorized: true, accessLevel: 'administrator' as const })),
+  getAdminAccess: vi.fn(async (userId: string) => ({
+    userId,
+    authorized: true,
+    accessLevel: "administrator" as const,
+  })),
   getSanitizedAuditHistory: vi.fn(async () => []),
   getCurriculum: vi.fn(async () => ({
     courses: [
-      { id: 'foundations', definition: { title: 'Network Foundations' } },
-      { id: 'operations', definition: { title: 'Network Operations' } },
+      { id: "foundations", definition: { title: "Network Foundations" } },
+      { id: "operations", definition: { title: "Network Operations" } },
     ],
     chapters: [
-      { id: '1', course_id: 'foundations', definition: { numberLabel: '01', title: 'Introduction to Networks' } },
-      { id: 'ops-01', course_id: 'operations', definition: { numberLabel: '01', title: 'Transport and Application Endpoints' } },
+      {
+        id: "1",
+        course_id: "foundations",
+        definition: { numberLabel: "01", title: "Introduction to Networks" },
+      },
+      {
+        id: "ops-01",
+        course_id: "operations",
+        definition: {
+          numberLabel: "01",
+          title: "Transport and Application Endpoints",
+        },
+      },
     ],
     lessons: [
       {
-        id: 'connecting-devices',
-        chapter_id: '1',
-        requirement: 'core',
+        id: "connecting-devices",
+        chapter_id: "1",
+        requirement: "core",
         archived: false,
-        draft: { title: 'What is a computer network?' },
+        draft: { title: "What is a computer network?" },
       },
     ],
     quiz: [
       {
-        id: 'q1',
-        chapter_id: '1',
-        lesson_id: 'connecting-devices',
+        id: "q1",
+        chapter_id: "1",
+        lesson_id: "connecting-devices",
         position: 1,
         draft: {
-          prompt: 'Which situation describes a computer network?',
-          answers: ['Connected devices', 'Disconnected devices', 'One application'],
+          prompt: "Which situation describes a computer network?",
+          answers: [
+            "Connected devices",
+            "Disconnected devices",
+            "One application",
+          ],
           correctAnswerIndex: 0,
-          explanation: 'Connected devices need a communication path.',
+          explanation: "Connected devices need a communication path.",
         },
       },
       {
-        id: 'q2',
-        chapter_id: '1',
-        lesson_id: 'connecting-devices',
+        id: "q2",
+        chapter_id: "1",
+        lesson_id: "connecting-devices",
         position: 2,
         draft: {
-          prompt: 'Why might a classroom build a network?',
-          answers: ['Share resources', 'Remove cables', 'Disable communication'],
+          prompt: "Why might a classroom build a network?",
+          answers: [
+            "Share resources",
+            "Remove cables",
+            "Disable communication",
+          ],
           correctAnswerIndex: 0,
-          explanation: 'Networks let devices share resources.',
+          explanation: "Networks let devices share resources.",
         },
       },
     ],
@@ -73,11 +104,13 @@ const apiHarness = vi.hoisted(() => ({
   })),
 }));
 
-vi.mock('./lib/supabase', () => ({
+vi.mock("./lib/supabase", () => ({
   configured: true,
   supabase: {
     auth: {
-      getSession: vi.fn(async () => ({ data: { session: authHarness.currentSession } })),
+      getSession: vi.fn(async () => ({
+        data: { session: authHarness.currentSession },
+      })),
       onAuthStateChange: vi.fn((callback) => {
         authHarness.callback = callback;
         return { data: { subscription: { unsubscribe: vi.fn() } } };
@@ -88,19 +121,19 @@ vi.mock('./lib/supabase', () => ({
   },
 }));
 
-vi.mock('./lib/content-api', () => ({
+vi.mock("./lib/content-api", () => ({
   getAdminAccess: apiHarness.getAdminAccess,
   getSanitizedAuditHistory: apiHarness.getSanitizedAuditHistory,
   getCurriculum: apiHarness.getCurriculum,
 }));
 
-import { App } from './app';
+import { App } from "./app";
 
-describe('admin session stability', () => {
+describe("admin session stability", () => {
   afterEach(() => cleanup());
 
   beforeEach(() => {
-    window.location.hash = '#audit';
+    window.location.hash = "#audit";
     authHarness.currentSession = authHarness.session;
     apiHarness.getAdminAccess.mockClear();
     apiHarness.getSanitizedAuditHistory.mockClear();
@@ -109,103 +142,130 @@ describe('admin session stability', () => {
     authHarness.signInWithPassword.mockClear();
   });
 
-  test('keeps the selected section mounted after a same-user token refresh', async () => {
+  test("keeps the selected section mounted after a same-user token refresh", async () => {
     render(<App />);
 
     expect(
-      await screen.findByRole('heading', { name: 'Activity history' }),
+      await screen.findByRole("heading", { name: "Activity history" }),
     ).toBeInTheDocument();
 
     await act(async () => {
-      authHarness.callback?.('TOKEN_REFRESHED', {
+      authHarness.callback?.("TOKEN_REFRESHED", {
         ...authHarness.session,
-        access_token: 'refreshed-access-token',
+        access_token: "refreshed-access-token",
         user: { ...authHarness.session.user },
       });
     });
 
-    await waitFor(() => expect(apiHarness.getAdminAccess).toHaveBeenCalledTimes(2));
+    await waitFor(() =>
+      expect(apiHarness.getAdminAccess).toHaveBeenCalledTimes(2),
+    );
     expect(
-      screen.getByRole('heading', { name: 'Activity history' }),
+      screen.getByRole("heading", { name: "Activity history" }),
     ).toBeInTheDocument();
     expect(
-      screen.queryByText('Loading instructor workspace'),
+      screen.queryByText("Loading instructor workspace"),
     ).not.toBeInTheDocument();
   });
 
-  test('signs out through the account footer', async () => {
+  test("signs out through the account footer", async () => {
     render(<App />);
 
-    const signOut = await screen.findByRole('button', { name: 'Sign out' });
+    const signOut = await screen.findByRole("button", { name: "Sign out" });
     fireEvent.click(signOut);
 
     await waitFor(() => expect(authHarness.signOut).toHaveBeenCalledTimes(1));
     expect(signOut).toBeDisabled();
-    expect(signOut).toHaveTextContent('Signing out...');
+    expect(signOut).toHaveTextContent("Signing out...");
   });
 
-  test('keeps the login submit action usable and submits trimmed credentials', async () => {
+  test("keeps the login submit action usable and submits trimmed credentials", async () => {
     authHarness.currentSession = null;
     render(<App />);
 
-    const email = await screen.findByLabelText('Email address');
-    const password = screen.getByLabelText('Password');
-    const submit = screen.getByRole('button', { name: 'Sign in' });
+    const email = await screen.findByLabelText("Email address");
+    const password = screen.getByLabelText("Password");
+    const submit = screen.getByRole("button", { name: "Sign in" });
     expect(submit).toBeEnabled();
 
-    fireEvent.change(email, { target: { value: ' instructor@netbite.local ' } });
-    fireEvent.change(password, { target: { value: 'secret-password' } });
+    fireEvent.change(email, {
+      target: { value: " instructor@netbite.local " },
+    });
+    fireEvent.change(password, { target: { value: "secret-password" } });
     fireEvent.click(submit);
 
     await waitFor(() =>
       expect(authHarness.signInWithPassword).toHaveBeenCalledWith({
-        email: 'instructor@netbite.local',
-        password: 'secret-password',
+        email: "instructor@netbite.local",
+        password: "secret-password",
       }),
     );
   });
 
-  test('uses a focused assessment navigator with an alternate all-items view', async () => {
+  test("uses a focused assessment navigator with an alternate all-items view", async () => {
     render(<App />);
 
-    fireEvent.click(await screen.findByRole('link', { name: 'Assessments' }));
-    expect(await screen.findByRole('button', { name: 'FOCUSED' })).toHaveAttribute('aria-pressed', 'true');
-    expect(screen.getAllByLabelText('Scenario question')).toHaveLength(1);
-    expect(screen.getByRole('button', { name: 'SAVE CHANGES' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Delete quiz question' })).toHaveTextContent(
-      'DELETE QUESTION',
+    fireEvent.click(await screen.findByRole("link", { name: "Assessments" }));
+    expect(
+      await screen.findByRole("button", { name: "FOCUSED" }),
+    ).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByTestId("assessment-workspace")).toHaveClass("min-w-0");
+    expect(screen.getByTestId("assessment-editor-region")).toHaveClass(
+      "min-w-0",
+    );
+    expect(screen.getByTestId("assessment-fields")).toHaveClass("min-w-0");
+    expect(screen.getByText("Editing question 01")).toBeInTheDocument();
+    expect(screen.getByText("ALL CHANGES SAVED")).toHaveAttribute(
+      "role",
+      "status",
+    );
+    expect(screen.getAllByLabelText("Scenario question")).toHaveLength(1);
+    expect(screen.getByRole("button", { name: "SAVE CHANGES" })).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "Delete quiz question" }),
+    ).toHaveTextContent("DELETE QUESTION");
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /Q02.*Why might a classroom/i }),
+    );
+    expect(screen.getByLabelText("Scenario question")).toHaveValue(
+      "Why might a classroom build a network?",
     );
 
-    fireEvent.click(screen.getByRole('button', { name: /Q02.*Why might a classroom/i }));
-    expect(screen.getByLabelText('Scenario question')).toHaveValue(
-      'Why might a classroom build a network?',
-    );
-
-    fireEvent.click(screen.getByRole('button', { name: 'ALL ITEMS' }));
-    expect(screen.getAllByLabelText('Scenario question')).toHaveLength(2);
+    fireEvent.click(screen.getByRole("button", { name: "ALL ITEMS" }));
+    expect(screen.getAllByLabelText("Scenario question")).toHaveLength(2);
   });
 
-  test('shows one expanded course at a time in curriculum authoring', async () => {
+  test("shows one expanded course at a time in curriculum authoring", async () => {
     render(<App />);
 
-    fireEvent.click(await screen.findByRole('link', { name: 'Curriculum' }));
-    const foundations = await screen.findByRole('button', {
+    fireEvent.click(await screen.findByRole("link", { name: "Curriculum" }));
+    const foundations = await screen.findByRole("button", {
       name: /Network Foundations.*1 chapters/i,
     });
-    const operations = screen.getByRole('button', {
+    const operations = screen.getByRole("button", {
       name: /Network Operations.*1 chapters/i,
     });
     await waitFor(() =>
-      expect(foundations).toHaveAttribute('aria-expanded', 'true'),
+      expect(foundations).toHaveAttribute("aria-expanded", "true"),
     );
-    expect(operations).toHaveAttribute('aria-expanded', 'false');
-    expect(screen.getByRole('button', { name: /Introduction to Networks/i })).toBeVisible();
+    expect(foundations.querySelector("strong")).toHaveTextContent(
+      "Network Foundations",
+    );
+    expect(foundations.querySelector("small")).toHaveTextContent("1 chapters");
+    expect(screen.getByTestId("curriculum-workspace")).toHaveClass("min-w-0");
+    expect(operations).toHaveAttribute("aria-expanded", "false");
+    expect(
+      screen.getByRole("button", { name: /Introduction to Networks/i }),
+    ).toBeVisible();
 
     fireEvent.click(operations);
-    expect(foundations).toHaveAttribute('aria-expanded', 'false');
-    expect(operations).toHaveAttribute('aria-expanded', 'true');
+    expect(foundations).toHaveAttribute("aria-expanded", "false");
+    expect(operations).toHaveAttribute("aria-expanded", "true");
     expect(
-      screen.getByRole('button', { name: /Transport and Application Endpoints/i }),
+      screen.getByRole("button", {
+        name: /Transport and Application Endpoints/i,
+      }),
     ).toBeVisible();
   });
 });
