@@ -146,13 +146,20 @@ export function Assessments() {
           ADD {mode === "quiz" ? "QUESTION" : "CARD"}
         </Button>
       </div>
-      <section aria-labelledby="assessment-chapter-title">
-        <header className="mb-5 flex flex-wrap items-end justify-between gap-4 border-b border-line pb-5">
+      <section
+        aria-labelledby="assessment-chapter-title"
+        className="min-w-0 overflow-hidden rounded-panel border border-line bg-surface shadow-panel"
+        data-testid="assessment-section"
+      >
+        <header className="flex flex-wrap items-end justify-between gap-4 p-5">
           <div className="grid min-w-0 gap-1">
             <p className="mb-2 font-mono text-[0.65rem] font-semibold uppercase tracking-[0.13em] text-signal-orange">
               CHAPTER {String(selectedChapter?.definition.numberLabel)}
             </p>
-            <h2 className="m-0 break-words" id="assessment-chapter-title">
+            <h2
+              className="m-0 break-words text-lg"
+              id="assessment-chapter-title"
+            >
               {String(selectedChapter?.definition.title)}
             </h2>
           </div>
@@ -165,15 +172,18 @@ export function Assessments() {
           />
         ) : view === "focused" ? (
           <div
-            className="grid min-w-0 items-start gap-5 xl:grid-cols-[280px_minmax(0,1fr)]"
+            className="grid min-w-0 items-start border-t border-line xl:grid-cols-[300px_minmax(0,1fr)]"
             data-testid="assessment-workspace"
           >
             <aside
-              className="min-w-0 overflow-hidden rounded-panel border border-line bg-sidebar"
+              className="min-w-0 overflow-hidden border-b border-line bg-sidebar xl:border-b-0 xl:border-r"
               aria-label={`${mode} items`}
+              data-testid="assessment-navigator"
             >
               <div className="flex items-center justify-between gap-3 border-b border-line p-4">
-                <strong>{mode === "quiz" ? "QUESTIONS" : "CARDS"}</strong>
+                <strong className="text-xs">
+                  {mode === "quiz" ? "QUESTIONS" : "CARDS"}
+                </strong>
                 <span>{assessmentRows.length}</span>
               </div>
               <div className="themed-scrollbar grid max-h-[620px] gap-1 overflow-y-auto p-3 max-xl:max-h-72">
@@ -186,7 +196,7 @@ export function Assessments() {
                   return (
                     <button
                       aria-current={selected ? "true" : undefined}
-                      className={`grid min-h-16 gap-1 rounded-control border px-3 py-2 text-left ${selected ? "border-line bg-raised text-copy" : "border-transparent text-muted hover:bg-raised"}`}
+                      className={`grid min-h-16 gap-1 rounded-control border px-3 py-2 text-left text-xs ${selected ? "border-line bg-raised text-copy" : "border-transparent text-muted hover:bg-raised"}`}
                       disabled={selectedItemDirty && !selected}
                       key={row.id}
                       onClick={() => setSelectedId(row.id)}
@@ -221,10 +231,7 @@ export function Assessments() {
                 </p>
               ) : null}
             </aside>
-            <div
-              className="min-w-0 py-1"
-              data-testid="assessment-editor-region"
-            >
+            <div className="min-w-0 p-5" data-testid="assessment-editor-region">
               {mode === "quiz" ? (
                 <QuizEditor
                   key={selectedId}
@@ -251,7 +258,7 @@ export function Assessments() {
             </div>
           </div>
         ) : (
-          <div className="grid min-w-0 divide-y divide-line [&>article]:py-7 [&>article:first-child]:pt-0">
+          <div className="grid min-w-0 divide-y divide-line border-t border-line px-5 [&>article]:py-6">
             {mode === "quiz"
               ? (assessmentRows as QuizRow[]).map((row) => (
                   <QuizEditor

@@ -11,9 +11,16 @@ describe("Button", () => {
   });
 
   test("keeps disabled text and background explicit", () => {
-    render(<Button disabled tone="primary">Approve instructor</Button>);
+    render(
+      <Button disabled tone="primary">
+        Approve instructor
+      </Button>,
+    );
     const button = screen.getByRole("button", { name: "Approve instructor" });
     expect(button).toBeDisabled();
-    expect(button).toHaveClass("disabled:bg-raised/70", "disabled:text-muted/75");
+    expect(button).toHaveClass(
+      "disabled:bg-raised/70",
+      "disabled:text-muted/75",
+    );
   });
 });

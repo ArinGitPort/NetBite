@@ -23,24 +23,71 @@ export interface NavigationItem {
 }
 
 export const instructorNavigation: NavigationItem[] = [
-  { id: "workshops", label: "My workshops", path: "/instructor/workshops", icon: School },
+  {
+    id: "workshops",
+    label: "Lesson collections",
+    path: "/instructor/workshops",
+    icon: School,
+  },
   { id: "classes", label: "Classes", path: "/instructor/classes", icon: Users },
-  { id: "workshop-assessments", label: "Workshop assessments", path: "/instructor/assessments", icon: ClipboardCheck },
-  { id: "gradebook", label: "Gradebook", path: "/instructor/gradebook", icon: ChartNoAxesColumn },
+  {
+    id: "workshop-assessments",
+    label: "Assessments",
+    path: "/instructor/assessments",
+    icon: ClipboardCheck,
+  },
+  {
+    id: "gradebook",
+    label: "Gradebook",
+    path: "/instructor/gradebook",
+    icon: ChartNoAxesColumn,
+  },
 ];
 
 export const administratorNavigation: NavigationItem[] = [
-  { id: "dashboard", label: "Overview", path: "/admin/overview", icon: LayoutDashboard },
-  { id: "instructors", label: "Instructor access", path: "/admin/instructors", icon: ShieldCheck },
-  { id: "curriculum", label: "Curriculum", path: "/admin/curriculum", icon: Library },
-  { id: "assessments", label: "Assessments", path: "/admin/assessments", icon: ClipboardCheck },
+  {
+    id: "dashboard",
+    label: "Overview",
+    path: "/admin/overview",
+    icon: LayoutDashboard,
+  },
+  {
+    id: "instructors",
+    label: "Instructor access",
+    path: "/admin/instructors",
+    icon: ShieldCheck,
+  },
+  {
+    id: "curriculum",
+    label: "Curriculum",
+    path: "/admin/curriculum",
+    icon: Library,
+  },
+  {
+    id: "assessments",
+    label: "Assessments",
+    path: "/admin/assessments",
+    icon: ClipboardCheck,
+  },
   { id: "sources", label: "Sources", path: "/admin/sources", icon: BookOpen },
   { id: "assets", label: "Media library", path: "/admin/media", icon: Image },
-  { id: "releases", label: "Publishing", path: "/admin/publishing", icon: Rocket },
-  { id: "audit", label: "Activity history", path: "/admin/activity", icon: FileClock },
+  {
+    id: "releases",
+    label: "Publishing",
+    path: "/admin/publishing",
+    icon: Rocket,
+  },
+  {
+    id: "audit",
+    label: "Activity history",
+    path: "/admin/activity",
+    icon: FileClock,
+  },
 ];
 
-export function getNavigationForAccess(accessLevel: AdminAccess["accessLevel"]) {
+export function getNavigationForAccess(
+  accessLevel: AdminAccess["accessLevel"],
+) {
   return accessLevel === "administrator"
     ? administratorNavigation
     : accessLevel === "instructor"
@@ -69,9 +116,14 @@ export function normalizeLegacyHash(hash: string) {
 }
 
 export function defaultPathForAccess(accessLevel: AdminAccess["accessLevel"]) {
-  return accessLevel === "administrator" ? "/admin/overview" : "/instructor/workshops";
+  return accessLevel === "administrator"
+    ? "/admin/overview"
+    : "/instructor/workshops";
 }
 
-export function isPathAllowedForAccess(accessLevel: AdminAccess["accessLevel"], path: string) {
+export function isPathAllowedForAccess(
+  accessLevel: AdminAccess["accessLevel"],
+  path: string,
+) {
   return getNavigationForAccess(accessLevel).some((item) => item.path === path);
 }

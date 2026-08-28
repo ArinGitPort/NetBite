@@ -220,11 +220,16 @@ export function Curriculum() {
         </div>
       ) : null}
       <div
-        className="grid min-w-0 gap-5 xl:grid-cols-[280px_minmax(0,1fr)] 2xl:grid-cols-[280px_360px_minmax(0,1fr)]"
+        className="grid min-h-[720px] min-w-0 overflow-hidden rounded-panel border border-line bg-surface shadow-panel xl:grid-cols-[250px_360px_minmax(0,1fr)]"
         data-testid="curriculum-workspace"
       >
-        <aside className="themed-scrollbar min-w-0 overflow-auto rounded-panel border border-line bg-surface p-4 shadow-panel xl:row-span-2 xl:max-h-[calc(100vh-180px)] 2xl:row-span-1">
-          <h2 className="mb-4 text-lg">Courses and chapters</h2>
+        <aside
+          className="themed-scrollbar min-w-0 overflow-auto border-b border-line bg-surface p-4 xl:max-h-[calc(100vh-180px)] xl:border-b-0 xl:border-r"
+          data-testid="curriculum-navigation"
+        >
+          <h2 className="mb-4 text-[0.8rem] font-bold uppercase tracking-[0.03em]">
+            Courses and chapters
+          </h2>
           <div className="mt-4 grid gap-2">
             {data.courses.map((course) => {
               const courseChapters = data.chapters.filter(
@@ -235,7 +240,7 @@ export function Curriculum() {
                 <section key={course.id} className="grid gap-1">
                   <button
                     aria-expanded={expanded}
-                    className={`flex min-h-14 w-full items-center justify-between gap-3 rounded-control border px-3 py-2 text-left ${expanded ? "border-line bg-raised text-copy" : "border-transparent text-muted hover:border-line hover:bg-raised"}`}
+                    className={`flex min-h-14 w-full items-center justify-between gap-3 rounded-control border px-3 py-2 text-left text-xs ${expanded ? "border-line bg-raised text-copy" : "border-transparent text-muted hover:border-line hover:bg-raised"}`}
                     onClick={() => {
                       if (expanded) {
                         setExpandedCourseId("");
@@ -269,7 +274,7 @@ export function Curriculum() {
                       {courseChapters.map((item) => (
                         <button
                           key={item.id}
-                          className={`flex min-h-14 w-full items-center gap-3 rounded-control border px-3 py-2 text-left ${item.id === chapterId ? "border-line bg-raised text-copy" : "border-transparent text-muted hover:border-line hover:bg-raised"}`}
+                          className={`flex min-h-14 w-full items-center gap-3 rounded-control border px-3 py-2 text-left text-xs ${item.id === chapterId ? "border-line bg-raised text-copy" : "border-transparent text-muted hover:border-line hover:bg-raised"}`}
                           onClick={() => {
                             setChapterId(item.id);
                             setLessonId(undefined);
@@ -304,14 +309,19 @@ export function Curriculum() {
             })}
           </div>
         </aside>
-        <section className="themed-scrollbar min-w-0 overflow-auto rounded-panel border border-line bg-surface p-4 shadow-panel xl:max-h-[520px] 2xl:max-h-[calc(100vh-180px)]">
+        <section
+          className="themed-scrollbar min-w-0 overflow-auto border-b border-line bg-surface p-4 xl:col-start-2 xl:max-h-[calc(100vh-180px)] xl:border-b-0 xl:border-r"
+          data-testid="curriculum-lessons"
+        >
           <div className="grid gap-3 border-b border-line pb-4">
             <div>
               <p className="mb-2 font-mono text-[0.65rem] font-semibold uppercase tracking-[0.13em] text-signal-orange">
                 CHAPTER{" "}
                 {String(chapter?.definition.numberLabel ?? chapter?.position)}
               </p>
-              <h2>{String(chapter?.definition.title ?? "Select a chapter")}</h2>
+              <h2 className="text-lg">
+                {String(chapter?.definition.title ?? "Select a chapter")}
+              </h2>
             </div>
             <div className="flex min-h-11 items-center overflow-hidden rounded-control border border-line bg-canvas [&_svg]:mx-3 [&_svg]:size-4 [&_svg]:text-muted [&_input]:min-w-0 [&_input]:flex-1 [&_input]:border-0">
               <Search />
@@ -326,7 +336,7 @@ export function Curriculum() {
           {lessons.map((lesson) => (
             <button
               key={lesson.id}
-              className={`grid min-h-[72px] min-w-0 w-full grid-cols-[34px_minmax(0,1fr)_auto_18px] items-center gap-3 border-0 border-b border-line bg-transparent px-2 py-3 text-left hover:bg-raised max-sm:grid-cols-[30px_minmax(0,1fr)_18px] ${lesson.id === lessonId ? "bg-raised" : ""} ${lesson.archived ? "opacity-55" : ""}`}
+              className={`grid min-h-[72px] min-w-0 w-full grid-cols-[34px_minmax(0,1fr)_auto_18px] items-center gap-3 border-0 border-b border-line bg-transparent px-2 py-3 text-left text-xs hover:bg-raised max-sm:grid-cols-[30px_minmax(0,1fr)_18px] ${lesson.id === lessonId ? "bg-raised" : ""} ${lesson.archived ? "opacity-55" : ""}`}
               onClick={() => setLessonId(lesson.id)}
             >
               <span className="font-mono text-xs text-signal-orange">
@@ -362,7 +372,10 @@ export function Curriculum() {
             />
           ) : null}
         </section>
-        <section className="themed-scrollbar min-w-0 overflow-auto rounded-panel border border-line bg-surface p-5 shadow-panel xl:col-start-2 xl:max-h-[calc(100vh-180px)] 2xl:col-start-3 2xl:row-start-1">
+        <section
+          className="themed-scrollbar min-w-0 overflow-auto bg-surface p-5 xl:col-start-3 xl:max-h-[calc(100vh-180px)]"
+          data-testid="curriculum-editor"
+        >
           {selected ? (
             <LessonEditor
               row={selected}

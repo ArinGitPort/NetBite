@@ -4,11 +4,21 @@ import {
   CheckCircle2,
   ClipboardCheck,
   GraduationCap,
+  LoaderCircle,
   Pencil,
   Plus,
+  X,
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Classes, Gradebook } from "../classes/classes-page";
+import { PageHeader } from "../../components/layout/page-header";
+import { Button } from "../../components/ui/button";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "../../components/ui/tabs";
 import * as api from "../../lib/content-api";
 import type {
   WorkshopAssessmentRow,
@@ -29,20 +39,30 @@ export { InstructorApprovals } from "../instructors/instructor-access-page";
 function Notice({
   message,
   error = false,
+  onDismiss,
 }: {
   message?: string;
   error?: boolean;
+  onDismiss: () => void;
 }) {
   return message ? (
     <div
-      className={
+      className={`mb-4 flex min-h-11 items-center justify-between gap-3 rounded-control border p-2 pl-3 text-sm ${
         error
-          ? "mb-4 rounded-control border border-signal-red/60 bg-signal-red-soft p-3 text-sm text-[#ff9da1]"
-          : "mb-4 rounded-control border border-signal-green/60 bg-signal-green-soft p-3 text-sm text-[#abd2c8]"
-      }
-      role="status"
+          ? "border-signal-red/60 bg-signal-red-soft text-[#ff9da1]"
+          : "border-signal-green/60 bg-signal-green-soft text-[#abd2c8]"
+      }`}
+      role={error ? "alert" : "status"}
     >
-      {message}
+      <span>{message}</span>
+      <button
+        aria-label="Dismiss notification"
+        className="-my-1 grid size-11 shrink-0 place-items-center rounded-control border border-transparent text-current hover:border-current/35 hover:bg-black/10 focus-visible:outline-offset-0 [&_svg]:size-4"
+        onClick={onDismiss}
+        type="button"
+      >
+        <X aria-hidden="true" />
+      </button>
     </div>
   ) : null;
 }
@@ -59,12 +79,16 @@ export function WorkshopStudio({ area }: { area: Area }) {
   const [selectedLesson, setSelectedLesson] = useState<string>();
   const [selectedAssessment, setSelectedAssessment] = useState<string>();
   const [selectedTopology, setSelectedTopology] = useState<string>();
+  const [collectionView, setCollectionView] = useState<
+    "lessons" | "topologies"
+  >("lessons");
   const [gradeRows, setGradeRows] = useState<Array<Record<string, unknown>>>(
     [],
   );
   const [notice, setNotice] = useState<string>();
   const [error, setError] = useState<string>();
   const [detailsMode, setDetailsMode] = useState<WorkshopDetailsMode>();
+  const [addingLesson, setAddingLesson] = useState(false);
   const selectedWorkshop = workshops.find((item) => item.id === selectedId);
 
   const load = useCallback(async () => {
@@ -95,6 +119,11 @@ export function WorkshopStudio({ area }: { area: Area }) {
     void load();
   }, [load]);
   useEffect(() => {
+    if (!notice) return;
+    const timer = window.setTimeout(() => setNotice(undefined), 4000);
+    return () => window.clearTimeout(timer);
+  }, [notice]);
+  useEffect(() => {
     if (!selectedId) return;
     void Promise.all([
       api.getWorkshopContent(selectedId),
@@ -115,6 +144,11 @@ export function WorkshopStudio({ area }: { area: Area }) {
             ? current
             : content.assessments[0]?.id,
         );
+        setSelectedTopology((current) =>
+          current && content.topologies.some((row) => row.stable_id === current)
+            ? current
+            : content.topologies[0]?.stable_id,
+        );
       })
       .catch((reason) => setError(reason.message));
   }, [selectedId]);
@@ -122,14 +156,14 @@ export function WorkshopStudio({ area }: { area: Area }) {
     const row = await api.createWorkshop(title, description);
     setWorkshops((value) => [row, ...value]);
     setSelectedId(row.id);
-    setNotice("Workshop created as a private draft.");
+    setNotice("Lesson collection created as a private draft.");
   };
   const saveDetails = async (workshop: WorkshopRow) => {
     const saved = await api.saveWorkshop(workshop);
     setWorkshops((value) =>
       value.map((item) => (item.id === saved.id ? saved : item)),
     );
-    setNotice("Workshop details saved.");
+    setNotice("Lesson collection details saved.");
   };
   const deleteDraft = async (workshop: WorkshopRow) => {
     await api.deleteWorkshop(workshop.id);
@@ -139,7 +173,7 @@ export function WorkshopStudio({ area }: { area: Area }) {
     setAssessments([]);
     setVersions([]);
     await load();
-    setNotice("Private workshop deleted.");
+    setNotice("Private lesson collection deleted.");
   };
   const selectedClass = classes.find((item) => item.workshop_id === selectedId);
   useEffect(() => {
@@ -153,10 +187,51 @@ export function WorkshopStudio({ area }: { area: Area }) {
     setLessons((value) =>
       value.map((item) => (item.id === row.id ? row : item)),
     );
+  const addLesson = async () => {
+    if (!selectedWorkshop || addingLesson) return;
+    setAddingLesson(true);
+    setError(undefined);
+    try {
+      const nextPosition =
+        lessons.reduce(
+          (highest, lesson) => Math.max(highest, lesson.position),
+          0,
+        ) + 1;
+      const row = await api.createWorkshopLesson(
+        selectedWorkshop.id,
+        nextPosition,
+      );
+      setLessons((value) => [...value, row]);
+      setSelectedLesson(row.id);
+      setNotice("Lesson added. Add its title and content, then save it.");
+    } catch (reason) {
+      setError(
+        reason instanceof Error
+          ? reason.message
+          : "The lesson could not be added.",
+      );
+    } finally {
+      setAddingLesson(false);
+    }
+  };
+  const deleteLesson = async (lesson: WorkshopLessonRow) => {
+    await api.deleteWorkshopLesson(lesson.id);
+    const remaining = lessons.filter((item) => item.id !== lesson.id);
+    setLessons(remaining);
+    setSelectedLesson(remaining[0]?.id);
+    setNotice("Lesson deleted from the current draft.");
+  };
   const updateAssessment = (row: WorkshopAssessmentRow) =>
     setAssessments((value) =>
       value.map((item) => (item.id === row.id ? row : item)),
     );
+  const addTopology = () => {
+    if (!selectedWorkshop) return;
+    const row = defaultTopology(selectedWorkshop.id);
+    setTopologies((value) => [...value, row]);
+    setSelectedTopology(row.stable_id);
+    setCollectionView("topologies");
+  };
 
   const page =
     area === "classes"
@@ -164,14 +239,14 @@ export function WorkshopStudio({ area }: { area: Area }) {
           label: "CLASS MANAGEMENT",
           title: "Classes and sharing",
           detail:
-            "Create a private class from a published workshop and share its code, link, or QR code.",
+            "Assign a published lesson collection to a private class, then invite students using a code, link, or QR code.",
         }
       : area === "workshop-assessments"
         ? {
             label: "ASSESSMENT AUTHORING",
-            title: "Workshop assessments",
+            title: "Assessments",
             detail:
-              "Prepare practice activities or graded quizzes for students enrolled in your classes.",
+              "Create practice activities or graded quizzes for a lesson collection.",
           }
         : area === "gradebook"
           ? {
@@ -181,26 +256,22 @@ export function WorkshopStudio({ area }: { area: Area }) {
                 "Review submissions, missing work, late work, and recorded grades without exposing student answers.",
             }
           : {
-              label: "WORKSHOP AUTHORING",
-              title: "My workshops",
+              label: "INSTRUCTOR CONTENT",
+              title: "Lesson collections",
               detail:
-                "Create private lessons, read-only network topologies, flashcards, and assessments for your students.",
+                "Group related lessons, network visuals, flashcards, and assessments. Build privately, publish when ready, then share through a class.",
             };
 
   if (loading)
     return (
       <>
-        <header className="mb-8 flex flex-col items-stretch justify-between gap-5 sm:flex-row sm:items-center [&>div]:max-w-[780px] [&_h1]:mb-2 [&_h1]:text-[clamp(1.8rem,3vw,2.7rem)] [&_h1]:font-bold [&_h1]:tracking-[-0.035em] [&_p:last-child]:m-0 [&_p:last-child]:leading-7 [&_p:last-child]:text-muted">
-          <div>
-            <p className="mb-2 font-mono text-[0.65rem] font-semibold uppercase tracking-[0.13em] text-signal-orange">
-              {page.label}
-            </p>
-            <h1>{page.title}</h1>
-            <p>{page.detail}</p>
-          </div>
-        </header>
+        <PageHeader
+          description={page.detail}
+          label={page.label}
+          title={page.title}
+        />
         <section
-          className="flex min-h-56 items-center justify-center gap-3 rounded-panel border border-line bg-surface p-6 text-muted shadow-panel"
+          className="flex min-h-52 items-center justify-center gap-3 rounded-panel border border-line bg-surface p-5 text-sm text-muted shadow-panel"
           aria-live="polite"
         >
           <span className="size-7 animate-spin rounded-full border-2 border-line border-t-signal-orange" />
@@ -212,37 +283,36 @@ export function WorkshopStudio({ area }: { area: Area }) {
   if (!workshops.length)
     return (
       <>
-        <header className="mb-8 flex flex-col items-stretch justify-between gap-5 sm:flex-row sm:items-center [&>div]:max-w-[780px] [&_h1]:mb-2 [&_h1]:text-[clamp(1.8rem,3vw,2.7rem)] [&_h1]:font-bold [&_h1]:tracking-[-0.035em] [&_p:last-child]:m-0 [&_p:last-child]:leading-7 [&_p:last-child]:text-muted">
-          <div>
-            <p className="mb-2 font-mono text-[0.65rem] font-semibold uppercase tracking-[0.13em] text-signal-orange">
-              {page.label}
-            </p>
-            <h1>{page.title}</h1>
-            <p>{page.detail}</p>
-          </div>
-          <button
-            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-control border border-copy bg-copy px-4 text-xs font-semibold text-canvas hover:bg-white hover:text-canvas disabled:pointer-events-none disabled:border-line/60 disabled:bg-raised/70 disabled:text-muted/75 [&_svg]:size-4"
-            onClick={() => setDetailsMode({ kind: "create" })}
-          >
-            <Plus />
-            CREATE WORKSHOP
-          </button>
-        </header>
-        <Notice message={error} error />
-        <section className="grid min-h-[320px] place-items-center content-center gap-3 rounded-panel border border-line bg-surface p-6 text-center shadow-panel [&>svg]:size-9 [&>svg]:text-signal-green [&>p]:max-w-xl">
+        <PageHeader
+          actions={
+            <Button
+              onClick={() => setDetailsMode({ kind: "create" })}
+              tone="primary"
+            >
+              <Plus />
+              CREATE COLLECTION
+            </Button>
+          }
+          description={page.detail}
+          label={page.label}
+          title={page.title}
+        />
+        <Notice message={error} error onDismiss={() => setError(undefined)} />
+        <section className="grid min-h-[300px] place-items-center content-center gap-3 rounded-panel border border-line bg-surface p-5 text-center text-sm shadow-panel [&>svg]:size-9 [&>svg]:text-signal-green [&>p]:max-w-xl">
           <GraduationCap />
-          <strong>No workshops yet</strong>
+          <strong>No lesson collections yet</strong>
           <p>
-            Create a private workshop first. Nothing becomes available to
-            students until you publish a version and create a class.
+            Start a collection for one topic or unit. It remains private while
+            you add lessons and activities. Publish it when it is ready, then
+            assign it to a class.
           </p>
-          <button
-            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-control border border-copy bg-copy px-4 text-xs font-semibold text-canvas hover:bg-white hover:text-canvas disabled:pointer-events-none disabled:border-line/60 disabled:bg-raised/70 disabled:text-muted/75 [&_svg]:size-4"
+          <Button
             onClick={() => setDetailsMode({ kind: "create" })}
+            tone="primary"
           >
             <Plus />
-            CREATE YOUR FIRST WORKSHOP
-          </button>
+            CREATE YOUR FIRST COLLECTION
+          </Button>
         </section>
         {detailsMode ? (
           <WorkshopDetailsDialog
@@ -258,28 +328,33 @@ export function WorkshopStudio({ area }: { area: Area }) {
 
   return (
     <>
-      <header className="mb-8 flex flex-col items-stretch justify-between gap-5 sm:flex-row sm:items-center [&>div]:max-w-[780px] [&_h1]:mb-2 [&_h1]:text-[clamp(1.8rem,3vw,2.7rem)] [&_h1]:font-bold [&_h1]:tracking-[-0.035em] [&_p:last-child]:m-0 [&_p:last-child]:leading-7 [&_p:last-child]:text-muted">
-        <div>
-          <p className="mb-2 font-mono text-[0.65rem] font-semibold uppercase tracking-[0.13em] text-signal-orange">
-            {page.label}
-          </p>
-          <h1>{page.title}</h1>
-          <p>{page.detail}</p>
-        </div>
-        {area === "workshops" ? (
-          <button
-            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-control border border-copy bg-copy px-4 text-xs font-semibold text-canvas hover:bg-white hover:text-canvas disabled:pointer-events-none disabled:border-line/60 disabled:bg-raised/70 disabled:text-muted/75 [&_svg]:size-4"
-            onClick={() => setDetailsMode({ kind: "create" })}
-          >
-            <Plus />
-            NEW WORKSHOP
-          </button>
-        ) : null}
-      </header>
-      <Notice message={error || notice} error={Boolean(error)} />
+      <PageHeader
+        actions={
+          area === "workshops" ? (
+            <Button
+              onClick={() => setDetailsMode({ kind: "create" })}
+              tone="primary"
+            >
+              <Plus />
+              NEW COLLECTION
+            </Button>
+          ) : undefined
+        }
+        description={page.detail}
+        label={page.label}
+        title={page.title}
+      />
+      <Notice
+        message={error || notice}
+        error={Boolean(error)}
+        onDismiss={() => {
+          if (error) setError(undefined);
+          else setNotice(undefined);
+        }}
+      />
       <div className="grid min-h-[680px] min-w-0 grid-cols-[250px_minmax(0,1fr)] overflow-hidden rounded-panel border border-line bg-surface shadow-panel max-lg:grid-cols-1">
         <aside className="themed-scrollbar grid min-w-0 content-start gap-2 overflow-y-auto border-r border-line bg-sidebar p-3 max-lg:border-b max-lg:border-r-0 [&>strong]:px-2 [&>strong]:py-2 [&>strong]:font-mono [&>strong]:text-[0.62rem] [&>strong]:text-muted">
-          <strong>YOUR WORKSHOPS</strong>
+          <strong>YOUR COLLECTIONS</strong>
           {workshops.map((workshop) => (
             <button
               className={`grid min-h-16 min-w-0 gap-1 rounded-control border px-3 py-2 text-left ${workshop.id === selectedId ? "border-signal-orange bg-raised" : "border-transparent text-muted hover:border-line hover:bg-raised"}`}
@@ -290,12 +365,12 @@ export function WorkshopStudio({ area }: { area: Area }) {
                 {workshop.title}
               </span>
               <small className="block text-muted">
-                {workshop.current_version_id ? "Published" : "Private draft"}
+                {workshop.current_version_id ? "Published" : "Draft"}
               </small>
             </button>
           ))}
         </aside>
-        <section className="min-w-0 bg-surface p-6 max-sm:p-4">
+        <section className="min-w-0 bg-surface p-5 max-sm:p-4">
           {selectedWorkshop && area === "workshops" ? (
             <>
               <div className="mb-5 flex min-h-20 flex-wrap items-start justify-between gap-5 border-b border-line pb-5">
@@ -303,12 +378,14 @@ export function WorkshopStudio({ area }: { area: Area }) {
                   <span className="inline-flex min-h-6 w-fit items-center rounded-full border border-line bg-raised px-2.5 font-mono text-[0.58rem] font-semibold uppercase tracking-[0.045em] text-muted">
                     {selectedWorkshop.archived
                       ? "ARCHIVED"
-                      : "PRIVATE WORKSHOP"}
+                      : selectedWorkshop.current_version_id
+                        ? "PUBLISHED COLLECTION"
+                        : "DRAFT COLLECTION"}
                   </span>
                   <h2 className="break-words">{selectedWorkshop.title}</h2>
                   <p className="mb-2 mt-2 max-w-2xl text-sm leading-6 text-muted">
                     {selectedWorkshop.description ||
-                      "No workshop description yet."}
+                      "Add a short description so students know what this collection covers."}
                   </p>
                   <details className="text-xs text-muted [&>summary]:cursor-pointer [&>summary]:py-2 [&>div]:grid [&>div]:grid-cols-[1fr_auto_auto] [&>div]:gap-3 [&>div]:border-t [&>div]:border-line [&>div]:py-2">
                     <summary>
@@ -339,7 +416,7 @@ export function WorkshopStudio({ area }: { area: Area }) {
                             (row) => row.workshop_id === selectedWorkshop.id,
                           ),
                         deleteReason:
-                          "Published workshops and workshops used by a class must be archived so student access and records remain intact.",
+                          "Published collections and collections used by a class must be archived so student access and records remain intact.",
                       })
                     }
                   >
@@ -357,25 +434,21 @@ export function WorkshopStudio({ area }: { area: Area }) {
                         .then(() => {
                           setNotice(
                             selectedWorkshop.archived
-                              ? "Workshop restored."
-                              : "Workshop archived. Existing classes remain readable.",
+                              ? "Lesson collection restored."
+                              : "Lesson collection archived. Existing classes remain readable.",
                           );
                           return load();
                         })
                     }
                   >
                     {selectedWorkshop.archived
-                      ? "RESTORE WORKSHOP"
-                      : "ARCHIVE WORKSHOP"}
+                      ? "RESTORE COLLECTION"
+                      : "ARCHIVE COLLECTION"}
                   </button>
                   <button
                     className="inline-flex min-h-11 items-center justify-center gap-2 rounded-control border border-signal-orange/60 bg-signal-orange-soft px-4 text-xs font-semibold text-[#f1ae78] hover:border-signal-orange disabled:pointer-events-none disabled:opacity-45 [&_svg]:size-4"
                     disabled={selectedWorkshop.archived}
-                    onClick={() => {
-                      const row = defaultTopology(selectedWorkshop.id);
-                      setTopologies((value) => [...value, row]);
-                      setSelectedTopology(row.stable_id);
-                    }}
+                    onClick={addTopology}
                   >
                     <Cable />
                     NEW TOPOLOGY
@@ -388,7 +461,7 @@ export function WorkshopStudio({ area }: { area: Area }) {
                         .publishWorkshop(selectedWorkshop.id)
                         .then(() => {
                           setNotice(
-                            "Workshop version published. You can now create a class.",
+                            "Lesson collection published. You can now assign it to a class.",
                           );
                           return load();
                         })
@@ -396,109 +469,165 @@ export function WorkshopStudio({ area }: { area: Area }) {
                     }
                   >
                     <CheckCircle2 />
-                    PUBLISH VERSION
+                    PUBLISH COLLECTION
                   </button>
                 </div>
               </div>
-              <div className="themed-scrollbar mb-5 flex max-w-full gap-1 overflow-x-auto rounded-control border border-line bg-canvas p-1 [&>button]:min-h-9 [&>button]:shrink-0 [&>button]:rounded-[6px] [&>button]:px-4 [&>button]:text-xs [&>button]:font-semibold [&>button]:text-muted">
-                <button
-                  className={
-                    !selectedTopology ? "bg-signal-green-soft! text-copy!" : ""
-                  }
-                  onClick={() => setSelectedTopology(undefined)}
-                >
-                  LESSONS
-                </button>
-                {topologies.map((row) => (
-                  <button
-                    className={
-                      selectedTopology === row.stable_id
-                        ? "bg-signal-green-soft! text-copy!"
-                        : ""
-                    }
-                    key={row.stable_id}
-                    onClick={() => setSelectedTopology(row.stable_id)}
+              <Tabs
+                className="mb-5"
+                onValueChange={(value) =>
+                  setCollectionView(value as "lessons" | "topologies")
+                }
+                value={collectionView}
+              >
+                <TabsList aria-label="Collection content">
+                  <TabsTrigger
+                    aria-label={`Lessons, ${lessons.length} ${lessons.length === 1 ? "item" : "items"}`}
+                    className="inline-flex items-center"
+                    onClick={() => setCollectionView("lessons")}
+                    value="lessons"
                   >
-                    {String(row.definition.title ?? "TOPOLOGY")}
-                  </button>
-                ))}
-              </div>
-              {selectedTopology ? (
-                <TopologyEditor
-                  row={topologies.find(
-                    (row) => row.stable_id === selectedTopology,
-                  )!}
-                  onSaved={(saved) => {
-                    setTopologies((value) =>
-                      value.map((row) =>
-                        row.stable_id === saved.stable_id ? saved : row,
-                      ),
-                    );
-                    setNotice("Topology saved.");
-                  }}
-                />
-              ) : (
-                <div className="grid min-h-[620px] grid-cols-[230px_minmax(0,1fr)] overflow-hidden rounded-panel border border-line max-lg:grid-cols-1">
-                  <nav className="themed-scrollbar grid min-w-0 content-start gap-2 overflow-y-auto border-r border-line bg-sidebar p-3 max-lg:max-h-72 max-lg:border-b max-lg:border-r-0 [&>button:not([class*=inline-flex])]:min-h-14 [&>button:not([class*=inline-flex])]:rounded-control [&>button:not([class*=inline-flex])]:border [&>button:not([class*=inline-flex])]:border-transparent [&>button:not([class*=inline-flex])]:px-3 [&>button:not([class*=inline-flex])]:text-left">
-                    <button
-                      className="inline-flex min-h-11 items-center justify-center gap-2 rounded-control border border-signal-orange/60 bg-signal-orange-soft px-4 text-xs font-semibold text-[#f1ae78] hover:border-signal-orange disabled:pointer-events-none disabled:opacity-45 [&_svg]:size-4"
-                      onClick={() =>
-                        void api
-                          .createWorkshopLesson(
-                            selectedWorkshop.id,
-                            lessons.length + 1,
-                          )
-                          .then((row) => {
-                            setLessons((value) => [...value, row]);
-                            setSelectedLesson(row.id);
-                          })
-                      }
-                    >
-                      <Plus />
-                      ADD LESSON
-                    </button>
-                    {lessons.map((lesson, index) => (
-                      <button
-                        className={`grid min-w-0 gap-1 ${
-                          lesson.id === selectedLesson
-                            ? "border-line! bg-raised! text-copy"
-                            : "text-muted hover:bg-raised"
-                        }`}
-                        key={lesson.id}
-                        onClick={() => setSelectedLesson(lesson.id)}
-                      >
-                        <small className="block font-mono text-signal-orange">
-                          {String(index + 1).padStart(2, "0")}
-                        </small>
-                        <span className="block break-words font-semibold">
-                          {String(lesson.draft.title ?? "Untitled lesson")}
-                        </span>
-                      </button>
-                    ))}
-                  </nav>
-                  {lessons.find((row) => row.id === selectedLesson) ? (
-                    <LessonEditor
-                      lesson={lessons.find((row) => row.id === selectedLesson)!}
-                      topologies={topologies}
-                      onChange={updateLesson}
-                      onSaved={() => setNotice("Lesson saved.")}
-                    />
+                    <BookOpen aria-hidden="true" className="mr-2 size-4" />
+                    LESSONS
+                    <span className="ml-2 rounded-full bg-raised px-2 py-0.5 font-mono text-[0.6rem]">
+                      {lessons.length}
+                    </span>
+                  </TabsTrigger>
+                  <TabsTrigger
+                    aria-label={`Topologies, ${topologies.length} ${topologies.length === 1 ? "item" : "items"}`}
+                    className="inline-flex items-center"
+                    onClick={() => setCollectionView("topologies")}
+                    value="topologies"
+                  >
+                    <Cable aria-hidden="true" className="mr-2 size-4" />
+                    TOPOLOGIES
+                    <span className="ml-2 rounded-full bg-raised px-2 py-0.5 font-mono text-[0.6rem]">
+                      {topologies.length}
+                    </span>
+                  </TabsTrigger>
+                </TabsList>
+                <TabsContent className="mt-5" value="topologies">
+                  {topologies.length && selectedTopology ? (
+                    <div className="grid gap-4">
+                      <div className="flex flex-wrap items-end justify-between gap-3 border-b border-line pb-4">
+                        <label className="grid min-w-[240px] gap-1.5 text-[0.7rem] font-semibold text-copy">
+                          <span>Selected topology</span>
+                          <select
+                            onChange={(event) =>
+                              setSelectedTopology(event.target.value)
+                            }
+                            value={selectedTopology}
+                          >
+                            {topologies.map((row) => (
+                              <option key={row.stable_id} value={row.stable_id}>
+                                {String(
+                                  row.definition.title ?? "Untitled topology",
+                                )}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                        <Button onClick={addTopology} tone="secondary">
+                          <Plus />
+                          NEW TOPOLOGY
+                        </Button>
+                      </div>
+                      <TopologyEditor
+                        row={topologies.find(
+                          (row) => row.stable_id === selectedTopology,
+                        )!}
+                        onSaved={(saved) => {
+                          setTopologies((value) =>
+                            value.map((row) =>
+                              row.stable_id === saved.stable_id ? saved : row,
+                            ),
+                          );
+                          setNotice("Topology saved.");
+                        }}
+                      />
+                    </div>
                   ) : (
-                    <div className="grid min-h-60 place-items-center content-center gap-3 text-center text-muted [&>p]:m-0 [&>p]:max-w-lg">
-                      <BookOpen />
-                      <p>Add a lesson to begin authoring.</p>
+                    <div className="grid min-h-[360px] place-items-center content-center gap-3 rounded-panel border border-dashed border-line bg-canvas p-6 text-center text-muted">
+                      <Cable className="size-8" />
+                      <strong className="text-copy">No topologies yet</strong>
+                      <p className="m-0 max-w-lg text-sm leading-6">
+                        Create a read-only network diagram, then insert it into
+                        any lesson using a Network diagram content block.
+                      </p>
+                      <Button onClick={addTopology} tone="secondary">
+                        <Plus />
+                        CREATE FIRST TOPOLOGY
+                      </Button>
                     </div>
                   )}
-                </div>
-              )}
+                </TabsContent>
+                <TabsContent className="mt-5" value="lessons">
+                  <div className="grid min-h-[620px] grid-cols-[230px_minmax(0,1fr)] overflow-hidden rounded-panel border border-line max-lg:grid-cols-1">
+                    <nav className="themed-scrollbar grid min-w-0 content-start gap-2 overflow-y-auto border-r border-line bg-sidebar p-3 max-lg:max-h-72 max-lg:border-b max-lg:border-r-0 [&>button:not([class*=inline-flex])]:min-h-14 [&>button:not([class*=inline-flex])]:rounded-control [&>button:not([class*=inline-flex])]:border [&>button:not([class*=inline-flex])]:border-transparent [&>button:not([class*=inline-flex])]:px-3 [&>button:not([class*=inline-flex])]:text-left">
+                      <button
+                        className="inline-flex min-h-11 items-center justify-center gap-2 rounded-control border border-signal-orange/60 bg-signal-orange-soft px-4 text-xs font-semibold text-[#f1ae78] hover:border-signal-orange disabled:pointer-events-none disabled:opacity-45 [&_svg]:size-4"
+                        disabled={addingLesson || selectedWorkshop.archived}
+                        onClick={() => void addLesson()}
+                      >
+                        {addingLesson ? (
+                          <LoaderCircle className="animate-spin" />
+                        ) : (
+                          <Plus />
+                        )}
+                        {addingLesson ? "ADDING LESSON..." : "ADD LESSON"}
+                      </button>
+                      {lessons.map((lesson, index) => (
+                        <button
+                          className={`grid min-w-0 gap-1 ${
+                            lesson.id === selectedLesson
+                              ? "border-line! bg-raised! text-copy"
+                              : "text-muted hover:bg-raised"
+                          }`}
+                          key={lesson.id}
+                          onClick={() => setSelectedLesson(lesson.id)}
+                        >
+                          <small className="block font-mono text-signal-orange">
+                            {String(index + 1).padStart(2, "0")}
+                          </small>
+                          <span className="block break-words font-semibold">
+                            {String(lesson.draft.title ?? "Untitled lesson")}
+                          </span>
+                        </button>
+                      ))}
+                    </nav>
+                    {lessons.find((row) => row.id === selectedLesson) ? (
+                      <LessonEditor
+                        key={selectedLesson}
+                        collectionTitle={selectedWorkshop.title}
+                        lesson={lessons.find(
+                          (row) => row.id === selectedLesson,
+                        )!}
+                        topologies={topologies}
+                        onChange={updateLesson}
+                        onDelete={deleteLesson}
+                        onError={setError}
+                        onSaved={() => setNotice("Lesson saved.")}
+                      />
+                    ) : (
+                      <div className="grid min-h-60 place-items-center content-center gap-3 text-center text-muted [&>p]:m-0 [&>p]:max-w-lg">
+                        <BookOpen />
+                        <p>Add a lesson to begin authoring.</p>
+                      </div>
+                    )}
+                  </div>
+                </TabsContent>
+              </Tabs>
             </>
           ) : null}
           {selectedWorkshop && area === "workshop-assessments" ? (
             <div className="grid min-w-0 gap-5 xl:grid-cols-[250px_minmax(0,1fr)]">
               <nav className="themed-scrollbar grid min-w-0 content-start gap-2 overflow-y-auto rounded-panel border border-line bg-sidebar p-3 max-xl:max-h-80 [&>button:not([class*=inline-flex])]:min-h-14 [&>button:not([class*=inline-flex])]:rounded-control [&>button:not([class*=inline-flex])]:border [&>button:not([class*=inline-flex])]:border-transparent [&>button:not([class*=inline-flex])]:px-3 [&>button:not([class*=inline-flex])]:text-left">
-                <div className="mb-2 grid gap-2">
-                  <button
-                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded-control border border-signal-orange/60 bg-signal-orange-soft px-4 text-xs font-semibold text-[#f1ae78] hover:border-signal-orange disabled:pointer-events-none disabled:opacity-45 [&_svg]:size-4"
+                <div className="mb-2 grid gap-2 border-b border-line pb-3">
+                  <span className="px-1 font-mono text-[0.62rem] font-semibold uppercase tracking-[0.08em] text-muted">
+                    Create assessment
+                  </span>
+                  <Button
+                    className="w-full"
                     onClick={() =>
                       void api
                         .createWorkshopAssessment(
@@ -510,11 +639,13 @@ export function WorkshopStudio({ area }: { area: Area }) {
                           setSelectedAssessment(row.id);
                         })
                     }
+                    tone="secondary"
                   >
+                    <Plus />
                     NEW PRACTICE
-                  </button>
-                  <button
-                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded-control border border-copy bg-copy px-4 text-xs font-semibold text-canvas hover:bg-white hover:text-canvas disabled:pointer-events-none disabled:border-line/60 disabled:bg-raised/70 disabled:text-muted/75 [&_svg]:size-4"
+                  </Button>
+                  <Button
+                    className="w-full"
                     onClick={() =>
                       void api
                         .createWorkshopAssessment(selectedWorkshop.id, "graded")
@@ -523,13 +654,15 @@ export function WorkshopStudio({ area }: { area: Area }) {
                           setSelectedAssessment(row.id);
                         })
                     }
+                    tone="primary"
                   >
+                    <Plus />
                     NEW GRADED
-                  </button>
+                  </Button>
                 </div>
                 {assessments.map((assessment) => (
                   <button
-                    className={`grid min-w-0 grid-cols-[20px_minmax(0,1fr)] items-start gap-3 ${
+                    className={`grid min-w-0 grid-cols-[36px_minmax(0,1fr)] items-center gap-3 ${
                       assessment.id === selectedAssessment
                         ? "border-line! bg-raised! text-copy"
                         : "text-muted hover:bg-raised"
@@ -537,7 +670,9 @@ export function WorkshopStudio({ area }: { area: Area }) {
                     key={assessment.id}
                     onClick={() => setSelectedAssessment(assessment.id)}
                   >
-                    <ClipboardCheck />
+                    <span className="grid size-9 place-items-center rounded-control border border-line bg-canvas text-muted [&_svg]:size-4">
+                      <ClipboardCheck />
+                    </span>
                     <span className="grid min-w-0 gap-1">
                       <span className="block break-words font-semibold">
                         {assessment.title}
@@ -553,6 +688,7 @@ export function WorkshopStudio({ area }: { area: Area }) {
               </nav>
               {assessments.find((row) => row.id === selectedAssessment) ? (
                 <AssessmentEditor
+                  key={selectedAssessment}
                   row={assessments.find(
                     (row) => row.id === selectedAssessment,
                   )!}

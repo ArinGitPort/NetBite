@@ -20,14 +20,17 @@ export function QuizEditor({
   const dirty = JSON.stringify(value) !== JSON.stringify(row);
   useEffect(() => onDirtyChange?.(dirty), [dirty, onDirtyChange]);
   return (
-    <article className="grid min-w-0 gap-6" data-testid="assessment-editor">
-      <header className="flex min-w-0 flex-col gap-4 border-b border-line pb-5 xl:flex-row xl:items-center xl:justify-between">
+    <article
+      className="grid min-w-0 gap-5 text-[0.8rem]"
+      data-testid="assessment-editor"
+    >
+      <header className="flex min-w-0 flex-col gap-4 border-b border-line pb-4 xl:flex-row xl:items-center xl:justify-between">
         <div className="flex min-w-0 items-center gap-4">
           <div className="grid size-[42px] shrink-0 place-items-center rounded-control border border-signal-orange font-mono text-xs text-signal-orange">
             Q{String(row.position).padStart(2, "0")}
           </div>
           <div className="grid min-w-0 gap-1">
-            <strong className="break-words">
+            <strong className="break-words text-xs">
               Editing question {String(row.position).padStart(2, "0")}
             </strong>
             <span
@@ -70,7 +73,7 @@ export function QuizEditor({
           </ConfirmAction>
         </div>
       </header>
-      <div className="grid min-w-0 gap-4" data-testid="assessment-fields">
+      <div className="grid min-w-0 gap-3.5" data-testid="assessment-fields">
         <Field label="Scenario question">
           <textarea
             rows={2}
@@ -165,14 +168,17 @@ export function FlashcardEditor({
   const dirty = JSON.stringify(value) !== JSON.stringify(row);
   useEffect(() => onDirtyChange?.(dirty), [dirty, onDirtyChange]);
   return (
-    <article className="grid min-w-0 gap-6" data-testid="assessment-editor">
-      <header className="flex min-w-0 flex-col gap-4 border-b border-line pb-5 xl:flex-row xl:items-center xl:justify-between">
+    <article
+      className="grid min-w-0 gap-5 text-[0.8rem]"
+      data-testid="assessment-editor"
+    >
+      <header className="flex min-w-0 flex-col gap-4 border-b border-line pb-4 xl:flex-row xl:items-center xl:justify-between">
         <div className="flex min-w-0 items-center gap-4">
           <div className="grid size-[42px] shrink-0 place-items-center rounded-control border border-signal-orange font-mono text-xs text-signal-orange">
             C{String(row.position).padStart(2, "0")}
           </div>
           <div className="grid min-w-0 gap-1">
-            <strong className="break-words">
+            <strong className="break-words text-xs">
               Editing card {String(row.position).padStart(2, "0")}
             </strong>
             <span
@@ -215,7 +221,7 @@ export function FlashcardEditor({
           </ConfirmAction>
         </div>
       </header>
-      <div className="grid min-w-0 gap-4" data-testid="assessment-fields">
+      <div className="grid min-w-0 gap-3.5" data-testid="assessment-fields">
         <Field label="Recall question">
           <textarea
             rows={2}

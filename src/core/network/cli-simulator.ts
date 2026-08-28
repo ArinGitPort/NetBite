@@ -1,4 +1,5 @@
 import { calculateSubnetRange, parseIPv4Address, selectBestRoute, type RouteEntry } from '@/core/network/advanced-networking';
+export { prefixToSubnetMask } from '../../../shared/workshop-command-generator';
 
 export type CliMode = 'user-exec' | 'privileged-exec' | 'global-config' | 'interface-config' | 'subinterface-config' | 'vlan-config';
 export type CliDeviceType = 'host' | 'router' | 'switch';
@@ -189,16 +190,6 @@ export function maskToPrefix(mask: string): number | null {
   const bits = octets.map((octet) => octet.toString(2).padStart(8, '0')).join('');
   if (!/^1*0*$/.test(bits)) return null;
   return bits.indexOf('0') === -1 ? 32 : bits.indexOf('0');
-}
-
-export function prefixToSubnetMask(prefix: number): string | null {
-  if (!Number.isInteger(prefix) || prefix < 0 || prefix > 32) return null;
-  return Array.from({ length: 4 }, (_, octetIndex) => {
-    const remainingBits = prefix - octetIndex * 8;
-    if (remainingBits >= 8) return 255;
-    if (remainingBits <= 0) return 0;
-    return 256 - (2 ** (8 - remainingBits));
-  }).join('.');
 }
 
 function parseVlanList(value: string): number[] | null {

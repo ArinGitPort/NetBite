@@ -186,8 +186,18 @@ function client() {
   if (!supabase) throw new Error("Supabase is not configured.");
   return supabase;
 }
-export function mapAdminServiceError(value: unknown, fallback = "The action could not be completed."): SafeAdminError {
-  const candidate = value as { code?: string; message?: string; context?: { body?: { error?: SafeAdminError } }; error?: SafeAdminError } | undefined;
+export function mapAdminServiceError(
+  value: unknown,
+  fallback = "The action could not be completed.",
+): SafeAdminError {
+  const candidate = value as
+    | {
+        code?: string;
+        message?: string;
+        context?: { body?: { error?: SafeAdminError } };
+        error?: SafeAdminError;
+      }
+    | undefined;
   const structured = candidate?.context?.body?.error ?? candidate?.error;
   const approvedMessages: Record<string, string> = {
     AUTH_REQUIRED: "Sign in to continue.",
@@ -199,7 +209,8 @@ export function mapAdminServiceError(value: unknown, fallback = "The action coul
     VALIDATION_FAILED: "Resolve the listed content issues before publishing.",
     INVALID_RESTORE_REQUEST: "Choose a published version and try again.",
     RELEASE_NOT_FOUND: "That published version is no longer available.",
-    ADMIN_SERVICE_ERROR: "The service could not complete the request. Try again.",
+    ADMIN_SERVICE_ERROR:
+      "The service could not complete the request. Try again.",
   };
   if (structured?.code && approvedMessages[structured.code]) {
     return {
@@ -209,8 +220,18 @@ export function mapAdminServiceError(value: unknown, fallback = "The action coul
     };
   }
   const code = candidate?.code ?? "SERVICE_UNAVAILABLE";
-  if (code === "23505") return { code, message: "That record already exists. Use a different permanent code or position." };
-  if (code === "42501" || code === "PGRST301") return { code, message: "Your administrator access could not be verified. Sign in again." };
+  if (code === "23505")
+    return {
+      code,
+      message:
+        "That record already exists. Use a different permanent code or position.",
+    };
+  if (code === "42501" || code === "PGRST301")
+    return {
+      code,
+      message:
+        "Your administrator access could not be verified. Sign in again.",
+    };
   return { code, message: fallback };
 }
 
@@ -222,20 +243,29 @@ function fail(error: unknown, fallback?: string) {
 }
 
 export async function getAdminAccess(userId: string): Promise<AdminAccess> {
-  const [{ data: administrators, error: adminError }, { data: instructors, error: instructorError }] = await Promise.all([
+  const [
+    { data: administrators, error: adminError },
+    { data: instructors, error: instructorError },
+  ] = await Promise.all([
+    client().from("content_admins").select("user_id").eq("user_id", userId),
     client()
-    .from("content_admins")
-    .select("user_id")
-    .eq("user_id", userId),
-    client().from("instructors").select("user_id").eq("user_id", userId).is("revoked_at", null),
+      .from("instructors")
+      .select("user_id")
+      .eq("user_id", userId)
+      .is("revoked_at", null),
   ]);
   fail(adminError ?? instructorError, "Portal access could not be verified.");
-  const accessLevel = administrators?.length ? "administrator" : instructors?.length ? "instructor" : "none";
+  const accessLevel = administrators?.length
+    ? "administrator"
+    : instructors?.length
+      ? "instructor"
+      : "none";
   return { userId, authorized: accessLevel !== "none", accessLevel };
 }
 
 export async function getWorkshops() {
-  const { data, error } = await client().from("workshops")
+  const { data, error } = await client()
+    .from("workshops")
     .select("id,title,description,archived,current_version_id,updated_at")
     .order("updated_at", { ascending: false });
   fail(error, "Workshops could not be loaded.");
@@ -243,17 +273,24 @@ export async function getWorkshops() {
 }
 
 export async function createWorkshop(title: string, description: string) {
-  const { data, error } = await client().from("workshops")
+  const { data, error } = await client()
+    .from("workshops")
     .insert({ title: title.trim(), description: description.trim() })
-    .select("id,title,description,archived,current_version_id,updated_at").single();
+    .select("id,title,description,archived,current_version_id,updated_at")
+    .single();
   fail(error, "The workshop could not be created.");
   return data as WorkshopRow;
 }
 
 export async function saveWorkshop(workshop: WorkshopRow) {
-  const { data, error } = await client().from("workshops").update({
-    title: workshop.title.trim(), description: workshop.description.trim(), archived: workshop.archived,
-  }).eq("id", workshop.id)
+  const { data, error } = await client()
+    .from("workshops")
+    .update({
+      title: workshop.title.trim(),
+      description: workshop.description.trim(),
+      archived: workshop.archived,
+    })
+    .eq("id", workshop.id)
     .select("id,title,description,archived,current_version_id,updated_at")
     .single();
   fail(error, "The workshop could not be saved.");
@@ -261,30 +298,57 @@ export async function saveWorkshop(workshop: WorkshopRow) {
 }
 
 export async function deleteWorkshop(workshopId: string) {
-  const { data, error } = await client().from("workshops")
+  const { data, error } = await client()
+    .from("workshops")
     .delete()
     .eq("id", workshopId)
     .select("id")
     .single();
-  fail(error, "This workshop could not be deleted. Archive it if students or published versions depend on it.");
-  if (!data?.id) throw new Error("The workshop deletion could not be confirmed.");
+  fail(
+    error,
+    "This workshop could not be deleted. Archive it if students or published versions depend on it.",
+  );
+  if (!data?.id)
+    throw new Error("The workshop deletion could not be confirmed.");
   return data.id as string;
 }
 export async function getWorkshopVersions(workshopId: string) {
-  const { data, error } = await client().from("workshop_versions")
-    .select("id,workshop_id,version,checksum,published_at").eq("workshop_id", workshopId).order("version", { ascending: false });
+  const { data, error } = await client()
+    .from("workshop_versions")
+    .select("id,workshop_id,version,checksum,published_at")
+    .eq("workshop_id", workshopId)
+    .order("version", { ascending: false });
   fail(error, "Workshop version history could not be loaded.");
   return (data ?? []) as WorkshopVersionRow[];
 }
 
 export async function getWorkshopContent(workshopId: string) {
   const [lessons, topologies, assessments, flashcards] = await Promise.all([
-    client().from("workshop_lessons").select("id,workshop_id,stable_id,position,draft,archived").eq("workshop_id", workshopId).order("position"),
-    client().from("workshop_topologies").select("id,workshop_id,stable_id,definition").eq("workshop_id", workshopId).order("stable_id"),
-    client().from("workshop_assessments").select("id,workshop_id,stable_id,title,mode,draft,settings,archived").eq("workshop_id", workshopId).order("stable_id"),
-    client().from("workshop_flashcards").select("*").eq("workshop_id", workshopId).order("position"),
+    client()
+      .from("workshop_lessons")
+      .select("id,workshop_id,stable_id,position,draft,archived")
+      .eq("workshop_id", workshopId)
+      .order("position"),
+    client()
+      .from("workshop_topologies")
+      .select("id,workshop_id,stable_id,definition")
+      .eq("workshop_id", workshopId)
+      .order("stable_id"),
+    client()
+      .from("workshop_assessments")
+      .select("id,workshop_id,stable_id,title,mode,draft,settings,archived")
+      .eq("workshop_id", workshopId)
+      .order("stable_id"),
+    client()
+      .from("workshop_flashcards")
+      .select("*")
+      .eq("workshop_id", workshopId)
+      .order("position"),
   ]);
-  fail(lessons.error ?? topologies.error ?? assessments.error ?? flashcards.error, "Workshop content could not be loaded.");
+  fail(
+    lessons.error ?? topologies.error ?? assessments.error ?? flashcards.error,
+    "Workshop content could not be loaded.",
+  );
   return {
     lessons: (lessons.data ?? []) as WorkshopLessonRow[],
     topologies: (topologies.data ?? []) as WorkshopTopologyRow[],
@@ -293,86 +357,183 @@ export async function getWorkshopContent(workshopId: string) {
   };
 }
 
-export async function createWorkshopLesson(workshopId: string, position: number) {
+export async function createWorkshopLesson(
+  workshopId: string,
+  position: number,
+) {
   const stableId = `lesson-${crypto.randomUUID()}`;
-  const { data, error } = await client().from("workshop_lessons").insert({
-    workshop_id: workshopId, stable_id: stableId, position,
-    draft: { id: stableId, title: "New lesson", summary: "", blocks: [] },
-  }).select("id,workshop_id,stable_id,position,draft,archived").single();
+  const { data, error } = await client()
+    .from("workshop_lessons")
+    .insert({
+      workshop_id: workshopId,
+      stable_id: stableId,
+      position,
+      draft: { id: stableId, title: "New lesson", summary: "", blocks: [] },
+    })
+    .select("id,workshop_id,stable_id,position,draft,archived")
+    .single();
   fail(error, "The lesson could not be added.");
   return data as WorkshopLessonRow;
 }
 
 export async function saveWorkshopLesson(row: WorkshopLessonRow) {
-  const { error } = await client().from("workshop_lessons").update({ draft: row.draft, archived: row.archived }).eq("id", row.id);
+  const { error } = await client()
+    .from("workshop_lessons")
+    .update({ draft: row.draft, archived: row.archived })
+    .eq("id", row.id);
   fail(error, "The lesson could not be saved.");
 }
 
+export async function deleteWorkshopLesson(lessonId: string) {
+  const { data, error } = await client()
+    .from("workshop_lessons")
+    .delete()
+    .eq("id", lessonId)
+    .select("id")
+    .single();
+  fail(error, "The lesson could not be deleted.");
+  if (!data?.id) throw new Error("The lesson deletion could not be confirmed.");
+  return data.id as string;
+}
+
 export async function saveWorkshopTopology(row: WorkshopTopologyRow) {
-  const payload = { workshop_id: row.workshop_id, stable_id: row.stable_id, definition: row.definition };
+  const payload = {
+    workshop_id: row.workshop_id,
+    stable_id: row.stable_id,
+    definition: row.definition,
+  };
   const { data, error } = row.id
-    ? await client().from("workshop_topologies").update(payload).eq("id", row.id).select("id,workshop_id,stable_id,definition").single()
-    : await client().from("workshop_topologies").insert(payload).select("id,workshop_id,stable_id,definition").single();
+    ? await client()
+        .from("workshop_topologies")
+        .update(payload)
+        .eq("id", row.id)
+        .select("id,workshop_id,stable_id,definition")
+        .single()
+    : await client()
+        .from("workshop_topologies")
+        .insert(payload)
+        .select("id,workshop_id,stable_id,definition")
+        .single();
   fail(error, "The topology could not be saved.");
   return data as WorkshopTopologyRow;
 }
 
-export async function createWorkshopAssessment(workshopId: string, mode: "practice" | "graded") {
+export async function createWorkshopAssessment(
+  workshopId: string,
+  mode: "practice" | "graded",
+) {
   const stableId = `assessment-${crypto.randomUUID()}`;
-  const { data, error } = await client().from("workshop_assessments").insert({
-    workshop_id: workshopId, stable_id: stableId, title: "New assessment", mode,
-    draft: { instructions: "Answer every question.", questions: [] },
-    settings: mode === "graded" ? { maximumAttempts: 1, gradePolicy: "highest", passingPercentage: 80, feedbackRelease: "final-attempt", shuffleQuestions: false, shuffleAnswers: false } : {},
-  }).select("id,workshop_id,stable_id,title,mode,draft,settings,archived").single();
+  const { data, error } = await client()
+    .from("workshop_assessments")
+    .insert({
+      workshop_id: workshopId,
+      stable_id: stableId,
+      title: "New assessment",
+      mode,
+      draft: { instructions: "Answer every question.", questions: [] },
+      settings:
+        mode === "graded"
+          ? {
+              maximumAttempts: 1,
+              gradePolicy: "highest",
+              passingPercentage: 80,
+              feedbackRelease: "final-attempt",
+              shuffleQuestions: false,
+              shuffleAnswers: false,
+            }
+          : {},
+    })
+    .select("id,workshop_id,stable_id,title,mode,draft,settings,archived")
+    .single();
   fail(error, "The assessment could not be added.");
   return data as WorkshopAssessmentRow;
 }
 
 export async function saveWorkshopAssessment(row: WorkshopAssessmentRow) {
-  const { error } = await client().from("workshop_assessments").update({ title: row.title, mode: row.mode, draft: row.draft, settings: row.settings, archived: row.archived }).eq("id", row.id);
+  const { error } = await client()
+    .from("workshop_assessments")
+    .update({
+      title: row.title,
+      mode: row.mode,
+      draft: row.draft,
+      settings: row.settings,
+      archived: row.archived,
+    })
+    .eq("id", row.id);
   fail(error, "The assessment could not be saved.");
 }
 
 async function workshopAction(body: Record<string, unknown>) {
-  const { data, error } = await client().functions.invoke("workshop-service", { body });
+  const { data, error } = await client().functions.invoke("workshop-service", {
+    body,
+  });
   fail(error, "The workshop service is unavailable.");
-  if (data?.error) fail(data.error, "The workshop request could not be completed.");
+  if (data?.error)
+    fail(data.error, "The workshop request could not be completed.");
   return data;
 }
 
 export function publishWorkshop(workshopId: string) {
-  return workshopAction({ action: "publish", workshopId, requestId: crypto.randomUUID() });
+  return workshopAction({
+    action: "publish",
+    workshopId,
+    requestId: crypto.randomUUID(),
+  });
 }
 export function createWorkshopClass(workshopId: string, title: string) {
   return workshopAction({ action: "create-class", workshopId, title });
 }
 export async function getWorkshopClasses() {
-  const { data, error } = await client().from("workshop_classes")
-    .select("id,workshop_id,version_id,title,join_code,archived,join_enabled,created_at").order("created_at", { ascending: false });
+  const { data, error } = await client()
+    .from("workshop_classes")
+    .select(
+      "id,workshop_id,version_id,title,join_code,archived,join_enabled,created_at",
+    )
+    .order("created_at", { ascending: false });
   fail(error, "Classes could not be loaded.");
   return (data ?? []) as WorkshopClassRow[];
 }
-export async function setWorkshopClassEnrollment(classId: string, enabled: boolean) {
-  const { error } = await client().from("workshop_classes").update({ join_enabled: enabled }).eq("id", classId);
+export async function setWorkshopClassEnrollment(
+  classId: string,
+  enabled: boolean,
+) {
+  const { error } = await client()
+    .from("workshop_classes")
+    .update({ join_enabled: enabled })
+    .eq("id", classId);
   fail(error, "Class enrollment could not be updated.");
 }
 export function getWorkshopGradebook(classId: string) {
-  return workshopAction({ action: "gradebook", classId }) as Promise<{ rows: Array<Record<string, unknown>> }>;
+  return workshopAction({ action: "gradebook", classId }) as Promise<{
+    rows: Array<Record<string, unknown>>;
+  }>;
 }
 export async function getInstructorRequests() {
-  const { data, error } = await client().from("instructor_requests")
-    .select("user_id,display_name,institution,reason,status,requested_at,reviewed_at")
+  const { data, error } = await client()
+    .from("instructor_requests")
+    .select(
+      "user_id,display_name,institution,reason,status,requested_at,reviewed_at",
+    )
     .order("requested_at", { ascending: false });
   fail(error, "Instructor requests could not be loaded.");
   return (data ?? []) as InstructorRequestRow[];
 }
-export async function reviewInstructorRequest(userId: string, decision: "approved" | "declined" | "revoked") {
-  const { error } = await client().rpc("review_instructor_request", { p_user_id: userId, p_decision: decision });
+export async function reviewInstructorRequest(
+  userId: string,
+  decision: "approved" | "declined" | "revoked",
+) {
+  const { error } = await client().rpc("review_instructor_request", {
+    p_user_id: userId,
+    p_decision: decision,
+  });
   fail(error, "The instructor request could not be updated.");
 }
 export async function getCurriculum() {
   const [courses, chapters, lessons, quiz, flashcards] = await Promise.all([
-    client().from("content_courses").select("id,position,definition").order("position"),
+    client()
+      .from("content_courses")
+      .select("id,position,definition")
+      .order("position"),
     client()
       .from("content_chapters")
       .select("id,course_id,position,definition")
@@ -422,15 +583,13 @@ export async function createLesson(
     illustration,
     sections: [],
   };
-  const { error } = await client()
-    .from("content_lessons")
-    .insert({
-      id,
-      chapter_id: chapterId,
-      position,
-      requirement: "supplemental",
-      draft,
-    });
+  const { error } = await client().from("content_lessons").insert({
+    id,
+    chapter_id: chapterId,
+    position,
+    requirement: "supplemental",
+    draft,
+  });
   fail(error);
 }
 export async function saveLesson(row: LessonRow) {
@@ -447,10 +606,7 @@ export async function saveLesson(row: LessonRow) {
     .eq("id", row.id);
   fail(error);
 }
-export async function setLessonArchived(
-  id: string,
-  archived: boolean,
-) {
+export async function setLessonArchived(id: string, archived: boolean) {
   const { error } = await client()
     .from("content_lessons")
     .update({ archived })
@@ -478,15 +634,13 @@ export async function createQuiz(
     correctAnswerIndex: 0,
     explanation: "Explain why the networking rule supports this answer.",
   };
-  const { error } = await client()
-    .from("content_quiz_questions")
-    .insert({
-      id,
-      chapter_id: chapterId,
-      lesson_id: lessonId,
-      position,
-      draft,
-    });
+  const { error } = await client().from("content_quiz_questions").insert({
+    id,
+    chapter_id: chapterId,
+    lesson_id: lessonId,
+    position,
+    draft,
+  });
   fail(error);
 }
 export async function saveFlashcard(row: FlashcardRow) {
@@ -516,15 +670,13 @@ export async function createFlashcard(
     answer: "Write the direct answer.",
     explanation: "Explain why it matters.",
   };
-  const { error } = await client()
-    .from("content_flashcards")
-    .insert({
-      id,
-      chapter_id: chapterId,
-      lesson_id: lessonId,
-      position,
-      draft,
-    });
+  const { error } = await client().from("content_flashcards").insert({
+    id,
+    chapter_id: chapterId,
+    lesson_id: lessonId,
+    position,
+    draft,
+  });
   fail(error);
 }
 export async function deleteAssessment(
@@ -563,7 +715,9 @@ export async function saveSource(source: Partial<SourceRow>) {
     /^169\.254\./.test(host) ||
     /^172\.(1[6-9]|2\d|3[01])\./.test(host)
   ) {
-    throw new Error("Use a public HTTPS source address without embedded credentials.");
+    throw new Error(
+      "Use a public HTTPS source address without embedded credentials.",
+    );
   }
   const payload = {
     lesson_id: source.lesson_id || null,
@@ -587,13 +741,19 @@ export async function deleteSource(id: string) {
 export async function getAssets() {
   const { data, error } = await client()
     .from("content_assets")
-    .select("id,lesson_id,object_path,mime_type,byte_size,width,height,alt_text,published")
+    .select(
+      "id,lesson_id,object_path,mime_type,byte_size,width,height,alt_text,published",
+    )
     .order("created_at", { ascending: false });
   fail(error);
-  return Promise.all(((data ?? []) as AssetRow[]).map(async (asset) => {
-    const { data: signed } = await client().storage.from("netbite-content").createSignedUrl(asset.object_path, 300);
-    return { ...asset, preview_url: signed?.signedUrl };
-  }));
+  return Promise.all(
+    ((data ?? []) as AssetRow[]).map(async (asset) => {
+      const { data: signed } = await client()
+        .storage.from("netbite-content")
+        .createSignedUrl(asset.object_path, 300);
+      return { ...asset, preview_url: signed?.signedUrl };
+    }),
+  );
 }
 export async function uploadAsset(
   file: File,
@@ -620,7 +780,10 @@ export async function uploadAsset(
     });
   if (error) {
     await client().storage.from("netbite-content").remove([path]);
-    fail(error, "The image details could not be saved. The upload was removed safely.");
+    fail(
+      error,
+      "The image details could not be saved. The upload was removed safely.",
+    );
   }
 }
 export async function deleteAsset(asset: AssetRow) {
@@ -675,18 +838,22 @@ export async function rollbackRelease(releaseId: string, requestId: string) {
     { body: { releaseId, requestId } },
   );
   fail(error);
-  if (data?.error) fail(data.error, "The previous version could not be restored.");
+  if (data?.error)
+    fail(data.error, "The previous version could not be restored.");
   return data;
 }
 export async function getSanitizedAuditHistory() {
-  const { data, error } = await client()
-    .rpc("get_sanitized_content_audit", { requested_limit: 100 });
+  const { data, error } = await client().rpc("get_sanitized_content_audit", {
+    requested_limit: 100,
+  });
   fail(error, "Activity history could not be loaded.");
   return (data ?? []).map((row: Record<string, unknown>) => ({
     id: Number(row.id),
     actionLabel: String(row.action_label),
     contentLabel: String(row.content_label),
-    administratorName: row.administrator_name ? String(row.administrator_name) : undefined,
+    administratorName: row.administrator_name
+      ? String(row.administrator_name)
+      : undefined,
     summary: String(row.summary),
     occurredAt: String(row.occurred_at),
   })) as SafeAuditEntry[];

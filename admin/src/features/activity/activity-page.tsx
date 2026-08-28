@@ -1,8 +1,44 @@
-import { Archive, ArrowDown, ArrowLeft, ArrowUp, BookOpen, CheckCircle2, ChevronDown, ChevronRight, ClipboardCheck, FileClock, FileText, Image, Plus, RefreshCw, Rocket, Save, Search, Sparkles, Trash2, Upload } from "lucide-react";
+import {
+  Archive,
+  ArrowDown,
+  ArrowLeft,
+  ArrowUp,
+  BookOpen,
+  CheckCircle2,
+  ChevronDown,
+  ChevronRight,
+  ClipboardCheck,
+  FileClock,
+  FileText,
+  Image,
+  Plus,
+  RefreshCw,
+  Rocket,
+  Save,
+  Search,
+  Sparkles,
+  Trash2,
+  Upload,
+} from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import * as api from "../../lib/content-api";
-import type { AssetRow, ChapterRow, FlashcardRow, LessonRow, QuizRow, ReleaseRow, SafeAuditEntry, SourceRow } from "../../lib/content-api";
-import { ConfirmAction, EmptyState as Empty, Field, PageIntro, StatusBadge as Badge } from "../../components/ui/admin-primitives";
+import type {
+  AssetRow,
+  ChapterRow,
+  FlashcardRow,
+  LessonRow,
+  QuizRow,
+  ReleaseRow,
+  SafeAuditEntry,
+  SourceRow,
+} from "../../lib/content-api";
+import {
+  ConfirmAction,
+  EmptyState as Empty,
+  Field,
+  PageIntro,
+  StatusBadge as Badge,
+} from "../../components/ui/admin-primitives";
 
 export function Audit() {
   const [rows, setRows] = useState<SafeAuditEntry[]>([]);
@@ -16,7 +52,7 @@ export function Audit() {
         title="Activity history"
         detail="Review important curriculum changes and publishing activity. History cannot be edited from this portal."
       />
-      <section className="rounded-panel border border-line bg-surface p-6 shadow-panel">
+      <section className="rounded-panel border border-line bg-surface p-5 shadow-panel">
         <div className="grid [&>article]:grid [&>article]:grid-cols-[44px_minmax(0,1fr)] [&>article]:gap-4 [&>article]:border-t [&>article]:border-line [&>article]:py-4 [&_p]:mb-0 [&_p]:mt-1 [&_p]:text-sm [&_small]:text-muted">
           {rows.map((row) => (
             <article key={row.id}>
@@ -28,7 +64,10 @@ export function Audit() {
                   {row.actionLabel} · {row.contentLabel}
                 </strong>
                 <p>{row.summary}</p>
-                <small>{row.administratorName} · {new Date(row.occurredAt).toLocaleString()}</small>
+                <small>
+                  {row.administratorName} ·{" "}
+                  {new Date(row.occurredAt).toLocaleString()}
+                </small>
               </div>
             </article>
           ))}
@@ -43,6 +82,3 @@ export function Audit() {
     </>
   );
 }
-
-
-

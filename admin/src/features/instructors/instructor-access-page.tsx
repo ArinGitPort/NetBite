@@ -14,7 +14,11 @@ function Notice({
   message?: string;
   error?: boolean;
 }) {
-  return message ? <div className="mb-4"><Feedback tone={error ? "error" : "success"}>{message}</Feedback></div> : null;
+  return message ? (
+    <div className="mb-4">
+      <Feedback tone={error ? "error" : "success"}>{message}</Feedback>
+    </div>
+  ) : null;
 }
 
 export function InstructorApprovals() {
@@ -60,15 +64,19 @@ export function InstructorApprovals() {
   };
   return (
     <>
-      <PageIntro detail="Approve teaching accounts before they can create workshops. Approval never grants official curriculum administration." eyebrow="ACCOUNT APPROVAL" title="Instructor access" />
+      <PageIntro
+        detail="Approve teaching accounts before they can create lesson collections and classes. Approval never grants official curriculum administration."
+        eyebrow="ACCOUNT APPROVAL"
+        title="Instructor access"
+      />
       <Notice message={error || notice} error={Boolean(error)} />
-      <section className="rounded-panel border border-line bg-surface p-6 shadow-panel">
+      <section className="rounded-panel border border-line bg-surface p-5 shadow-panel">
         <div className="mb-5 flex flex-wrap items-center justify-between gap-4 [&_h2]:m-0 [&_p]:mb-0">
           <div>
             <h2>Access requests</h2>
             <p>
-              Review the instructor’s name, institution, and stated
-              purpose before deciding.
+              Review the instructor’s name, institution, and stated purpose
+              before deciding.
             </p>
           </div>
           <StatusBadge>
@@ -82,9 +90,7 @@ export function InstructorApprovals() {
               className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-5 border-t border-line py-5 max-sm:grid-cols-1"
             >
               <div>
-                <StatusBadge>
-                  {row.status}
-                </StatusBadge>
+                <StatusBadge>{row.status}</StatusBadge>
                 <h3>{row.display_name}</h3>
                 <strong>{row.institution}</strong>
                 <p>{row.reason || "No additional note provided."}</p>

@@ -47,6 +47,7 @@ import {
   PageIntro,
   StatusBadge as Badge,
 } from "../../components/ui/admin-primitives";
+import { Button } from "../../components/ui/button";
 
 export function Assets() {
   const [rows, setRows] = useState<AssetRow[]>([]);
@@ -106,10 +107,10 @@ export function Assets() {
       ) : null}
       <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-[minmax(320px,.7fr)_minmax(0,1.3fr)]">
         <form
-          className="grid gap-4 rounded-panel border border-line bg-surface p-6 shadow-panel"
+          className="grid gap-4 rounded-panel border border-line bg-surface p-5 shadow-panel"
           onSubmit={upload}
         >
-          <h2>Upload supporting image</h2>
+          <h2 className="text-lg">Upload supporting image</h2>
           <Field
             label="Related lesson"
             hint="Optional. Choose where this supporting image belongs."
@@ -150,16 +151,13 @@ export function Assets() {
               onChange={(event) => setAltText(event.target.value)}
             />
           </Field>
-          <button
-            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-control border border-copy bg-copy px-4 text-xs font-semibold text-canvas hover:bg-white hover:text-canvas disabled:pointer-events-none disabled:border-line/60 disabled:bg-raised/70 disabled:text-muted/75 [&_svg]:size-4"
-            disabled={busy}
-          >
+          <Button disabled={busy} tone="primary" type="submit">
             <Upload />
             {busy ? "UPLOADING..." : "UPLOAD DRAFT IMAGE"}
-          </button>
+          </Button>
         </form>
-        <section className="rounded-panel border border-line bg-surface p-6 shadow-panel">
-          <h2>Media records</h2>
+        <section className="rounded-panel border border-line bg-surface p-5 shadow-panel">
+          <h2 className="text-lg">Media records</h2>
           <div className="grid gap-3">
             {rows.map((asset) => (
               <article

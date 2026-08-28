@@ -1,8 +1,22 @@
-import { Archive, ArrowDown, ArrowLeft, ArrowUp, Plus, Save, Trash2, X } from "lucide-react";
+import {
+  Archive,
+  ArrowDown,
+  ArrowLeft,
+  ArrowUp,
+  Plus,
+  Save,
+  Trash2,
+  X,
+} from "lucide-react";
 import { useState } from "react";
 import * as api from "../../lib/content-api";
 import type { LessonRow } from "../../lib/content-api";
-import { ConfirmAction, DialogFrame, Field, StatusBadge as Badge } from "../../components/ui/admin-primitives";
+import {
+  ConfirmAction,
+  DialogFrame,
+  Field,
+  StatusBadge as Badge,
+} from "../../components/ui/admin-primitives";
 
 export function LessonEditor({
   row,
@@ -46,7 +60,9 @@ export function LessonEditor({
     <>
       <div className="mb-5 flex justify-between gap-5 border-b border-line pb-5 max-lg:flex-col">
         <div>
-          <p className="mb-2 font-mono text-[0.65rem] font-semibold uppercase tracking-[0.13em] text-signal-orange">{row.requirement.toUpperCase()} LESSON</p>
+          <p className="mb-2 font-mono text-[0.65rem] font-semibold uppercase tracking-[0.13em] text-signal-orange">
+            {row.requirement.toUpperCase()} LESSON
+          </p>
           <h2>{draft.title}</h2>
           <small className="font-mono">{row.id}</small>
         </div>
@@ -54,12 +70,16 @@ export function LessonEditor({
           <button
             className={tab === "edit" ? "bg-signal-green-soft! text-copy!" : ""}
             onClick={() => setTab("edit")}
+            type="button"
           >
             EDIT
           </button>
           <button
-            className={tab === "preview" ? "bg-signal-green-soft! text-copy!" : ""}
+            className={
+              tab === "preview" ? "bg-signal-green-soft! text-copy!" : ""
+            }
             onClick={() => setTab("preview")}
+            type="button"
           >
             PREVIEW
           </button>
@@ -104,7 +124,9 @@ export function LessonEditor({
           <div className="rounded-control border border-line bg-canvas p-4">
             <div className="mb-5 flex flex-wrap items-center justify-between gap-4 [&_h2]:m-0 [&_h3]:m-0 [&_p]:mb-0">
               <div>
-                <p className="mb-2 font-mono text-[0.65rem] font-semibold uppercase tracking-[0.13em] text-signal-orange">STRUCTURED EXPLANATION</p>
+                <p className="mb-2 font-mono text-[0.65rem] font-semibold uppercase tracking-[0.13em] text-signal-orange">
+                  STRUCTURED EXPLANATION
+                </p>
                 <h3>Lesson sections</h3>
               </div>
               <button
@@ -113,7 +135,7 @@ export function LessonEditor({
                   change({
                     sections: [
                       ...(draft.sections ?? []),
-                      { heading: "NEW SECTION", body: "" },
+                      { heading: "", body: "" },
                     ],
                   })
                 }
@@ -123,9 +145,13 @@ export function LessonEditor({
               </button>
             </div>
             {(draft.sections ?? []).map((section, index) => (
-              <div className="relative mt-3 grid grid-cols-[1fr_2fr_44px] items-start gap-2 max-sm:grid-cols-1" key={`${row.id}-${index}`}>
+              <div
+                className="relative mt-3 grid grid-cols-[1fr_2fr_44px] items-start gap-2 max-sm:grid-cols-1"
+                key={`${row.id}-${index}`}
+              >
                 <input
                   aria-label={`Section ${index + 1} heading`}
+                  placeholder="Section heading"
                   value={section.heading}
                   onChange={(event) =>
                     change({
@@ -139,6 +165,7 @@ export function LessonEditor({
                 />
                 <textarea
                   aria-label={`Section ${index + 1} body`}
+                  placeholder="Explain this part in simple English."
                   rows={3}
                   value={section.body}
                   onChange={(event) =>
@@ -184,10 +211,18 @@ export function LessonEditor({
               {busy ? "SAVING..." : "SAVE DRAFT"}
             </button>
             <div className="flex flex-wrap items-center justify-end gap-2">
-              <button className="inline-flex min-h-10 items-center justify-center gap-2 rounded-control border border-transparent bg-transparent px-3 text-xs font-semibold text-muted hover:border-line hover:bg-raised hover:text-copy disabled:pointer-events-none disabled:opacity-45 [&_svg]:size-4" disabled={busy || row.archived} onClick={() => void onMove(-1)}>
+              <button
+                className="inline-flex min-h-10 items-center justify-center gap-2 rounded-control border border-transparent bg-transparent px-3 text-xs font-semibold text-muted hover:border-line hover:bg-raised hover:text-copy disabled:pointer-events-none disabled:opacity-45 [&_svg]:size-4"
+                disabled={busy || row.archived}
+                onClick={() => void onMove(-1)}
+              >
                 <ArrowUp /> MOVE EARLIER
               </button>
-              <button className="inline-flex min-h-10 items-center justify-center gap-2 rounded-control border border-transparent bg-transparent px-3 text-xs font-semibold text-muted hover:border-line hover:bg-raised hover:text-copy disabled:pointer-events-none disabled:opacity-45 [&_svg]:size-4" disabled={busy || row.archived} onClick={() => void onMove(1)}>
+              <button
+                className="inline-flex min-h-10 items-center justify-center gap-2 rounded-control border border-transparent bg-transparent px-3 text-xs font-semibold text-muted hover:border-line hover:bg-raised hover:text-copy disabled:pointer-events-none disabled:opacity-45 [&_svg]:size-4"
+                disabled={busy || row.archived}
+                onClick={() => void onMove(1)}
+              >
                 <ArrowDown /> MOVE LATER
               </button>
             </div>
@@ -217,14 +252,19 @@ export function LessonEditor({
 }
 function MobilePreview({ row }: { row: LessonRow }) {
   return (
-    <div className="grid min-h-[650px] place-items-start center bg-[#0d0c0e] p-5">
-      <div className="min-h-[640px] w-[min(390px,100%)] overflow-hidden rounded-[34px] border-[8px] border-[#29252a] bg-sidebar bg-[image:var(--nb-grid)] bg-[size:24px_24px] shadow-[0_24px_55px_rgb(0_0_0/50%)]">
+    <div
+      className="themed-scrollbar flex min-h-[650px] w-full justify-center overflow-auto rounded-control border border-line bg-canvas/70 p-4 sm:p-5"
+      data-testid="mobile-lesson-preview"
+    >
+      <div className="h-[640px] w-full max-w-[390px] shrink-0 overflow-y-auto rounded-[34px] border-[8px] border-[#29252a] bg-sidebar bg-[image:var(--nb-grid)] bg-[size:24px_24px] shadow-[0_24px_55px_rgb(0_0_0/50%)]">
         <div className="flex h-14 items-center gap-3 border-b border-line px-4 text-xs text-signal-red [&_svg]:size-4 [&_span]:ml-auto [&_span]:text-muted">
           <ArrowLeft />
           CLOSE <span>1 / 1</span>
         </div>
         <div className="p-5 [&_h2]:text-lg [&_h2]:leading-7 [&_p]:text-sm [&_section]:border-t [&_section]:border-line [&_section]:py-4 [&_section_h3]:text-signal-orange">
-          <p className="mb-2 font-mono text-[0.65rem] font-semibold uppercase tracking-[0.13em] text-signal-orange">{row.draft.eyebrow}</p>
+          <p className="mb-2 font-mono text-[0.65rem] font-semibold uppercase tracking-[0.13em] text-signal-orange">
+            {row.draft.eyebrow}
+          </p>
           <h2>{row.draft.title.toUpperCase()}</h2>
           {row.requirement === "supplemental" ? (
             <Badge tone="orange">NEW / SUPPLEMENTAL</Badge>
@@ -245,5 +285,3 @@ function MobilePreview({ row }: { row: LessonRow }) {
     </div>
   );
 }
-
-

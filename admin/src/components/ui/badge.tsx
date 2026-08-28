@@ -4,7 +4,7 @@ import type { HTMLAttributes } from "react";
 import { cn } from "../../lib/class-names";
 
 const badgeVariants = cva(
-  "inline-flex min-h-6 w-fit items-center gap-1.5 rounded-full border px-2.5 font-mono text-[0.58rem] font-semibold uppercase tracking-[0.045em]",
+  "inline-flex min-h-6 w-fit items-center gap-2 whitespace-nowrap rounded-full border px-2.5 font-mono text-[0.58rem] font-semibold uppercase tracking-[0.045em] [&_svg]:shrink-0",
   {
     variants: {
       tone: {
@@ -18,7 +18,8 @@ const badgeVariants = cva(
   },
 );
 
-interface BadgeProps extends HTMLAttributes<HTMLSpanElement>, VariantProps<typeof badgeVariants> {}
+interface BadgeProps
+  extends HTMLAttributes<HTMLSpanElement>, VariantProps<typeof badgeVariants> {}
 
 export function Badge({ className, tone, ...props }: BadgeProps) {
   return <span className={cn(badgeVariants({ tone }), className)} {...props} />;

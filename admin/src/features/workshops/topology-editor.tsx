@@ -1,6 +1,7 @@
 import {
   Cable,
   Monitor,
+  Network,
   Plus,
   Router,
   Save,
@@ -40,8 +41,16 @@ function Notice({
 function DeviceIcon({ type }: { type: WorkshopTopologyDevice["type"] }) {
   if (type === "router") return <Router />;
   if (type === "server") return <Server />;
+  if (type === "switch") return <Network />;
   return <Monitor />;
 }
+
+const devicePalette = [
+  { type: "pc", label: "PC" },
+  { type: "switch", label: "SWITCH" },
+  { type: "router", label: "ROUTER" },
+  { type: "server", label: "SERVER" },
+] as const;
 
 export function defaultTopology(workshopId: string): WorkshopTopologyRow {
   const stableId = `topology-${crypto.randomUUID()}`;
@@ -74,6 +83,7 @@ export function TopologyEditor({
   const [selectedLinkId, setSelectedLinkId] = useState<string>();
   const [connectFrom, setConnectFrom] = useState<string>();
   const [notice, setNotice] = useState<string>();
+  const [saving, setSaving] = useState(false);
   const canvasRef = useRef<HTMLDivElement>(null);
   const selected = topology.devices.find((device) => device.id === selectedId);
   const selectedLink = topology.links.find(
@@ -200,35 +210,72 @@ export function TopologyEditor({
     window.addEventListener("pointerup", stop);
   };
   const save = async () => {
+    if (saving) return;
     if (issues.some((issue) => issue.severity === "error"))
       return setNotice("Resolve the topology errors before saving.");
-    const saved = await api.saveWorkshopTopology({
-      ...row,
-      definition: topology as unknown as Record<string, unknown>,
-    });
-    onSaved(saved);
-    setNotice("Topology saved.");
+    setSaving(true);
+    setNotice(undefined);
+    try {
+      const saved = await api.saveWorkshopTopology({
+        ...row,
+        definition: topology as unknown as Record<string, unknown>,
+      });
+      onSaved(saved);
+      setNotice("Topology saved.");
+    } catch (reason) {
+      setNotice(
+        reason instanceof Error
+          ? reason.message
+          : "The topology could not be saved.",
+      );
+    } finally {
+      setSaving(false);
+    }
   };
   return (
     <div className="grid">
-      <div className="flex flex-wrap items-center gap-2 border-b border-line p-4 [&>strong]:mr-auto">
-        <strong>READ-ONLY TOPOLOGY</strong>
-        {(["pc", "switch", "router", "server"] as const).map((type) => (
-          <button
-            className="inline-flex min-h-10 items-center justify-center gap-2 rounded-control border border-transparent bg-transparent px-3 text-xs font-semibold text-muted hover:border-line hover:bg-raised hover:text-copy disabled:pointer-events-none disabled:opacity-45 [&_svg]:size-4"
-            key={type}
-            onClick={() => addDevice(type)}
-          >
-            <Plus />
-            {type}
-          </button>
-        ))}
+      <div className="flex flex-wrap items-center gap-3 border-b border-line p-4">
+        <div className="mr-auto grid min-w-[150px] gap-1">
+          <strong>READ-ONLY TOPOLOGY</strong>
+          <span className="text-[0.65rem] text-muted">
+            {topology.devices.length} of 12 devices
+          </span>
+        </div>
+        <div
+          aria-label="Add a device"
+          className="flex flex-wrap items-center gap-1.5 rounded-control border border-line bg-canvas p-1.5"
+          role="group"
+        >
+          <span className="px-2 font-mono text-[0.58rem] font-semibold tracking-[0.08em] text-muted">
+            ADD DEVICE
+          </span>
+          {devicePalette.map(({ type, label }) => (
+            <button
+              aria-label={`Add ${label} to topology`}
+              className="inline-flex min-h-10 items-center justify-center gap-2 rounded-[6px] border border-transparent bg-raised px-3 text-[0.68rem] font-semibold text-copy transition-colors hover:border-signal-orange/60 hover:bg-signal-orange-soft hover:text-[#f1ae78] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-signal-orange disabled:pointer-events-none disabled:opacity-45 [&_svg]:size-4"
+              disabled={topology.devices.length >= 12}
+              key={type}
+              onClick={() => addDevice(type)}
+              title={
+                topology.devices.length >= 12
+                  ? "This topology already has 12 devices."
+                  : `Add ${label}`
+              }
+              type="button"
+            >
+              <DeviceIcon type={type} />
+              {label}
+              <Plus aria-hidden="true" className="ml-0.5 size-3! text-muted" />
+            </button>
+          ))}
+        </div>
         <button
           className="inline-flex min-h-11 items-center justify-center gap-2 rounded-control border border-copy bg-copy px-4 text-xs font-semibold text-canvas hover:bg-white hover:text-canvas disabled:pointer-events-none disabled:border-line/60 disabled:bg-raised/70 disabled:text-muted/75 [&_svg]:size-4"
+          disabled={saving}
           onClick={() => void save()}
         >
           <Save />
-          SAVE TOPOLOGY
+          {saving ? "SAVING..." : "SAVE TOPOLOGY"}
         </button>
       </div>
       <Notice

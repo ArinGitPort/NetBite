@@ -210,6 +210,13 @@ describe("admin session stability", () => {
       await screen.findByRole("button", { name: "FOCUSED" }),
     ).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByTestId("assessment-workspace")).toHaveClass("min-w-0");
+    expect(screen.getByTestId("assessment-section")).toHaveClass(
+      "rounded-panel",
+      "border",
+    );
+    expect(screen.getByTestId("assessment-navigator")).not.toHaveClass(
+      "rounded-panel",
+    );
     expect(screen.getByTestId("assessment-editor-region")).toHaveClass(
       "min-w-0",
     );
@@ -254,6 +261,21 @@ describe("admin session stability", () => {
     );
     expect(foundations.querySelector("small")).toHaveTextContent("1 chapters");
     expect(screen.getByTestId("curriculum-workspace")).toHaveClass("min-w-0");
+    expect(screen.getByTestId("curriculum-workspace")).toHaveClass(
+      "overflow-hidden",
+      "rounded-panel",
+      "border",
+      "xl:grid-cols-[250px_360px_minmax(0,1fr)]",
+    );
+    expect(screen.getByTestId("curriculum-navigation")).not.toHaveClass(
+      "rounded-panel",
+    );
+    expect(screen.getByTestId("curriculum-lessons")).not.toHaveClass(
+      "rounded-panel",
+    );
+    expect(screen.getByTestId("curriculum-editor")).not.toHaveClass(
+      "rounded-panel",
+    );
     expect(operations).toHaveAttribute("aria-expanded", "false");
     expect(
       screen.getByRole("button", { name: /Introduction to Networks/i }),
@@ -267,5 +289,44 @@ describe("admin session stability", () => {
         name: /Transport and Application Endpoints/i,
       }),
     ).toBeVisible();
+  });
+
+  test("centers the Android lesson preview inside its editor region", async () => {
+    render(<App />);
+
+    fireEvent.click(await screen.findByRole("link", { name: "Curriculum" }));
+    fireEvent.click(
+      await screen.findByRole("button", {
+        name: /What is a computer network/i,
+      }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "PREVIEW" }));
+
+    expect(screen.getByTestId("mobile-lesson-preview")).toHaveClass(
+      "justify-center",
+      "w-full",
+      "overflow-auto",
+    );
+  });
+
+  test("keeps paired lesson fields aligned and guides a new section", async () => {
+    render(<App />);
+
+    fireEvent.click(await screen.findByRole("link", { name: "Curriculum" }));
+    fireEvent.click(
+      await screen.findByRole("button", {
+        name: /What is a computer network/i,
+      }),
+    );
+
+    expect(screen.getByLabelText("Section label").closest("label")).toHaveClass(
+      "content-start",
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "ADD SECTION" }));
+    expect(screen.getByPlaceholderText("Section heading")).toBeInTheDocument();
+    expect(
+      screen.getByPlaceholderText("Explain this part in simple English."),
+    ).toBeInTheDocument();
   });
 });

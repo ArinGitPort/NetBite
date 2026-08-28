@@ -30,8 +30,8 @@ export function Classes({
         <div className="grid gap-2">
           <h2 className="m-0 text-lg font-bold">Create a class</h2>
           <p className="m-0 max-w-2xl leading-7 text-muted">
-            Each class stays pinned to the workshop version used when it was
-            created.
+            Each class stays pinned to the lesson collection version used when
+            it was created.
           </p>
         </div>
         <InputField
@@ -51,7 +51,7 @@ export function Classes({
           </Button>
           {!selected.current_version_id ? (
             <p className="m-0 text-sm leading-6 text-muted">
-              Publish the workshop before creating a class.
+              Publish the lesson collection before creating a class.
             </p>
           ) : null}
         </div>
@@ -68,7 +68,7 @@ export function Classes({
         ))}
         {!classes.length ? (
           <p className="m-0 text-muted">
-            No classes created from this workshop yet.
+            No classes created from this lesson collection yet.
           </p>
         ) : null}
       </Panel>
@@ -279,25 +279,22 @@ export function Gradebook({ rows }: { rows: Array<Record<string, unknown>> }) {
           </strong>
         </div>
       </div>
-      <section className="rounded-panel border border-line bg-surface p-6 shadow-panel">
-        <div className="mb-5 flex flex-wrap items-center justify-between gap-4 [&_h2]:m-0 [&_p]:mb-0">
-          <div>
-            <h2>Recorded grades</h2>
-            <p>
+      <section className="mt-7 min-w-0" data-testid="recorded-grades">
+        <div className="mb-5 flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
+          <div className="grid min-w-0 gap-1.5">
+            <h2 className="m-0 text-lg">Recorded grades</h2>
+            <p className="m-0 max-w-3xl text-sm leading-6 text-muted">
               The score policy selected for each assessment determines the
               recorded attempt.
             </p>
           </div>
-          <button
-            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-control border border-signal-orange/60 bg-signal-orange-soft px-4 text-xs font-semibold text-[#f1ae78] hover:border-signal-orange disabled:pointer-events-none disabled:opacity-45 [&_svg]:size-4"
-            onClick={exportCsv}
-          >
+          <Button onClick={exportCsv} tone="secondary">
             <Download />
             EXPORT CSV
-          </button>
+          </Button>
         </div>
-        <div className="mb-5 grid grid-cols-1 gap-4 md:grid-cols-2">
-          <label className="grid gap-2 text-[0.7rem] font-semibold text-copy [&>small]:font-normal [&>small]:leading-6 [&>small]:text-muted">
+        <div className="mb-5 grid grid-cols-1 gap-3 md:grid-cols-2">
+          <label className="grid content-start gap-1.5 text-[0.7rem] font-semibold text-copy">
             <span>Student</span>
             <select
               value={studentFilter}
@@ -311,7 +308,7 @@ export function Gradebook({ rows }: { rows: Array<Record<string, unknown>> }) {
               ))}
             </select>
           </label>
-          <label className="grid gap-2 text-[0.7rem] font-semibold text-copy [&>small]:font-normal [&>small]:leading-6 [&>small]:text-muted">
+          <label className="grid content-start gap-1.5 text-[0.7rem] font-semibold text-copy">
             <span>Assessment</span>
             <select
               value={assessmentFilter}
@@ -352,10 +349,14 @@ export function Gradebook({ rows }: { rows: Array<Record<string, unknown>> }) {
               </span>
             </div>
           ))}
+          {!filteredRows.length ? (
+            <div role="row">
+              <span className="col-span-5 text-sm text-muted">
+                No grade records match these filters.
+              </span>
+            </div>
+          ) : null}
         </div>
-        {!filteredRows.length ? (
-          <p>No grade records match these filters.</p>
-        ) : null}
       </section>
     </>
   );

@@ -10,6 +10,22 @@ const tones: Record<FeedbackTone, string> = {
   error: "border-signal-red bg-signal-red-soft text-[#ff9da1]",
 };
 
-export function Feedback({ children, tone = "success" }: { children: ReactNode; tone?: FeedbackTone }) {
-  return <div className={cn("rounded-control border-l-[3px] px-4 py-3 text-sm", tones[tone])} role={tone === "error" ? "alert" : "status"}>{children}</div>;
+export function Feedback({
+  children,
+  tone = "success",
+}: {
+  children: ReactNode;
+  tone?: FeedbackTone;
+}) {
+  return (
+    <div
+      className={cn(
+        "rounded-control border-l-[3px] px-4 py-3 text-sm",
+        tones[tone],
+      )}
+      role={tone === "error" ? "alert" : "status"}
+    >
+      {children}
+    </div>
+  );
 }

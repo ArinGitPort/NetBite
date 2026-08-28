@@ -1,9 +1,54 @@
-import { Archive, ArrowDown, ArrowLeft, ArrowUp, BookOpen, CheckCircle2, ChevronDown, ChevronRight, ClipboardCheck, FileClock, FileText, Image, Plus, RefreshCw, Rocket, Save, Search, Sparkles, Trash2, Upload } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import {
+  Archive,
+  ArrowDown,
+  ArrowLeft,
+  ArrowUp,
+  BookOpen,
+  CheckCircle2,
+  ChevronDown,
+  ChevronRight,
+  ClipboardCheck,
+  FileClock,
+  FileText,
+  Image,
+  Plus,
+  RefreshCw,
+  Rocket,
+  Save,
+  Search,
+  Sparkles,
+  Trash2,
+  Upload,
+} from "lucide-react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type FormEvent,
+} from "react";
 import { useNavigate } from "react-router-dom";
 import * as api from "../../lib/content-api";
-import type { AssetRow, ChapterRow, FlashcardRow, LessonRow, QuizRow, ReleaseRow, SafeAuditEntry, SourceRow } from "../../lib/content-api";
-import { ConfirmAction, DialogFrame, EmptyState as Empty, Field, LoadingState as Loading, PageIntro, StatusBadge as Badge } from "../../components/ui/admin-primitives";
+import type {
+  AssetRow,
+  ChapterRow,
+  FlashcardRow,
+  LessonRow,
+  QuizRow,
+  ReleaseRow,
+  SafeAuditEntry,
+  SourceRow,
+} from "../../lib/content-api";
+import {
+  ConfirmAction,
+  DialogFrame,
+  EmptyState as Empty,
+  Field,
+  LoadingState as Loading,
+  PageIntro,
+  StatusBadge as Badge,
+} from "../../components/ui/admin-primitives";
 
 export function Dashboard() {
   const navigate = useNavigate();
@@ -73,10 +118,12 @@ export function Dashboard() {
         />
       </div>
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1.5fr_1fr]">
-        <section className="rounded-panel border border-line bg-surface p-6 shadow-panel">
+        <section className="rounded-panel border border-line bg-surface p-5 shadow-panel">
           <div className="mb-5 flex flex-wrap items-center justify-between gap-4 [&_h2]:m-0 [&_h3]:m-0 [&_p]:mb-0">
             <div>
-              <p className="mb-2 font-mono text-[0.65rem] font-semibold uppercase tracking-[0.13em] text-signal-orange">PUBLISHING WORKFLOW</p>
+              <p className="mb-2 font-mono text-[0.65rem] font-semibold uppercase tracking-[0.13em] text-signal-orange">
+                PUBLISHING WORKFLOW
+              </p>
               <h2>Content readiness</h2>
             </div>
             <Badge tone="green">OFFLINE COPY AVAILABLE</Badge>
@@ -104,8 +151,10 @@ export function Dashboard() {
             />
           </div>
         </section>
-        <section className="rounded-panel border border-line bg-surface p-6 shadow-panel">
-          <p className="mb-2 font-mono text-[0.65rem] font-semibold uppercase tracking-[0.13em] text-signal-orange">LATEST PUBLISHED VERSION</p>
+        <section className="rounded-panel border border-line bg-surface p-5 shadow-panel">
+          <p className="mb-2 font-mono text-[0.65rem] font-semibold uppercase tracking-[0.13em] text-signal-orange">
+            LATEST PUBLISHED VERSION
+          </p>
           {releases[0] ? (
             <>
               <h2>Release {releases[0].release_version}</h2>
@@ -168,4 +217,3 @@ function PipelineStep({
     </div>
   );
 }
-
