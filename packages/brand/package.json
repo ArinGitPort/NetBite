@@ -1,0 +1,8 @@
+{
+  "name": "@netbite/brand",
+  "version": "1.0.0",
+  "private": true,
+  "exports": {
+    "./logo.png": "./assets/netbite-logo.png"
+  }
+}

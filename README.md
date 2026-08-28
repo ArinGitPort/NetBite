@@ -1,63 +1,62 @@
 # NetBite
 
-NetBite is an Android-first networking education application built with Expo and React Native.
+NetBite is an Android-first networking education platform with a separate web portal for administrators and instructors. The repository is an npm-workspace monorepo.
 
-Authorized instructors use a separate React web portal in [`admin/`](admin/) to draft, validate, publish, and roll back curriculum releases. See [`docs/ADMIN_CMS.md`](docs/ADMIN_CMS.md) for setup and security boundaries.
+## Repository map
+
+```text
+apps/
+  mobile/       Expo SDK 57 Android learner application
+  portal/       React administrator and instructor portal
+packages/
+  networking/   Pure networking calculations
+  workshops/    Workshop contracts and package-safe helpers
+  brand/        Shared NetBite brand artwork
+supabase/        Database migrations and Edge Functions
+docs/            Architecture, product, standards, runbooks, and references
+tooling/         Repository-wide automation and validation
+schoolwork/      Coursework sources and generation scripts
+deliverables/    Generated submission artifacts
+```
+
+Application UI is intentionally not shared: React Native components remain in `apps/mobile`, while React DOM components remain in `apps/portal`.
 
 ## Setup
+
+Install all applications and internal packages once from the repository root:
 
 ```bash
 npm install
 ```
 
-Start the intended target:
+The repository has one root lockfile and one root install command. npm may place incompatible transitive versions inside a workspace's generated `node_modules` directory; those folders are still managed by the single root dependency graph and must not receive a separate install.
+
+Each application has its own `.env.example`. Create untracked `.env.local` files only in the application that needs the values. Never place a Supabase service-role key in either application.
+
+## Common commands
 
 ```bash
-# Android Studio emulator: localhost with ADB forwarding
 npm run android
-
-# Android emulator after dependency, Reanimated, or Worklets changes
 npm run android:clean
-
-# Physical iPhone on the same network
-npm start
-
-# Browser preview
-npm run web
-
-# Full laptop presentation preflight
-npm run demo:check
-
-# Automated emulator launch, Metro tunnel, and Expo Go open
-npm run demo:android
-
-# One-command browser fallback
-npm run demo:web
-
-# Separate instructor portal
-npm run admin:dev
+npm run mobile:test
+npm run portal:dev
+npm run portal:build
+npm run test
+npm run check
 ```
 
-The Android commands deliberately use localhost because an emulator may not be able to reach the Windows LAN address printed by Metro. The default `npm start` remains in LAN mode so a physical iPhone can scan the Expo Go QR code.
-
-## Startup troubleshooting
-
-- A white Expo Go screen with a blue spinner means Expo Go is waiting for the JavaScript bundle. It appears before NetBite code runs. Stop stale Metro processes, use `npm run android:clean`, and confirm `adb reverse --list` includes `tcp:8081`.
-- NetBite's own startup uses the dark branded splash. If that remains visible, inspect font loading, SQLite hydration, and authentication initialization instead of Metro connectivity.
-- Keep `react-native-worklets` at the exact version recorded in `package.json`; the current Android Expo Go binary was verified with that patch.
-- Route “missing default export” warnings can be secondary to an earlier dependency crash. Resolve the first runtime error before changing route files.
-
-See [docs/DEMO_RUNBOOK.md](docs/DEMO_RUNBOOK.md) for the presentation checklist, reversible development-only demo mode, and recovery sequence.
+`android:clean` clears Metro's cache and starts the Android development flow. It does not rebuild Expo Go itself.
 
 ## Validation
 
 ```bash
-npx tsc --noEmit
+npm run typecheck
 npm run lint
-npm test
-npm run admin:typecheck
-npm run admin:test
-npm run admin:build
-npx expo-doctor
-npx expo export --platform android
+npm run test
+npm run portal:build
+npm exec expo-doctor --workspace=@netbite/mobile
 ```
+
+The boundary check prevents either application from importing the other, prevents shared packages from importing application code, and keeps browser or React Native dependencies out of Supabase Functions.
+
+See the [documentation index](docs/README.md), [administrator CMS architecture](docs/architecture/ADMIN_CMS.md), and [demo runbook](docs/runbooks/DEMO_RUNBOOK.md).

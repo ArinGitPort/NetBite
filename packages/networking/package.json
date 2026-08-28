@@ -1,0 +1,14 @@
+{
+  "name": "@netbite/networking",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./ipv4": "./src/ipv4.ts"
+  },
+  "types": "./src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  }
+}

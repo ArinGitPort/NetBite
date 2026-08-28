@@ -1,0 +1,102 @@
+{
+  "name": "@netbite/mobile",
+  "main": "expo-router/entry",
+  "version": "1.0.0",
+  "dependencies": {
+    "@netbite/brand": "*",
+    "@netbite/networking": "*",
+    "@netbite/workshops": "*",
+    "@expo-google-fonts/fira-code": "^0.4.1",
+    "@expo/ui": "~57.0.14",
+    "@react-native-community/netinfo": "12.0.1",
+    "@stripe/stripe-react-native": "0.64.0",
+    "@supabase/supabase-js": "^2.111.0",
+    "expo": "~57.0.18",
+    "expo-clipboard": "~57.0.1",
+    "expo-constants": "~57.0.16",
+    "expo-crypto": "~57.0.2",
+    "expo-device": "~57.0.1",
+    "expo-file-system": "~57.0.6",
+    "expo-font": "~57.0.2",
+    "expo-glass-effect": "~57.0.1",
+    "expo-haptics": "~57.0.2",
+    "expo-image": "~57.0.3",
+    "expo-linking": "~57.0.8",
+    "expo-print": "~57.0.1",
+    "expo-router": "~57.0.17",
+    "expo-sharing": "~57.0.16",
+    "expo-splash-screen": "~57.0.8",
+    "expo-sqlite": "~57.0.2",
+    "expo-status-bar": "~57.0.1",
+    "expo-symbols": "~57.0.2",
+    "expo-system-ui": "~57.0.3",
+    "expo-web-browser": "~57.0.2",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "react-native": "^0.86.3",
+    "react-native-gesture-handler": "~2.32.0",
+    "react-native-reanimated": "4.5.1",
+    "react-native-safe-area-context": "~5.7.0",
+    "react-native-screens": "~4.26.0",
+    "react-native-svg": "15.15.4",
+    "react-native-url-polyfill": "^4.0.0",
+    "react-native-web": "~0.21.0",
+    "react-native-worklets": "0.10.0",
+    "zustand": "^5.0.14"
+  },
+  "devDependencies": {
+    "@react-native/jest-preset": "^0.86.3",
+    "@testing-library/react-native": "^14.0.1",
+    "@types/jest": "29.5.14",
+    "@types/react": "~19.2.2",
+    "eslint": "^9.0.0",
+    "eslint-config-expo": "~57.0.2",
+    "jest": "~29.7.0",
+    "jest-expo": "~57.0.5",
+    "test-renderer": "^1.2.0",
+    "tsx": "^4.23.12",
+    "typescript": "~6.0.3"
+  },
+  "scripts": {
+    "start": "expo start",
+    "reset-project": "node ./scripts/reset-project.js",
+    "android": "node ./scripts/demo-android.mjs",
+    "android:clean": "node ./scripts/demo-android.mjs --clear",
+    "demo:check": "node ./scripts/demo-check.mjs",
+    "demo:android": "node ./scripts/demo-android.mjs",
+    "demo:web": "node --dns-result-order=ipv4first ../../node_modules/expo/bin/cli start --web --localhost",
+    "ios": "expo start --ios",
+    "web": "expo start --web",
+    "assets:optimize": "powershell -ExecutionPolicy Bypass -File scripts/optimize-mobile-assets.ps1",
+    "lint": "expo lint",
+    "typecheck": "tsc --noEmit",
+    "test": "jest --runInBand",
+    "test:watch": "jest --watch",
+    "assets:validate": "powershell -ExecutionPolicy Bypass -File scripts/validate-education-assets.ps1"
+  },
+  "jest": {
+    "preset": "jest-expo",
+    "setupFiles": [
+      "<rootDir>/jest.setup.ts"
+    ],
+    "testPathIgnorePatterns": [
+      "<rootDir>/.tmp/"
+    ],
+    "moduleNameMapper": {
+      "^@/assets/(.*)$": "<rootDir>/assets/$1",
+      "^@/(.*)$": "<rootDir>/src/$1",
+      "^@netbite/networking$": "<rootDir>/../../packages/networking/src/index.ts",
+      "^@netbite/workshops$": "<rootDir>/../../packages/workshops/src/index.ts",
+      "^@netbite/workshops/contracts$": "<rootDir>/../../packages/workshops/src/workshop-contract.ts",
+      "^@netbite/workshops/command-generator$": "<rootDir>/../../packages/workshops/src/command-generator.ts"
+    }
+  },
+  "expo": {
+    "install": {
+      "exclude": [
+        "react-native-worklets"
+      ]
+    }
+  },
+  "private": true
+}
