@@ -1,6 +1,6 @@
 import { Image } from "expo-image";
 import { useMemo, useState } from "react";
-import { Pressable, StyleSheet, View } from "react-native";
+import { PixelRatio, Pressable, StyleSheet, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   useAnimatedStyle,
@@ -13,7 +13,12 @@ import type {
   WorkshopTopology,
   WorkshopTopologyDevice,
 } from "@/core/workshops/types";
-import { deriveIpv4Network, prefixToSubnetMask } from '@netbite/networking';
+import { deriveIpv4Network, prefixToSubnetMask } from "@netbite/networking";
+import {
+  calculateWorkshopTopologyGeometry,
+  deriveWorkshopLinkContext,
+  normalizeWorkshopTopology,
+} from "@netbite/workshops/topology-authoring";
 import { Text } from "@/shared/components/console-text";
 import { Fonts, Palette, Space } from "@/shared/theme";
 
@@ -25,11 +30,26 @@ const artwork = {
 } as const;
 
 export function WorkshopTopologyView({
-  topology,
+  topology: rawTopology,
 }: {
   topology: WorkshopTopology;
 }) {
-  const [selectedId, setSelectedId] = useState(topology.devices[0]?.id);
+  const topology = useMemo(
+    () => normalizeWorkshopTopology(rawTopology),
+    [rawTopology],
+  );
+  const [selectedId, setSelectedId] = useState<string | undefined>(
+    topology.devices[0]?.id,
+  );
+  const [selectedLinkId, setSelectedLinkId] = useState<string>();
+  const [viewport, setViewport] = useState({
+    width: 0,
+    height: 360,
+    fontScale: PixelRatio.getFontScale(),
+  });
+  const [nodeSizes, setNodeSizes] = useState<
+    Record<string, { width: number; height: number }>
+  >({});
   const scale = useSharedValue(1);
   const savedScale = useSharedValue(1);
   const offsetX = useSharedValue(0);
@@ -57,6 +77,25 @@ export function WorkshopTopologyView({
         ),
     [topology],
   );
+  const cableGeometry = useMemo(
+    () =>
+      calculateWorkshopTopologyGeometry(
+        topology,
+        viewport,
+        topology.devices.map((device) => ({
+          deviceId: device.id,
+          x: device.x * viewport.width,
+          y: device.y * viewport.height,
+          width: nodeSizes[device.id]?.width ?? 86,
+          height: nodeSizes[device.id]?.height ?? 78,
+        })),
+      ),
+    [nodeSizes, topology, viewport],
+  );
+  const labels = cableGeometry.flatMap((cable) => [
+    ...cable.endpointLabels,
+    cable.contextLabel,
+  ]);
   const gesture = Gesture.Simultaneous(
     Gesture.Pan()
       .minDistance(8)
@@ -142,6 +181,21 @@ export function WorkshopTopologyView({
       <GestureDetector gesture={gesture}>
         <View
           accessibilityLabel={topology.accessibilityDescription}
+          onLayout={(event) => {
+            const { width, height } = event.nativeEvent.layout;
+            const fontScale = PixelRatio.getFontScale();
+            setViewport((current) =>
+              current.width === width &&
+              current.height === height &&
+              current.fontScale === fontScale
+                ? current
+                : {
+                    width,
+                    height,
+                    fontScale,
+                  },
+            );
+          }}
           style={styles.canvas}
         >
           <Animated.View style={[styles.panZoomCanvas, canvasTransform]}>
@@ -149,23 +203,32 @@ export function WorkshopTopologyView({
               accessible={false}
               pointerEvents="none"
               style={StyleSheet.absoluteFill}
-              viewBox="0 0 100 100"
+              viewBox={`0 0 ${Math.max(1, viewport.width)} ${Math.max(1, viewport.height)}`}
               preserveAspectRatio="none"
             >
-              {links.map(({ link, from, to }) => (
-                <Line
-                  key={link.id}
-                  x1={from.x * 100}
-                  y1={from.y * 100}
-                  x2={to.x * 100}
-                  y2={to.y * 100}
-                  stroke={
-                    link.state === "down" ? Palette.danger : Palette.green
-                  }
-                  strokeWidth={0.7}
-                  vectorEffect="non-scaling-stroke"
-                />
-              ))}
+              {cableGeometry.map((cable) => {
+                const link = topology.links.find(
+                  (candidate) => candidate.id === cable.linkId,
+                );
+                return (
+                  <Line
+                    key={cable.linkId}
+                    x1={cable.start.x}
+                    y1={cable.start.y}
+                    x2={cable.end.x}
+                    y2={cable.end.y}
+                    stroke={
+                      link?.state === "down"
+                        ? Palette.danger
+                        : link?.id === selectedLinkId
+                          ? Palette.orange
+                          : Palette.green
+                    }
+                    strokeWidth={1.5}
+                    vectorEffect="non-scaling-stroke"
+                  />
+                );
+              })}
             </Svg>
             {topology.devices.map((device) => (
               <Pressable
@@ -174,7 +237,23 @@ export function WorkshopTopologyView({
                 accessibilityLabel={`${device.name}, ${device.type}`}
                 accessibilityRole="button"
                 accessibilityState={{ selected: device.id === selectedId }}
-                onPress={() => setSelectedId(device.id)}
+                onLayout={(event) => {
+                  const { width, height } = event.nativeEvent.layout;
+                  setNodeSizes((current) => {
+                    const previous = current[device.id];
+                    if (
+                      previous?.width === width &&
+                      previous.height === height
+                    ) {
+                      return current;
+                    }
+                    return { ...current, [device.id]: { width, height } };
+                  });
+                }}
+                onPress={() => {
+                  setSelectedId(device.id);
+                  setSelectedLinkId(undefined);
+                }}
                 style={[
                   styles.device,
                   { left: `${device.x * 100}%`, top: `${device.y * 100}%` },
@@ -192,10 +271,61 @@ export function WorkshopTopologyView({
                 </Text>
               </Pressable>
             ))}
+            {labels.map((label) =>
+              label.kind === "endpoint" ? (
+                <View
+                  accessible={false}
+                  key={label.id}
+                  pointerEvents="none"
+                  style={[
+                    styles.endpointPlate,
+                    {
+                      left: label.x - label.width / 2,
+                      top: label.y - label.height / 2,
+                      minWidth: label.width,
+                      minHeight: label.height,
+                    },
+                  ]}
+                >
+                  <Text variant="technical" style={styles.endpointPlateText}>
+                    {label.text}
+                  </Text>
+                </View>
+              ) : (
+                <Pressable
+                  accessibilityLabel={`Inspect connection ${label.text}`}
+                  accessibilityRole="button"
+                  key={label.id}
+                  onPress={() => {
+                    setSelectedId(undefined);
+                    setSelectedLinkId(label.linkId);
+                  }}
+                  style={[
+                    styles.contextPlate,
+                    selectedLinkId === label.linkId &&
+                      styles.contextPlateSelected,
+                    label.tone === "warning" && styles.contextPlateWarning,
+                    {
+                      left: label.x - label.width / 2,
+                      top: label.y - label.height / 2,
+                      minWidth: label.width,
+                      minHeight: label.height,
+                    },
+                  ]}
+                >
+                  <Text variant="technical" style={styles.contextPlateText}>
+                    {label.text}
+                  </Text>
+                </Pressable>
+              ),
+            )}
           </Animated.View>
         </View>
       </GestureDetector>
       {selected ? <DeviceInspector device={selected} /> : null}
+      {selectedLinkId ? (
+        <SelectedConnection topology={topology} linkId={selectedLinkId} />
+      ) : null}
       <View style={styles.links}>
         <Text variant="label" style={styles.label}>
           CABLE DETAILS
@@ -207,13 +337,7 @@ export function WorkshopTopologyView({
           const toInterface = to.interfaces.find(
             (item) => item.id === link.toInterfaceId,
           );
-          const context =
-            link.network ??
-            (link.trunkVlans?.length
-              ? `TRUNK VLANs ${link.trunkVlans.join(", ")}`
-              : link.accessVlan
-                ? `ACCESS VLAN ${link.accessVlan}`
-                : (link.label ?? "CONNECTED"));
+          const context = deriveWorkshopLinkContext(topology, link).label;
           return (
             <View key={link.id} style={styles.link}>
               <View style={styles.endpoint}>
@@ -257,6 +381,61 @@ export function WorkshopTopologyView({
   );
 }
 
+function SelectedConnection({
+  topology,
+  linkId,
+}: {
+  topology: WorkshopTopology;
+  linkId: string;
+}) {
+  const link = topology.links.find((candidate) => candidate.id === linkId);
+  if (!link) return null;
+  const from = topology.devices.find(
+    (device) => device.id === link.fromDeviceId,
+  );
+  const to = topology.devices.find((device) => device.id === link.toDeviceId);
+  const fromInterface = from?.interfaces.find(
+    (item) => item.id === link.fromInterfaceId,
+  );
+  const toInterface = to?.interfaces.find(
+    (item) => item.id === link.toInterfaceId,
+  );
+  return (
+    <View style={styles.inspector}>
+      <Text variant="label" style={styles.label}>
+        SELECTED CONNECTION
+      </Text>
+      <View style={styles.linkRecordGrid}>
+        <View style={styles.linkRecordEndpoint}>
+          <Text variant="technical" style={styles.endpointDevice}>
+            {from?.name ?? "DEVICE"}
+          </Text>
+          <Text variant="bodySmall">
+            Port {fromInterface?.name ?? "NOT FOUND"}
+          </Text>
+        </View>
+        <View style={styles.linkRecordEndpoint}>
+          <Text variant="technical" style={styles.endpointDevice}>
+            {to?.name ?? "DEVICE"}
+          </Text>
+          <Text variant="bodySmall">
+            Port {toInterface?.name ?? "NOT FOUND"}
+          </Text>
+        </View>
+      </View>
+      <Text variant="bodySmall">
+        Context: {deriveWorkshopLinkContext(topology, link).label}
+      </Text>
+      <Text variant="bodySmall">
+        State: {(link.state ?? "up").toUpperCase()}
+      </Text>
+      {link.label ? (
+        <Text variant="bodySmall">Instructor label: {link.label}</Text>
+      ) : null}
+    </View>
+  );
+}
+
 function DeviceInspector({ device }: { device: WorkshopTopologyDevice }) {
   return (
     <View style={styles.inspector}>
@@ -270,8 +449,28 @@ function DeviceInspector({ device }: { device: WorkshopTopologyDevice }) {
         return (
           <View key={item.id} style={styles.record}>
             <Text variant="technical" style={styles.recordTitle}>
-              INTERFACE {item.name}
+              {item.kind === "subinterface"
+                ? "SUBINTERFACE"
+                : item.kind === "svi"
+                  ? "SWITCH VIRTUAL INTERFACE"
+                  : item.kind === "port-channel"
+                    ? "PORT-CHANNEL"
+                    : "INTERFACE"}{" "}
+              {item.name}
             </Text>
+            {item.parentInterfaceId ? (
+              <Text variant="bodySmall">
+                Parent:{" "}
+                {device.interfaces.find(
+                  (candidate) => candidate.id === item.parentInterfaceId,
+                )?.name ?? "NOT CONFIGURED"}
+              </Text>
+            ) : null}
+            {item.encapsulationVlan ? (
+              <Text variant="bodySmall">
+                802.1Q VLAN: {item.encapsulationVlan}
+              </Text>
+            ) : null}
             <Text variant="bodySmall">State: {item.state.toUpperCase()}</Text>
             <Text variant="bodySmall">
               IPv4 address: {item.ipv4Address ?? "NOT CONFIGURED"}
@@ -292,6 +491,30 @@ function DeviceInspector({ device }: { device: WorkshopTopologyDevice }) {
             <Text variant="bodySmall">
               VLAN: {item.vlan ?? "NOT CONFIGURED"}
             </Text>
+            {item.switchport ? (
+              <Text variant="bodySmall">
+                Switchport:{" "}
+                {item.switchport.mode === "trunk"
+                  ? `TRUNK / VLANs ${item.switchport.allowedVlans?.join(", ") || "NOT CONFIGURED"}`
+                  : `ACCESS VLAN ${item.switchport.accessVlan ?? "NOT CONFIGURED"}`}
+              </Text>
+            ) : null}
+            {item.protocolSettings?.dhcpRelayAddress ? (
+              <Text variant="bodySmall">
+                DHCP relay: {item.protocolSettings.dhcpRelayAddress}
+              </Text>
+            ) : null}
+            {item.protocolSettings?.natRole ? (
+              <Text variant="bodySmall">
+                NAT role: {item.protocolSettings.natRole.toUpperCase()}
+              </Text>
+            ) : null}
+            {(item.ipv6Addresses ?? []).map((assignment) => (
+              <Text key={assignment.id} variant="bodySmall">
+                IPv6 address: {assignment.address}/{assignment.prefix}{" "}
+                {assignment.scope ? `(${assignment.scope})` : ""}
+              </Text>
+            ))}
           </View>
         );
       })}
@@ -315,6 +538,102 @@ function DeviceInspector({ device }: { device: WorkshopTopologyDevice }) {
             INSTRUCTOR NOTE
           </Text>
           <Text variant="bodySmall">{device.notes}</Text>
+        </View>
+      ) : null}
+      {(device.configuration?.vlans?.length ?? 0) > 0 ? (
+        <View style={styles.record}>
+          <Text variant="technical" style={styles.recordTitle}>
+            VLAN DATABASE
+          </Text>
+          <Text variant="bodySmall">
+            {device
+              .configuration!.vlans!.map(
+                (vlan) => `${vlan.id}${vlan.name ? ` ${vlan.name}` : ""}`,
+              )
+              .join(", ")}
+          </Text>
+        </View>
+      ) : null}
+      {device.configuration?.ospf ? (
+        <View style={styles.record}>
+          <Text variant="technical" style={styles.recordTitle}>
+            OSPF
+          </Text>
+          <Text variant="bodySmall">
+            Router ID: {device.configuration.ospf.routerId}
+          </Text>
+          <Text variant="bodySmall">
+            Process: {device.configuration.ospf.processId}
+          </Text>
+          {device.configuration.ospf.networks.map((network) => (
+            <Text key={network.id} variant="bodySmall">
+              {network.network} / Area {network.area}
+            </Text>
+          ))}
+        </View>
+      ) : null}
+      {device.configuration?.acl ? (
+        <View style={styles.record}>
+          <Text variant="technical" style={styles.recordTitle}>
+            IPv4 ACL / {device.configuration.acl.name}
+          </Text>
+          {device.configuration.acl.rules.map((rule) => (
+            <Text key={rule.id} variant="bodySmall">
+              {rule.sequence} {rule.action.toUpperCase()}{" "}
+              {rule.protocol.toUpperCase()} {rule.source} → {rule.destination}
+              {rule.destinationPort ? ` PORT ${rule.destinationPort}` : ""}
+            </Text>
+          ))}
+        </View>
+      ) : null}
+      {device.configuration?.nat ? (
+        <View style={styles.record}>
+          <Text variant="technical" style={styles.recordTitle}>
+            NAT / PAT
+          </Text>
+          <Text variant="bodySmall">
+            Eligible networks:{" "}
+            {device.configuration.nat.eligibleNetworks?.join(", ") ||
+              "NOT CONFIGURED"}
+          </Text>
+        </View>
+      ) : null}
+      {device.configuration?.services ? (
+        <View style={styles.record}>
+          <Text variant="technical" style={styles.recordTitle}>
+            SERVICES
+          </Text>
+          <Text variant="bodySmall">
+            Address assignment:{" "}
+            {device.configuration.services.addressMode?.toUpperCase() ??
+              "NOT CONFIGURED"}
+          </Text>
+          <Text variant="bodySmall">
+            DNS resolver:{" "}
+            {device.configuration.services.resolver ?? "NOT CONFIGURED"}
+          </Text>
+          {device.configuration.services.dhcpPools?.map((pool) => (
+            <Text key={pool.id} variant="bodySmall">
+              DHCP pool {pool.name}: {pool.network}/{pool.prefix}
+            </Text>
+          ))}
+          {device.configuration.services.dnsRecords?.map((record) => (
+            <Text key={record.id} variant="bodySmall">
+              DNS {record.type}: {record.name} = {record.value}
+            </Text>
+          ))}
+        </View>
+      ) : null}
+      {(device.configuration?.expectedState?.notes?.length ?? 0) > 0 ? (
+        <View style={styles.record}>
+          <Text variant="technical" style={styles.recordTitle}>
+            EXPECTED PROTOCOL STATE
+          </Text>
+          {device.configuration!.expectedState!.notes!.map((note, index) => (
+            <Text key={`${note}-${index}`} variant="bodySmall">
+              • {note}
+            </Text>
+          ))}
         </View>
       ) : null}
     </View>
@@ -375,6 +694,33 @@ const styles = StyleSheet.create({
     borderColor: Palette.orange,
     backgroundColor: Palette.orangeSoft,
   },
+  endpointPlate: {
+    position: "absolute",
+    paddingHorizontal: 5,
+    borderWidth: 1,
+    borderColor: Palette.textMuted,
+    backgroundColor: "#171419",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 3,
+  },
+  endpointPlateText: { color: Palette.white, fontSize: 9 },
+  contextPlate: {
+    position: "absolute",
+    paddingHorizontal: Space.sm,
+    borderWidth: 1,
+    borderColor: Palette.textMuted,
+    backgroundColor: "#171419",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 3,
+  },
+  contextPlateSelected: { borderColor: Palette.orange },
+  contextPlateWarning: {
+    borderColor: Palette.orange,
+    backgroundColor: Palette.orangeSoft,
+  },
+  contextPlateText: { color: Palette.white, textAlign: "center", fontSize: 9 },
   artwork: { width: 46, height: 42 },
   deviceName: { fontFamily: Fonts.semibold, textAlign: "center" },
   inspector: {
@@ -393,6 +739,8 @@ const styles = StyleSheet.create({
   },
   recordTitle: { color: Palette.orange, fontFamily: Fonts.semibold },
   note: { gap: Space.xs, marginTop: Space.sm },
+  linkRecordGrid: { flexDirection: "row", gap: Space.md },
+  linkRecordEndpoint: { flex: 1, gap: 3 },
   links: { gap: Space.sm },
   link: {
     minHeight: 74,

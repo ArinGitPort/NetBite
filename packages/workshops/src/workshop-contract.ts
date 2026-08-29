@@ -11,14 +11,47 @@ export type WorkshopBlockType =
   | "topology"
   | "commands";
 export type WorkshopDeviceType = "pc" | "switch" | "router" | "server";
+export type WorkshopInterfaceKind =
+  | "physical"
+  | "subinterface"
+  | "svi"
+  | "port-channel";
+
+export interface WorkshopIPv6Assignment {
+  id: string;
+  address: string;
+  prefix: number;
+  scope?: "global" | "link-local" | "multicast" | "anycast";
+}
+
+export interface WorkshopSwitchportConfiguration {
+  mode: "access" | "trunk";
+  accessVlan?: number;
+  allowedVlans?: number[];
+  nativeVlan?: number;
+}
+
+export interface WorkshopInterfaceProtocolSettings {
+  dhcpRelayAddress?: string;
+  natRole?: "inside" | "outside";
+  ospfArea?: number;
+  ospfCost?: number;
+  routerAdvertisement?: boolean;
+}
 
 export interface WorkshopDeviceInterface {
   id: string;
   name: string;
+  kind?: WorkshopInterfaceKind;
+  parentInterfaceId?: string;
+  encapsulationVlan?: number;
   ipv4Address?: string;
   prefix?: number;
   gateway?: string;
   vlan?: number;
+  ipv6Addresses?: WorkshopIPv6Assignment[];
+  switchport?: WorkshopSwitchportConfiguration;
+  protocolSettings?: WorkshopInterfaceProtocolSettings;
   state: "up" | "down";
 }
 
@@ -26,6 +59,127 @@ export interface WorkshopStaticRoute {
   destination: string;
   prefix: number;
   nextHop: string;
+  addressFamily?: "ipv4" | "ipv6";
+}
+
+export interface WorkshopVlan {
+  id: number;
+  name?: string;
+}
+
+export interface WorkshopTransportListener {
+  id: string;
+  protocol: "tcp" | "udp";
+  port: number;
+  service: string;
+}
+
+export interface WorkshopDhcpPool {
+  id: string;
+  name: string;
+  network: string;
+  prefix: number;
+  firstAddress?: string;
+  lastAddress?: string;
+  exclusions?: string[];
+  gateway?: string;
+  dnsServer?: string;
+  leaseMinutes?: number;
+}
+
+export interface WorkshopDnsRecord {
+  id: string;
+  name: string;
+  type: "A" | "AAAA";
+  value: string;
+  ttl?: number;
+}
+
+export interface WorkshopAclRule {
+  id: string;
+  sequence: number;
+  action: "permit" | "deny";
+  protocol: "ip" | "tcp" | "udp" | "icmp";
+  source: string;
+  destination: string;
+  destinationPort?: number;
+}
+
+export interface WorkshopAclConfiguration {
+  name: string;
+  rules: WorkshopAclRule[];
+  applications?: Array<{
+    interfaceId: string;
+    direction: "in" | "out";
+  }>;
+}
+
+export interface WorkshopNatConfiguration {
+  eligibleNetworks?: string[];
+  overloadInterfaceId?: string;
+  pool?: { name: string; firstAddress: string; lastAddress: string };
+  staticMappings?: Array<{
+    id: string;
+    insideLocal: string;
+    insideGlobal: string;
+  }>;
+}
+
+export interface WorkshopStpConfiguration {
+  bridgePriority?: number;
+  rootRole?: "root" | "non-root";
+  portStates?: Array<{
+    interfaceId: string;
+    role: "root" | "designated" | "alternate";
+    state: "forwarding" | "discarding";
+    cost?: number;
+  }>;
+}
+
+export interface WorkshopEtherChannelConfiguration {
+  groups: Array<{
+    id: string;
+    number: number;
+    portChannelInterfaceId: string;
+    memberInterfaceIds: string[];
+    lacpMode: "active" | "passive";
+    state?: "formed" | "suspended" | "down";
+  }>;
+}
+
+export interface WorkshopOspfConfiguration {
+  processId: number;
+  routerId: string;
+  networks: Array<{ id: string; network: string; area: number }>;
+  neighbors?: Array<{ id: string; routerId: string; state: string }>;
+}
+
+export interface WorkshopServiceConfiguration {
+  addressMode?: "static" | "dhcp";
+  resolver?: string;
+  transportListeners?: WorkshopTransportListener[];
+  dhcpPools?: WorkshopDhcpPool[];
+  dnsRecords?: WorkshopDnsRecord[];
+}
+
+export interface WorkshopExpectedState {
+  macTable?: Array<{ interfaceId: string; macAddress: string; vlan?: number }>;
+  neighborEntries?: Array<{ interfaceId: string; address: string; neighbor: string }>;
+  routeEntries?: Array<{ destination: string; source: string; nextHop?: string; metric?: number }>;
+  natTranslations?: Array<{ insideLocal: string; insideGlobal: string; outside?: string }>;
+  aclResult?: { aclName: string; ruleId?: string; result: "permit" | "deny" };
+  notes?: string[];
+}
+
+export interface WorkshopDeviceConfiguration {
+  vlans?: WorkshopVlan[];
+  services?: WorkshopServiceConfiguration;
+  acl?: WorkshopAclConfiguration;
+  nat?: WorkshopNatConfiguration;
+  stp?: WorkshopStpConfiguration;
+  etherChannel?: WorkshopEtherChannelConfiguration;
+  ospf?: WorkshopOspfConfiguration;
+  expectedState?: WorkshopExpectedState;
 }
 
 export interface WorkshopTopologyDevice {
@@ -36,8 +190,11 @@ export interface WorkshopTopologyDevice {
   y: number;
   interfaces: WorkshopDeviceInterface[];
   routes?: WorkshopStaticRoute[];
+  configuration?: WorkshopDeviceConfiguration;
   notes?: string;
 }
+
+export type WorkshopLinkPurpose = "basic" | "routed" | "access" | "trunk";
 
 export interface WorkshopTopologyLink {
   id: string;
@@ -45,6 +202,7 @@ export interface WorkshopTopologyLink {
   fromInterfaceId: string;
   toDeviceId: string;
   toInterfaceId: string;
+  purpose?: WorkshopLinkPurpose;
   label?: string;
   network?: string;
   accessVlan?: number;
@@ -53,12 +211,31 @@ export interface WorkshopTopologyLink {
 }
 
 export interface WorkshopTopology {
+  schemaVersion?: 1 | 2;
   id: string;
   title: string;
   devices: WorkshopTopologyDevice[];
   links: WorkshopTopologyLink[];
   accessibilityDescription: string;
+  starterId?: WorkshopTopologyStarterId;
+  checklist?: string[];
+  warningsAcknowledged?: boolean;
 }
+
+export type WorkshopTopologyStarterId =
+  | "first-network"
+  | "static-routing"
+  | "vlan-trunk"
+  | "router-on-a-stick"
+  | "dhcp-relay"
+  | "dns-service"
+  | "acl-placement"
+  | "nat-pat"
+  | "ipv6-delivery"
+  | "stp-redundancy"
+  | "lacp-etherchannel"
+  | "route-source"
+  | "single-area-ospf";
 
 export interface WorkshopLessonBlock {
   id: string;
@@ -225,6 +402,10 @@ export interface WorkshopValidationIssue {
 }
 
 const IPV4 = /^(25[0-5]|2[0-4]\d|1?\d?\d)(\.(25[0-5]|2[0-4]\d|1?\d?\d)){3}$/;
+const IPV6 = /^[0-9a-f:]+$/i;
+const INTERFACE_NAME = /^[A-Za-z][A-Za-z0-9./-]{0,23}$/;
+const validVlan = (value: number) =>
+  Number.isInteger(value) && value >= 1 && value <= 4094;
 
 export function validateWorkshopTopology(
   topology: WorkshopTopology,
@@ -274,6 +455,7 @@ export function validateWorkshopTopology(
         message: "Keep every device inside the topology canvas.",
       });
     const interfaceIds = new Set<string>();
+    const interfaceNames = new Set<string>();
     for (const iface of device.interfaces) {
       const key = `${device.id}:${iface.id}`;
       if (!iface.id || interfaceIds.has(iface.id))
@@ -283,7 +465,35 @@ export function validateWorkshopTopology(
           message: "Interface codes must be unique on each device.",
         });
       interfaceIds.add(iface.id);
+      const normalizedInterfaceName = iface.name.trim().toLowerCase();
+      if (interfaceNames.has(normalizedInterfaceName))
+        issues.push({ severity: "error", path: `${key}.name`, message: "Interface names must be unique on each device." });
+      interfaceNames.add(normalizedInterfaceName);
       interfaces.set(key, iface);
+      if (!INTERFACE_NAME.test(iface.name.trim()))
+        issues.push({
+          severity: "error",
+          path: `${key}.name`,
+          message: "Use an interface name such as G0/0, F0/1, or E0.",
+        });
+      const kind = iface.kind ?? "physical";
+      if (kind === "subinterface") {
+        const parent = device.interfaces.find(
+          (candidate) => candidate.id === iface.parentInterfaceId,
+        );
+        if (!parent || (parent.kind ?? "physical") !== "physical")
+          issues.push({
+            severity: "error",
+            path: `${key}.parentInterfaceId`,
+            message: "A subinterface must use a physical parent interface.",
+          });
+        if (iface.encapsulationVlan == null || !validVlan(iface.encapsulationVlan))
+          issues.push({
+            severity: "error",
+            path: `${key}.encapsulationVlan`,
+            message: "Choose an 802.1Q VLAN from 1 through 4094.",
+          });
+      }
       if (iface.ipv4Address && !IPV4.test(iface.ipv4Address))
         issues.push({
           severity: "error",
@@ -309,37 +519,79 @@ export function validateWorkshopTopology(
         });
       if (
         iface.vlan != null &&
-        (!Number.isInteger(iface.vlan) || iface.vlan < 1 || iface.vlan > 4094)
+        !validVlan(iface.vlan)
       )
         issues.push({
           severity: "error",
           path: `${key}.vlan`,
           message: "VLAN IDs must be between 1 and 4094.",
         });
+      for (const assignment of iface.ipv6Addresses ?? []) {
+        if (!assignment.address.includes(":") || !IPV6.test(assignment.address))
+          issues.push({
+            severity: "error",
+            path: `${key}.ipv6Addresses.${assignment.id}`,
+            message: "Enter a valid IPv6 address.",
+          });
+        if (!Number.isInteger(assignment.prefix) || assignment.prefix < 0 || assignment.prefix > 128)
+          issues.push({
+            severity: "error",
+            path: `${key}.ipv6Addresses.${assignment.id}.prefix`,
+            message: "IPv6 prefixes must be between 0 and 128.",
+          });
+      }
+      const switchport = iface.switchport;
+      if (switchport?.accessVlan != null && !validVlan(switchport.accessVlan))
+        issues.push({ severity: "error", path: `${key}.switchport.accessVlan`, message: "Access VLANs must be between 1 and 4094." });
+      if (switchport?.allowedVlans?.some((vlan) => !validVlan(vlan)))
+        issues.push({ severity: "error", path: `${key}.switchport.allowedVlans`, message: "Allowed VLANs must be between 1 and 4094." });
+      if (iface.protocolSettings?.dhcpRelayAddress && !IPV4.test(iface.protocolSettings.dhcpRelayAddress))
+        issues.push({ severity: "error", path: `${key}.protocolSettings.dhcpRelayAddress`, message: "Enter a valid DHCP relay address." });
     }
     for (const [index, route] of (device.routes ?? []).entries()) {
-      if (!IPV4.test(route.destination))
+      const isIpv6 = route.addressFamily === "ipv6";
+      const validAddress = isIpv6
+        ? (address: string) => address.includes(":") && IPV6.test(address)
+        : (address: string) => IPV4.test(address);
+      if (!validAddress(route.destination))
         issues.push({
           severity: "error",
           path: `devices.${device.id}.routes.${index}.destination`,
           message: "Enter a valid route destination address.",
         });
+      const maximumPrefix = isIpv6 ? 128 : 32;
       if (
         !Number.isInteger(route.prefix) ||
         route.prefix < 0 ||
-        route.prefix > 32
+        route.prefix > maximumPrefix
       )
         issues.push({
           severity: "error",
           path: `devices.${device.id}.routes.${index}.prefix`,
-          message: "Route prefixes must be between 0 and 32.",
+          message: `Route prefixes must be between 0 and ${maximumPrefix}.`,
         });
-      if (!IPV4.test(route.nextHop))
+      if (!validAddress(route.nextHop))
         issues.push({
           severity: "error",
           path: `devices.${device.id}.routes.${index}.nextHop`,
           message: "Enter a valid next-hop address.",
         });
+    }
+    const config = device.configuration;
+    for (const vlan of config?.vlans ?? []) {
+      if (!validVlan(vlan.id)) issues.push({ severity: "error", path: `devices.${device.id}.configuration.vlans`, message: "VLAN IDs must be between 1 and 4094." });
+    }
+    if (config?.ospf) {
+      if (!IPV4.test(config.ospf.routerId)) issues.push({ severity: "error", path: `devices.${device.id}.configuration.ospf.routerId`, message: "Enter a valid dotted-decimal OSPF router ID." });
+      for (const network of config.ospf.networks) {
+        const [address, prefix] = network.network.split("/");
+        if (!IPV4.test(address) || !Number.isInteger(Number(prefix)) || Number(prefix) < 0 || Number(prefix) > 32)
+          issues.push({ severity: "error", path: `devices.${device.id}.configuration.ospf.networks.${network.id}`, message: "Use OSPF network notation such as 10.0.12.0/30." });
+      }
+    }
+    for (const pool of config?.services?.dhcpPools ?? []) {
+      if (!IPV4.test(pool.network) || pool.prefix < 0 || pool.prefix > 32)
+        issues.push({ severity: "error", path: `devices.${device.id}.configuration.services.dhcpPools.${pool.id}`, message: "Enter a valid DHCP pool network and prefix." });
     }
   }
   const usedEndpoints = new Set<string>();
@@ -352,11 +604,31 @@ export function validateWorkshopTopology(
         path: `links.${link.id}`,
         message: "Every cable endpoint must reference an existing interface.",
       });
+    const firstInterface = interfaces.get(first);
+    const secondInterface = interfaces.get(second);
+    if (
+      (firstInterface && (firstInterface.kind ?? "physical") !== "physical") ||
+      (secondInterface && (secondInterface.kind ?? "physical") !== "physical")
+    )
+      issues.push({
+        severity: "error",
+        path: `links.${link.id}`,
+        message: "Physical cables can connect only physical interfaces. Logical interfaces use their parent connection.",
+      });
     if (first === second)
       issues.push({
         severity: "error",
         path: `links.${link.id}`,
         message: "A cable must connect two different interfaces.",
+      });
+    if (
+      link.purpose != null &&
+      !["basic", "routed", "access", "trunk"].includes(link.purpose)
+    )
+      issues.push({
+        severity: "error",
+        path: `links.${link.id}.purpose`,
+        message: "Choose a supported connection purpose.",
       });
     if (usedEndpoints.has(first) || usedEndpoints.has(second))
       issues.push({
@@ -380,12 +652,46 @@ export function validateWorkshopTopology(
           message: "Use network and prefix notation such as 192.168.10.0/24.",
         });
     }
-    if (link.accessVlan && link.trunkVlans?.length)
+    if (link.accessVlan && link.trunkVlans?.length && !link.purpose)
       issues.push({
         severity: "warning",
         path: `links.${link.id}.vlan`,
         message:
-          "This connection includes both access and trunk VLAN information. Confirm that this is intentional.",
+          "This connection includes both access and trunk VLAN information. Choose one connection purpose.",
+      });
+    const hasPurposeMismatch =
+      (link.purpose === "basic" &&
+        Boolean(link.network || link.accessVlan || link.trunkVlans?.length)) ||
+      (link.purpose === "routed" &&
+        Boolean(link.accessVlan || link.trunkVlans?.length)) ||
+      (link.purpose === "access" &&
+        Boolean(link.network || link.trunkVlans?.length)) ||
+      (link.purpose === "trunk" &&
+        Boolean(link.network || link.accessVlan));
+    if (hasPurposeMismatch)
+      issues.push({
+        severity: "warning",
+        path: `links.${link.id}.purpose`,
+        message:
+          "This connection contains information from another purpose. Review its connection settings.",
+      });
+    if (link.purpose === "routed" && !link.network)
+      issues.push({
+        severity: "warning",
+        path: `links.${link.id}.network`,
+        message: "This routed connection does not have a network and prefix yet.",
+      });
+    if (link.purpose === "access" && !link.accessVlan)
+      issues.push({
+        severity: "warning",
+        path: `links.${link.id}.accessVlan`,
+        message: "This access connection does not have a VLAN ID yet.",
+      });
+    if (link.purpose === "trunk" && !link.trunkVlans?.length)
+      issues.push({
+        severity: "warning",
+        path: `links.${link.id}.trunkVlans`,
+        message: "This trunk connection does not have allowed VLAN IDs yet.",
       });
     if (link.state === "down")
       issues.push({

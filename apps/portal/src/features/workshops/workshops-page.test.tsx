@@ -6,16 +6,23 @@ import {
   waitFor,
   within,
 } from "@testing-library/react";
+import type { ReactElement } from "react";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
+import { TooltipProvider } from "../../components/ui/tooltip";
 import { InstructorApprovals, WorkshopStudio } from "./workshops-page";
 import * as api from "../../lib/content-api";
+
+function renderPortal(ui: ReactElement) {
+  return render(<TooltipProvider>{ui}</TooltipProvider>);
+}
 
 vi.mock("../../lib/content-api", () => ({
   createWorkshop: vi.fn(),
   createWorkshopAssessment: vi.fn(),
   createWorkshopClass: vi.fn(),
   createWorkshopLesson: vi.fn(),
+  deleteWorkshopTopology: vi.fn(),
   deleteWorkshopLesson: vi.fn(),
   deleteWorkshop: vi.fn(),
   getInstructorRequests: vi.fn(),
@@ -91,7 +98,7 @@ afterEach(cleanup);
 
 describe("instructor workshop portal", () => {
   test("provides lesson and topology authoring from the selected workshop", async () => {
-    render(<WorkshopStudio area="workshops" />);
+    renderPortal(<WorkshopStudio area="workshops" />);
     expect(await screen.findByText("Static routes")).toBeTruthy();
     expect(
       screen.getByRole("heading", { name: "Lesson collections" }),
@@ -135,13 +142,76 @@ describe("instructor workshop portal", () => {
     expect(
       screen.getByDisplayValue("A router forwards traffic between networks."),
     ).toBeTruthy();
-    fireEvent.click(screen.getByText("NEW TOPOLOGY"));
+    fireEvent.click(screen.getByRole("tab", { name: "Topologies, 0 items" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "CREATE FIRST TOPOLOGY" }),
+    );
     expect(screen.getByRole("group", { name: "Add a device" })).toBeTruthy();
     fireEvent.click(
       await screen.findByRole("button", { name: "Add PC to topology" }),
     );
     expect(screen.getByDisplayValue("PC1")).toBeTruthy();
     expect(screen.getByText("SAVE TOPOLOGY")).toBeTruthy();
+  });
+
+  test("renames and deletes a topology from the selector controls", async () => {
+    const topology = {
+      id: "topology-row-1",
+      workshop_id: workshop.id,
+      stable_id: "topology-1",
+      definition: {
+        schemaVersion: 2,
+        id: "topology-1",
+        title: "Routing path",
+        accessibilityDescription: "Three routed networks.",
+        devices: [],
+        links: [],
+      },
+    };
+    vi.mocked(api.getWorkshopContent).mockResolvedValue({
+      lessons: [lesson],
+      topologies: [topology],
+      assessments: [assessment],
+      flashcards: [],
+    });
+    vi.mocked(api.saveWorkshopTopology).mockImplementation(async (row) => row);
+    vi.mocked(api.deleteWorkshopTopology).mockResolvedValue(topology.id);
+
+    renderPortal(<WorkshopStudio area="workshops" />);
+    await screen.findByText("Static routes");
+    fireEvent.click(screen.getByRole("tab", { name: "Topologies, 1 item" }));
+
+    expect(screen.getByRole("button", { name: "Create topology" })).toBeTruthy();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Edit topology details" }),
+    );
+    fireEvent.change(screen.getByLabelText("Topology name"), {
+      target: { value: "Branch routing example" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "SAVE NAME" }));
+
+    await waitFor(() =>
+      expect(api.saveWorkshopTopology).toHaveBeenCalledWith(
+        expect.objectContaining({
+          definition: expect.objectContaining({
+            title: "Branch routing example",
+          }),
+        }),
+      ),
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Edit topology details" }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "DELETE TOPOLOGY" }));
+    const confirmation = screen.getByRole("alertdialog");
+    fireEvent.click(
+      within(confirmation).getByRole("button", { name: "DELETE TOPOLOGY" }),
+    );
+
+    await waitFor(() =>
+      expect(api.deleteWorkshopTopology).toHaveBeenCalledWith(topology.id),
+    );
+    expect(await screen.findByText("No topologies yet")).toBeTruthy();
   });
 
   test("guards lesson creation while the database request is pending", async () => {
@@ -152,7 +222,7 @@ describe("instructor workshop portal", () => {
           finishCreation = resolve;
         }),
     );
-    render(<WorkshopStudio area="workshops" />);
+    renderPortal(<WorkshopStudio area="workshops" />);
     await screen.findByText("Static routes");
 
     const addLesson = screen.getByRole("button", { name: "ADD LESSON" });
@@ -180,9 +250,50 @@ describe("instructor workshop portal", () => {
     expect(screen.getByRole("button", { name: "ADD LESSON" })).toBeEnabled();
   });
 
+  test("reorders lesson blocks from the drag handle keyboard controls", async () => {
+    vi.mocked(api.getWorkshopContent).mockResolvedValue({
+      lessons: [
+        {
+          ...lesson,
+          draft: {
+            ...lesson.draft,
+            blocks: [
+              { id: "heading-1", type: "heading", text: "Routing plan" },
+              {
+                id: "paragraph-1",
+                type: "paragraph",
+                text: "Configure each router in order.",
+              },
+            ],
+          },
+        },
+      ],
+      topologies: [],
+      assessments: [assessment],
+      flashcards: [],
+    });
+    renderPortal(<WorkshopStudio area="workshops" />);
+
+    const headingHandle = await screen.findByRole("button", {
+      name: "Reorder heading block, position 1 of 2",
+    });
+    fireEvent.keyDown(headingHandle, { key: "ArrowDown" });
+
+    expect(
+      screen.getByRole("button", {
+        name: "Reorder paragraph block, position 1 of 2",
+      }),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole("button", {
+        name: "Reorder heading block, position 2 of 2",
+      }),
+    ).toBeTruthy();
+  });
+
   test("requires confirmation before deleting a draft lesson", async () => {
     vi.mocked(api.deleteWorkshopLesson).mockResolvedValue(lesson.id);
-    render(<WorkshopStudio area="workshops" />);
+    renderPortal(<WorkshopStudio area="workshops" />);
     await screen.findByDisplayValue("Static routes");
 
     fireEvent.click(screen.getByRole("button", { name: "DELETE LESSON" }));
@@ -206,7 +317,7 @@ describe("instructor workshop portal", () => {
   });
 
   test("shows complete graded assessment settings", async () => {
-    render(<WorkshopStudio area="workshop-assessments" />);
+    renderPortal(<WorkshopStudio area="workshop-assessments" />);
     expect(await screen.findByDisplayValue("Route check")).toBeTruthy();
     expect(screen.getByText("Opening date (optional)")).toBeTruthy();
     expect(screen.getByText("Due date (optional)")).toBeTruthy();
@@ -238,7 +349,7 @@ describe("instructor workshop portal", () => {
   });
 
   test("presents recorded grades without a redundant outer card", async () => {
-    render(<WorkshopStudio area="gradebook" />);
+    renderPortal(<WorkshopStudio area="gradebook" />);
 
     const grades = await screen.findByTestId("recorded-grades");
     expect(grades).not.toHaveClass("rounded-panel", "border", "shadow-panel");
@@ -252,7 +363,7 @@ describe("instructor workshop portal", () => {
       ...workshop,
       title: "Updated routing review",
     });
-    render(<WorkshopStudio area="workshops" />);
+    renderPortal(<WorkshopStudio area="workshops" />);
     fireEvent.click(await screen.findByText("EDIT DETAILS"));
     const name = screen.getByLabelText("Collection name");
     fireEvent.change(name, { target: { value: "Updated routing review" } });
@@ -278,7 +389,7 @@ describe("instructor workshop portal", () => {
       .mockResolvedValue([]);
     vi.mocked(api.getWorkshopVersions).mockResolvedValue([]);
     vi.mocked(api.deleteWorkshop).mockResolvedValue(draft.id);
-    render(<WorkshopStudio area="workshops" />);
+    renderPortal(<WorkshopStudio area="workshops" />);
     fireEvent.click(await screen.findByText("EDIT DETAILS"));
     fireEvent.click(screen.getByText("DELETE DRAFT"));
     expect(api.deleteWorkshop).not.toHaveBeenCalled();
@@ -300,7 +411,7 @@ describe("instructor workshop portal", () => {
       },
     ]);
     vi.mocked(api.reviewInstructorRequest).mockResolvedValue(undefined);
-    render(<InstructorApprovals />);
+    renderPortal(<InstructorApprovals />);
     fireEvent.click(await screen.findByText("APPROVE INSTRUCTOR"));
     await waitFor(() =>
       expect(api.reviewInstructorRequest).toHaveBeenCalledWith(

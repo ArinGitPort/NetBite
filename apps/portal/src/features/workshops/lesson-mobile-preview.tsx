@@ -7,13 +7,17 @@ import {
   Server,
   X,
 } from "lucide-react";
-import { useState } from "react";
+import { useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import type {
   WorkshopLessonBlock,
   WorkshopTopology,
   WorkshopTopologyDevice,
 } from "@netbite/workshops/contracts";
+import {
+  calculateWorkshopTopologyGeometry,
+  normalizeWorkshopTopology,
+} from "@netbite/workshops/topology-authoring";
 import type { WorkshopTopologyRow } from "../../lib/content-api";
 
 function DeviceIcon({ type }: { type: WorkshopTopologyDevice["type"] }) {
@@ -24,6 +28,89 @@ function DeviceIcon({ type }: { type: WorkshopTopologyDevice["type"] }) {
 }
 
 function TopologyPreview({ topology }: { topology: WorkshopTopology }) {
+  const normalized = useMemo(
+    () => normalizeWorkshopTopology(topology),
+    [topology],
+  );
+  const canvasRef = useRef<HTMLDivElement>(null);
+  const [viewport, setViewport] = useState({
+    width: 0,
+    height: 0,
+    fontScale: 1,
+  });
+  const [nodeSizes, setNodeSizes] = useState<
+    Record<string, { width: number; height: number }>
+  >({});
+  useLayoutEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const measure = () => {
+      const bounds = canvas.getBoundingClientRect();
+      const rootFontSize =
+        Number.parseFloat(
+          window.getComputedStyle(document.documentElement).fontSize,
+        ) || 16;
+      const nextViewport = {
+        width: bounds.width,
+        height: bounds.height,
+        fontScale: Math.max(1, rootFontSize / 16),
+      };
+      setViewport((current) =>
+        current.width === nextViewport.width &&
+        current.height === nextViewport.height &&
+        current.fontScale === nextViewport.fontScale
+          ? current
+          : nextViewport,
+      );
+      const nextNodeSizes = Object.fromEntries(
+        normalized.devices.map((device) => {
+          const rect = canvas
+            .querySelector<HTMLElement>(
+              `[data-preview-device-id="${CSS.escape(device.id)}"]`,
+            )
+            ?.getBoundingClientRect();
+          return [
+            device.id,
+            { width: rect?.width ?? 72, height: rect?.height ?? 54 },
+          ];
+        }),
+      );
+      setNodeSizes((current) =>
+        Object.keys(nextNodeSizes).length === Object.keys(current).length &&
+        Object.entries(nextNodeSizes).every(
+          ([id, size]) =>
+            current[id]?.width === size.width &&
+            current[id]?.height === size.height,
+        )
+          ? current
+          : nextNodeSizes,
+      );
+    };
+    measure();
+    if (typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(measure);
+    observer.observe(canvas);
+    return () => observer.disconnect();
+  }, [normalized.devices]);
+  const geometry = useMemo(
+    () =>
+      calculateWorkshopTopologyGeometry(
+        normalized,
+        viewport,
+        normalized.devices.map((device) => ({
+          deviceId: device.id,
+          x: device.x * viewport.width,
+          y: device.y * viewport.height,
+          width: nodeSizes[device.id]?.width ?? 72,
+          height: nodeSizes[device.id]?.height ?? 54,
+        })),
+      ),
+    [nodeSizes, normalized, viewport],
+  );
+  const labels = geometry.flatMap((cable) => [
+    ...cable.endpointLabels,
+    cable.contextLabel,
+  ]);
   return (
     <figure
       className="m-0 grid gap-2"
@@ -32,33 +119,37 @@ function TopologyPreview({ topology }: { topology: WorkshopTopology }) {
       <figcaption className="font-semibold text-copy">
         {topology.title}
       </figcaption>
-      <div className="relative min-h-56 overflow-hidden rounded-control border border-line bg-canvas bg-[image:var(--nb-grid)] bg-[size:20px_20px]">
+      <div
+        ref={canvasRef}
+        className="relative h-64 overflow-hidden rounded-control border border-line bg-canvas bg-[image:var(--nb-grid)] bg-[size:20px_20px]"
+      >
         <svg
           aria-hidden="true"
           className="pointer-events-none absolute inset-0 size-full [&_line]:stroke-signal-green [&_line]:[stroke-width:1.5]"
           preserveAspectRatio="none"
-          viewBox="0 0 100 100"
+          viewBox={`0 0 ${Math.max(1, viewport.width)} ${Math.max(1, viewport.height)}`}
         >
-          {topology.links.map((link) => {
-            const from = topology.devices.find(
-              (device) => device.id === link.fromDeviceId,
+          {geometry.map((cable) => {
+            const link = normalized.links.find(
+              (candidate) => candidate.id === cable.linkId,
             );
-            const to = topology.devices.find(
-              (device) => device.id === link.toDeviceId,
-            );
-            return from && to ? (
+            return (
               <line
-                key={link.id}
-                x1={from.x * 100}
-                x2={to.x * 100}
-                y1={from.y * 100}
-                y2={to.y * 100}
+                className={
+                  link?.state === "down" ? "stroke-signal-red!" : undefined
+                }
+                key={cable.linkId}
+                x1={cable.start.x}
+                x2={cable.end.x}
+                y1={cable.start.y}
+                y2={cable.end.y}
               />
-            ) : null;
+            );
           })}
         </svg>
-        {topology.devices.map((device) => (
+        {normalized.devices.map((device) => (
           <div
+            data-preview-device-id={device.id}
             className="absolute z-[1] grid w-[72px] -translate-x-1/2 -translate-y-1/2 place-items-center gap-1 rounded-control border border-line bg-raised px-2 py-2 text-center"
             key={device.id}
             style={{ left: `${device.x * 100}%`, top: `${device.y * 100}%` }}
@@ -70,6 +161,20 @@ function TopologyPreview({ topology }: { topology: WorkshopTopology }) {
               {device.name}
             </strong>
           </div>
+        ))}
+        {labels.map((label) => (
+          <span
+            className={`absolute z-[2] -translate-x-1/2 -translate-y-1/2 whitespace-nowrap rounded-[3px] border py-1 font-mono text-[0.52rem] font-semibold text-white shadow-[0_1px_4px_rgba(0,0,0,.7)] ${label.kind === "endpoint" ? "px-1" : "px-2"} ${label.tone === "warning" ? "border-signal-orange bg-[#2b1c12]" : "border-[#6f6673] bg-[#171419]"}`}
+            key={label.id}
+            style={{
+              left: label.x,
+              top: label.y,
+              minWidth: label.width,
+              minHeight: label.height,
+            }}
+          >
+            {label.text}
+          </span>
         ))}
       </div>
       <p className="m-0 text-[0.65rem] leading-5 text-muted">
@@ -243,7 +348,8 @@ export function LessonMobilePreview({
       className="grid min-h-[620px] place-items-start justify-center bg-canvas p-5 max-sm:p-3"
       data-testid="workshop-lesson-mobile-preview"
     >
-      <div className="themed-scrollbar h-[680px] w-full max-w-[390px] overflow-y-auto rounded-[30px] border-8 border-raised bg-canvas shadow-panel">
+      <div className="h-[680px] w-full max-w-[390px] overflow-hidden rounded-[30px] border-8 border-raised bg-canvas shadow-panel">
+        <div className="themed-scrollbar h-full overflow-y-auto bg-canvas">
         <header className="sticky top-0 z-10 flex min-h-16 items-center justify-between border-b border-line bg-canvas/95 px-5 backdrop-blur">
           <span className="inline-flex items-center gap-2 text-xs font-semibold text-signal-red">
             <X aria-hidden="true" className="size-5" />
@@ -285,6 +391,7 @@ export function LessonMobilePreview({
           <div className="border-t border-line pt-4 font-mono text-[0.62rem] tracking-[0.1em] text-muted">
             PREVIEW ONLY · CURRENT UNSAVED DRAFT
           </div>
+        </div>
         </div>
       </div>
     </section>

@@ -418,6 +418,19 @@ export async function saveWorkshopTopology(row: WorkshopTopologyRow) {
   return data as WorkshopTopologyRow;
 }
 
+export async function deleteWorkshopTopology(topologyId: string) {
+  const { data, error } = await client()
+    .from("workshop_topologies")
+    .delete()
+    .eq("id", topologyId)
+    .select("id")
+    .single();
+  fail(error, "The topology could not be deleted.");
+  if (!data?.id)
+    throw new Error("The topology deletion could not be confirmed.");
+  return data.id as string;
+}
+
 export async function createWorkshopAssessment(
   workshopId: string,
   mode: "practice" | "graded",

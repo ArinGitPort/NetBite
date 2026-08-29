@@ -1,5 +1,6 @@
 import {
   AlignLeft,
+  Grip,
   Heading1,
   Image as ImageIcon,
   Lightbulb,
@@ -15,6 +16,11 @@ import type { WorkshopLessonBlock } from "@netbite/workshops/contracts";
 import { Button } from "../../components/ui/button";
 import { ConfirmationDialog } from "../../components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger } from "../../components/ui/tabs";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "../../components/ui/tooltip";
 import * as api from "../../lib/content-api";
 import type {
   WorkshopLessonRow,
@@ -118,6 +124,8 @@ export function LessonEditor({
 }) {
   const [view, setView] = useState<"edit" | "preview">("edit");
   const [pendingAction, setPendingAction] = useState<"save" | "delete">();
+  const [draggedBlockIndex, setDraggedBlockIndex] = useState<number>();
+  const [dropTargetIndex, setDropTargetIndex] = useState<number>();
   const draft = lesson.draft as {
     title?: string;
     summary?: string;
@@ -132,6 +140,20 @@ export function LessonEditor({
         current === index ? { ...block, ...patch } : block,
       ),
     });
+  const moveBlock = (fromIndex: number, toIndex: number) => {
+    if (
+      fromIndex === toIndex ||
+      fromIndex < 0 ||
+      toIndex < 0 ||
+      fromIndex >= blocks.length ||
+      toIndex >= blocks.length
+    )
+      return;
+    const reordered = [...blocks];
+    const [moved] = reordered.splice(fromIndex, 1);
+    reordered.splice(toIndex, 0, moved);
+    update({ blocks: reordered });
+  };
   const addBlock = (type: WorkshopLessonBlock["type"]) =>
     update({
       blocks: [
@@ -283,24 +305,88 @@ export function LessonEditor({
           <div className="grid gap-3">
             {blocks.map((block, index) => (
               <section
-                className="grid gap-4 rounded-control border border-line bg-canvas p-4 [&>header]:flex [&>header]:items-center [&>header]:justify-between"
+                aria-label={`${block.type} content block ${index + 1} of ${blocks.length}`}
+                className={`grid gap-4 rounded-control border bg-canvas p-4 transition-[border-color,opacity,box-shadow] [&>header]:flex [&>header]:items-center [&>header]:justify-between ${
+                  dropTargetIndex === index && draggedBlockIndex !== index
+                    ? "border-signal-orange shadow-[inset_0_3px_0_rgba(222,126,67,0.9)]"
+                    : "border-line"
+                } ${draggedBlockIndex === index ? "opacity-55" : "opacity-100"}`}
                 key={block.id}
+                onDragOver={(event) => {
+                  if (draggedBlockIndex === undefined) return;
+                  event.preventDefault();
+                  event.dataTransfer.dropEffect = "move";
+                  setDropTargetIndex(index);
+                }}
+                onDrop={(event) => {
+                  event.preventDefault();
+                  if (draggedBlockIndex !== undefined)
+                    moveBlock(draggedBlockIndex, index);
+                  setDraggedBlockIndex(undefined);
+                  setDropTargetIndex(undefined);
+                }}
               >
                 <header>
                   <strong>{block.type.toUpperCase()}</strong>
-                  <button
-                    className="grid size-11 place-items-center rounded-control border border-line bg-raised text-copy hover:border-muted hover:bg-surface [&_svg]:size-[18px]"
-                    aria-label="Remove block"
-                    onClick={() =>
-                      update({
-                        blocks: blocks.filter(
-                          (_, current) => current !== index,
-                        ),
-                      })
-                    }
-                  >
-                    <Trash2 />
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          aria-label={`Reorder ${block.type} block, position ${index + 1} of ${blocks.length}`}
+                          className="grid size-11 cursor-grab place-items-center rounded-control border border-line bg-transparent text-muted hover:border-muted hover:bg-raised hover:text-copy active:cursor-grabbing focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-signal-orange [&_svg]:size-[19px]"
+                          draggable
+                          onDragEnd={() => {
+                            setDraggedBlockIndex(undefined);
+                            setDropTargetIndex(undefined);
+                          }}
+                          onDragStart={(event) => {
+                            setDraggedBlockIndex(index);
+                            setDropTargetIndex(index);
+                            event.dataTransfer.effectAllowed = "move";
+                            event.dataTransfer.setData("text/plain", block.id);
+                          }}
+                          onKeyDown={(event) => {
+                            if (event.key === "ArrowUp" && index > 0) {
+                              event.preventDefault();
+                              moveBlock(index, index - 1);
+                            }
+                            if (
+                              event.key === "ArrowDown" &&
+                              index < blocks.length - 1
+                            ) {
+                              event.preventDefault();
+                              moveBlock(index, index + 1);
+                            }
+                          }}
+                          type="button"
+                        >
+                          <Grip aria-hidden="true" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        Drag to reorder. Use Up or Down Arrow for keyboard reordering.
+                      </TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          className="grid size-11 place-items-center rounded-control border border-line bg-raised text-copy hover:border-muted hover:bg-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-signal-orange [&_svg]:size-[18px]"
+                          aria-label={`Remove ${block.type} block`}
+                          onClick={() =>
+                            update({
+                              blocks: blocks.filter(
+                                (_, current) => current !== index,
+                              ),
+                            })
+                          }
+                          type="button"
+                        >
+                          <Trash2 aria-hidden="true" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent>Remove this content block</TooltipContent>
+                    </Tooltip>
+                  </div>
                 </header>
                 {block.type === "commands" ? (
                   <CommandBlockEditor

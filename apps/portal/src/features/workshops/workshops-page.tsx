@@ -7,18 +7,25 @@ import {
   LoaderCircle,
   Pencil,
   Plus,
+  Trash2,
   X,
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Classes, Gradebook } from "../classes/classes-page";
 import { PageHeader } from "../../components/layout/page-header";
 import { Button } from "../../components/ui/button";
+import { ConfirmationDialog, Dialog } from "../../components/ui/dialog";
 import {
   Tabs,
   TabsContent,
   TabsList,
   TabsTrigger,
 } from "../../components/ui/tabs";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "../../components/ui/tooltip";
 import * as api from "../../lib/content-api";
 import type {
   WorkshopAssessmentRow,
@@ -89,6 +96,9 @@ export function WorkshopStudio({ area }: { area: Area }) {
   const [error, setError] = useState<string>();
   const [detailsMode, setDetailsMode] = useState<WorkshopDetailsMode>();
   const [addingLesson, setAddingLesson] = useState(false);
+  const [topologyDetailsOpen, setTopologyDetailsOpen] = useState(false);
+  const [topologyName, setTopologyName] = useState("");
+  const [savingTopologyName, setSavingTopologyName] = useState(false);
   const selectedWorkshop = workshops.find((item) => item.id === selectedId);
 
   const load = useCallback(async () => {
@@ -231,6 +241,85 @@ export function WorkshopStudio({ area }: { area: Area }) {
     setTopologies((value) => [...value, row]);
     setSelectedTopology(row.stable_id);
     setCollectionView("topologies");
+  };
+  const selectedTopologyRow = topologies.find(
+    (row) => row.stable_id === selectedTopology,
+  );
+  const topologyReferenceCount = selectedTopologyRow
+    ? lessons.reduce((total, lesson) => {
+        const blocks = Array.isArray(lesson.draft.blocks)
+          ? lesson.draft.blocks
+          : [];
+        return (
+          total +
+          blocks.filter(
+            (block) =>
+              block &&
+              typeof block === "object" &&
+              "topologyId" in block &&
+              block.topologyId === selectedTopologyRow.stable_id,
+          ).length
+        );
+      }, 0)
+    : 0;
+  const openTopologyDetails = () => {
+    if (!selectedTopologyRow) return;
+    setTopologyName(
+      String(selectedTopologyRow.definition.title ?? "Untitled topology"),
+    );
+    setTopologyDetailsOpen(true);
+  };
+  const renameTopology = async () => {
+    if (!selectedTopologyRow) return;
+    const title = topologyName.trim();
+    if (!title) {
+      setError("Enter a topology name before saving.");
+      return;
+    }
+    setSavingTopologyName(true);
+    setError(undefined);
+    try {
+      const saved = await api.saveWorkshopTopology({
+        ...selectedTopologyRow,
+        definition: { ...selectedTopologyRow.definition, title },
+      });
+      setTopologies((value) =>
+        value.map((row) =>
+          row.stable_id === saved.stable_id ? saved : row,
+        ),
+      );
+      setTopologyDetailsOpen(false);
+      setNotice("Topology name saved.");
+    } catch (reason) {
+      setError(
+        reason instanceof Error
+          ? reason.message
+          : "The topology name could not be saved.",
+      );
+    } finally {
+      setSavingTopologyName(false);
+    }
+  };
+  const deleteTopology = async () => {
+    if (!selectedTopologyRow || topologyReferenceCount > 0) return;
+    try {
+      if (selectedTopologyRow.id) {
+        await api.deleteWorkshopTopology(selectedTopologyRow.id);
+      }
+      const remaining = topologies.filter(
+        (row) => row.stable_id !== selectedTopologyRow.stable_id,
+      );
+      setTopologies(remaining);
+      setSelectedTopology(remaining[0]?.stable_id);
+      setTopologyDetailsOpen(false);
+      setNotice("Topology deleted from the current draft.");
+    } catch (reason) {
+      setError(
+        reason instanceof Error
+          ? reason.message
+          : "The topology could not be deleted.",
+      );
+    }
   };
 
   const page =
@@ -446,14 +535,6 @@ export function WorkshopStudio({ area }: { area: Area }) {
                       : "ARCHIVE COLLECTION"}
                   </button>
                   <button
-                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded-control border border-signal-orange/60 bg-signal-orange-soft px-4 text-xs font-semibold text-[#f1ae78] hover:border-signal-orange disabled:pointer-events-none disabled:opacity-45 [&_svg]:size-4"
-                    disabled={selectedWorkshop.archived}
-                    onClick={addTopology}
-                  >
-                    <Cable />
-                    NEW TOPOLOGY
-                  </button>
-                  <button
                     className="inline-flex min-h-11 items-center justify-center gap-2 rounded-control border border-copy bg-copy px-4 text-xs font-semibold text-canvas hover:bg-white hover:text-canvas disabled:pointer-events-none disabled:border-line/60 disabled:bg-raised/70 disabled:text-muted/75 [&_svg]:size-4"
                     disabled={!lessons.length || selectedWorkshop.archived}
                     onClick={() =>
@@ -509,8 +590,8 @@ export function WorkshopStudio({ area }: { area: Area }) {
                 <TabsContent className="mt-5" value="topologies">
                   {topologies.length && selectedTopology ? (
                     <div className="grid gap-4">
-                      <div className="flex flex-wrap items-end justify-between gap-3 border-b border-line pb-4">
-                        <label className="grid min-w-[240px] gap-1.5 text-[0.7rem] font-semibold text-copy">
+                      <div className="flex flex-wrap items-end gap-2 border-b border-line pb-4">
+                        <label className="grid min-w-0 flex-1 gap-1.5 text-[0.7rem] font-semibold text-copy sm:max-w-sm">
                           <span>Selected topology</span>
                           <select
                             onChange={(event) =>
@@ -527,22 +608,45 @@ export function WorkshopStudio({ area }: { area: Area }) {
                             ))}
                           </select>
                         </label>
-                        <Button onClick={addTopology} tone="secondary">
-                          <Plus />
-                          NEW TOPOLOGY
-                        </Button>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              aria-label="Create topology"
+                              disabled={selectedWorkshop.archived}
+                              onClick={addTopology}
+                              size="icon"
+                              tone="secondary"
+                            >
+                              <Plus />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Create topology</TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              aria-label="Edit topology details"
+                              disabled={!selectedTopologyRow || selectedWorkshop.archived}
+                              onClick={openTopologyDetails}
+                              size="icon"
+                              tone="outline"
+                            >
+                              <Pencil />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            Rename or delete this topology
+                          </TooltipContent>
+                        </Tooltip>
                       </div>
                       <TopologyEditor
-                        row={topologies.find(
-                          (row) => row.stable_id === selectedTopology,
-                        )!}
+                        row={selectedTopologyRow!}
                         onSaved={(saved) => {
                           setTopologies((value) =>
                             value.map((row) =>
                               row.stable_id === saved.stable_id ? saved : row,
                             ),
                           );
-                          setNotice("Topology saved.");
                         }}
                       />
                     </div>
@@ -718,6 +822,69 @@ export function WorkshopStudio({ area }: { area: Area }) {
           ) : null}
         </section>
       </div>
+      {topologyDetailsOpen && selectedTopologyRow ? (
+        <Dialog
+          description="Change the learner-facing name or remove this topology from the current draft. Published versions are not changed."
+          onOpenChange={setTopologyDetailsOpen}
+          open
+          title="Topology details"
+        >
+          <label className="grid gap-2 text-xs font-semibold text-copy">
+            <span>Topology name</span>
+            <input
+              aria-label="Topology name"
+              autoFocus
+              maxLength={80}
+              onChange={(event) => setTopologyName(event.target.value)}
+              placeholder="For example, Three-router static routing"
+              value={topologyName}
+            />
+            <small className="font-normal leading-5 text-muted">
+              Use a short name students and instructors can recognize.
+            </small>
+          </label>
+          <div className="flex flex-col-reverse justify-end gap-2 border-b border-line pb-5 sm:flex-row">
+            <Button
+              onClick={() => setTopologyDetailsOpen(false)}
+              tone="outline"
+            >
+              CANCEL
+            </Button>
+            <Button
+              disabled={!topologyName.trim() || savingTopologyName}
+              onClick={() => void renameTopology()}
+              tone="primary"
+            >
+              {savingTopologyName ? "SAVING..." : "SAVE NAME"}
+            </Button>
+          </div>
+          <section className="grid gap-2">
+            <strong className="text-sm text-copy">Delete topology</strong>
+            <p className="m-0 text-xs leading-5 text-muted">
+              {topologyReferenceCount > 0
+                ? `This topology is used by ${topologyReferenceCount} lesson block${topologyReferenceCount === 1 ? "" : "s"}. Remove those Network diagram or Configuration commands blocks before deleting it.`
+                : "Delete this topology from the current draft. Existing published versions remain unchanged."}
+            </p>
+            <ConfirmationDialog
+              confirmLabel="DELETE TOPOLOGY"
+              description={`Delete "${String(selectedTopologyRow.definition.title ?? "Untitled topology")}" from this draft? This action cannot be undone.`}
+              destructive
+              onConfirm={deleteTopology}
+              title="Delete this topology?"
+              trigger={
+                <Button
+                  className="w-fit"
+                  disabled={topologyReferenceCount > 0}
+                  tone="destructive"
+                >
+                  <Trash2 />
+                  DELETE TOPOLOGY
+                </Button>
+              }
+            />
+          </section>
+        </Dialog>
+      ) : null}
       {detailsMode ? (
         <WorkshopDetailsDialog
           mode={detailsMode}

@@ -6,7 +6,8 @@
   "exports": {
     ".": "./src/index.ts",
     "./contracts": "./src/workshop-contract.ts",
-    "./command-generator": "./src/command-generator.ts"
+    "./command-generator": "./src/command-generator.ts",
+    "./topology-authoring": "./src/topology-authoring.ts"
   },
   "types": "./src/index.ts",
   "scripts": {
