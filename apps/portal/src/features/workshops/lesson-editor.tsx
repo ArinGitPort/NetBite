@@ -21,6 +21,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "../../components/ui/tooltip";
+import { SelectField } from "@/components/ui/select";
 import * as api from "../../lib/content-api";
 import type {
   WorkshopLessonRow,
@@ -397,24 +398,20 @@ export function LessonEditor({
                 ) : block.type === "topology" ? (
                   <label className="grid gap-2 text-[0.7rem] font-semibold text-copy [&>small]:font-normal [&>small]:leading-6 [&>small]:text-muted">
                     <span>Lesson topology</span>
-                    <select
-                      value={block.topologyId ?? ""}
-                      onChange={(event) =>
-                        updateBlock(index, { topologyId: event.target.value })
+                    <SelectField
+                      ariaLabel="Lesson topology"
+                      onValueChange={(topologyId) =>
+                        updateBlock(index, { topologyId })
                       }
-                    >
-                      <option value="">Choose a topology</option>
-                      {topologies.map((topology) => (
-                        <option
-                          key={topology.stable_id}
-                          value={topology.stable_id}
-                        >
-                          {String(
-                            topology.definition.title ?? topology.stable_id,
-                          )}
-                        </option>
-                      ))}
-                    </select>
+                      options={topologies.map((topology) => ({
+                        value: topology.stable_id,
+                        label: String(
+                          topology.definition.title ?? topology.stable_id,
+                        ),
+                      }))}
+                      placeholder="Choose a topology"
+                      value={block.topologyId ?? ""}
+                    />
                   </label>
                 ) : (
                   <label className="grid gap-2 text-[0.7rem] font-semibold text-copy [&>small]:font-normal [&>small]:leading-6 [&>small]:text-muted">

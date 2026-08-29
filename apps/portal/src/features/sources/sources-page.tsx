@@ -48,6 +48,7 @@ import {
   StatusBadge as Badge,
 } from "../../components/ui/admin-primitives";
 import { Button } from "../../components/ui/button";
+import { SelectField } from "@/components/ui/select";
 
 export function Sources() {
   const [rows, setRows] = useState<SourceRow[]>([]);
@@ -101,19 +102,18 @@ export function Sources() {
             label="Related lesson"
             hint="Optional. Assigning a lesson lets the Android app place this reference with the correct material."
           >
-            <select
-              value={form.lesson_id ?? ""}
-              onChange={(event) =>
-                setForm({ ...form, lesson_id: event.target.value || undefined })
+            <SelectField
+              ariaLabel="Related lesson"
+              onValueChange={(lessonId) =>
+                setForm({ ...form, lesson_id: lessonId || undefined })
               }
-            >
-              <option value="">General curriculum source</option>
-              {lessons.map((lesson) => (
-                <option value={lesson.id} key={lesson.id}>
-                  {lesson.draft.title}
-                </option>
-              ))}
-            </select>
+              options={lessons.map((lesson) => ({
+                value: lesson.id,
+                label: lesson.draft.title,
+              }))}
+              placeholder="General curriculum source"
+              value={form.lesson_id ?? ""}
+            />
           </Field>
           <Field label="Source label">
             <input

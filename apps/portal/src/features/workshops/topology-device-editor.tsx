@@ -3,6 +3,7 @@ import type { WorkshopTopologyDevice } from "@netbite/workshops/contracts";
 import { deriveIpv4Network, prefixToSubnetMask } from "@netbite/networking";
 import { Button } from "../../components/ui/button";
 import { InputField, TextareaField } from "../../components/ui/form-field";
+import { SelectField } from "@/components/ui/select";
 
 function Section({
   title,
@@ -135,17 +136,19 @@ export function TopologyDeviceEditor({
                 />
                 <label className="grid gap-1.5 text-[0.68rem] font-semibold text-copy">
                   State
-                  <select
-                    value={networkInterface.state}
-                    onChange={(event) =>
-                      setInterface(index, {
-                        state: event.target.value as "up" | "down",
-                      })
+                  <SelectField
+                    allowEmpty={false}
+                    ariaLabel={`${networkInterface.name} state`}
+                    onValueChange={(state) =>
+                      setInterface(index, { state: state as "up" | "down" })
                     }
-                  >
-                    <option value="up">Up</option>
-                    <option value="down">Down</option>
-                  </select>
+                    options={[
+                      { value: "up", label: "Up" },
+                      { value: "down", label: "Down" },
+                    ]}
+                    placeholder="Choose interface state"
+                    value={networkInterface.state}
+                  />
                 </label>
               </div>
               <div className="grid gap-3 sm:grid-cols-[1fr_92px]">
@@ -233,20 +236,24 @@ export function TopologyDeviceEditor({
                 <div className="grid gap-3 sm:grid-cols-2">
                   <label className="grid gap-1.5 text-[0.68rem] font-semibold">
                     Switchport mode
-                    <select
-                      value={networkInterface.switchport?.mode ?? "access"}
-                      onChange={(event) =>
+                    <SelectField
+                      allowEmpty={false}
+                      ariaLabel={`${networkInterface.name} switchport mode`}
+                      onValueChange={(mode) =>
                         setInterface(index, {
                           switchport: {
                             ...networkInterface.switchport,
-                            mode: event.target.value as "access" | "trunk",
+                            mode: mode as "access" | "trunk",
                           },
                         })
                       }
-                    >
-                      <option value="access">Access</option>
-                      <option value="trunk">Trunk</option>
-                    </select>
+                      options={[
+                        { value: "access", label: "Access" },
+                        { value: "trunk", label: "Trunk" },
+                      ]}
+                      placeholder="Choose switchport mode"
+                      value={networkInterface.switchport?.mode ?? "access"}
+                    />
                   </label>
                   <InputField
                     label={
@@ -306,22 +313,26 @@ export function TopologyDeviceEditor({
                   />
                   <label className="grid gap-1.5 text-[0.68rem] font-semibold">
                     NAT role
-                    <select
-                      value={networkInterface.protocolSettings?.natRole ?? ""}
-                      onChange={(event) =>
+                    <SelectField
+                      ariaLabel={`${networkInterface.name} NAT role`}
+                      onValueChange={(natRole) =>
                         setInterface(index, {
                           protocolSettings: {
                             ...networkInterface.protocolSettings,
-                            natRole: (event.target.value || undefined) as
-                              "inside" | "outside" | undefined,
+                            natRole: (natRole || undefined) as
+                              | "inside"
+                              | "outside"
+                              | undefined,
                           },
                         })
                       }
-                    >
-                      <option value="">Not assigned</option>
-                      <option value="inside">Inside</option>
-                      <option value="outside">Outside</option>
-                    </select>
+                      options={[
+                        { value: "inside", label: "Inside" },
+                        { value: "outside", label: "Outside" },
+                      ]}
+                      placeholder="Not assigned"
+                      value={networkInterface.protocolSettings?.natRole ?? ""}
+                    />
                   </label>
                 </div>
               ) : null}
@@ -468,27 +479,29 @@ export function TopologyDeviceEditor({
               className="grid gap-2 sm:grid-cols-[92px_1fr_76px_1fr]"
               key={`${route.destination}-${index}`}
             >
-              <select
-                aria-label="Route address family"
-                value={route.addressFamily ?? "ipv4"}
-                onChange={(event) =>
+              <SelectField
+                allowEmpty={false}
+                ariaLabel="Route address family"
+                onValueChange={(addressFamily) =>
                   update({
                     routes: (device.routes ?? []).map((item, current) =>
                       current === index
                         ? {
                             ...item,
-                            addressFamily: event.target.value as
-                              "ipv4" | "ipv6",
-                            prefix: event.target.value === "ipv6" ? 64 : 24,
+                            addressFamily: addressFamily as "ipv4" | "ipv6",
+                            prefix: addressFamily === "ipv6" ? 64 : 24,
                           }
                         : item,
                     ),
                   })
                 }
-              >
-                <option value="ipv4">IPv4</option>
-                <option value="ipv6">IPv6</option>
-              </select>
+                options={[
+                  { value: "ipv4", label: "IPv4" },
+                  { value: "ipv6", label: "IPv6" },
+                ]}
+                placeholder="Address family"
+                value={route.addressFamily ?? "ipv4"}
+              />
               <input
                 aria-label="Route destination"
                 placeholder={
@@ -629,20 +642,24 @@ export function TopologyDeviceEditor({
         <Section title="Services">
           <label className="grid gap-1.5 text-[0.68rem] font-semibold">
             Address assignment
-            <select
-              value={config.services?.addressMode ?? "static"}
-              onChange={(event) =>
+            <SelectField
+              allowEmpty={false}
+              ariaLabel="Address assignment"
+              onValueChange={(addressMode) =>
                 setConfig({
                   services: {
                     ...config.services,
-                    addressMode: event.target.value as "static" | "dhcp",
+                    addressMode: addressMode as "static" | "dhcp",
                   },
                 })
               }
-            >
-              <option value="static">Static</option>
-              <option value="dhcp">DHCP</option>
-            </select>
+              options={[
+                { value: "static", label: "Static" },
+                { value: "dhcp", label: "DHCP" },
+              ]}
+              placeholder="Choose address assignment"
+              value={config.services?.addressMode ?? "static"}
+            />
           </label>
           <InputField
             label="DNS resolver"

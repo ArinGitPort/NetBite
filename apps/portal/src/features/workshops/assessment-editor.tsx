@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Button } from "../../components/ui/button";
 import { Checkbox } from "../../components/ui/selection";
 import { Tabs, TabsList, TabsTrigger } from "../../components/ui/tabs";
+import { SelectField } from "@/components/ui/select";
 import * as api from "../../lib/content-api";
 import type { WorkshopAssessmentRow } from "../../lib/content-api";
 
@@ -124,17 +125,21 @@ export function AssessmentEditor({
               </label>
               <label className="grid content-start gap-1.5 text-[0.7rem] font-semibold text-copy">
                 <span>Assessment use</span>
-                <select
-                  value={row.mode}
-                  onChange={(event) =>
+                <SelectField
+                  allowEmpty={false}
+                  ariaLabel="Assessment use"
+                  onValueChange={(mode) =>
                     update({
-                      mode: event.target.value as WorkshopAssessmentRow["mode"],
+                      mode: mode as WorkshopAssessmentRow["mode"],
                     })
                   }
-                >
-                  <option value="practice">Practice</option>
-                  <option value="graded">Graded</option>
-                </select>
+                  options={[
+                    { value: "practice", label: "Practice" },
+                    { value: "graded", label: "Graded" },
+                  ]}
+                  placeholder="Choose assessment use"
+                  value={row.mode}
+                />
               </label>
             </div>
           </section>
@@ -167,21 +172,25 @@ export function AssessmentEditor({
                   </label>
                   <label className="grid content-start gap-1.5 text-[0.7rem] font-semibold text-copy">
                     <span>Recorded score</span>
-                    <select
-                      value={String(row.settings.gradePolicy ?? "highest")}
-                      onChange={(event) =>
+                    <SelectField
+                      allowEmpty={false}
+                      ariaLabel="Recorded score"
+                      onValueChange={(gradePolicy) =>
                         update({
                           settings: {
                             ...row.settings,
-                            gradePolicy: event.target.value,
+                            gradePolicy,
                           },
                         })
                       }
-                    >
-                      <option value="highest">Highest attempt</option>
-                      <option value="latest">Latest attempt</option>
-                      <option value="first">First attempt</option>
-                    </select>
+                      options={[
+                        { value: "highest", label: "Highest attempt" },
+                        { value: "latest", label: "Latest attempt" },
+                        { value: "first", label: "First attempt" },
+                      ]}
+                      placeholder="Choose score policy"
+                      value={String(row.settings.gradePolicy ?? "highest")}
+                    />
                   </label>
                   <label className="grid content-start gap-1.5 text-[0.7rem] font-semibold text-copy">
                     <span>Passing percentage</span>
@@ -202,23 +211,30 @@ export function AssessmentEditor({
                   </label>
                   <label className="grid content-start gap-1.5 text-[0.7rem] font-semibold text-copy">
                     <span>Release results</span>
-                    <select
-                      value={String(
-                        row.settings.feedbackRelease ?? "final-attempt",
-                      )}
-                      onChange={(event) =>
+                    <SelectField
+                      allowEmpty={false}
+                      ariaLabel="Release results"
+                      onValueChange={(feedbackRelease) =>
                         update({
                           settings: {
                             ...row.settings,
-                            feedbackRelease: event.target.value,
+                            feedbackRelease,
                           },
                         })
                       }
-                    >
-                      <option value="immediate">Immediately</option>
-                      <option value="final-attempt">After final attempt</option>
-                      <option value="due-date">After due date</option>
-                    </select>
+                      options={[
+                        { value: "immediate", label: "Immediately" },
+                        {
+                          value: "final-attempt",
+                          label: "After final attempt",
+                        },
+                        { value: "due-date", label: "After due date" },
+                      ]}
+                      placeholder="Choose result release"
+                      value={String(
+                        row.settings.feedbackRelease ?? "final-attempt",
+                      )}
+                    />
                   </label>
                 </div>
               </section>

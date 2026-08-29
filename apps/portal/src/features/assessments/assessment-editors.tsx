@@ -4,6 +4,7 @@ import { Button } from "../../components/ui/button";
 import * as api from "../../lib/content-api";
 import type { FlashcardRow, LessonRow, QuizRow } from "../../lib/content-api";
 import { ConfirmAction, Field } from "../../components/ui/admin-primitives";
+import { SelectField } from "@/components/ui/select";
 
 export function QuizEditor({
   row,
@@ -87,22 +88,23 @@ export function QuizEditor({
           />
         </Field>
         <Field label="Mapped lesson">
-          <select
-            value={value.lesson_id}
-            onChange={(event) =>
+          <SelectField
+            allowEmpty={false}
+            ariaLabel="Mapped lesson"
+            onValueChange={(lessonId) =>
               setValue({
                 ...value,
-                lesson_id: event.target.value,
-                draft: { ...value.draft, lessonId: event.target.value },
+                lesson_id: lessonId,
+                draft: { ...value.draft, lessonId },
               })
             }
-          >
-            {lessons.map((lesson) => (
-              <option value={lesson.id} key={lesson.id}>
-                {lesson.draft.title}
-              </option>
-            ))}
-          </select>
+            options={lessons.map((lesson) => ({
+              value: lesson.id,
+              label: lesson.draft.title,
+            }))}
+            placeholder="Choose a lesson"
+            value={value.lesson_id}
+          />
         </Field>
         {value.draft.answers.map((answer, index) => (
           <Field
@@ -235,22 +237,23 @@ export function FlashcardEditor({
           />
         </Field>
         <Field label="Mapped lesson">
-          <select
-            value={value.lesson_id}
-            onChange={(event) =>
+          <SelectField
+            allowEmpty={false}
+            ariaLabel="Mapped lesson"
+            onValueChange={(lessonId) =>
               setValue({
                 ...value,
-                lesson_id: event.target.value,
-                draft: { ...value.draft, lessonId: event.target.value },
+                lesson_id: lessonId,
+                draft: { ...value.draft, lessonId },
               })
             }
-          >
-            {lessons.map((lesson) => (
-              <option value={lesson.id} key={lesson.id}>
-                {lesson.draft.title}
-              </option>
-            ))}
-          </select>
+            options={lessons.map((lesson) => ({
+              value: lesson.id,
+              label: lesson.draft.title,
+            }))}
+            placeholder="Choose a lesson"
+            value={value.lesson_id}
+          />
         </Field>
         <Field label="Answer">
           <textarea

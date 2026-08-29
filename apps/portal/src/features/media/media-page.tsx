@@ -48,6 +48,7 @@ import {
   StatusBadge as Badge,
 } from "../../components/ui/admin-primitives";
 import { Button } from "../../components/ui/button";
+import { SelectField } from "@/components/ui/select";
 
 export function Assets() {
   const [rows, setRows] = useState<AssetRow[]>([]);
@@ -115,17 +116,16 @@ export function Assets() {
             label="Related lesson"
             hint="Optional. Choose where this supporting image belongs."
           >
-            <select
+            <SelectField
+              ariaLabel="Related lesson"
+              onValueChange={setLessonId}
+              options={lessons.map((lesson) => ({
+                value: lesson.id,
+                label: lesson.draft.title,
+              }))}
+              placeholder="General curriculum asset"
               value={lessonId}
-              onChange={(event) => setLessonId(event.target.value)}
-            >
-              <option value="">General curriculum asset</option>
-              {lessons.map((lesson) => (
-                <option value={lesson.id} key={lesson.id}>
-                  {lesson.draft.title}
-                </option>
-              ))}
-            </select>
+            />
           </Field>
           <Field
             label="Image file"

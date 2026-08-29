@@ -33,6 +33,7 @@ import * as api from "../../lib/content-api";
 import type { WorkshopTopologyRow } from "../../lib/content-api";
 import { Button } from "../../components/ui/button";
 import { Checkbox } from "../../components/ui/selection";
+import { SelectField } from "@/components/ui/select";
 import { TopologyDeviceEditor } from "./topology-device-editor";
 import {
   AddInterfaceDialog,
@@ -941,10 +942,19 @@ export function TopologyEditor({
                 ) : null}
                 <label className="grid gap-2 text-[0.7rem] font-semibold text-copy">
                   Connection state
-                  <select value={selectedLink.state ?? "up"} onChange={(event) => updateLink({ state: event.target.value as "up" | "down" })}>
-                    <option value="up">Up</option>
-                    <option value="down">Down</option>
-                  </select>
+                  <SelectField
+                    allowEmpty={false}
+                    ariaLabel="Connection state"
+                    onValueChange={(state) =>
+                      updateLink({ state: state as "up" | "down" })
+                    }
+                    options={[
+                      { value: "up", label: "Up" },
+                      { value: "down", label: "Down" },
+                    ]}
+                    placeholder="Choose connection state"
+                    value={selectedLink.state ?? "up"}
+                  />
                   <small className="font-normal leading-5 text-muted">Use Down only for an intentional fault or troubleshooting example.</small>
                 </label>
               </div>

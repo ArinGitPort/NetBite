@@ -14,6 +14,7 @@ import type {
 import { Button } from "../../components/ui/button";
 import { ConfirmationDialog } from "../../components/ui/dialog";
 import { Feedback } from "../../components/ui/feedback";
+import { SelectField } from "@/components/ui/select";
 import type { WorkshopTopologyRow } from "../../lib/content-api";
 
 function newGroup(): WorkshopCommandGroup {
@@ -85,21 +86,18 @@ export function CommandBlockEditor({
         </label>
         <label className="grid gap-2 text-[0.7rem] font-semibold text-copy">
           <span>Linked topology (optional)</span>
-          <select
-            onChange={(event) =>
-              onChange({
-                topologyId: event.target.value || undefined,
-              })
+          <SelectField
+            ariaLabel="Linked topology"
+            onValueChange={(topologyId) =>
+              onChange({ topologyId: topologyId || undefined })
             }
+            options={topologies.map((item) => ({
+              value: item.stable_id,
+              label: String(item.definition.title ?? item.stable_id),
+            }))}
+            placeholder="No linked topology"
             value={block.topologyId ?? ""}
-          >
-            <option value="">No linked topology</option>
-            {topologies.map((item) => (
-              <option key={item.stable_id} value={item.stable_id}>
-                {String(item.definition.title ?? item.stable_id)}
-              </option>
-            ))}
-          </select>
+          />
         </label>
       </div>
       <label className="grid gap-2 text-[0.7rem] font-semibold text-copy">

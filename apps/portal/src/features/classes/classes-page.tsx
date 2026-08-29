@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Button } from "../../components/ui/button";
 import { InputField } from "../../components/ui/form-field";
 import { Panel } from "../../components/ui/panel";
+import { SelectField } from "@/components/ui/select";
 import * as api from "../../lib/content-api";
 import type { WorkshopClassRow, WorkshopRow } from "../../lib/content-api";
 
@@ -296,31 +297,29 @@ export function Gradebook({ rows }: { rows: Array<Record<string, unknown>> }) {
         <div className="mb-5 grid grid-cols-1 gap-3 md:grid-cols-2">
           <label className="grid content-start gap-1.5 text-[0.7rem] font-semibold text-copy">
             <span>Student</span>
-            <select
+            <SelectField
+              ariaLabel="Filter by student"
+              onValueChange={setStudentFilter}
+              options={studentOptions.map(([id, name]) => ({
+                value: id,
+                label: name,
+              }))}
+              placeholder="All students"
               value={studentFilter}
-              onChange={(event) => setStudentFilter(event.target.value)}
-            >
-              <option value="">All students</option>
-              {studentOptions.map(([id, name]) => (
-                <option key={id} value={id}>
-                  {name}
-                </option>
-              ))}
-            </select>
+            />
           </label>
           <label className="grid content-start gap-1.5 text-[0.7rem] font-semibold text-copy">
             <span>Assessment</span>
-            <select
+            <SelectField
+              ariaLabel="Filter by assessment"
+              onValueChange={setAssessmentFilter}
+              options={assessmentOptions.map(([id, name]) => ({
+                value: id,
+                label: name,
+              }))}
+              placeholder="All assessments"
               value={assessmentFilter}
-              onChange={(event) => setAssessmentFilter(event.target.value)}
-            >
-              <option value="">All assessments</option>
-              {assessmentOptions.map(([id, name]) => (
-                <option key={id} value={id}>
-                  {name}
-                </option>
-              ))}
-            </select>
+            />
           </label>
         </div>
         <div

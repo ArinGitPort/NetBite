@@ -9,6 +9,7 @@ import {
   StatusBadge as Badge,
 } from "../../components/ui/admin-primitives";
 import { Button } from "../../components/ui/button";
+import { SelectField } from "@/components/ui/select";
 import { FlashcardEditor, QuizEditor } from "./assessment-editors";
 
 export function Assessments() {
@@ -59,20 +60,19 @@ export function Assessments() {
           {notice}
         </div>
       ) : null}
-      <div className="mb-4 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center [&>select]:max-w-sm [&>button:last-child]:sm:ml-auto">
-        <select
-          aria-label="Chapter"
+      <div className="mb-4 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center [&>[data-slot=select-trigger]]:max-w-sm [&>button:last-child]:sm:ml-auto">
+        <SelectField
+          allowEmpty={false}
+          ariaLabel="Chapter"
           disabled={selectedItemDirty}
+          onValueChange={setChapterId}
+          options={data.chapters.map((chapter) => ({
+            value: chapter.id,
+            label: `${String(chapter.definition.numberLabel)} — ${String(chapter.definition.title)}`,
+          }))}
+          placeholder="Choose a chapter"
           value={chapterId}
-          onChange={(event) => setChapterId(event.target.value)}
-        >
-          {data.chapters.map((chapter) => (
-            <option value={chapter.id} key={chapter.id}>
-              {String(chapter.definition.numberLabel)} —{" "}
-              {String(chapter.definition.title)}
-            </option>
-          ))}
-        </select>
+        />
         <div className="inline-flex min-h-11 rounded-control border border-line bg-canvas p-1 [&>button]:min-w-24 [&>button]:rounded-[6px] [&>button]:border-0 [&>button]:px-3 [&>button]:text-xs [&>button]:font-semibold [&>button]:text-muted">
           <button
             aria-pressed={mode === "quiz"}

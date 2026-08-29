@@ -17,8 +17,7 @@ import {
 import { Button } from "../../components/ui/button";
 import { Dialog } from "../../components/ui/dialog";
 import { InputField } from "../../components/ui/form-field";
-
-const selectClass = "min-h-11 w-full rounded-control border border-line bg-canvas px-3 text-[0.8rem] text-copy outline-none focus:border-signal-orange";
+import { SelectField } from "@/components/ui/select";
 
 export function AddInterfaceDialog({
   device,
@@ -63,18 +62,32 @@ export function AddInterfaceDialog({
     <Dialog open={open} onOpenChange={onOpenChange} title={`Add an interface to ${device.name}`} description="Choose the interface role first. NetBite will show only the settings that apply to it.">
       <label className="grid gap-1.5 text-[0.68rem] font-semibold text-copy">
         Interface type
-        <select className={selectClass} value={kind} onChange={(event) => { setKind(event.target.value as WorkshopInterfaceKind); setName(""); }}>
-          {allowedKinds.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-        </select>
+        <SelectField
+          allowEmpty={false}
+          ariaLabel="Interface type"
+          onValueChange={(value) => {
+            setKind(value as WorkshopInterfaceKind);
+            setName("");
+          }}
+          options={allowedKinds}
+          placeholder="Choose interface type"
+          value={kind}
+        />
       </label>
       {kind === "subinterface" ? (
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="grid gap-1.5 text-[0.68rem] font-semibold text-copy">
             Physical parent
-            <select className={selectClass} value={parentInterfaceId} onChange={(event) => setParentInterfaceId(event.target.value)}>
-              <option value="">Choose a physical interface</option>
-              {physicalParents.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-            </select>
+            <SelectField
+              ariaLabel="Physical parent"
+              onValueChange={setParentInterfaceId}
+              options={physicalParents.map((item) => ({
+                value: item.id,
+                label: item.name,
+              }))}
+              placeholder="Choose a physical interface"
+              value={parentInterfaceId}
+            />
           </label>
           <InputField label="802.1Q VLAN" min={1} max={4094} type="number" value={vlan} onChange={(event) => setVlan(event.target.value)} />
         </div>
@@ -139,8 +152,34 @@ export function ConnectDevicesDialog({
   const endpoint = (title: string, deviceId: string, setDeviceId: (value: string) => void, interfaceId: string, setInterfaceId: (value: string) => void, interfaces: WorkshopDeviceInterface[]) => (
     <section className="grid gap-3 rounded-control border border-line bg-canvas p-4">
       <strong className="font-mono text-[0.65rem] tracking-[0.08em] text-signal-orange">{title}</strong>
-      <label className="grid gap-1.5 text-[0.68rem] font-semibold text-copy">Device<select className={selectClass} value={deviceId} onChange={(event) => { setDeviceId(event.target.value); setInterfaceId(""); }}><option value="">Choose a device</option>{topology.devices.filter((device) => title === "FIRST END" || device.id !== fromDeviceId).map((device) => <option key={device.id} value={device.id}>{device.name}</option>)}</select></label>
-      <label className="grid gap-1.5 text-[0.68rem] font-semibold text-copy">Physical interface<select className={selectClass} value={interfaceId} onChange={(event) => setInterfaceId(event.target.value)}><option value="">Choose an unused port</option>{interfaces.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
+      <label className="grid gap-1.5 text-[0.68rem] font-semibold text-copy">
+        Device
+        <SelectField
+          ariaLabel={`${title} device`}
+          onValueChange={(value) => {
+            setDeviceId(value);
+            setInterfaceId("");
+          }}
+          options={topology.devices
+            .filter((device) => title === "FIRST END" || device.id !== fromDeviceId)
+            .map((device) => ({ value: device.id, label: device.name }))}
+          placeholder="Choose a device"
+          value={deviceId}
+        />
+      </label>
+      <label className="grid gap-1.5 text-[0.68rem] font-semibold text-copy">
+        Physical interface
+        <SelectField
+          ariaLabel={`${title} physical interface`}
+          onValueChange={setInterfaceId}
+          options={interfaces.map((item) => ({
+            value: item.id,
+            label: item.name,
+          }))}
+          placeholder="Choose an unused port"
+          value={interfaceId}
+        />
+      </label>
       {deviceId ? <Button onClick={() => onRequestInterface(deviceId)} size="compact" tone="secondary"><Plus />Add a physical interface</Button> : null}
     </section>
   );

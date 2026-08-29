@@ -26,6 +26,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "../../components/ui/tooltip";
+import { SelectField } from "@/components/ui/select";
 import * as api from "../../lib/content-api";
 import type {
   WorkshopAssessmentRow,
@@ -593,20 +594,19 @@ export function WorkshopStudio({ area }: { area: Area }) {
                       <div className="flex flex-wrap items-end gap-2 border-b border-line pb-4">
                         <label className="grid min-w-0 flex-1 gap-1.5 text-[0.7rem] font-semibold text-copy sm:max-w-sm">
                           <span>Selected topology</span>
-                          <select
-                            onChange={(event) =>
-                              setSelectedTopology(event.target.value)
-                            }
+                          <SelectField
+                            allowEmpty={false}
+                            ariaLabel="Selected topology"
+                            onValueChange={setSelectedTopology}
+                            options={topologies.map((row) => ({
+                              value: row.stable_id,
+                              label: String(
+                                row.definition.title ?? "Untitled topology",
+                              ),
+                            }))}
+                            placeholder="Choose a topology"
                             value={selectedTopology}
-                          >
-                            {topologies.map((row) => (
-                              <option key={row.stable_id} value={row.stable_id}>
-                                {String(
-                                  row.definition.title ?? "Untitled topology",
-                                )}
-                              </option>
-                            ))}
-                          </select>
+                          />
                         </label>
                         <Tooltip>
                           <TooltipTrigger asChild>
