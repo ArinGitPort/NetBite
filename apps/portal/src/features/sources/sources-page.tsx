@@ -29,7 +29,8 @@ import {
   useState,
   type FormEvent,
 } from "react";
-import * as api from "../../lib/content-api";
+import * as curriculumApi from "@/lib/api/curriculum-service";
+import * as sourceApi from "@/lib/api/source-service";
 import type {
   AssetRow,
   ChapterRow,
@@ -39,15 +40,15 @@ import type {
   ReleaseRow,
   SafeAuditEntry,
   SourceRow,
-} from "../../lib/content-api";
+} from "@/lib/api/types";
 import {
   ConfirmAction,
   EmptyState as Empty,
   Field,
   PageIntro,
   StatusBadge as Badge,
-} from "../../components/ui/admin-primitives";
-import { Button } from "../../components/ui/button";
+} from "@/components/ui/admin-primitives";
+import { Button } from "@/components/ui/button";
 import { SelectField } from "@/components/ui/select";
 
 export function Sources() {
@@ -60,7 +61,7 @@ export function Sources() {
   });
   const [notice, setNotice] = useState("");
   const load = () =>
-    Promise.all([api.getSources(), api.getCurriculum()]).then(
+    Promise.all([sourceApi.getSources(), curriculumApi.getCurriculum()]).then(
       ([nextRows, curriculum]) => {
         setRows(nextRows);
         setLessons(curriculum.lessons.filter(({ archived }) => !archived));
@@ -72,7 +73,7 @@ export function Sources() {
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     try {
-      await api.saveSource(form);
+      await sourceApi.saveSource(form);
       setForm({ label: "", url: "https://", notes: "" });
       setNotice("Source saved.");
       await load();
@@ -178,7 +179,7 @@ export function Sources() {
                   ariaLabel="Delete source"
                   confirmLabel="DELETE SOURCE"
                   detail="This removes the reference from the draft library. Published curriculum packages remain unchanged."
-                  onConfirm={() => api.deleteSource(row.id).then(load)}
+                  onConfirm={() => sourceApi.deleteSource(row.id).then(load)}
                   title="Delete this source?"
                 >
                   <X />

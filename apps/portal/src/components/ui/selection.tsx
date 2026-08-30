@@ -3,7 +3,7 @@ import * as RadioGroupPrimitive from "@radix-ui/react-radio-group";
 import { Check } from "lucide-react";
 import type { ComponentProps, ReactNode } from "react";
 
-import { cn } from "../../lib/class-names";
+import { cn } from "@/lib/class-names";
 
 export function Checkbox({
   className,

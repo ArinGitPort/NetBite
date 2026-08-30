@@ -18,7 +18,7 @@ import {
   calculateWorkshopTopologyGeometry,
   normalizeWorkshopTopology,
 } from "@netbite/workshops/topology-authoring";
-import type { WorkshopTopologyRow } from "../../lib/content-api";
+import type { WorkshopTopologyRow } from "@/lib/api/types";
 
 function DeviceIcon({ type }: { type: WorkshopTopologyDevice["type"] }) {
   if (type === "router") return <Router aria-hidden="true" />;

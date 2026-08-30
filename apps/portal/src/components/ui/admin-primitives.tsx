@@ -2,8 +2,8 @@ import { FileText } from "lucide-react";
 import type { ReactNode } from "react";
 import { useCallback, useState } from "react";
 
-import { Button } from "./button";
-import { Dialog } from "./dialog";
+import { Button } from "@/components/ui/button";
+import { Dialog } from "@/components/ui/dialog";
 
 export function LoadingState({ label = "Loading portal" }: { label?: string }) {
   return (

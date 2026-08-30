@@ -33,6 +33,8 @@ src/
 
 Pages do not call Supabase directly when an operation belongs in the shared content service. Reusable interaction and visual behavior belongs in `components/ui`; feature-specific state and composition stays inside its feature folder.
 
+The complete ownership, `@/` import, dependency-boundary, and 500-line target rules are documented in `docs/standards/PORTAL_CODE_ARCHITECTURE_STANDARD.md`.
+
 ## Routing and roles
 
 Administrator routes begin with `#/admin/`. Instructor routes begin with `#/instructor/`. Route guards verify the authenticated account's server-provided access level, so changing the URL cannot expose the other workspace.
@@ -49,3 +51,4 @@ Old single-hash links such as `#audit` and `#workshops` are translated to their 
 - Use the shared `Button`, form, panel, feedback, status, and dialog components instead of recreating variants.
 
 `npm run style:check` rejects removed stylesheets, feature CSS imports, and obsolete semantic component classes.
+It also rejects relative source imports, prohibited dependency directions, and files that exceed the architecture size limits.

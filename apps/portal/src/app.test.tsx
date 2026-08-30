@@ -1,10 +1,10 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, test, vi } from 'vitest';
 
-vi.mock('./lib/supabase', () => ({ configured: false, supabase: undefined }));
+vi.mock('@/lib/supabase', () => ({ configured: false, supabase: undefined }));
 
-import { App, getNavigationForAccess } from './app';
-import { isPathAllowedForAccess, normalizeLegacyHash } from './app/navigation';
+import { App, getNavigationForAccess } from '@/app';
+import { isPathAllowedForAccess, normalizeLegacyHash } from '@/app/navigation';
 
 describe('admin application', () => {
   test('shows safe configuration guidance without credentials', () => {
@@ -24,8 +24,8 @@ describe('admin application', () => {
 
     expect(instructorViews).toEqual([
       'workshops',
-      'classes',
       'workshop-assessments',
+      'classes',
       'gradebook',
     ]);
     expect(instructorViews).not.toContain('instructors');

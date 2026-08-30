@@ -2,7 +2,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, test, vi } from "vitest";
 
 import type { WorkshopLessonBlock } from "@netbite/workshops/contracts";
-import { CommandBlockEditor } from "./command-block-editor";
+import { CommandBlockEditor } from "@/features/workshops/command-block-editor";
 
 describe("CommandBlockEditor", () => {
   test("generates an editable starter from a linked topology", () => {

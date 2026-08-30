@@ -29,7 +29,8 @@ import {
   useState,
   type FormEvent,
 } from "react";
-import * as api from "../../lib/content-api";
+import * as curriculumApi from "@/lib/api/curriculum-service";
+import * as mediaApi from "@/lib/api/media-service";
 import type {
   AssetRow,
   ChapterRow,
@@ -39,15 +40,15 @@ import type {
   ReleaseRow,
   SafeAuditEntry,
   SourceRow,
-} from "../../lib/content-api";
+} from "@/lib/api/types";
 import {
   ConfirmAction,
   EmptyState as Empty,
   Field,
   PageIntro,
   StatusBadge as Badge,
-} from "../../components/ui/admin-primitives";
-import { Button } from "../../components/ui/button";
+} from "@/components/ui/admin-primitives";
+import { Button } from "@/components/ui/button";
 import { SelectField } from "@/components/ui/select";
 
 export function Assets() {
@@ -59,7 +60,7 @@ export function Assets() {
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
   const load = () =>
-    Promise.all([api.getAssets(), api.getCurriculum()]).then(
+    Promise.all([mediaApi.getAssets(), curriculumApi.getCurriculum()]).then(
       ([nextRows, curriculum]) => {
         setRows(nextRows);
         setLessons(curriculum.lessons.filter(({ archived }) => !archived));
@@ -83,7 +84,12 @@ export function Assets() {
       const dimensions = await imageDimensions(file);
       if (dimensions.width > 4096 || dimensions.height > 4096)
         throw new Error("Image dimensions must not exceed 4096 × 4096 pixels.");
-      await api.uploadAsset(file, altText, dimensions, lessonId || undefined);
+      await mediaApi.uploadAsset(
+        file,
+        altText,
+        dimensions,
+        lessonId || undefined,
+      );
       setFile(undefined);
       setAltText("");
       setNotice("Image uploaded to the private draft library.");
@@ -189,7 +195,7 @@ export function Assets() {
                   confirmLabel="DELETE IMAGE"
                   detail="This permanently removes the unpublished image from draft storage."
                   disabled={asset.published}
-                  onConfirm={() => api.deleteAsset(asset).then(load)}
+                  onConfirm={() => mediaApi.deleteAsset(asset).then(load)}
                   title="Delete this draft image?"
                   triggerTitle={
                     asset.published

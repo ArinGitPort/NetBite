@@ -1,11 +1,11 @@
 import { Navigate, Outlet } from "react-router-dom";
 
-import { PortalShell } from "../../components/layout/portal-shell";
-import { LoadingState } from "../../components/ui/admin-primitives";
-import { Unauthorized } from "../../features/auth/auth-pages";
-import { supabase } from "../../lib/supabase";
-import { defaultPathForAccess } from "../navigation";
-import { usePortalAuth } from "../providers/auth-provider";
+import { PortalShell } from "@/components/layout/portal-shell";
+import { LoadingState } from "@/components/ui/admin-primitives";
+import { Unauthorized } from "@/features/auth";
+import { supabase } from "@/lib/supabase";
+import { defaultPathForAccess } from "@/app/navigation";
+import { usePortalAuth } from "@/app/providers/auth-provider";
 
 export function WorkspaceGuard() {
   const { session, access, loading } = usePortalAuth();

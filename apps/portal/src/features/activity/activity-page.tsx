@@ -21,7 +21,7 @@ import {
   Upload,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import * as api from "../../lib/content-api";
+import * as activityApi from "@/lib/api/activity-service";
 import type {
   AssetRow,
   ChapterRow,
@@ -31,19 +31,19 @@ import type {
   ReleaseRow,
   SafeAuditEntry,
   SourceRow,
-} from "../../lib/content-api";
+} from "@/lib/api/types";
 import {
   ConfirmAction,
   EmptyState as Empty,
   Field,
   PageIntro,
   StatusBadge as Badge,
-} from "../../components/ui/admin-primitives";
+} from "@/components/ui/admin-primitives";
 
 export function Audit() {
   const [rows, setRows] = useState<SafeAuditEntry[]>([]);
   useEffect(() => {
-    void api.getSanitizedAuditHistory().then(setRows);
+    void activityApi.getSanitizedAuditHistory().then(setRows);
   }, []);
   return (
     <>

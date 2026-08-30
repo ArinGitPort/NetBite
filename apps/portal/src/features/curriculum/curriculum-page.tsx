@@ -29,7 +29,7 @@ import {
   useState,
   type FormEvent,
 } from "react";
-import * as api from "../../lib/content-api";
+import * as curriculumApi from "@/lib/api/curriculum-service";
 import type {
   AssetRow,
   ChapterRow,
@@ -39,7 +39,7 @@ import type {
   ReleaseRow,
   SafeAuditEntry,
   SourceRow,
-} from "../../lib/content-api";
+} from "@/lib/api/types";
 import {
   DialogFrame,
   EmptyState as Empty,
@@ -47,13 +47,13 @@ import {
   LoadingState as Loading,
   PageIntro,
   StatusBadge as Badge,
-} from "../../components/ui/admin-primitives";
-import { Button } from "../../components/ui/button";
-import { LessonEditor } from "./lesson-editor";
+} from "@/components/ui/admin-primitives";
+import { Button } from "@/components/ui/button";
+import { LessonEditor } from "@/features/curriculum/lesson-editor";
 
 export function Curriculum() {
   const [data, setData] =
-    useState<Awaited<ReturnType<typeof api.getCurriculum>>>();
+    useState<Awaited<ReturnType<typeof curriculumApi.getCurriculum>>>();
   const [chapterId, setChapterId] = useState("1");
   const [expandedCourseId, setExpandedCourseId] = useState<string | null>(null);
   const [lessonId, setLessonId] = useState<string>();
@@ -64,7 +64,7 @@ export function Curriculum() {
   const [stableId, setStableId] = useState("");
   const load = useCallback(
     () =>
-      api.getCurriculum().then((next) => {
+      curriculumApi.getCurriculum().then((next) => {
         setData(next);
         if (!next.chapters.some(({ id }) => id === chapterId))
           setChapterId(next.chapters[0]?.id ?? "1");
@@ -111,7 +111,7 @@ export function Curriculum() {
     if (index < 0 || target < 0 || target >= ordered.length) return;
     [ordered[index], ordered[target]] = [ordered[target], ordered[index]];
     try {
-      await api.reorderLessons(
+      await curriculumApi.reorderLessons(
         chapterId,
         ordered.map(({ id }) => id),
       );
@@ -139,7 +139,12 @@ export function Curriculum() {
       const illustration =
         data.lessons.find((item) => item.chapter_id === chapterId)?.draft
           .illustration ?? "network";
-      await api.createLesson(chapterId, stableId, position, illustration);
+      await curriculumApi.createLesson(
+        chapterId,
+        stableId,
+        position,
+        illustration,
+      );
       await load();
       setLessonId(stableId);
       setStableId("");

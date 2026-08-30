@@ -1,27 +1,27 @@
 import { Plus } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import * as api from "../../lib/content-api";
-import type { FlashcardRow, QuizRow } from "../../lib/content-api";
+import * as curriculumApi from "@/lib/api/curriculum-service";
+import type { FlashcardRow, QuizRow } from "@/lib/api/types";
 import {
   EmptyState as Empty,
   LoadingState as Loading,
   PageIntro,
   StatusBadge as Badge,
-} from "../../components/ui/admin-primitives";
-import { Button } from "../../components/ui/button";
+} from "@/components/ui/admin-primitives";
+import { Button } from "@/components/ui/button";
 import { SelectField } from "@/components/ui/select";
-import { FlashcardEditor, QuizEditor } from "./assessment-editors";
+import { FlashcardEditor, QuizEditor } from "@/features/assessments/assessment-editors";
 
 export function Assessments() {
   const [data, setData] =
-    useState<Awaited<ReturnType<typeof api.getCurriculum>>>();
+    useState<Awaited<ReturnType<typeof curriculumApi.getCurriculum>>>();
   const [chapterId, setChapterId] = useState("1");
   const [mode, setMode] = useState<"quiz" | "flashcards">("quiz");
   const [view, setView] = useState<"focused" | "all">("focused");
   const [selectedId, setSelectedId] = useState("");
   const [selectedItemDirty, setSelectedItemDirty] = useState(false);
   const [notice, setNotice] = useState("");
-  const load = () => api.getCurriculum().then(setData);
+  const load = () => curriculumApi.getCurriculum().then(setData);
   useEffect(() => {
     void load();
   }, []);
@@ -126,13 +126,13 @@ export function Assessments() {
           onClick={() =>
             void (
               mode === "quiz"
-                ? api.createQuiz(
+                ? curriculumApi.createQuiz(
                     chapterId,
                     lessons[0].id,
                     data.quiz.filter((item) => item.chapter_id === chapterId)
                       .length + 1,
                   )
-                : api.createFlashcard(
+                : curriculumApi.createFlashcard(
                     chapterId,
                     lessons[0].id,
                     data.flashcards.filter(

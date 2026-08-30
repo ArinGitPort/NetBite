@@ -7,3 +7,5 @@
 - `references/` records primary technical sources used by the curriculum and simulators.
 
 Coursework-specific instructions and reports belong in `schoolwork/`, not in production documentation.
+
+Portal development follows both the interface rules in `standards/ADMIN_WEB_UX_STANDARD.md` and the component, import, ownership, and file-size rules in `standards/PORTAL_CODE_ARCHITECTURE_STANDARD.md`.

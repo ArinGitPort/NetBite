@@ -1,12 +1,15 @@
 import { Copy, Download, Link2, Plus } from "lucide-react";
 import QRCode from "qrcode";
 import { useEffect, useState } from "react";
-import { Button } from "../../components/ui/button";
-import { InputField } from "../../components/ui/form-field";
-import { Panel } from "../../components/ui/panel";
+import { Button } from "@/components/ui/button";
+import { InputField } from "@/components/ui/form-field";
+import { Panel } from "@/components/ui/panel";
 import { SelectField } from "@/components/ui/select";
-import * as api from "../../lib/content-api";
-import type { WorkshopClassRow, WorkshopRow } from "../../lib/content-api";
+import {
+  createWorkshopClass,
+  setWorkshopClassEnrollment,
+} from "@/lib/api/workshop-service";
+import type { WorkshopClassRow, WorkshopRow } from "@/lib/api/types";
 
 export function Classes({
   selected,
@@ -21,7 +24,7 @@ export function Classes({
 }) {
   const [title, setTitle] = useState(`${selected.title} class`);
   const create = async () => {
-    const result = await api.createWorkshopClass(selected.id, title);
+    const result = await createWorkshopClass(selected.id, title);
     onNotice(`Class created. Join code: ${result.joinCode}`);
     onCreated();
   };
@@ -146,8 +149,7 @@ function ClassShareCard({
               : "inline-flex min-h-11 items-center justify-center rounded-control border border-line bg-raised px-4 text-xs font-semibold text-copy"
           }
           onClick={() =>
-            void api
-              .setWorkshopClassEnrollment(row.id, !row.join_enabled)
+            void setWorkshopClassEnrollment(row.id, !row.join_enabled)
               .then(() => {
                 onNotice(
                   row.join_enabled

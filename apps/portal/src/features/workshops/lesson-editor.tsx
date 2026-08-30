@@ -13,22 +13,22 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import type { WorkshopLessonBlock } from "@netbite/workshops/contracts";
-import { Button } from "../../components/ui/button";
-import { ConfirmationDialog } from "../../components/ui/dialog";
-import { Tabs, TabsList, TabsTrigger } from "../../components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { ConfirmationDialog } from "@/components/ui/dialog";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from "../../components/ui/tooltip";
+} from "@/components/ui/tooltip";
 import { SelectField } from "@/components/ui/select";
-import * as api from "../../lib/content-api";
+import * as workshopApi from "@/lib/api/workshop-service";
 import type {
   WorkshopLessonRow,
   WorkshopTopologyRow,
-} from "../../lib/content-api";
-import { LessonMobilePreview } from "./lesson-mobile-preview";
-import { CommandBlockEditor } from "./command-block-editor";
+} from "@/lib/api/types";
+import { LessonMobilePreview } from "@/features/workshops/lesson-mobile-preview";
+import { CommandBlockEditor } from "@/features/workshops/command-block-editor";
 
 const blockOptions: Array<{
   type: WorkshopLessonBlock["type"];
@@ -173,7 +173,7 @@ export function LessonEditor({
     if (pendingAction) return;
     setPendingAction("save");
     try {
-      await api.saveWorkshopLesson(lesson);
+      await workshopApi.saveWorkshopLesson(lesson);
       onSaved();
     } catch (reason) {
       onError(

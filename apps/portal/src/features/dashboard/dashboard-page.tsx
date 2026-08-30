@@ -29,7 +29,8 @@ import {
   type FormEvent,
 } from "react";
 import { useNavigate } from "react-router-dom";
-import * as api from "../../lib/content-api";
+import * as curriculumApi from "@/lib/api/curriculum-service";
+import * as publishingApi from "@/lib/api/publishing-service";
 import type {
   AssetRow,
   ChapterRow,
@@ -39,7 +40,7 @@ import type {
   ReleaseRow,
   SafeAuditEntry,
   SourceRow,
-} from "../../lib/content-api";
+} from "@/lib/api/types";
 import {
   ConfirmAction,
   DialogFrame,
@@ -48,16 +49,19 @@ import {
   LoadingState as Loading,
   PageIntro,
   StatusBadge as Badge,
-} from "../../components/ui/admin-primitives";
+} from "@/components/ui/admin-primitives";
 
 export function Dashboard() {
   const navigate = useNavigate();
   const [data, setData] =
-    useState<Awaited<ReturnType<typeof api.getCurriculum>>>();
+    useState<Awaited<ReturnType<typeof curriculumApi.getCurriculum>>>();
   const [releases, setReleases] = useState<ReleaseRow[]>([]);
   const [error, setError] = useState("");
   useEffect(() => {
-    void Promise.all([api.getCurriculum(), api.getReleases()])
+    void Promise.all([
+      curriculumApi.getCurriculum(),
+      publishingApi.getReleases(),
+    ])
       .then(([nextData, nextReleases]) => {
         setData(nextData);
         setReleases(nextReleases);

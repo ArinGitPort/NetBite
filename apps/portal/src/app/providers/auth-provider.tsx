@@ -1,9 +1,9 @@
 import type { Session } from "@supabase/supabase-js";
 import { createContext, type ReactNode, useContext, useEffect, useMemo, useState } from "react";
 
-import * as api from "../../lib/content-api";
-import type { AdminAccess } from "../../lib/content-api";
-import { supabase } from "../../lib/supabase";
+import { getAdminAccess } from "@/lib/api/access-service";
+import type { AdminAccess } from "@/lib/api/types";
+import { supabase } from "@/lib/supabase";
 
 interface AuthContextValue {
   session: Session | null | undefined;
@@ -35,7 +35,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
     let active = true;
-    void api.getAdminAccess(userId)
+    void getAdminAccess(userId)
       .then((result) => { if (active) setAccess(result); })
       .catch(() => { if (active) setAccess({ userId, authorized: false, accessLevel: "none" }); });
     return () => { active = false; };

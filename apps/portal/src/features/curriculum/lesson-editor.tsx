@@ -9,14 +9,14 @@ import {
   X,
 } from "lucide-react";
 import { useState } from "react";
-import * as api from "../../lib/content-api";
-import type { LessonRow } from "../../lib/content-api";
+import * as curriculumApi from "@/lib/api/curriculum-service";
+import type { LessonRow } from "@/lib/api/types";
 import {
   ConfirmAction,
   DialogFrame,
   Field,
   StatusBadge as Badge,
-} from "../../components/ui/admin-primitives";
+} from "@/components/ui/admin-primitives";
 
 export function LessonEditor({
   row,
@@ -37,7 +37,7 @@ export function LessonEditor({
   const save = async () => {
     setBusy(true);
     try {
-      await api.saveLesson(row);
+      await curriculumApi.saveLesson(row);
       onSaved(
         "Lesson draft saved. It is not visible to learners until publication.",
       );
@@ -50,7 +50,7 @@ export function LessonEditor({
   const archive = async () => {
     setBusy(true);
     try {
-      await api.setLessonArchived(row.id, !row.archived);
+      await curriculumApi.setLessonArchived(row.id, !row.archived);
       onSaved(row.archived ? "Lesson restored." : "Lesson archived.");
     } finally {
       setBusy(false);

@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-import { cn } from "../../lib/class-names";
+import { cn } from "@/lib/class-names";
 
 type FeedbackTone = "success" | "warning" | "error";
 

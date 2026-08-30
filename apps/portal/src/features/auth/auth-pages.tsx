@@ -3,11 +3,11 @@ import type { FormEvent } from "react";
 import { useState } from "react";
 
 import netbiteLogo from "@netbite/brand/logo.png";
-import { StatusBadge as Badge } from "../../components/ui/admin-primitives";
-import { Button as UiButton } from "../../components/ui/button";
-import { Feedback as UiFeedback } from "../../components/ui/feedback";
-import { InputField } from "../../components/ui/form-field";
-import { supabase } from "../../lib/supabase";
+import { StatusBadge as Badge } from "@/components/ui/admin-primitives";
+import { Button as UiButton } from "@/components/ui/button";
+import { Feedback as UiFeedback } from "@/components/ui/feedback";
+import { InputField } from "@/components/ui/form-field";
+import { supabase } from "@/lib/supabase";
 
 export function SetupRequired() {
   const development = import.meta.env.DEV;

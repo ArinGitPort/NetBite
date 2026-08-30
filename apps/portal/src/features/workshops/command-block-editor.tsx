@@ -11,11 +11,11 @@ import type {
   WorkshopLessonBlock,
   WorkshopTopology,
 } from "@netbite/workshops/contracts";
-import { Button } from "../../components/ui/button";
-import { ConfirmationDialog } from "../../components/ui/dialog";
-import { Feedback } from "../../components/ui/feedback";
+import { Button } from "@/components/ui/button";
+import { ConfirmationDialog } from "@/components/ui/dialog";
+import { Feedback } from "@/components/ui/feedback";
 import { SelectField } from "@/components/ui/select";
-import type { WorkshopTopologyRow } from "../../lib/content-api";
+import type { WorkshopTopologyRow } from "@/lib/api/types";
 
 function newGroup(): WorkshopCommandGroup {
   return {

@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, test } from "vitest";
 
-import { Button } from "./button";
+import { Button } from "@/components/ui/button";
 
 describe("Button", () => {
   test("uses an explicit high-contrast primary treatment", () => {

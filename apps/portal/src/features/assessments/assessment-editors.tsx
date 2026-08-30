@@ -1,9 +1,9 @@
 import { Save, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { Button } from "../../components/ui/button";
-import * as api from "../../lib/content-api";
-import type { FlashcardRow, LessonRow, QuizRow } from "../../lib/content-api";
-import { ConfirmAction, Field } from "../../components/ui/admin-primitives";
+import { Button } from "@/components/ui/button";
+import * as curriculumApi from "@/lib/api/curriculum-service";
+import type { FlashcardRow, LessonRow, QuizRow } from "@/lib/api/types";
+import { ConfirmAction, Field } from "@/components/ui/admin-primitives";
 import { SelectField } from "@/components/ui/select";
 
 export function QuizEditor({
@@ -49,7 +49,7 @@ export function QuizEditor({
             disabled={!dirty}
             tone="primary"
             onClick={() =>
-              void api
+              void curriculumApi
                 .saveQuiz(value)
                 .then(() => onDone("Quiz question saved."))
             }
@@ -63,7 +63,7 @@ export function QuizEditor({
             confirmLabel="DELETE QUESTION"
             detail="This removes the draft question from the assessment workspace. Published versions remain unchanged."
             onConfirm={() =>
-              api
+              curriculumApi
                 .deleteAssessment("content_quiz_questions", row.id)
                 .then(() => onDone("Question deleted."))
             }
@@ -198,7 +198,7 @@ export function FlashcardEditor({
             disabled={!dirty}
             tone="primary"
             onClick={() =>
-              void api
+              void curriculumApi
                 .saveFlashcard(value)
                 .then(() => onDone("Flashcard saved."))
             }
@@ -212,7 +212,7 @@ export function FlashcardEditor({
             confirmLabel="DELETE FLASHCARD"
             detail="This removes the draft flashcard from the assessment workspace. Published versions remain unchanged."
             onConfirm={() =>
-              api
+              curriculumApi
                 .deleteAssessment("content_flashcards", row.id)
                 .then(() => onDone("Flashcard deleted."))
             }

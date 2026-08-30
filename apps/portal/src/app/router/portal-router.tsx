@@ -1,22 +1,25 @@
 import { lazy, Suspense } from "react";
 import { HashRouter, Navigate, Route, Routes } from "react-router-dom";
 
-import { LoadingState } from "../../components/ui/admin-primitives";
-import { Login, SetupRequired } from "../../features/auth/auth-pages";
-import { configured } from "../../lib/supabase";
-import { defaultPathForAccess, normalizeLegacyHash } from "../navigation";
-import { AuthProvider, usePortalAuth } from "../providers/auth-provider";
-import { RoleGuard, WorkspaceGuard } from "../route-guards/workspace-guard";
+import { LoadingState } from "@/components/ui/admin-primitives";
+import { Login, SetupRequired } from "@/features/auth";
+import { configured } from "@/lib/supabase";
+import { defaultPathForAccess, normalizeLegacyHash } from "@/app/navigation";
+import { AuthProvider, usePortalAuth } from "@/app/providers/auth-provider";
+import { RoleGuard, WorkspaceGuard } from "@/app/route-guards/workspace-guard";
 
-const Dashboard = lazy(() => import("../../features/dashboard/dashboard-page").then((module) => ({ default: module.Dashboard })));
-const InstructorApprovals = lazy(() => import("../../features/instructors/instructor-access-page").then((module) => ({ default: module.InstructorApprovals })));
-const Curriculum = lazy(() => import("../../features/curriculum/curriculum-page").then((module) => ({ default: module.Curriculum })));
-const Assessments = lazy(() => import("../../features/assessments/assessments-page").then((module) => ({ default: module.Assessments })));
-const Sources = lazy(() => import("../../features/sources/sources-page").then((module) => ({ default: module.Sources })));
-const Assets = lazy(() => import("../../features/media/media-page").then((module) => ({ default: module.Assets })));
-const Releases = lazy(() => import("../../features/publishing/publishing-page").then((module) => ({ default: module.Releases })));
-const Audit = lazy(() => import("../../features/activity/activity-page").then((module) => ({ default: module.Audit })));
-const WorkshopStudio = lazy(() => import("../../features/workshops/workshops-page").then((module) => ({ default: module.WorkshopStudio })));
+const Dashboard = lazy(() => import("@/features/dashboard").then((module) => ({ default: module.Dashboard })));
+const InstructorApprovals = lazy(() => import("@/features/instructors").then((module) => ({ default: module.InstructorApprovals })));
+const Curriculum = lazy(() => import("@/features/curriculum").then((module) => ({ default: module.Curriculum })));
+const Assessments = lazy(() => import("@/features/assessments").then((module) => ({ default: module.Assessments })));
+const Sources = lazy(() => import("@/features/sources").then((module) => ({ default: module.Sources })));
+const Assets = lazy(() => import("@/features/media").then((module) => ({ default: module.Assets })));
+const Releases = lazy(() => import("@/features/publishing").then((module) => ({ default: module.Releases })));
+const Audit = lazy(() => import("@/features/activity").then((module) => ({ default: module.Audit })));
+const CollectionsPage = lazy(() => import("@/features/workshops").then((module) => ({ default: module.CollectionsPage })));
+const WorkshopClassesPage = lazy(() => import("@/features/workshops").then((module) => ({ default: module.WorkshopClassesPage })));
+const WorkshopAssessmentsPage = lazy(() => import("@/features/workshops").then((module) => ({ default: module.WorkshopAssessmentsPage })));
+const WorkshopGradebookPage = lazy(() => import("@/features/workshops").then((module) => ({ default: module.WorkshopGradebookPage })));
 
 function PortalRoutes() {
   const { session, access, loading } = usePortalAuth();
@@ -39,10 +42,10 @@ function PortalRoutes() {
             <Route path="/admin/activity" element={<Audit />} />
           </Route>
           <Route element={<RoleGuard role="instructor" />}>
-            <Route path="/instructor/workshops" element={<WorkshopStudio area="workshops" />} />
-            <Route path="/instructor/classes" element={<WorkshopStudio area="classes" />} />
-            <Route path="/instructor/assessments" element={<WorkshopStudio area="workshop-assessments" />} />
-            <Route path="/instructor/gradebook" element={<WorkshopStudio area="gradebook" />} />
+            <Route path="/instructor/workshops" element={<CollectionsPage />} />
+            <Route path="/instructor/classes" element={<WorkshopClassesPage />} />
+            <Route path="/instructor/assessments" element={<WorkshopAssessmentsPage />} />
+            <Route path="/instructor/gradebook" element={<WorkshopGradebookPage />} />
           </Route>
         </Route>
         <Route path="*" element={<Navigate replace to={fallback} />} />

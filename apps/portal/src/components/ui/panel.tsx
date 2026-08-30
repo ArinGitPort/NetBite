@@ -1,6 +1,6 @@
 import type { HTMLAttributes, ReactNode } from "react";
 
-import { cn } from "../../lib/class-names";
+import { cn } from "@/lib/class-names";
 
 interface PanelProps extends HTMLAttributes<HTMLElement> {
   children: ReactNode;

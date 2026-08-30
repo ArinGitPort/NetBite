@@ -14,9 +14,9 @@ import {
   topologyStarters,
   validateWorkshopConnection,
 } from "@netbite/workshops/topology-authoring";
-import { Button } from "../../components/ui/button";
-import { Dialog } from "../../components/ui/dialog";
-import { InputField } from "../../components/ui/form-field";
+import { Button } from "@/components/ui/button";
+import { Dialog } from "@/components/ui/dialog";
+import { InputField } from "@/components/ui/form-field";
 import { SelectField } from "@/components/ui/select";
 
 export function AddInterfaceDialog({

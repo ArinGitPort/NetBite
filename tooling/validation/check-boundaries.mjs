@@ -5,6 +5,8 @@ import { fileURLToPath } from "node:url";
 const repositoryRoot = resolve(fileURLToPath(new URL("../..", import.meta.url)));
 const sourceExtensions = new Set([".js", ".jsx", ".mjs", ".cjs", ".ts", ".tsx"]);
 const violations = [];
+const moduleReference =
+  /(?:from\s+|import\s*\(|require\s*\(|vi\.mock\s*\(|jest\.mock\s*\(|export\s+[^;]*?from\s+)["']([^"']+)["']/g;
 
 async function walk(directory) {
   const entries = await readdir(directory, { withFileTypes: true });
@@ -45,13 +47,20 @@ for (const rule of rules) {
   const root = resolve(repositoryRoot, rule.root);
   for (const file of await walk(root)) {
     const text = await readFile(file, "utf8");
-    for (const forbidden of rule.forbidden) {
-      if (text.includes(forbidden)) {
-        violations.push(`${relative(repositoryRoot, file)}: ${rule.message} Found '${forbidden}'.`);
+    const references = [...text.matchAll(moduleReference)].map((match) => match[1]);
+    for (const reference of references) {
+      for (const forbidden of rule.forbidden) {
+        if (reference.includes(forbidden)) {
+          violations.push(
+            `${relative(repositoryRoot, file)}: ${rule.message} Found '${forbidden}' in '${reference}'.`,
+          );
+        }
       }
-    }
-    if (text.includes("../shared") || text.includes("../../shared")) {
-      violations.push(`${relative(repositoryRoot, file)}: import the relevant @netbite package instead of the obsolete shared folder.`);
+      if (reference.includes("../shared") || reference.includes("../../shared")) {
+        violations.push(
+          `${relative(repositoryRoot, file)}: import the relevant @netbite package instead of the obsolete shared folder.`,
+        );
+      }
     }
   }
 }

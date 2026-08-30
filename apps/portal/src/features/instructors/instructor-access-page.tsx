@@ -1,11 +1,11 @@
 import { CheckCircle2, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
-import { PageIntro, StatusBadge } from "../../components/ui/admin-primitives";
-import { Button } from "../../components/ui/button";
-import { Feedback } from "../../components/ui/feedback";
-import * as api from "../../lib/content-api";
-import type { InstructorRequestRow } from "../../lib/content-api";
+import { PageIntro, StatusBadge } from "@/components/ui/admin-primitives";
+import { Button } from "@/components/ui/button";
+import { Feedback } from "@/components/ui/feedback";
+import * as instructorApi from "@/lib/api/instructor-service";
+import type { InstructorRequestRow } from "@/lib/api/types";
 
 function Notice({
   message,
@@ -27,7 +27,7 @@ export function InstructorApprovals() {
   const [error, setError] = useState<string>();
   const load = useCallback(async () => {
     try {
-      setRows(await api.getInstructorRequests());
+      setRows(await instructorApi.getInstructorRequests());
     } catch (reason) {
       setError(
         reason instanceof Error
@@ -45,7 +45,7 @@ export function InstructorApprovals() {
   ) => {
     setError(undefined);
     try {
-      await api.reviewInstructorRequest(row.user_id, decision);
+      await instructorApi.reviewInstructorRequest(row.user_id, decision);
       setNotice(
         decision === "approved"
           ? `${row.display_name} now has instructor access.`

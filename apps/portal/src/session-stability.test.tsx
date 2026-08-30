@@ -104,7 +104,7 @@ const apiHarness = vi.hoisted(() => ({
   })),
 }));
 
-vi.mock("./lib/supabase", () => ({
+vi.mock("@/lib/supabase", () => ({
   configured: true,
   supabase: {
     auth: {
@@ -121,13 +121,19 @@ vi.mock("./lib/supabase", () => ({
   },
 }));
 
-vi.mock("./lib/content-api", () => ({
+vi.mock("@/lib/api/access-service", () => ({
   getAdminAccess: apiHarness.getAdminAccess,
+}));
+
+vi.mock("@/lib/api/activity-service", () => ({
   getSanitizedAuditHistory: apiHarness.getSanitizedAuditHistory,
+}));
+
+vi.mock("@/lib/api/curriculum-service", () => ({
   getCurriculum: apiHarness.getCurriculum,
 }));
 
-import { App } from "./app";
+import { App } from "@/app";
 
 describe("admin session stability", () => {
   afterEach(() => cleanup());

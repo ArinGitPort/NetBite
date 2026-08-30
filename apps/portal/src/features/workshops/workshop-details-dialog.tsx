@@ -1,11 +1,11 @@
 import { Plus, Save, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 
-import { Button } from "../../components/ui/button";
-import { Dialog } from "../../components/ui/dialog";
-import { Feedback } from "../../components/ui/feedback";
-import { InputField, TextareaField } from "../../components/ui/form-field";
-import type { WorkshopRow } from "../../lib/content-api";
+import { Button } from "@/components/ui/button";
+import { Dialog } from "@/components/ui/dialog";
+import { Feedback } from "@/components/ui/feedback";
+import { InputField, TextareaField } from "@/components/ui/form-field";
+import type { WorkshopRow } from "@/lib/api/types";
 
 export type WorkshopDetailsMode =
   | { kind: "create" }

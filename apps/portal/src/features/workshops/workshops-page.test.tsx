@@ -9,15 +9,17 @@ import {
 import type { ReactElement } from "react";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
-import { TooltipProvider } from "../../components/ui/tooltip";
-import { InstructorApprovals, WorkshopStudio } from "./workshops-page";
-import * as api from "../../lib/content-api";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { InstructorApprovals } from "@/features/instructors";
+import { WorkshopStudio } from "@/features/workshops/workshops-page";
+import * as instructorApi from "@/lib/api/instructor-service";
+import * as api from "@/lib/api/workshop-service";
 
 function renderPortal(ui: ReactElement) {
   return render(<TooltipProvider>{ui}</TooltipProvider>);
 }
 
-vi.mock("../../lib/content-api", () => ({
+vi.mock("@/lib/api/workshop-service", () => ({
   createWorkshop: vi.fn(),
   createWorkshopAssessment: vi.fn(),
   createWorkshopClass: vi.fn(),
@@ -25,19 +27,22 @@ vi.mock("../../lib/content-api", () => ({
   deleteWorkshopTopology: vi.fn(),
   deleteWorkshopLesson: vi.fn(),
   deleteWorkshop: vi.fn(),
-  getInstructorRequests: vi.fn(),
   getWorkshopClasses: vi.fn(),
   getWorkshopContent: vi.fn(),
   getWorkshopGradebook: vi.fn(),
   getWorkshops: vi.fn(),
   getWorkshopVersions: vi.fn(),
   publishWorkshop: vi.fn(),
-  reviewInstructorRequest: vi.fn(),
   saveWorkshop: vi.fn(),
   saveWorkshopAssessment: vi.fn(),
   saveWorkshopLesson: vi.fn(),
   saveWorkshopTopology: vi.fn(),
   setWorkshopClassEnrollment: vi.fn(),
+}));
+
+vi.mock("@/lib/api/instructor-service", () => ({
+  getInstructorRequests: vi.fn(),
+  reviewInstructorRequest: vi.fn(),
 }));
 
 const workshop = {
@@ -318,7 +323,9 @@ describe("instructor workshop portal", () => {
 
   test("shows complete graded assessment settings", async () => {
     renderPortal(<WorkshopStudio area="workshop-assessments" />);
-    expect(await screen.findByDisplayValue("Route check")).toBeTruthy();
+    expect((await screen.findAllByText("Route check")).length).toBeGreaterThan(0);
+    fireEvent.click(screen.getByRole("tab", { name: "SETTINGS" }));
+    expect(screen.getByDisplayValue("Route check")).toBeTruthy();
     expect(screen.getByText("Opening date (optional)")).toBeTruthy();
     expect(screen.getByText("Due date (optional)")).toBeTruthy();
     expect(screen.getByText(/Shuffle question order/)).toBeTruthy();
@@ -330,8 +337,6 @@ describe("instructor workshop portal", () => {
     expect(shuffleQuestions).toHaveAttribute("aria-checked", "true");
     fireEvent.click(shuffleQuestions);
     expect(shuffleQuestions).toHaveAttribute("aria-checked", "false");
-    expect(screen.getByRole("button", { name: "ADD QUESTION" })).toBeTruthy();
-
     fireEvent.click(screen.getByRole("tab", { name: "PREVIEW" }));
     expect(screen.getByTestId("assessment-mobile-preview")).toBeTruthy();
     expect(screen.getByText("OFFICIAL CLASS ASSESSMENT")).toBeTruthy();
@@ -344,8 +349,32 @@ describe("instructor workshop portal", () => {
       screen.getByRole("button", { name: "SUBMIT GRADED ASSESSMENT" }),
     ).toBeDisabled();
 
-    fireEvent.click(screen.getByRole("tab", { name: "EDIT" }));
+    fireEvent.click(screen.getByRole("tab", { name: "SETTINGS" }));
     expect(screen.getByText("Opening date (optional)")).toBeTruthy();
+  });
+
+  test("guides question authoring and reorders questions from the drag handle", async () => {
+    renderPortal(<WorkshopStudio area="workshop-assessments" />);
+    expect((await screen.findAllByText("Route check")).length).toBeGreaterThan(0);
+
+    const addQuestion = screen.getByRole("button", { name: "Add question" });
+    fireEvent.click(addQuestion);
+    fireEvent.click(screen.getByRole("button", { name: "Question selector" }));
+    let questionList = await screen.findByRole("list", { name: "Question list" });
+    fireEvent.click(within(questionList).getByRole("button", { name: /Q01 .*NEEDS QUESTION/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Add question" }));
+    fireEvent.click(screen.getByRole("button", { name: "Question selector" }));
+    questionList = await screen.findByRole("list", { name: "Question list" });
+    fireEvent.click(within(questionList).getByRole("button", { name: /Q02 .*NEEDS QUESTION/ }));
+
+    expect(screen.getAllByLabelText("Question")).toHaveLength(1);
+    fireEvent.change(screen.getByLabelText("Question"), {
+      target: { value: "Second question" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /Move question 2 earlier/ }));
+
+    expect(screen.getByText("Q01").closest("div")).toHaveTextContent("Second question");
+    expect(screen.getAllByLabelText("Question")).toHaveLength(1);
   });
 
   test("presents recorded grades without a redundant outer card", async () => {
@@ -400,7 +429,7 @@ describe("instructor workshop portal", () => {
   });
 
   test("lets an administrator approve a pending instructor request", async () => {
-    vi.mocked(api.getInstructorRequests).mockResolvedValue([
+    vi.mocked(instructorApi.getInstructorRequests).mockResolvedValue([
       {
         user_id: "user-1",
         display_name: "Instructor One",
@@ -410,11 +439,13 @@ describe("instructor workshop portal", () => {
         requested_at: "2026-08-27T00:00:00.000Z",
       },
     ]);
-    vi.mocked(api.reviewInstructorRequest).mockResolvedValue(undefined);
+    vi.mocked(instructorApi.reviewInstructorRequest).mockResolvedValue(
+      undefined,
+    );
     renderPortal(<InstructorApprovals />);
     fireEvent.click(await screen.findByText("APPROVE INSTRUCTOR"));
     await waitFor(() =>
-      expect(api.reviewInstructorRequest).toHaveBeenCalledWith(
+      expect(instructorApi.reviewInstructorRequest).toHaveBeenCalledWith(
         "user-1",
         "approved",
       ),

@@ -4,11 +4,11 @@ import { useState } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 
 import netbiteLogo from "@netbite/brand/logo.png";
-import { getNavigationForAccess } from "../../app/navigation";
-import type { AdminAccess } from "../../lib/content-api";
-import { supabase } from "../../lib/supabase";
-import { cn } from "../../lib/class-names";
-import { Button } from "../ui/button";
+import { getNavigationForAccess } from "@/app/navigation";
+import type { AdminAccess } from "@/lib/api/types";
+import { supabase } from "@/lib/supabase";
+import { cn } from "@/lib/class-names";
+import { Button } from "@/components/ui/button";
 
 function AccountControls({ session, access }: { session: Session; access: AdminAccess }) {
   const [busy, setBusy] = useState(false);
@@ -56,16 +56,25 @@ export function PortalShell({ session, access }: { session: Session; access: Adm
           <Button aria-label="Close navigation" className="ml-auto lg:hidden" onClick={() => setMobileNav(false)} size="icon" tone="ghost"><X /></Button>
         </div>
         <nav className="mt-6 grid gap-1" aria-label={`${roleLabel} sections`}>
-          {navigation.map((item) => (
-            <NavLink
-              key={item.id}
-              className={({ isActive }) => cn("flex min-h-12 items-center gap-3 rounded-control border px-3 text-xs font-medium transition-colors", isActive ? "border-line bg-raised text-white" : "border-transparent text-muted hover:bg-raised hover:text-white")}
-              onClick={() => setMobileNav(false)}
-              to={item.path}
-            >
-              {({ isActive }) => <><item.icon className="size-[18px]" /><span>{item.label}</span>{isActive ? <ChevronRight className="ml-auto size-4" /> : null}</>}
-            </NavLink>
-          ))}
+          {navigation.map((item, index) => {
+            const showGroup = item.group && item.group !== navigation[index - 1]?.group;
+            return (
+              <div className={cn("grid gap-1", showGroup && index > 0 && "mt-4")} key={item.id}>
+                {showGroup ? (
+                  <span className="px-3 pb-1 font-mono text-[0.58rem] font-semibold uppercase tracking-[0.1em] text-muted">
+                    {item.group}
+                  </span>
+                ) : null}
+                <NavLink
+                  className={({ isActive }) => cn("flex min-h-12 items-center gap-3 rounded-control border px-3 text-xs font-medium transition-colors", isActive ? "border-line bg-raised text-white" : "border-transparent text-muted hover:bg-raised hover:text-white")}
+                  onClick={() => setMobileNav(false)}
+                  to={item.path}
+                >
+                  {({ isActive }) => <><item.icon className="size-[18px]" /><span>{item.label}</span>{isActive ? <ChevronRight className="ml-auto size-4" /> : null}</>}
+                </NavLink>
+              </div>
+            );
+          })}
         </nav>
         <div className="mt-auto"><AccountControls access={access} session={session} /></div>
       </aside>

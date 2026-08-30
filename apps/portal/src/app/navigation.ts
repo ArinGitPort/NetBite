@@ -13,13 +13,14 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-import type { AdminAccess, AdminView } from "../lib/content-api";
+import type { AdminAccess, AdminView } from "@/lib/api/types";
 
 export interface NavigationItem {
   id: AdminView;
   label: string;
   path: string;
   icon: LucideIcon;
+  group?: "Create" | "Deliver and review";
 }
 
 export const instructorNavigation: NavigationItem[] = [
@@ -28,19 +29,28 @@ export const instructorNavigation: NavigationItem[] = [
     label: "Lesson collections",
     path: "/instructor/workshops",
     icon: School,
+    group: "Create",
   },
-  { id: "classes", label: "Classes", path: "/instructor/classes", icon: Users },
   {
     id: "workshop-assessments",
     label: "Assessments",
     path: "/instructor/assessments",
     icon: ClipboardCheck,
+    group: "Create",
+  },
+  {
+    id: "classes",
+    label: "Classes",
+    path: "/instructor/classes",
+    icon: Users,
+    group: "Deliver and review",
   },
   {
     id: "gradebook",
     label: "Gradebook",
     path: "/instructor/gradebook",
     icon: ChartNoAxesColumn,
+    group: "Deliver and review",
   },
 ];
 

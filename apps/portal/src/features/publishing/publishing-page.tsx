@@ -28,7 +28,7 @@ import {
   useState,
   type FormEvent,
 } from "react";
-import * as api from "../../lib/content-api";
+import * as publishingApi from "@/lib/api/publishing-service";
 import type {
   AssetRow,
   ChapterRow,
@@ -38,34 +38,34 @@ import type {
   ReleaseRow,
   SafeAuditEntry,
   SourceRow,
-} from "../../lib/content-api";
+} from "@/lib/api/types";
 import {
   ConfirmAction,
   EmptyState as Empty,
   Field,
   PageIntro,
   StatusBadge as Badge,
-} from "../../components/ui/admin-primitives";
-import { Button } from "../../components/ui/button";
+} from "@/components/ui/admin-primitives";
+import { Button } from "@/components/ui/button";
 
 export function Releases() {
   const [rows, setRows] = useState<ReleaseRow[]>([]);
   const [validation, setValidation] =
-    useState<Awaited<ReturnType<typeof api.validateRelease>>>();
+    useState<Awaited<ReturnType<typeof publishingApi.validateRelease>>>();
   const [changelog, setChangelog] = useState("");
   const [minimum, setMinimum] = useState("1.0.0");
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
   const publishRequestIds = useRef(new Map<string, string>());
   const restoreRequestIds = useRef(new Map<string, string>());
-  const load = () => api.getReleases().then(setRows);
+  const load = () => publishingApi.getReleases().then(setRows);
   useEffect(() => {
     void load();
   }, []);
   const validate = async () => {
     setBusy(true);
     try {
-      const result = await api.validateRelease();
+      const result = await publishingApi.validateRelease();
       setValidation(result);
       setNotice(
         result.valid
@@ -86,7 +86,11 @@ export function Releases() {
     publishRequestIds.current.set(requestKey, operationId);
     setBusy(true);
     try {
-      const result = await api.publishRelease(changelog, minimum, operationId);
+      const result = await publishingApi.publishRelease(
+        changelog,
+        minimum,
+        operationId,
+      );
       publishRequestIds.current.delete(requestKey);
       setNotice(`Version ${result.releaseVersion} published.`);
       setChangelog("");
@@ -237,7 +241,9 @@ export function Releases() {
                       restoreRequestIds.current.get(row.id) ??
                       crypto.randomUUID();
                     restoreRequestIds.current.set(row.id, operationId);
-                    return api.rollbackRelease(row.id, operationId).then(() => {
+                    return publishingApi
+                      .rollbackRelease(row.id, operationId)
+                      .then(() => {
                       restoreRequestIds.current.delete(row.id);
                       setNotice("Previous curriculum version restored.");
                       return load();

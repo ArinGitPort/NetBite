@@ -3,8 +3,8 @@ import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
 import type { ReactNode } from "react";
 
-import { cn } from "../../lib/class-names";
-import { Button } from "./button";
+import { cn } from "@/lib/class-names";
+import { Button } from "@/components/ui/button";
 
 const overlay =
   "fixed inset-0 z-50 bg-black/75 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out";
