@@ -3,7 +3,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { Palette } from '@/shared/theme';
 
-export type SemanticIconName = 'learn' | 'sandbox' | 'account' | 'settings' | 'lesson' | 'lab' | 'quiz' | 'flashcards' | 'add' | 'connect' | 'configure' | 'test' | 'more' | 'bookmark' | 'saved' | 'status-pending' | 'status-complete' | 'status-attention' | 'status-locked' | 'status-info';
+export type SemanticIconName = 'learn' | 'sandbox' | 'account' | 'settings' | 'lesson' | 'lab' | 'quiz' | 'flashcards' | 'add' | 'refresh' | 'connect' | 'configure' | 'test' | 'more' | 'bookmark' | 'saved' | 'status-pending' | 'status-complete' | 'status-attention' | 'status-locked' | 'status-info';
 
 const symbols: Record<SemanticIconName, SymbolViewProps['name']> = {
   learn: { ios: 'book.fill', android: 'menu_book', web: 'menu_book' },
@@ -15,6 +15,7 @@ const symbols: Record<SemanticIconName, SymbolViewProps['name']> = {
   quiz: { ios: 'checklist', android: 'quiz', web: 'quiz' },
   flashcards: { ios: 'rectangle.on.rectangle.angled', android: 'style', web: 'style' },
   add: { ios: 'plus.square.fill', android: 'add_box', web: 'add_box' },
+  refresh: { ios: 'arrow.clockwise', android: 'refresh', web: 'refresh' },
   connect: { ios: 'cable.connector', android: 'cable', web: 'cable' },
   configure: { ios: 'slider.horizontal.3', android: 'tune', web: 'tune' },
   test: { ios: 'network', android: 'network_ping', web: 'network_ping' },

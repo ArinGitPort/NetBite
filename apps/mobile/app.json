@@ -42,7 +42,13 @@
         }
       ],
       "expo-sharing",
-      "expo-image"
+      "expo-image",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow NetBite to scan class invitation QR codes."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

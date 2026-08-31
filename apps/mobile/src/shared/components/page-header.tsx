@@ -16,7 +16,7 @@ export interface PageHeaderAction {
 }
 
 export interface PageHeaderProps {
-  leading: PageHeaderAction;
+  leading?: PageHeaderAction;
   status?: string;
   trailing?: PageHeaderAction[];
   trailingContent?: ReactNode;
@@ -45,9 +45,11 @@ export function PageHeader({ leading, status, trailing = [], trailingContent }: 
 
   return (
     <View style={[styles.header, { paddingHorizontal: gutter }]} testID="page-header">
-      <View style={styles.leading} testID="page-header-leading">
-        <HeaderAction action={leading} />
-      </View>
+      {leading ? (
+        <View style={styles.leading} testID="page-header-leading">
+          <HeaderAction action={leading} />
+        </View>
+      ) : null}
       {status || trailing.length || trailingContent ? (
         <View style={styles.trailing}>
           {status ? <Text variant="technical" style={styles.status}>{status}</Text> : null}

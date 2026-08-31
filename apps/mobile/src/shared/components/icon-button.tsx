@@ -8,6 +8,7 @@ import { Fonts, Palette, Space } from '@/shared/theme';
 interface IconButtonBaseProps {
   accessibilityHint?: string;
   accessibilityLabel: string;
+  busy?: boolean;
   disabled?: boolean;
   iconSize?: number;
   label?: string;
@@ -20,13 +21,13 @@ type IconButtonProps = IconButtonBaseProps & (
   | { icon?: never; semanticIcon: SemanticIconName }
 );
 
-export function IconButton({ accessibilityHint, accessibilityLabel, disabled = false, icon, iconSize, label, onPress, selected = false, semanticIcon }: IconButtonProps) {
+export function IconButton({ accessibilityHint, accessibilityLabel, busy = false, disabled = false, icon, iconSize, label, onPress, selected = false, semanticIcon }: IconButtonProps) {
   return (
     <Pressable
       accessibilityHint={accessibilityHint}
       accessibilityLabel={accessibilityLabel}
       accessibilityRole="button"
-      accessibilityState={{ disabled, selected }}
+      accessibilityState={{ busy, disabled, selected }}
       disabled={disabled}
       onPress={onPress}
       style={({ pressed }) => [styles.base, selected && styles.selected, disabled && styles.disabled, pressed && styles.pressed]}>

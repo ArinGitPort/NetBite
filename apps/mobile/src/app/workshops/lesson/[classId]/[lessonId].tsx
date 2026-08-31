@@ -1,17 +1,23 @@
 import { Image } from "expo-image";
 import { router, useLocalSearchParams } from "expo-router";
-import { useState } from "react";
-import { StyleSheet, View } from "react-native";
+import {
+  AccessibilityInfo,
+  Platform,
+  StyleSheet,
+  ToastAndroid,
+  View,
+} from "react-native";
 
 import { setWorkshopLessonSaved } from "@/core/workshops/workshop-service";
 import { resolveWorkshopImageUri } from "@/core/workshops/workshop-assets";
 import type { WorkshopLessonBlock } from "@/core/workshops/types";
 import { WorkshopTopologyView } from "@/features/workshops/workshop-topology";
 import { WorkshopCommandBlock } from "@/features/workshops/workshop-command-block";
-import { AppButton } from "@/shared/components/app-button";
 import { Text } from "@/shared/components/console-text";
+import { IconButton } from "@/shared/components/icon-button";
 import { PageHeader } from "@/shared/components/page-header";
 import { Screen } from "@/shared/components/screen";
+import { successHaptic } from "@/shared/haptics";
 import { workshopRoute } from "@/shared/routes";
 import { Palette, Space } from "@/shared/theme";
 import { useWorkshopStore } from "@/store/use-workshop-store";
@@ -26,7 +32,6 @@ export default function WorkshopLessonScreen() {
   );
   const toggleSaved = useWorkshopStore((state) => state.toggleSavedLesson);
   const assetUris = useWorkshopStore((state) => state.assetUris);
-  const [message, setMessage] = useState<string>();
   const lesson = entry?.manifest.lessons.find((item) => item.id === lessonId);
   const saved = entry?.savedLessonIds.includes(lessonId) ?? false;
   if (!entry || !lesson)
@@ -37,14 +42,13 @@ export default function WorkshopLessonScreen() {
     );
   const save = () => {
     const next = toggleSaved(entry.classId, lesson.id);
-    setMessage(
-      next
-        ? "Lesson saved for quick offline access."
-        : "Lesson removed from Saved Lessons.",
-    );
+    successHaptic();
+    notifySaveAction(next ? "Lesson saved" : "Lesson unsaved");
     void setWorkshopLessonSaved(entry.classId, lesson.id, next).catch(() =>
-      setMessage(
-        "Saved on this device. Online status will update when the service is available.",
+      notifySaveAction(
+        next
+          ? "Saved on this device. Online status will update when the service is available."
+          : "Removed on this device. Online status will update when the service is available.",
       ),
     );
   };
@@ -58,7 +62,26 @@ export default function WorkshopLessonScreen() {
             label: "CLOSE",
             onPress: () => router.replace(workshopRoute(entry.classId)),
           }}
-          status={saved ? "SAVED" : "WORKSHOP LESSON"}
+          trailingContent={
+            <View
+              accessibilityLabel="Lesson save actions"
+              style={styles.headerSaveActions}
+            >
+              <IconButton
+                accessibilityHint={
+                  saved
+                    ? "Removes this workshop lesson from Saved Learning."
+                    : "Saves this workshop lesson for quick access later."
+                }
+                accessibilityLabel={saved ? "Unsave lesson" : "Save lesson"}
+                iconSize={22}
+                label="LESSON"
+                onPress={save}
+                selected={saved}
+                semanticIcon={saved ? "saved" : "bookmark"}
+              />
+            </View>
+          }
         />
       }
     >
@@ -69,21 +92,6 @@ export default function WorkshopLessonScreen() {
       <Text variant="body" style={styles.summary}>
         {lesson.summary}
       </Text>
-      <AppButton
-        label={saved ? "Remove from Saved Lessons" : "Save lesson"}
-        variant="secondary"
-        leadingIcon={saved ? "check" : undefined}
-        onPress={save}
-      />
-      {message ? (
-        <Text
-          accessibilityLiveRegion="polite"
-          variant="bodySmall"
-          style={styles.message}
-        >
-          {message}
-        </Text>
-      ) : null}
       <View style={styles.blocks}>
         {lesson.blocks.map((block) => (
           <LessonBlock
@@ -173,10 +181,19 @@ function LessonBlock({
     </Text>
   );
 }
+
+function notifySaveAction(message: string) {
+  if (Platform.OS === "android") {
+    ToastAndroid.show(message, ToastAndroid.SHORT);
+  } else {
+    AccessibilityInfo.announceForAccessibility(message);
+  }
+}
+
 const styles = StyleSheet.create({
   eyebrow: { color: Palette.orange },
   summary: { color: Palette.textMuted, marginVertical: Space.md },
-  message: { color: Palette.green, marginTop: Space.sm },
+  headerSaveActions: { alignItems: "flex-end" },
   blocks: { gap: Space.lg, marginTop: Space.xl },
   heading: {
     color: Palette.white,

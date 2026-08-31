@@ -29,6 +29,25 @@ const artwork = {
   server: require("@/assets/images/education/server-terminal-mobile.png"),
 } as const;
 
+const topologyCanvasHeight = 420;
+const minimumWorldWidth = 720;
+const minimumWorldHeight = 600;
+const nodeHorizontalPadding = 52;
+const nodeVerticalPadding = 46;
+
+function clampPan(value: number, viewportSize: number, contentSize: number) {
+  "worklet";
+  return Math.max(Math.min(0, value), Math.min(0, viewportSize - contentSize));
+}
+
+function centeredPan(viewportSize: number, contentSize: number) {
+  return Math.min(0, (viewportSize - contentSize) / 2);
+}
+
+function canvasCoordinate(value: number, size: number, padding: number) {
+  return padding + value * Math.max(0, size - padding * 2);
+}
+
 export function WorkshopTopologyView({
   topology: rawTopology,
 }: {
@@ -44,7 +63,7 @@ export function WorkshopTopologyView({
   const [selectedLinkId, setSelectedLinkId] = useState<string>();
   const [viewport, setViewport] = useState({
     width: 0,
-    height: 360,
+    height: topologyCanvasHeight,
     fontScale: PixelRatio.getFontScale(),
   });
   const [nodeSizes, setNodeSizes] = useState<
@@ -56,6 +75,16 @@ export function WorkshopTopologyView({
   const offsetY = useSharedValue(0);
   const savedOffsetX = useSharedValue(0);
   const savedOffsetY = useSharedValue(0);
+  const worldWidth = Math.max(minimumWorldWidth, viewport.width);
+  const worldHeight = Math.max(minimumWorldHeight, viewport.height);
+  const worldViewport = useMemo(
+    () => ({
+      width: worldWidth,
+      height: worldHeight,
+      fontScale: viewport.fontScale,
+    }),
+    [viewport.fontScale, worldHeight, worldWidth],
+  );
   const selected = topology.devices.find((device) => device.id === selectedId);
   const links = useMemo(
     () =>
@@ -81,16 +110,16 @@ export function WorkshopTopologyView({
     () =>
       calculateWorkshopTopologyGeometry(
         topology,
-        viewport,
+        worldViewport,
         topology.devices.map((device) => ({
           deviceId: device.id,
-          x: device.x * viewport.width,
-          y: device.y * viewport.height,
+          x: canvasCoordinate(device.x, worldWidth, nodeHorizontalPadding),
+          y: canvasCoordinate(device.y, worldHeight, nodeVerticalPadding),
           width: nodeSizes[device.id]?.width ?? 86,
           height: nodeSizes[device.id]?.height ?? 78,
         })),
       ),
-    [nodeSizes, topology, viewport],
+    [nodeSizes, topology, worldHeight, worldViewport, worldWidth],
   );
   const labels = cableGeometry.flatMap((cable) => [
     ...cable.endpointLabels,
@@ -105,41 +134,90 @@ export function WorkshopTopologyView({
       })
       .onUpdate((event) => {
         offsetX.set(
-          Math.max(
-            -420,
-            Math.min(420, savedOffsetX.get() + event.translationX),
+          clampPan(
+            savedOffsetX.get() + event.translationX,
+            viewport.width,
+            worldWidth * scale.get(),
           ),
         );
         offsetY.set(
-          Math.max(
-            -280,
-            Math.min(280, savedOffsetY.get() + event.translationY),
+          clampPan(
+            savedOffsetY.get() + event.translationY,
+            viewport.height,
+            worldHeight * scale.get(),
           ),
         );
       }),
     Gesture.Pinch()
       .onStart(() => {
         savedScale.set(scale.get());
+        savedOffsetX.set(offsetX.get());
+        savedOffsetY.set(offsetY.get());
       })
       .onUpdate((event) => {
-        scale.set(Math.max(1, Math.min(2.5, savedScale.get() * event.scale)));
+        const nextScale = Math.max(
+          1,
+          Math.min(2.5, savedScale.get() * event.scale),
+        );
+        const contentX =
+          (event.focalX - savedOffsetX.get()) / savedScale.get();
+        const contentY =
+          (event.focalY - savedOffsetY.get()) / savedScale.get();
+        offsetX.set(
+          clampPan(
+            event.focalX - contentX * nextScale,
+            viewport.width,
+            worldWidth * nextScale,
+          ),
+        );
+        offsetY.set(
+          clampPan(
+            event.focalY - contentY * nextScale,
+            viewport.height,
+            worldHeight * nextScale,
+          ),
+        );
+        scale.set(nextScale);
       }),
   );
-  const canvasTransform = useAnimatedStyle(() => ({
+  const panTransform = useAnimatedStyle(() => ({
     transform: [
       { translateX: offsetX.get() },
       { translateY: offsetY.get() },
-      { scale: scale.get() },
     ],
   }));
-  const zoom = (direction: 1 | -1) =>
-    scale.set(
-      withTiming(Math.max(1, Math.min(2.5, scale.get() + direction * 0.25))),
+  const zoomTransform = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.get() }],
+    transformOrigin: "top left",
+  }));
+  const zoom = (direction: 1 | -1) => {
+    const currentScale = scale.get();
+    const nextScale = Math.max(
+      1,
+      Math.min(2.5, currentScale + direction * 0.25),
     );
+    const focusX = viewport.width / 2;
+    const focusY = viewport.height / 2;
+    const nextOffsetX =
+      focusX - ((focusX - offsetX.get()) / currentScale) * nextScale;
+    const nextOffsetY =
+      focusY - ((focusY - offsetY.get()) / currentScale) * nextScale;
+    offsetX.set(
+      withTiming(
+        clampPan(nextOffsetX, viewport.width, worldWidth * nextScale),
+      ),
+    );
+    offsetY.set(
+      withTiming(
+        clampPan(nextOffsetY, viewport.height, worldHeight * nextScale),
+      ),
+    );
+    scale.set(withTiming(nextScale));
+  };
   const resetView = () => {
     scale.set(withTiming(1));
-    offsetX.set(withTiming(0));
-    offsetY.set(withTiming(0));
+    offsetX.set(withTiming(centeredPan(viewport.width, worldWidth)));
+    offsetY.set(withTiming(centeredPan(viewport.height, worldHeight)));
   };
   return (
     <View style={styles.shell}>
@@ -184,6 +262,14 @@ export function WorkshopTopologyView({
           onLayout={(event) => {
             const { width, height } = event.nativeEvent.layout;
             const fontScale = PixelRatio.getFontScale();
+            if (viewport.width === 0) {
+              offsetX.set(
+                centeredPan(width, Math.max(minimumWorldWidth, width)),
+              );
+              offsetY.set(
+                centeredPan(height, Math.max(minimumWorldHeight, height)),
+              );
+            }
             setViewport((current) =>
               current.width === width &&
               current.height === height &&
@@ -198,12 +284,25 @@ export function WorkshopTopologyView({
           }}
           style={styles.canvas}
         >
-          <Animated.View style={[styles.panZoomCanvas, canvasTransform]}>
+          <Animated.View
+            style={[
+              styles.worldCanvas,
+              { width: worldWidth, height: worldHeight },
+              panTransform,
+            ]}
+          >
+            <Animated.View
+              style={[
+                styles.worldCanvas,
+                { width: worldWidth, height: worldHeight },
+                zoomTransform,
+              ]}
+            >
             <Svg
               accessible={false}
               pointerEvents="none"
               style={StyleSheet.absoluteFill}
-              viewBox={`0 0 ${Math.max(1, viewport.width)} ${Math.max(1, viewport.height)}`}
+              viewBox={`0 0 ${worldWidth} ${worldHeight}`}
               preserveAspectRatio="none"
             >
               {cableGeometry.map((cable) => {
@@ -256,7 +355,18 @@ export function WorkshopTopologyView({
                 }}
                 style={[
                   styles.device,
-                  { left: `${device.x * 100}%`, top: `${device.y * 100}%` },
+                  {
+                    left: canvasCoordinate(
+                      device.x,
+                      worldWidth,
+                      nodeHorizontalPadding,
+                    ),
+                    top: canvasCoordinate(
+                      device.y,
+                      worldHeight,
+                      nodeVerticalPadding,
+                    ),
+                  },
                   device.id === selectedId && styles.deviceSelected,
                 ]}
               >
@@ -319,6 +429,7 @@ export function WorkshopTopologyView({
                 </Pressable>
               ),
             )}
+            </Animated.View>
           </Animated.View>
         </View>
       </GestureDetector>
@@ -669,13 +780,13 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   canvas: {
-    height: 360,
+    height: topologyCanvasHeight,
     overflow: "hidden",
     borderWidth: 1,
     borderColor: Palette.border,
     backgroundColor: Palette.background,
   },
-  panZoomCanvas: { width: "100%", height: "100%" },
+  worldCanvas: { position: "absolute", left: 0, top: 0 },
   device: {
     position: "absolute",
     width: 86,

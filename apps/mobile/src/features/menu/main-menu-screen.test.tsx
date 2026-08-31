@@ -34,22 +34,23 @@ describe('main menu', () => {
     useSandboxStore.setState({ workspace: createEmptySandboxWorkspace(), guideSeen: true, past: [], future: [] });
   });
 
-  test('exposes learning, sandbox, settings, and chapter browsing', async () => {
+  test('exposes learning, sandbox, header settings, and chapter browsing', async () => {
     const screen = await render(<MainMenuScreen />);
     expect(screen.getByTestId('main-menu-logo')).toBeTruthy();
     expect(screen.getByText('START LEARNING')).toBeTruthy();
     expect(screen.getByText('NETWORK SANDBOX')).toBeTruthy();
-    expect(screen.getByText('SETTINGS')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Settings' })).toBeTruthy();
     await fireEvent.press(screen.getByText('Browse courses'));
     expect(mockPush).toHaveBeenCalledWith('/courses');
   });
 
-  test('places the primary learning action before sandbox and account utilities', async () => {
+  test('keeps account utilities in the header before learning destinations', async () => {
     const screen = await render(<MainMenuScreen />);
     const buttons = screen.getAllByRole('button');
-    expect(buttons[0].props.accessibilityLabel).toContain('START LEARNING');
-    expect(buttons.findIndex((button) => button.props.accessibilityLabel?.includes('NETWORK SANDBOX'))).toBeGreaterThan(0);
-    expect(buttons.findIndex((button) => button.props.accessibilityLabel?.includes('TEST LEARNER'))).toBeGreaterThan(0);
+    expect(buttons[0].props.accessibilityLabel).toContain('Test learner');
+    expect(buttons[1].props.accessibilityLabel).toBe('Settings');
+    expect(buttons.findIndex((button) => button.props.accessibilityLabel?.includes('START LEARNING'))).toBeGreaterThan(1);
+    expect(screen.queryByText('ACCOUNT & APP')).toBeNull();
   });
 
   test('gives guests clearly labeled local access to the sandbox', async () => {
@@ -64,7 +65,15 @@ describe('main menu', () => {
   test('announces active cloud synchronization on the account utility', async () => {
     mockAuthState = { ...mockAuthState, syncStatus: 'syncing' };
     const screen = await render(<MainMenuScreen />);
-    expect(screen.getByRole('button', { name: /test learner, pro active/i }).props.accessibilityState.busy).toBe(true);
+    expect(screen.getByRole('button', { name: /test learner, backing up/i }).props.accessibilityState.busy).toBe(true);
+  });
+
+  test('opens account and settings from the utility header', async () => {
+    const screen = await render(<MainMenuScreen />);
+    await fireEvent.press(screen.getByRole('button', { name: /test learner, backed up/i }));
+    expect(mockPush).toHaveBeenCalledWith('/account');
+    await fireEvent.press(screen.getByRole('button', { name: 'Settings' }));
+    expect(mockPush).toHaveBeenCalledWith('/settings');
   });
 
   test('labels temporary presentation access without claiming a purchase', async () => {

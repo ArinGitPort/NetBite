@@ -11,6 +11,8 @@ import { useAuth } from '@/features/account/auth-context';
 import { ActionCard } from '@/shared/components/action-card';
 import { AppButton } from '@/shared/components/app-button';
 import { Text } from '@/shared/components/console-text';
+import { IconButton } from '@/shared/components/icon-button';
+import { PageHeader } from '@/shared/components/page-header';
 import { Screen } from '@/shared/components/screen';
 import { AppRoutes } from '@/shared/routes';
 import { navigateOnce } from '@/shared/navigation';
@@ -52,6 +54,9 @@ export default function MainMenuScreen() {
         : nextActivity.type === 'flashcards'
           ? 'Recall the key ideas'
           : 'Review chapter';
+  const accountTitle = status === 'authenticated' ? (profile?.displayName || 'My account') : 'Sign in or register';
+  const accountDetail = status === 'authenticated' ? getSyncStatusLabel(syncStatus) : 'Guest account';
+  const syncIndicator = status !== 'authenticated' ? Palette.textMuted : syncStatus === 'synced' ? Palette.green : Palette.orange;
 
   if (status === 'guest' && !accountEntryResolved) {
     return <Redirect href={AppRoutes.authWelcome} />;
@@ -69,7 +74,32 @@ export default function MainMenuScreen() {
   };
 
   return (
-    <Screen>
+    <Screen
+      header={
+        <PageHeader
+          trailingContent={
+            <View accessibilityLabel="Account and app controls" style={styles.headerActions}>
+              <View style={styles.accountAction}>
+                <IconButton
+                  accessibilityHint="Opens your account, access, and backup status"
+                  accessibilityLabel={`${accountTitle}, ${accountDetail}`}
+                  busy={status === 'authenticated' && syncStatus === 'syncing'}
+                  onPress={() => navigateOnce(status === 'authenticated' ? AppRoutes.account : AppRoutes.auth)}
+                  semanticIcon="account"
+                />
+                <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={[styles.syncIndicator, { backgroundColor: syncIndicator }]} />
+              </View>
+              <IconButton
+                accessibilityHint="Opens preferences, backup controls, and saved data tools"
+                accessibilityLabel="Settings"
+                onPress={() => navigateOnce(AppRoutes.settings)}
+                semanticIcon="settings"
+              />
+            </View>
+          }
+        />
+      }
+    >
       <View style={styles.brandBlock}>
         <Image
           accessible={false}
@@ -118,18 +148,6 @@ export default function MainMenuScreen() {
           title="MY CLASSES"
           onPress={() => navigateOnce(status === 'authenticated' ? AppRoutes.workshops : AppRoutes.auth)}
         />
-
-        <Text variant="label" style={styles.groupLabel}>ACCOUNT & APP</Text>
-        <ActionCard
-          detail={status === 'authenticated' ? `Online backup: ${getSyncStatusLabel(syncStatus).toLowerCase()}.` : 'Sign in later to back up progress online.'}
-          icon="account"
-          loading={status === 'authenticated' && syncStatus === 'syncing'}
-          priority="utility"
-          status={testProEnabled ? 'TEST ACCESS ACTIVE' : hasPro ? 'PRO ACTIVE' : status === 'authenticated' ? 'FREE ACCOUNT' : 'GUEST / LOCAL'}
-          title={status === 'authenticated' ? (profile?.displayName?.toUpperCase() || 'MY ACCOUNT') : 'SIGN IN / REGISTER'}
-          onPress={() => navigateOnce(status === 'authenticated' ? AppRoutes.account : AppRoutes.auth)}
-        />
-        <ActionCard detail="Preferences, online backup, presentation, and saved data." icon="settings" priority="utility" status="APP CONTROLS" title="SETTINGS" onPress={() => navigateOnce('/settings')} />
       </View>
       <Text variant="technical" style={styles.boundary}>{getSimulatorBoundaryCopy('app')}</Text>
     </Screen>
@@ -138,6 +156,17 @@ export default function MainMenuScreen() {
 
 const styles = StyleSheet.create({
   brandBlock: { alignItems: 'center', paddingTop: Space.lg, paddingBottom: Space.xl },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: Space.xs },
+  accountAction: { position: 'relative' },
+  syncIndicator: {
+    position: 'absolute',
+    right: 5,
+    bottom: 6,
+    width: 7,
+    height: 7,
+    borderWidth: 1,
+    borderColor: Palette.background,
+  },
   logo: { width: 64, height: 64, marginBottom: Space.sm },
   brand: { color: Palette.text, fontFamily: Fonts.semibold },
   system: { color: Palette.textMuted, marginTop: Space.sm, textAlign: 'center' },
