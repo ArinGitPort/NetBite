@@ -24,6 +24,7 @@ vi.mock("@/lib/api/workshop-service", () => ({
   createWorkshopAssessment: vi.fn(),
   createWorkshopClass: vi.fn(),
   createWorkshopLesson: vi.fn(),
+  deleteWorkshopAssessment: vi.fn(),
   deleteWorkshopTopology: vi.fn(),
   deleteWorkshopLesson: vi.fn(),
   deleteWorkshop: vi.fn(),
@@ -353,6 +354,29 @@ describe("instructor workshop portal", () => {
     expect(screen.getByText("Opening date (optional)")).toBeTruthy();
   });
 
+  test("requires confirmation before deleting a draft assessment", async () => {
+    vi.mocked(api.deleteWorkshopAssessment).mockResolvedValue(assessment.id);
+    renderPortal(<WorkshopStudio area="workshop-assessments" />);
+    expect((await screen.findAllByText("Route check")).length).toBeGreaterThan(0);
+
+    expect(screen.queryByRole("button", { name: "DELETE ASSESSMENT" })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("tab", { name: "SETTINGS" }));
+    fireEvent.click(screen.getByRole("button", { name: "DELETE ASSESSMENT" }));
+    const confirmation = screen.getByRole("alertdialog");
+    expect(
+      within(confirmation).getByRole("heading", { name: "Delete this assessment?" }),
+    ).toBeTruthy();
+    expect(within(confirmation).getByText(/recorded grades are not changed/i)).toBeTruthy();
+    fireEvent.click(
+      within(confirmation).getByRole("button", { name: "DELETE ASSESSMENT" }),
+    );
+
+    await waitFor(() =>
+      expect(api.deleteWorkshopAssessment).toHaveBeenCalledWith(assessment.id),
+    );
+    expect(await screen.findByText("Add a practice or graded assessment.")).toBeTruthy();
+  });
+
   test("guides question authoring and reorders questions from the drag handle", async () => {
     renderPortal(<WorkshopStudio area="workshop-assessments" />);
     expect((await screen.findAllByText("Route check")).length).toBeGreaterThan(0);
@@ -371,6 +395,10 @@ describe("instructor workshop portal", () => {
     fireEvent.change(screen.getByLabelText("Question"), {
       target: { value: "Second question" },
     });
+    fireEvent.click(screen.getByRole("button", { name: "PREVIOUS QUESTION" }));
+    expect(screen.getByLabelText("Question")).toHaveValue("");
+    fireEvent.click(screen.getByRole("button", { name: "NEXT QUESTION" }));
+    expect(screen.getByLabelText("Question")).toHaveValue("Second question");
     fireEvent.click(screen.getByRole("button", { name: /Move question 2 earlier/ }));
 
     expect(screen.getByText("Q01").closest("div")).toHaveTextContent("Second question");
@@ -444,6 +472,8 @@ describe("instructor workshop portal", () => {
     );
     renderPortal(<InstructorApprovals />);
     fireEvent.click(await screen.findByText("APPROVE INSTRUCTOR"));
+    const dialog = await screen.findByRole("alertdialog");
+    fireEvent.click(within(dialog).getByText("APPROVE INSTRUCTOR"));
     await waitFor(() =>
       expect(instructorApi.reviewInstructorRequest).toHaveBeenCalledWith(
         "user-1",

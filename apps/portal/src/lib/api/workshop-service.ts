@@ -1,5 +1,5 @@
 import { getPortalClient } from "@/lib/api/client";
-import { throwIfServiceError } from "@/lib/api/errors";
+import { throwIfFunctionError, throwIfServiceError } from "@/lib/api/errors";
 import type {
   WorkshopAssessmentRow, WorkshopClassRow, WorkshopLessonRow, WorkshopRow,
   WorkshopTopologyRow, WorkshopVersionRow,
@@ -97,9 +97,15 @@ export async function saveWorkshopAssessment(row: WorkshopAssessmentRow): Promis
   const { error } = await client().from("workshop_assessments").update({ title: row.title, mode: row.mode, draft: row.draft, settings: row.settings, archived: row.archived }).eq("id", row.id);
   throwIfServiceError(error, "The assessment could not be saved.");
 }
+export async function deleteWorkshopAssessment(assessmentId: string): Promise<string> {
+  const { data, error } = await client().from("workshop_assessments").delete().eq("id", assessmentId).select("id").single();
+  throwIfServiceError(error, "The assessment could not be deleted.");
+  if (!data?.id) throw new Error("The assessment deletion could not be confirmed.");
+  return data.id as string;
+}
 async function workshopAction(body: Record<string, unknown>) {
   const { data, error } = await client().functions.invoke("workshop-service", { body });
-  throwIfServiceError(error, "The workshop service is unavailable.");
+  await throwIfFunctionError(error, "The workshop service is unavailable.");
   if (data?.error) throwIfServiceError(data.error, "The workshop request could not be completed.");
   return data;
 }
@@ -114,4 +120,8 @@ export async function setWorkshopClassEnrollment(classId: string, enabled: boole
   const { error } = await client().from("workshop_classes").update({ join_enabled: enabled }).eq("id", classId);
   throwIfServiceError(error, "Class enrollment could not be updated.");
 }
+export const getWorkshopClassRoster = (classId: string) =>
+  workshopAction({ action: "class-roster", classId }) as Promise<{
+    students: import("@/lib/api/types").WorkshopClassRosterEntry[];
+  }>;
 export const getWorkshopGradebook = (classId: string) => workshopAction({ action: "gradebook", classId }) as Promise<{ rows: Array<Record<string, unknown>> }>;

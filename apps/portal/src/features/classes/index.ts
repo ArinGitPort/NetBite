@@ -1,1 +1,2 @@
-export { Classes, Gradebook } from "@/features/classes/classes-page";
+export { Classes } from "@/features/classes/classes-page";
+export { Gradebook } from "@/features/classes/gradebook";

@@ -17,6 +17,7 @@ interface WorkspaceProps {
   ) => void;
   onSelect: (id: string) => void;
   onNotice: (message: string) => void;
+  onError: (message: string) => void;
 }
 
 export function WorkshopAssessmentsWorkspace(props: WorkspaceProps) {
@@ -40,6 +41,18 @@ function SelectedAssessmentWorkspace({ selected, ...props }: WorkspaceProps & {
     );
   const questionWorkspace = useAssessmentQuestionWorkspace(selected, changeSelected);
   const { navigation } = questionWorkspace;
+  const deleteSelected = async () => {
+    const selectedIndex = props.assessments.findIndex((row) => row.id === selected.id);
+    try {
+      await workshopApi.deleteWorkshopAssessment(selected.id);
+      const remaining = props.assessments.filter((row) => row.id !== selected.id);
+      props.onAssessmentsChange(() => remaining);
+      props.onSelect(remaining[Math.min(selectedIndex, remaining.length - 1)]?.id ?? "");
+      props.onNotice("Assessment deleted from the current draft.");
+    } catch (reason) {
+      props.onError(reason instanceof Error ? reason.message : "The assessment could not be deleted.");
+    }
+  };
 
   return (
     <div className="grid min-w-0 gap-5 xl:grid-cols-[250px_minmax(0,1fr)]">
@@ -59,6 +72,7 @@ function SelectedAssessmentWorkspace({ selected, ...props }: WorkspaceProps & {
       <AssessmentEditor
         key={selected.id}
         onChange={changeSelected}
+        onDelete={deleteSelected}
         onSaved={() => props.onNotice("Assessment saved.")}
         questionWorkspace={questionWorkspace}
         row={selected}

@@ -152,7 +152,7 @@ describe("admin session stability", () => {
     render(<App />);
 
     expect(
-      await screen.findByRole("heading", { name: "Activity history" }),
+      await screen.findByRole("heading", { name: "Audit log" }),
     ).toBeInTheDocument();
 
     await act(async () => {
@@ -167,7 +167,7 @@ describe("admin session stability", () => {
       expect(apiHarness.getAdminAccess).toHaveBeenCalledTimes(2),
     );
     expect(
-      screen.getByRole("heading", { name: "Activity history" }),
+      screen.getByRole("heading", { name: "Audit log" }),
     ).toBeInTheDocument();
     expect(
       screen.queryByText("Loading instructor workspace"),

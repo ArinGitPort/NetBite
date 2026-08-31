@@ -323,6 +323,33 @@ function sanitizeLesson(row: JsonObject) {
   };
 }
 
+function sanitizeNamedLesson(row: JsonObject) {
+  const draft = row.draft as JsonObject | undefined;
+  const title =
+    String(draft?.title ?? "Untitled lesson").trim() || "Untitled lesson";
+  const position = Number(row.position);
+  const lessonLabel = Number.isInteger(position)
+    ? `Lesson ${position} “${title}”`
+    : `Lesson “${title}”`;
+  try {
+    return sanitizeLesson(row);
+  } catch (error) {
+    if (
+      error instanceof ServiceError &&
+      ["INVALID_CONTENT", "INVALID_IMAGE", "INVALID_LESSON"].includes(
+        error.code,
+      )
+    ) {
+      throw new ServiceError(
+        error.code,
+        `${lessonLabel}: ${error.message}`,
+        error.status,
+      );
+    }
+    throw error;
+  }
+}
+
 function optionalIpv4(value: unknown, label: string) {
   if (value == null || value === "") return undefined;
   const text = String(value);
@@ -1110,7 +1137,7 @@ async function publishWorkshop(request: Request, body: JsonObject, id: string) {
     if (result.error) throw result.error;
   }
   const lessons = (lessonResult.data ?? []).map((row) =>
-    sanitizeLesson(row as unknown as JsonObject),
+    sanitizeNamedLesson(row as unknown as JsonObject),
   );
   if (!lessons.length)
     throw new ServiceError(
@@ -1623,6 +1650,45 @@ async function gradebook(request: Request, body: JsonObject) {
   return adminJson(request, { rows });
 }
 
+async function classRoster(request: Request, body: JsonObject) {
+  const user = await requireInstructor(request);
+  const classId = String(body.classId ?? "");
+  const db = adminClient();
+  const { data: classRow, error: classError } = await db
+    .from("workshop_classes")
+    .select("id")
+    .eq("id", classId)
+    .eq("instructor_id", user.id)
+    .maybeSingle();
+  if (classError || !classRow)
+    throw new ServiceError("CLASS_NOT_FOUND", "The class was not found.", 404);
+
+  const { data: enrollments, error: enrollmentError } = await db
+    .from("workshop_enrollments")
+    .select("student_id,joined_at")
+    .eq("class_id", classId)
+    .is("left_at", null)
+    .order("joined_at", { ascending: false });
+  if (enrollmentError) throw enrollmentError;
+
+  const studentIds = (enrollments ?? []).map((entry) => entry.student_id);
+  const { data: profiles, error: profileError } = studentIds.length
+    ? await db.from("profiles").select("id,display_name").in("id", studentIds)
+    : { data: [], error: null };
+  if (profileError) throw profileError;
+  const names = new Map(
+    (profiles ?? []).map((profile) => [
+      profile.id,
+      String(profile.display_name ?? "").trim() || "Student",
+    ]),
+  );
+  const students = (enrollments ?? []).map((entry) => ({
+    displayName: names.get(entry.student_id) ?? "Student",
+    joinedAt: entry.joined_at,
+  }));
+  return adminJson(request, { students });
+}
+
 Deno.serve(async (request) => {
   const preflight = adminPreflight(request);
   if (preflight) return preflight;
@@ -1652,6 +1718,8 @@ Deno.serve(async (request) => {
         return await assessmentStatus(request, body);
       case "gradebook":
         return await gradebook(request, body);
+      case "class-roster":
+        return await classRoster(request, body);
       default:
         throw new ServiceError(
           "UNKNOWN_ACTION",

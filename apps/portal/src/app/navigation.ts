@@ -89,7 +89,7 @@ export const administratorNavigation: NavigationItem[] = [
   },
   {
     id: "audit",
-    label: "Activity history",
+    label: "Audit log",
     path: "/admin/activity",
     icon: FileClock,
   },

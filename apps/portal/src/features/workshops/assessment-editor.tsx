@@ -1,7 +1,8 @@
-import { Plus, Save } from "lucide-react";
+import { Plus, Save, Trash2 } from "lucide-react";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { ConfirmationDialog } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AssessmentMobilePreview } from "@/features/workshops/assessment-mobile-preview";
 import { AssessmentQuestionEditor } from "@/features/workshops/assessment-question-editor";
@@ -17,14 +18,17 @@ export function AssessmentEditor({
   row,
   onChange,
   onSaved,
+  onDelete,
   questionWorkspace,
 }: {
   row: WorkshopAssessmentRow;
   onChange: (row: WorkshopAssessmentRow) => void;
+  onDelete: () => Promise<void>;
   onSaved: () => void;
   questionWorkspace: AssessmentQuestionWorkspace;
 }) {
   const [view, setView] = useState<AssessmentView>("questions");
+  const [pendingAction, setPendingAction] = useState<"save" | "delete">();
   const draft = row.draft as AssessmentDraft;
   const { addQuestion, moveQuestion, navigation, questions, removeQuestion, updateQuestion } =
     questionWorkspace;
@@ -60,11 +64,17 @@ export function AssessmentEditor({
             ADD QUESTION
           </Button>
           <Button
-            onClick={() => void workshopApi.saveWorkshopAssessment(row).then(onSaved)}
+            disabled={Boolean(pendingAction)}
+            onClick={() => {
+              setPendingAction("save");
+              void workshopApi.saveWorkshopAssessment(row)
+                .then(onSaved)
+                .finally(() => setPendingAction(undefined));
+            }}
             tone="primary"
           >
             <Save aria-hidden="true" />
-            SAVE ASSESSMENT
+            {pendingAction === "save" ? "SAVING..." : "SAVE ASSESSMENT"}
           </Button>
         </div>
       </header>
@@ -80,6 +90,14 @@ export function AssessmentEditor({
               onMove={(direction) =>
                 moveQuestion(navigation.selectedIndex, navigation.selectedIndex + direction)
               }
+              onNext={() => {
+                const nextQuestion = questions[navigation.selectedIndex + 1];
+                if (nextQuestion) navigation.select(nextQuestion.id);
+              }}
+              onPrevious={() => {
+                const previousQuestion = questions[navigation.selectedIndex - 1];
+                if (previousQuestion) navigation.select(previousQuestion.id);
+              }}
               onPromptFocused={navigation.clearFocus}
               onRemove={() => removeQuestion(navigation.selectedIndex)}
               question={navigation.selectedQuestion}
@@ -92,8 +110,36 @@ export function AssessmentEditor({
       ) : null}
 
       {view === "settings" ? (
-        <div className="rounded-panel border border-line">
+        <div className="grid rounded-panel border border-line">
           <AssessmentSettings row={row} onChange={update} />
+          <section className="flex flex-wrap items-center justify-between gap-4 border-t border-line p-5">
+            <div className="grid max-w-xl gap-1">
+              <strong className="text-xs text-copy">Delete this assessment</strong>
+              <span className="text-xs leading-5 text-muted">
+                Remove it from the current draft. Published versions and recorded grades remain unchanged.
+              </span>
+            </div>
+            <ConfirmationDialog
+              confirmLabel="DELETE ASSESSMENT"
+              description={`This permanently removes “${row.title || "Untitled assessment"}” from the current draft. Published versions and previously recorded grades are not changed.`}
+              destructive
+              onConfirm={async () => {
+                setPendingAction("delete");
+                try {
+                  await onDelete();
+                } finally {
+                  setPendingAction(undefined);
+                }
+              }}
+              title="Delete this assessment?"
+              trigger={
+                <Button disabled={Boolean(pendingAction)} tone="destructive">
+                  <Trash2 aria-hidden="true" />
+                  {pendingAction === "delete" ? "DELETING..." : "DELETE ASSESSMENT"}
+                </Button>
+              }
+            />
+          </section>
         </div>
       ) : null}
 

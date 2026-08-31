@@ -36,6 +36,10 @@ export interface WorkshopClassRow {
   id: string; workshop_id: string; version_id: string; title: string;
   join_code: string; archived: boolean; join_enabled: boolean; created_at: string;
 }
+export interface WorkshopClassRosterEntry {
+  displayName: string;
+  joinedAt: string;
+}
 export interface InstructorRequestRow {
   user_id: string; display_name: string; institution: string; reason: string;
   status: "pending" | "approved" | "declined" | "revoked";

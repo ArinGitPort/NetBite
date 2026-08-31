@@ -25,6 +25,25 @@ export function Checkbox({
 }
 
 export const RadioGroup = RadioGroupPrimitive.Root;
+export function RadioControl({
+  className,
+  ...props
+}: ComponentProps<typeof RadioGroupPrimitive.Item>) {
+  return (
+    <RadioGroupPrimitive.Item
+      className={cn(
+        "group grid size-6 shrink-0 place-items-center rounded-full border border-line bg-raised text-copy transition-colors hover:border-signal-green/70 hover:bg-signal-green-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-signal-orange disabled:pointer-events-none disabled:opacity-45 data-[state=checked]:border-signal-green data-[state=checked]:bg-signal-green-soft",
+        className,
+      )}
+      {...props}
+    >
+      <RadioGroupPrimitive.Indicator className="grid size-full place-items-center">
+        <span className="size-2.5 rounded-full bg-signal-green shadow-[0_0_0_2px_rgba(13,22,20,0.75)]" />
+      </RadioGroupPrimitive.Indicator>
+    </RadioGroupPrimitive.Item>
+  );
+}
+
 export function RadioItem({
   children,
   className,
@@ -32,15 +51,7 @@ export function RadioItem({
 }: ComponentProps<typeof RadioGroupPrimitive.Item> & { children?: ReactNode }) {
   return (
     <label className="flex min-h-11 cursor-pointer items-center gap-3 rounded-control border border-line bg-canvas px-3 text-sm text-copy">
-      <RadioGroupPrimitive.Item
-        className={cn(
-          "grid size-5 shrink-0 place-items-center rounded-full border border-line bg-canvas",
-          className,
-        )}
-        {...props}
-      >
-        <RadioGroupPrimitive.Indicator className="size-2.5 rounded-full bg-signal-green" />
-      </RadioGroupPrimitive.Item>
+      <RadioControl className={className} {...props} />
       {children}
     </label>
   );

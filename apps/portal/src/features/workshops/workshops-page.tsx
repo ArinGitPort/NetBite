@@ -435,6 +435,7 @@ export function WorkshopStudio({ area }: { area: WorkshopArea }) {
               onAssessmentsChange={setAssessments}
               onSelect={setSelectedAssessment}
               onNotice={setNotice}
+              onError={setError}
             />
           ) : null}          {selectedWorkshop && area === "classes" ? (
             <Classes
