@@ -56,7 +56,7 @@ export function Assessments() {
         detail="Each question and flashcard must be linked to an existing lesson before publication."
       />
       {notice ? (
-        <div className="mb-4 rounded-control border border-signal-green/60 bg-signal-green-soft p-3 text-sm text-[#abd2c8]">
+        <div className="mb-4 rounded-control border border-signal-green/60 bg-signal-green-soft p-3 text-sm text-signal-green">
           {notice}
         </div>
       ) : null}
@@ -224,7 +224,7 @@ export function Assessments() {
               </div>
               {selectedItemDirty ? (
                 <p
-                  className="m-3 rounded-control border border-signal-orange/50 bg-signal-orange-soft p-3 text-xs text-[#efad7a]"
+                  className="m-3 rounded-control border border-signal-orange/50 bg-signal-orange-soft p-3 text-xs text-signal-orange"
                   role="status"
                 >
                   UNSAVED CHANGES / SAVE BEFORE SWITCHING

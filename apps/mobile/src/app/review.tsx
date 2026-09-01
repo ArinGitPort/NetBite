@@ -10,7 +10,8 @@ import { PageHeader } from '@/shared/components/page-header';
 import { Screen } from '@/shared/components/screen';
 import { Text } from '@/shared/components/console-text';
 import { returnToLearningPath } from '@/shared/navigation';
-import { Fonts, Palette, Space } from '@/shared/theme';
+import { Fonts, Space, type ThemeColors } from '@/shared/theme';
+import { useThemeStyles } from '@/shared/theme-context';
 import { useGameStore } from '@/store/use-game-store';
 
 function resolveItem(item: ReviewQueueItem) {
@@ -25,6 +26,7 @@ function resolveItem(item: ReviewQueueItem) {
 }
 
 export default function ReviewScreen() {
+  const styles = useThemeStyles(createStyles);
   const { hasContentAccess } = useAuth();
   const signals = useGameStore((state) => state.reviewSignals);
   const recordResult = useGameStore((state) => state.recordReviewResult);
@@ -97,6 +99,6 @@ export default function ReviewScreen() {
   </Screen>;
 }
 
-const styles = StyleSheet.create({
-  header: { minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: Space.xl }, count: { color: Palette.textMuted }, eyebrow: { color: Palette.orange }, title: { color: Palette.text, fontFamily: Fonts.semibold, marginTop: Space.sm, marginBottom: Space.xl }, prompt: { color: Palette.white }, answers: { gap: Space.sm, marginVertical: Space.xl }, answer: { minHeight: 52, borderWidth: 1, borderColor: Palette.border, backgroundColor: Palette.surface, padding: Space.md, justifyContent: 'center' }, selectedAnswer: { borderColor: Palette.orange }, correctAnswer: { borderColor: Palette.green }, answerText: { color: Palette.text }, feedback: { borderWidth: 1, padding: Space.lg, gap: Space.sm, marginBottom: Space.lg }, feedbackSuccess: { borderColor: Palette.green }, feedbackWarning: { borderColor: Palette.orange }, feedbackText: { color: Palette.text }, success: { color: Palette.green }, warning: { color: Palette.orange }, muted: { color: Palette.textMuted }, recallPrompt: { gap: Space.md, borderWidth: 1, borderColor: Palette.border, backgroundColor: Palette.surface, padding: Space.lg, marginVertical: Space.xl }, recallCard: { minHeight: 300, borderWidth: 1, borderColor: Palette.border, backgroundColor: Palette.surfaceRaised, padding: Space.xl, justifyContent: 'center', alignItems: 'center', gap: Space.lg, marginBottom: Space.lg }, cardLabel: { color: Palette.accentBright }, explanation: { color: Palette.textMuted, textAlign: 'center' }, rating: { gap: Space.md }, boundary: { color: Palette.textMuted, textAlign: 'center', marginTop: Space.xl }, empty: { flex: 1, minHeight: 420, justifyContent: 'center', gap: Space.lg },
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
+  header: { minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: Space.xl }, count: { color: colors.textMuted }, eyebrow: { color: colors.orange }, title: { color: colors.text, fontFamily: Fonts.semibold, marginTop: Space.sm, marginBottom: Space.xl }, prompt: { color: colors.text }, answers: { gap: Space.sm, marginVertical: Space.xl }, answer: { minHeight: 52, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, padding: Space.md, justifyContent: 'center' }, selectedAnswer: { borderColor: colors.orange, backgroundColor: colors.orangeSoft }, correctAnswer: { borderColor: colors.green, backgroundColor: colors.greenSoft }, answerText: { color: colors.text }, feedback: { borderWidth: 1, padding: Space.lg, gap: Space.sm, marginBottom: Space.lg }, feedbackSuccess: { borderColor: colors.green, backgroundColor: colors.greenSoft }, feedbackWarning: { borderColor: colors.orange, backgroundColor: colors.orangeSoft }, feedbackText: { color: colors.text }, success: { color: colors.green }, warning: { color: colors.orange }, muted: { color: colors.textMuted }, recallPrompt: { gap: Space.md, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, padding: Space.lg, marginVertical: Space.xl }, recallCard: { minHeight: 300, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surfaceRaised, padding: Space.xl, justifyContent: 'center', alignItems: 'center', gap: Space.lg, marginBottom: Space.lg }, cardLabel: { color: colors.accentBright }, explanation: { color: colors.textMuted, textAlign: 'center' }, rating: { gap: Space.md }, boundary: { color: colors.textMuted, textAlign: 'center', marginTop: Space.xl }, empty: { flex: 1, minHeight: 420, justifyContent: 'center', gap: Space.lg },
 });

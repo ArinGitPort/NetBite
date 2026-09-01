@@ -17,12 +17,15 @@ import { Screen } from '@/shared/components/screen';
 import { AppRoutes } from '@/shared/routes';
 import { navigateOnce } from '@/shared/navigation';
 import { getSimulatorBoundaryCopy, getSyncStatusLabel } from '@/shared/learner-facing-copy';
-import { Fonts, Palette, Space } from '@/shared/theme';
+import { Fonts, Space, type ThemeColors } from '@/shared/theme';
+import { useTheme, useThemeStyles } from '@/shared/theme-context';
 import { useGameStore } from '@/store/use-game-store';
 import { useSandboxStore } from '@/store/use-sandbox-store';
 import { useResearchStore } from '@/store/use-research-store';
 
 export default function MainMenuScreen() {
+  const { colors } = useTheme();
+  const styles = useThemeStyles(createStyles);
   const { status, profile, accountRole, hasPro, hasContentAccess, testProEnabled, presentationActive, syncStatus, accountEntryResolved } = useAuth();
   const completedLessonIds = useGameStore((state) => state.completedLessonIds);
   const completedLabIds = useGameStore((state) => state.completedLabIds);
@@ -56,7 +59,7 @@ export default function MainMenuScreen() {
           : 'Review chapter';
   const accountTitle = status === 'authenticated' ? (profile?.displayName || 'My account') : 'Sign in or register';
   const accountDetail = status === 'authenticated' ? getSyncStatusLabel(syncStatus) : 'Guest account';
-  const syncIndicator = status !== 'authenticated' ? Palette.textMuted : syncStatus === 'synced' ? Palette.green : Palette.orange;
+  const syncIndicator = status !== 'authenticated' ? colors.textMuted : syncStatus === 'synced' ? colors.green : colors.orange;
 
   if (status === 'guest' && !accountEntryResolved) {
     return <Redirect href={AppRoutes.authWelcome} />;
@@ -154,7 +157,7 @@ export default function MainMenuScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   brandBlock: { alignItems: 'center', paddingTop: Space.lg, paddingBottom: Space.xl },
   headerActions: { flexDirection: 'row', alignItems: 'center', gap: Space.xs },
   accountAction: { position: 'relative' },
@@ -165,12 +168,12 @@ const styles = StyleSheet.create({
     width: 7,
     height: 7,
     borderWidth: 1,
-    borderColor: Palette.background,
+    borderColor: colors.background,
   },
   logo: { width: 64, height: 64, marginBottom: Space.sm },
-  brand: { color: Palette.text, fontFamily: Fonts.semibold },
-  system: { color: Palette.textMuted, marginTop: Space.sm, textAlign: 'center' },
+  brand: { color: colors.text, fontFamily: Fonts.semibold },
+  system: { color: colors.textMuted, marginTop: Space.sm, textAlign: 'center' as const },
   menu: { gap: Space.md },
-  groupLabel: { color: Palette.textMuted, marginTop: Space.sm },
-  boundary: { color: Palette.textMuted, textAlign: 'center', marginTop: Space.xxl },
+  groupLabel: { color: colors.textMuted, marginTop: Space.sm },
+  boundary: { color: colors.textMuted, textAlign: 'center' as const, marginTop: Space.xxl },
 });

@@ -58,7 +58,7 @@ export function QuizEditor({
             SAVE CHANGES
           </Button>
           <ConfirmAction
-            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-control border border-signal-red/60 bg-transparent px-4 text-xs font-semibold text-[#ff858a] hover:bg-signal-red-soft disabled:pointer-events-none disabled:opacity-45 [&_svg]:size-4"
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-control border border-signal-red/60 bg-transparent px-4 text-xs font-semibold text-signal-red hover:bg-signal-red-soft disabled:pointer-events-none disabled:opacity-45 [&_svg]:size-4"
             ariaLabel="Delete quiz question"
             confirmLabel="DELETE QUESTION"
             detail="This removes the draft question from the assessment workspace. Published versions remain unchanged."
@@ -207,7 +207,7 @@ export function FlashcardEditor({
             SAVE CHANGES
           </Button>
           <ConfirmAction
-            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-control border border-signal-red/60 bg-transparent px-4 text-xs font-semibold text-[#ff858a] hover:bg-signal-red-soft disabled:pointer-events-none disabled:opacity-45 [&_svg]:size-4"
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-control border border-signal-red/60 bg-transparent px-4 text-xs font-semibold text-signal-red hover:bg-signal-red-soft disabled:pointer-events-none disabled:opacity-45 [&_svg]:size-4"
             ariaLabel="Delete flashcard"
             confirmLabel="DELETE FLASHCARD"
             detail="This removes the draft flashcard from the assessment workspace. Published versions remain unchanged."

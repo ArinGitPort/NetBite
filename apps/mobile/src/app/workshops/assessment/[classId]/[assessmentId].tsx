@@ -12,10 +12,12 @@ import { Text } from '@/shared/components/console-text';
 import { PageHeader } from '@/shared/components/page-header';
 import { Screen } from '@/shared/components/screen';
 import { workshopRoute } from '@/shared/routes';
-import { Fonts, Palette, Space } from '@/shared/theme';
+import { Fonts, Space, type ThemeColors } from '@/shared/theme';
+import { useThemeStyles } from '@/shared/theme-context';
 import { getWorkshopDraft, useWorkshopStore } from '@/store/use-workshop-store';
 
 export default function WorkshopAssessmentScreen() {
+  const styles = useThemeStyles(createStyles);
   const { classId, assessmentId } = useLocalSearchParams<{ classId: string; assessmentId: string }>();
   const { status, user } = useAuth();
   const entry = useWorkshopStore((state) => state.library.find((item) => item.classId === classId));
@@ -69,4 +71,4 @@ function stableShuffle<T>(values: T[], seedText: string) {
   }
   return result;
 }
-const styles = StyleSheet.create({ eyebrow: { color: Palette.orange }, instructions: { color: Palette.textMuted, marginVertical: Space.md }, muted: { color: Palette.textMuted }, policy: { gap: Space.xs, borderWidth: 1, borderColor: Palette.border, backgroundColor: Palette.surface, padding: Space.md }, notOpen: { gap: Space.xs, borderWidth: 1, borderColor: Palette.orange, backgroundColor: Palette.orangeSoft, padding: Space.md, marginTop: Space.md }, questions: { gap: Space.lg, marginVertical: Space.xl }, question: { gap: Space.md, borderWidth: 1, borderColor: Palette.border, backgroundColor: Palette.surface, padding: Space.lg }, choices: { gap: Space.sm }, choice: { minHeight: 52, flexDirection: 'row', alignItems: 'center', gap: Space.sm, borderWidth: 1, borderColor: Palette.border, backgroundColor: Palette.background, padding: Space.md }, choiceSelected: { borderColor: Palette.orange, backgroundColor: Palette.orangeSoft }, choiceCorrect: { borderColor: Palette.green, backgroundColor: Palette.greenSoft }, circle: { width: 18, height: 18, borderRadius: 9, borderWidth: 2, borderColor: Palette.textMuted }, circleSelected: { borderWidth: 5, borderColor: Palette.orange }, choiceText: { flex: 1, fontFamily: Fonts.medium }, correct: { color: Palette.green }, explanation: { color: Palette.green }, result: { gap: Space.sm, borderWidth: 1, borderColor: Palette.green, backgroundColor: Palette.greenSoft, padding: Space.xl }, error: { color: Palette.danger, marginTop: Space.md } });
+const createStyles = (colors: ThemeColors) => StyleSheet.create({ eyebrow: { color: colors.orange }, instructions: { color: colors.textMuted, marginVertical: Space.md }, muted: { color: colors.textMuted }, policy: { gap: Space.xs, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, padding: Space.md }, notOpen: { gap: Space.xs, borderWidth: 1, borderColor: colors.orange, backgroundColor: colors.orangeSoft, padding: Space.md, marginTop: Space.md }, questions: { gap: Space.lg, marginVertical: Space.xl }, question: { gap: Space.md, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, padding: Space.lg }, choices: { gap: Space.sm }, choice: { minHeight: 52, flexDirection: 'row', alignItems: 'center', gap: Space.sm, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.background, padding: Space.md }, choiceSelected: { borderColor: colors.orange, backgroundColor: colors.orangeSoft }, choiceCorrect: { borderColor: colors.green, backgroundColor: colors.greenSoft }, circle: { width: 18, height: 18, borderRadius: 9, borderWidth: 2, borderColor: colors.textMuted }, circleSelected: { borderWidth: 5, borderColor: colors.orange }, choiceText: { flex: 1, color: colors.text, fontFamily: Fonts.medium }, correct: { color: colors.green }, explanation: { color: colors.green }, result: { gap: Space.sm, borderWidth: 1, borderColor: colors.green, backgroundColor: colors.greenSoft, padding: Space.xl }, error: { color: colors.danger, marginTop: Space.md } });

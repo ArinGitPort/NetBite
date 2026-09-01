@@ -25,7 +25,7 @@ function FieldShell({ children, hint, label }: FieldShellProps) {
 }
 
 const control =
-  "w-full rounded-control border border-line bg-canvas px-3 py-2.5 text-[0.8rem] text-copy outline-none transition-colors placeholder:text-muted/70 focus:border-signal-orange focus:ring-2 focus:ring-signal-orange/15";
+  "w-full rounded-control border border-line bg-canvas px-3 py-2.5 text-[0.8rem] text-copy outline-none transition-colors placeholder:text-muted focus:border-signal-orange focus:ring-2 focus:ring-signal-orange/15";
 
 interface InputFieldProps extends InputHTMLAttributes<HTMLInputElement> {
   hint?: ReactNode;

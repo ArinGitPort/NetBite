@@ -257,7 +257,7 @@ function LatestRelease({
       {release ? (
         <div className="flex flex-1 flex-col p-5">
           <div className="mb-5 flex items-center gap-4">
-            <span className="grid size-16 shrink-0 place-items-center rounded-panel border border-signal-green/60 bg-signal-green-soft font-mono text-base font-semibold text-[#abd2c8]">
+            <span className="grid size-16 shrink-0 place-items-center rounded-panel border border-signal-green/60 bg-signal-green-soft font-mono text-base font-semibold text-signal-green">
               V{release.release_version}
             </span>
             <div className="min-w-0">

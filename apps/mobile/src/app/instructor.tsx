@@ -11,11 +11,13 @@ import { Text } from '@/shared/components/console-text';
 import { PageHeader } from '@/shared/components/page-header';
 import { Screen } from '@/shared/components/screen';
 import { AppRoutes } from '@/shared/routes';
-import { Palette, Space } from '@/shared/theme';
+import { Space, type ThemeColors } from '@/shared/theme';
+import { useThemeStyles } from '@/shared/theme-context';
 
 type InstructorClass = Awaited<ReturnType<typeof fetchInstructorClasses>>[number];
 
 export default function InstructorMobileScreen() {
+  const styles = useThemeStyles(createStyles);
   const { accountRole } = useAuth(); const [classes, setClasses] = useState<InstructorClass[]>([]); const [loading, setLoading] = useState(false); const [message, setMessage] = useState<string>(); const [summaries, setSummaries] = useState<Record<string, GradebookSummary>>({}); const [summaryLoading, setSummaryLoading] = useState<string>();
   const load = useCallback(async () => { setLoading(true); setMessage(undefined); try { setClasses(await fetchInstructorClasses()); } catch (reason) { setMessage(reason instanceof Error ? reason.message : 'Classes could not be refreshed.'); } finally { setLoading(false); } }, []);
   useEffect(() => {
@@ -32,5 +34,5 @@ export default function InstructorMobileScreen() {
     {!classes.length && !loading ? <View style={styles.empty}><Text variant="sectionHeading">NO CLASSES YET</Text><Text variant="bodySmall">Publish a workshop and create a class from the instructor website.</Text></View> : null}
   </Screen>;
 }
-function SummaryValue({ label, value }: { label: string; value: string | number }) { return <View style={styles.summaryValue}><Text variant="technical" style={styles.muted}>{label}</Text><Text variant="sectionHeading">{value}</Text></View>; }
-const styles = StyleSheet.create({ eyebrow: { color: Palette.orange }, copy: { color: Palette.textMuted, marginVertical: Space.md }, warning: { color: Palette.orange, marginTop: Space.md }, list: { gap: Space.md, marginTop: Space.xl }, card: { gap: Space.md, borderWidth: 1, borderColor: Palette.border, backgroundColor: Palette.surface, padding: Space.lg }, heading: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: Space.md }, title: { flex: 1, minWidth: 180 }, muted: { color: Palette.textMuted, marginTop: Space.xs }, code: { borderWidth: 1, borderColor: Palette.orange, padding: Space.sm, alignItems: 'center' }, codeValue: { color: Palette.orange }, summary: { flexDirection: 'row', flexWrap: 'wrap', gap: Space.sm }, summaryValue: { minWidth: 92, flexGrow: 1, borderWidth: 1, borderColor: Palette.border, padding: Space.sm }, empty: { gap: Space.sm, borderWidth: 1, borderColor: Palette.border, padding: Space.xl, marginTop: Space.xl } });
+function SummaryValue({ label, value }: { label: string; value: string | number }) { const styles = useThemeStyles(createStyles); return <View style={styles.summaryValue}><Text variant="technical" style={styles.muted}>{label}</Text><Text variant="sectionHeading">{value}</Text></View>; }
+const createStyles = (colors: ThemeColors) => StyleSheet.create({ eyebrow: { color: colors.orange }, copy: { color: colors.textMuted, marginVertical: Space.md }, warning: { color: colors.orange, marginTop: Space.md }, list: { gap: Space.md, marginTop: Space.xl }, card: { gap: Space.md, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, padding: Space.lg }, heading: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: Space.md }, title: { flex: 1, minWidth: 180 }, muted: { color: colors.textMuted, marginTop: Space.xs }, code: { borderWidth: 1, borderColor: colors.orange, padding: Space.sm, alignItems: 'center' }, codeValue: { color: colors.orange }, summary: { flexDirection: 'row', flexWrap: 'wrap', gap: Space.sm }, summaryValue: { minWidth: 92, flexGrow: 1, borderWidth: 1, borderColor: colors.border, padding: Space.sm }, empty: { gap: Space.sm, borderWidth: 1, borderColor: colors.border, padding: Space.xl, marginTop: Space.xl } });

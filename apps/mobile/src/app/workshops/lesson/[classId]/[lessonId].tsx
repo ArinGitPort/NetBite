@@ -19,10 +19,12 @@ import { PageHeader } from "@/shared/components/page-header";
 import { Screen } from "@/shared/components/screen";
 import { successHaptic } from "@/shared/haptics";
 import { workshopRoute } from "@/shared/routes";
-import { Palette, Space } from "@/shared/theme";
+import { Space, type ThemeColors } from "@/shared/theme";
+import { useThemeStyles } from "@/shared/theme-context";
 import { useWorkshopStore } from "@/store/use-workshop-store";
 
 export default function WorkshopLessonScreen() {
+  const styles = useThemeStyles(createStyles);
   const { classId, lessonId } = useLocalSearchParams<{
     classId: string;
     lessonId: string;
@@ -117,6 +119,7 @@ function LessonBlock({
   >;
   assetUris: ReturnType<typeof useWorkshopStore.getState>["assetUris"];
 }) {
+  const styles = useThemeStyles(createStyles);
   if (block.type === "commands") return <WorkshopCommandBlock block={block} />;
   if (block.type === "topology") {
     const topology = entry.manifest.topologies.find(
@@ -190,32 +193,32 @@ function notifySaveAction(message: string) {
   }
 }
 
-const styles = StyleSheet.create({
-  eyebrow: { color: Palette.orange },
-  summary: { color: Palette.textMuted, marginVertical: Space.md },
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
+  eyebrow: { color: colors.orange },
+  summary: { color: colors.textMuted, marginVertical: Space.md },
   headerSaveActions: { alignItems: "flex-end" },
   blocks: { gap: Space.lg, marginTop: Space.xl },
   heading: {
-    color: Palette.white,
+    color: colors.text,
     borderBottomWidth: 1,
-    borderBottomColor: Palette.border,
+    borderBottomColor: colors.border,
     paddingBottom: Space.sm,
   },
-  paragraph: { color: Palette.text },
+  paragraph: { color: colors.text },
   callout: {
     borderWidth: 1,
     borderLeftWidth: 4,
-    borderColor: Palette.orange,
-    backgroundColor: Palette.orangeSoft,
+    borderColor: colors.orange,
+    backgroundColor: colors.orangeSoft,
     padding: Space.lg,
     gap: Space.sm,
   },
-  example: { borderColor: Palette.green, backgroundColor: Palette.greenSoft },
+  example: { borderColor: colors.green, backgroundColor: colors.greenSoft },
   imageBlock: {
     borderWidth: 1,
-    borderColor: Palette.border,
+    borderColor: colors.border,
     padding: Space.sm,
   },
   image: { width: "100%", height: 260 },
-  caption: { color: Palette.textMuted, marginTop: Space.sm },
+  caption: { color: colors.textMuted, marginTop: Space.sm },
 });

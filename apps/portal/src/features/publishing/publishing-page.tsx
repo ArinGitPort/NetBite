@@ -89,7 +89,7 @@ export function Releases() {
         title="Validate and publish"
       />
       {notice ? (
-        <div className="mb-4 rounded-control border border-signal-green/60 bg-signal-green-soft p-3 text-sm text-[#abd2c8]">
+        <div className="mb-4 rounded-control border border-signal-green/60 bg-signal-green-soft p-3 text-sm text-signal-green">
           {notice}
         </div>
       ) : null}
@@ -125,7 +125,7 @@ export function Releases() {
               ))}
               {validation.issues.map((issue) => (
                 <div
-                  className="col-span-full rounded-control border border-signal-red/50 bg-signal-red-soft p-3 [&_strong]:text-xs [&_strong]:text-[#ff858a] [&_p]:mb-0 [&_p]:mt-1 [&_p]:text-sm"
+                  className="col-span-full rounded-control border border-signal-red/50 bg-signal-red-soft p-3 [&_strong]:text-xs [&_strong]:text-signal-red [&_p]:mb-0 [&_p]:mt-1 [&_p]:text-sm"
                   key={`${issue.area}-${issue.message}`}
                 >
                   <strong>{issue.area}</strong>
@@ -150,7 +150,7 @@ export function Releases() {
             />
           </Field>
           <ConfirmAction
-            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-control border border-copy bg-copy px-4 text-xs font-semibold text-canvas hover:bg-white hover:text-canvas disabled:pointer-events-none disabled:border-line/60 disabled:bg-raised/70 disabled:text-muted/75 [&_svg]:size-4"
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-control border border-copy bg-copy px-4 text-xs font-semibold text-canvas hover:bg-copy/85 hover:text-canvas active:bg-copy/75 disabled:pointer-events-none disabled:border-line/60 disabled:bg-raised/70 disabled:text-muted/75 [&_svg]:size-4"
             confirmLabel="PUBLISH RELEASE"
             detail="This publishes one complete curriculum version to connected Android devices. Your drafts remain available for future changes."
             disabled={busy || !validation?.valid || changelog.trim().length < 3}

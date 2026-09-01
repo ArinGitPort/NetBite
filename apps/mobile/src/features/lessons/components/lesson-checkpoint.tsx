@@ -5,7 +5,8 @@ import type { LessonCheckpoint as LessonCheckpointDefinition } from '@/content/t
 import { AppButton } from '@/shared/components/app-button';
 import { Text } from '@/shared/components/console-text';
 import { HintHistoryPanel } from '@/shared/components/hint-history-panel';
-import { Fonts, Palette, Space } from '@/shared/theme';
+import { Fonts, Space, type ThemeColors } from '@/shared/theme';
+import { useThemeStyles } from '@/shared/theme-context';
 
 interface LessonCheckpointProps {
   checkpoint: LessonCheckpointDefinition;
@@ -16,6 +17,7 @@ interface LessonCheckpointProps {
 }
 
 export function LessonCheckpoint({ checkpoint, reviewLabel, reviewText, onIncorrect, onCorrect }: LessonCheckpointProps) {
+  const styles = useThemeStyles(createStyles);
   const [choicesVisible, setChoicesVisible] = useState(false);
   const [selectedId, setSelectedId] = useState<string>();
   const [hintCount, setHintCount] = useState(0);
@@ -109,35 +111,35 @@ export function LessonCheckpoint({ checkpoint, reviewLabel, reviewText, onIncorr
   );
 }
 
-const styles = StyleSheet.create({
-  panel: { marginTop: Space.xl, padding: Space.lg, gap: Space.md, backgroundColor: Palette.surface, borderWidth: 1, borderColor: Palette.orange },
-  eyebrow: { color: Palette.orange, fontFamily: Fonts.medium },
-  prompt: { color: Palette.text },
-  thinkPanel: { gap: Space.md, padding: Space.md, borderWidth: 1, borderColor: Palette.border, backgroundColor: Palette.background },
-  thinkLabel: { color: Palette.accentBright, fontFamily: Fonts.medium },
-  thinkText: { color: Palette.textMuted },
-  instruction: { color: Palette.textMuted, textAlign: 'center' },
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
+  panel: { marginTop: Space.xl, padding: Space.lg, gap: Space.md, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.orange },
+  eyebrow: { color: colors.orange, fontFamily: Fonts.medium },
+  prompt: { color: colors.text },
+  thinkPanel: { gap: Space.md, padding: Space.md, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.background },
+  thinkLabel: { color: colors.accentBright, fontFamily: Fonts.medium },
+  thinkText: { color: colors.textMuted },
+  instruction: { color: colors.textMuted, textAlign: 'center' },
   choices: { gap: Space.sm },
-  choice: { minHeight: 48, justifyContent: 'center', paddingHorizontal: Space.md, paddingVertical: Space.sm, backgroundColor: Palette.background, borderWidth: 1, borderColor: Palette.border },
-  choiceSelected: { borderColor: Palette.orange },
-  choiceCorrect: { borderColor: Palette.green, backgroundColor: Palette.greenSoft },
+  choice: { minHeight: 48, justifyContent: 'center', paddingHorizontal: Space.md, paddingVertical: Space.sm, backgroundColor: colors.background, borderWidth: 1, borderColor: colors.border },
+  choiceSelected: { borderColor: colors.orange },
+  choiceCorrect: { borderColor: colors.green, backgroundColor: colors.greenSoft },
   choicePressed: { opacity: 0.82 },
-  choiceText: { color: Palette.text, fontFamily: Fonts.medium, textAlign: 'center' },
-  choiceTextCorrect: { color: Palette.green },
+  choiceText: { color: colors.text, fontFamily: Fonts.medium, textAlign: 'center' },
+  choiceTextCorrect: { color: colors.green },
   feedback: { padding: Space.md, borderWidth: 1 },
-  feedbackCorrect: { borderColor: Palette.green, backgroundColor: Palette.greenSoft },
-  feedbackRetry: { borderColor: Palette.orange, backgroundColor: Palette.orangeSoft },
-  correctLabel: { color: Palette.green, fontFamily: Fonts.medium, marginBottom: Space.xs },
-  retryLabel: { color: Palette.orange, fontFamily: Fonts.medium, marginBottom: Space.xs },
-  feedbackText: { color: Palette.text },
-  reviewButton: { minHeight: 48, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: Palette.orange },
-  reviewButtonText: { color: Palette.orange, fontFamily: Fonts.medium },
-  rulePanel: { padding: Space.md, borderWidth: 1, borderColor: Palette.green, backgroundColor: Palette.greenSoft },
-  ruleLabel: { color: Palette.green, fontFamily: Fonts.medium, marginBottom: Space.xs },
-  ruleText: { color: Palette.text },
-  hintPanel: { padding: Space.md, borderWidth: 1, borderColor: Palette.border, backgroundColor: Palette.background },
-  hintLabel: { color: Palette.orange, fontFamily: Fonts.medium, marginBottom: Space.xs },
-  hintText: { color: Palette.text },
-  hintButton: { minHeight: 48, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: Palette.border },
-  hintButtonText: { color: Palette.textMuted, fontFamily: Fonts.medium },
+  feedbackCorrect: { borderColor: colors.green, backgroundColor: colors.greenSoft },
+  feedbackRetry: { borderColor: colors.orange, backgroundColor: colors.orangeSoft },
+  correctLabel: { color: colors.green, fontFamily: Fonts.medium, marginBottom: Space.xs },
+  retryLabel: { color: colors.orange, fontFamily: Fonts.medium, marginBottom: Space.xs },
+  feedbackText: { color: colors.text },
+  reviewButton: { minHeight: 48, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.orange },
+  reviewButtonText: { color: colors.orange, fontFamily: Fonts.medium },
+  rulePanel: { padding: Space.md, borderWidth: 1, borderColor: colors.green, backgroundColor: colors.greenSoft },
+  ruleLabel: { color: colors.green, fontFamily: Fonts.medium, marginBottom: Space.xs },
+  ruleText: { color: colors.text },
+  hintPanel: { padding: Space.md, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.background },
+  hintLabel: { color: colors.orange, fontFamily: Fonts.medium, marginBottom: Space.xs },
+  hintText: { color: colors.text },
+  hintButton: { minHeight: 48, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.border },
+  hintButtonText: { color: colors.textMuted, fontFamily: Fonts.medium },
 });

@@ -1,4 +1,4 @@
-export const Palette = {
+export const DarkPalette = {
   background: '#151216',
   grid: '#272027',
   surface: '#1D191F',
@@ -29,6 +29,63 @@ export const Palette = {
   line: '#3A3F3D',
 } as const;
 
+export type ThemeColors = { [Key in keyof typeof DarkPalette]: string };
+
+export const LightPalette: ThemeColors = {
+  background: '#F6F3F5',
+  grid: '#DED7DC',
+  surface: '#FFFDFD',
+  surfaceRaised: '#EAE4E8',
+  border: '#C9C0C6',
+  text: '#2A2428',
+  textMuted: '#625A60',
+  accent: '#B9323D',
+  accentBright: '#A52732',
+  accentSoft: '#F8DFE1',
+  orange: '#9A541F',
+  orangeSoft: '#F6E6D8',
+  green: '#2F7164',
+  greenSoft: '#DCECE7',
+  danger: '#B42332',
+  dangerSoft: '#F9DDE1',
+  active: '#B9323D',
+  white: '#211D20',
+  navy: '#2A2428',
+  blue: '#B9323D',
+  blueDark: '#A52732',
+  sky: '#F8DFE1',
+  mint: '#DCECE7',
+  cream: '#F6F3F5',
+  inkMuted: '#625A60',
+  line: '#C9C0C6',
+};
+
+/** Dark fallback retained while feature-local styles migrate to useThemeStyles. */
+export const Palette: ThemeColors = DarkPalette;
+
+export const Themes = { light: LightPalette, dark: DarkPalette } satisfies Record<'light' | 'dark', ThemeColors>;
+
+export const CanvasThemes = {
+  light: {
+    ...LightPalette,
+    background: '#FFFDFD',
+    surface: '#F8F5F7',
+    surfaceRaised: '#EEE9ED',
+    border: '#AFA5AC',
+    grid: '#D6CED3',
+    text: '#241F23',
+    textMuted: '#5F575D',
+  },
+  dark: {
+    ...DarkPalette,
+    background: '#111013',
+    surface: '#171419',
+    surfaceRaised: '#211D24',
+    border: '#5B525D',
+    grid: '#302832',
+  },
+} satisfies Record<'light' | 'dark', ThemeColors>;
+
 // Educational diagrams occasionally need additional semantic hues to keep
 // protocol fields and model layers distinguishable. Keeping them separate
 // prevents those colors from becoming ordinary application chrome.
@@ -43,6 +100,19 @@ export const DiagramPalette = {
 } as const;
 
 export type DiagramTone = keyof typeof DiagramPalette;
+export type DiagramColors = Record<DiagramTone, { border: string; fill: string; text: string }>;
+
+export const LightDiagramPalette: DiagramColors = {
+  neutral: { border: '#8B858A', fill: '#F0ECEF', text: '#2A2428' },
+  red: { border: '#B65A61', fill: '#F7E4E5', text: '#6F2028' },
+  orange: { border: '#B56A34', fill: '#F6E6D8', text: '#713A14' },
+  sage: { border: '#4E8176', fill: '#DCECE7', text: '#20564C' },
+  blue: { border: '#4F7C9A', fill: '#DFEBF2', text: '#244E69' },
+  violet: { border: '#7D648E', fill: '#ECE3F1', text: '#563B67' },
+  gold: { border: '#8B763B', fill: '#F1EACF', text: '#5E4D1E' },
+};
+
+export const DiagramThemes = { light: LightDiagramPalette, dark: DiagramPalette } satisfies Record<'light' | 'dark', DiagramColors>;
 
 export const Space = {
   xs: 8,

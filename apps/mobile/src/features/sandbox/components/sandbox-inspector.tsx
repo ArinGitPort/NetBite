@@ -5,13 +5,17 @@ import { calculateSubnetRange, parseIPv4Address, type RouteEntry } from '@/core/
 import type { SandboxDevice, SandboxDevicePatch, SandboxValidationIssue } from '@/core/network/sandbox';
 import { AppButton } from '@/shared/components/app-button';
 import { Text } from '@/shared/components/console-text';
-import { Fonts, Palette, Space, Typography } from '@/shared/theme';
+import { Fonts, Space, Typography, type ThemeColors } from '@/shared/theme';
+import { useTheme, useThemeStyles } from '@/shared/theme-context';
 
 function Field({ label, value, placeholder, keyboardType, onChangeText }: { label: string; value: string; placeholder: string; keyboardType?: 'default' | 'numeric'; onChangeText: (value: string) => void }) {
-  return <View style={styles.field}><Text variant="technical" style={styles.fieldLabel}>{label}</Text><TextInput accessibilityLabel={label} autoCapitalize="none" autoCorrect={false} keyboardType={keyboardType} onChangeText={onChangeText} placeholder={placeholder} placeholderTextColor={Palette.textMuted} selectionColor={Palette.orange} style={styles.input} value={value} /></View>;
+  const styles = useThemeStyles(createStyles);
+  const { colors } = useTheme();
+  return <View style={styles.field}><Text variant="technical" style={styles.fieldLabel}>{label}</Text><TextInput accessibilityLabel={label} autoCapitalize="none" autoCorrect={false} keyboardType={keyboardType} onChangeText={onChangeText} placeholder={placeholder} placeholderTextColor={colors.textMuted} selectionColor={colors.orange} style={styles.input} value={value} /></View>;
 }
 
 function SelectButton({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) {
+  const styles = useThemeStyles(createStyles);
   return <Pressable accessibilityRole="button" accessibilityState={{ selected }} onPress={onPress} style={[styles.select, selected && styles.selectActive]}><Text variant="technical" style={[styles.selectText, selected && styles.selectTextActive]}>{label}</Text></Pressable>;
 }
 
@@ -25,6 +29,7 @@ export function SandboxInspector({ device, connectedInterfaceCount, issues, onCo
   onRemove: () => void;
   onOpenCli: () => void;
 }) {
+  const styles = useThemeStyles(createStyles);
   const [name, setName] = useState(device.name);
   const [interfaceId, setInterfaceId] = useState(device.interfaces[0]?.id ?? '');
   const selected = device.interfaces.find((item) => item.id === interfaceId) ?? device.interfaces[0];
@@ -145,35 +150,35 @@ export function SandboxInspector({ device, connectedInterfaceCount, issues, onCo
   );
 }
 
-const styles = StyleSheet.create({
-  panel: { borderWidth: 1, borderColor: Palette.border, backgroundColor: Palette.surface, padding: Space.lg, gap: Space.md },
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
+  panel: { borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, padding: Space.lg, gap: Space.md },
   header: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: Space.md },
   headerCopy: { flex: 1, minWidth: 180 },
-  eyebrow: { color: Palette.green },
-  title: { color: Palette.text, fontFamily: Fonts.semibold, marginTop: Space.xs },
-  boundary: { color: Palette.textMuted },
-  recordPanel: { borderWidth: 1, borderColor: Palette.green, backgroundColor: Palette.greenSoft, padding: Space.md, gap: Space.sm },
-  recordHeading: { color: Palette.green },
+  eyebrow: { color: colors.green },
+  title: { color: colors.text, fontFamily: Fonts.semibold, marginTop: Space.xs },
+  boundary: { color: colors.textMuted },
+  recordPanel: { borderWidth: 1, borderColor: colors.green, backgroundColor: colors.greenSoft, padding: Space.md, gap: Space.sm },
+  recordHeading: { color: colors.green },
   recordGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Space.sm },
   recordCell: { flexGrow: 1, minWidth: 112, gap: Space.xs },
-  recordValue: { color: Palette.text },
-  savedBadge: { color: Palette.green },
+  recordValue: { color: colors.text },
+  savedBadge: { color: colors.green },
   interfacePicker: { flexDirection: 'row', flexWrap: 'wrap', gap: Space.sm },
-  select: { minHeight: 44, minWidth: 88, flexGrow: 1, borderWidth: 1, borderColor: Palette.border, padding: Space.sm, alignItems: 'center', justifyContent: 'center' },
-  selectActive: { borderColor: Palette.orange, backgroundColor: Palette.orangeSoft },
-  selectText: { color: Palette.textMuted },
-  selectTextActive: { color: Palette.orange },
-  formBlock: { borderTopWidth: 1, borderTopColor: Palette.border, paddingTop: Space.md, gap: Space.md },
-  blockTitle: { color: Palette.orange },
-  savedState: { color: Palette.green },
+  select: { minHeight: 44, minWidth: 88, flexGrow: 1, borderWidth: 1, borderColor: colors.border, padding: Space.sm, alignItems: 'center', justifyContent: 'center' },
+  selectActive: { borderColor: colors.orange, backgroundColor: colors.orangeSoft },
+  selectText: { color: colors.textMuted },
+  selectTextActive: { color: colors.orange },
+  formBlock: { borderTopWidth: 1, borderTopColor: colors.border, paddingTop: Space.md, gap: Space.md },
+  blockTitle: { color: colors.orange },
+  savedState: { color: colors.green },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: Space.sm, alignItems: 'flex-end' },
   field: { flex: 1, minWidth: 150, gap: Space.xs },
-  fieldLabel: { color: Palette.textMuted },
-  input: { minHeight: 44, borderWidth: 1, borderColor: Palette.border, backgroundColor: Palette.background, color: Palette.white, paddingHorizontal: Space.md, paddingVertical: Space.sm, fontFamily: Fonts.mono, ...Typography.bodySmall },
+  fieldLabel: { color: colors.textMuted },
+  input: { minHeight: 44, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.background, color: colors.text, paddingHorizontal: Space.md, paddingVertical: Space.sm, fontFamily: Fonts.mono, ...Typography.bodySmall },
   flexButton: { flexGrow: 1, minWidth: 160 },
-  record: { minHeight: 44, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: Space.sm, borderWidth: 1, borderColor: Palette.border, padding: Space.sm },
-  recordText: { color: Palette.text, flexShrink: 1 },
-  removeText: { color: Palette.accentBright },
-  warning: { borderWidth: 1, borderColor: Palette.orange, backgroundColor: Palette.orangeSoft, color: Palette.orange, padding: Space.sm },
-  feedback: { color: Palette.green },
+  record: { minHeight: 44, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: Space.sm, borderWidth: 1, borderColor: colors.border, padding: Space.sm },
+  recordText: { color: colors.text, flexShrink: 1 },
+  removeText: { color: colors.accentBright },
+  warning: { borderWidth: 1, borderColor: colors.orange, backgroundColor: colors.orangeSoft, color: colors.orange, padding: Space.sm },
+  feedback: { color: colors.green },
 });

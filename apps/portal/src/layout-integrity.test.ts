@@ -47,8 +47,11 @@ describe("portal layout integrity styles", () => {
   });
 
   test("keeps badge icons separated and browser autofill theme-safe", () => {
-    expect(badge).toContain("gap-2");
+    expect(badge).toContain("gap-1.5");
+    expect(badge).toContain("leading-none");
+    expect(badge).toContain("[&_svg]:size-3.5");
     expect(badge).toContain("[&_svg]:shrink-0");
+    expect(badge).toContain("[&_svg]:self-center");
     expect(styles).toContain("input:-webkit-autofill");
     expect(styles).toContain("var(--color-canvas) inset");
   });

@@ -1,7 +1,8 @@
 import { StyleSheet, useWindowDimensions, View } from 'react-native';
 
 import { Text } from '@/shared/components/console-text';
-import { Fonts, Palette } from '@/shared/theme';
+import { Fonts, type ThemeColors } from '@/shared/theme';
+import { useCanvasThemeStyles } from '@/shared/theme-context';
 
 export interface TopologyPoint {
   x: number;
@@ -282,6 +283,7 @@ export function TopologyLinkLabels({
   contextTone?: 'normal' | 'warning';
   resolvedLayout?: ResolvedTopologyLinkLabels;
 }) {
+  const styles = useCanvasThemeStyles(createStyles);
   const { fontScale } = useWindowDimensions();
   const fromSize = resolvedLayout?.from.size ?? getTopologyLabelSize(fromLabel, fontScale);
   const toSize = resolvedLayout?.to.size ?? getTopologyLabelSize(toLabel, fontScale);
@@ -317,7 +319,7 @@ export function TopologyLinkLabels({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   label: {
     position: 'absolute',
     zIndex: 3,
@@ -325,11 +327,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 4,
     borderWidth: 1,
-    borderColor: Palette.textMuted,
-    backgroundColor: Palette.background,
+    borderColor: colors.textMuted,
+    backgroundColor: colors.background,
   },
-  text: { color: Palette.white, fontFamily: Fonts.medium, textAlign: 'center', textTransform: 'none' },
-  contextLabel: { zIndex: 2, paddingHorizontal: 8, borderColor: Palette.border, backgroundColor: Palette.surfaceRaised },
-  contextWarning: { borderColor: Palette.orange, backgroundColor: Palette.orangeSoft },
-  warningText: { color: Palette.orange },
+  text: { color: colors.text, fontFamily: Fonts.medium, textAlign: 'center', textTransform: 'none' },
+  contextLabel: { zIndex: 2, paddingHorizontal: 8, borderColor: colors.border, backgroundColor: colors.surfaceRaised },
+  contextWarning: { borderColor: colors.orange, backgroundColor: colors.orangeSoft },
+  warningText: { color: colors.orange },
 });

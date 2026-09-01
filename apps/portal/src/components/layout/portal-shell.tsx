@@ -9,6 +9,7 @@ import type { AdminAccess } from "@/lib/api/types";
 import { supabase } from "@/lib/supabase";
 import { cn } from "@/lib/class-names";
 import { Button } from "@/components/ui/button";
+import { ThemeMenu } from "@/components/ui/theme-menu";
 
 function AccountControls({ session, access }: { session: Session; access: AdminAccess }) {
   const [busy, setBusy] = useState(false);
@@ -33,7 +34,7 @@ function AccountControls({ session, access }: { session: Session; access: AdminA
         </div>
       </div>
       <Button className="w-full" disabled={busy} onClick={() => void signOut()} tone="neutral"><LogOut />{busy ? "Signing out..." : "Sign out"}</Button>
-      {error ? <p className="m-0 text-xs leading-5 text-[#ff9da1]" role="alert">{error}</p> : null}
+      {error ? <p className="m-0 text-xs leading-5 text-signal-red" role="alert">{error}</p> : null}
     </div>
   );
 }
@@ -66,7 +67,7 @@ export function PortalShell({ session, access }: { session: Session; access: Adm
                   </span>
                 ) : null}
                 <NavLink
-                  className={({ isActive }) => cn("flex min-h-12 items-center gap-3 rounded-control border px-3 text-xs font-medium transition-colors", isActive ? "border-line bg-raised text-white" : "border-transparent text-muted hover:bg-raised hover:text-white")}
+                  className={({ isActive }) => cn("flex min-h-12 items-center gap-3 rounded-control border px-3 text-xs font-medium transition-colors", isActive ? "border-line bg-raised text-copy" : "border-transparent text-muted hover:bg-raised hover:text-copy")}
                   onClick={() => setMobileNav(false)}
                   to={item.path}
                 >
@@ -83,6 +84,7 @@ export function PortalShell({ session, access }: { session: Session; access: Adm
         <header className="sticky top-0 z-20 flex min-h-[68px] items-center gap-3 border-b border-line bg-canvas/95 px-4 backdrop-blur-xl sm:px-8">
           <Button aria-label="Open navigation" className="lg:hidden" onClick={() => setMobileNav(true)} size="icon" tone="ghost"><Menu /></Button>
           <div className="grid gap-1"><small className="font-mono text-[0.63rem] uppercase tracking-[0.1em] text-signal-orange">{roleLabel}</small><strong className="text-sm">{current?.label ?? roleLabel}</strong></div>
+          <div className="ml-auto"><ThemeMenu /></div>
         </header>
         <main className="mx-auto w-full max-w-[1460px] px-3.5 py-7 sm:px-7 sm:py-8 lg:px-10 lg:py-9 lg:pb-[72px]"><Outlet /></main>
       </div>

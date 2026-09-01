@@ -7,9 +7,11 @@ import { AppButton } from '@/shared/components/app-button';
 import { Text } from '@/shared/components/console-text';
 import { Screen } from '@/shared/components/screen';
 import { AppRoutes } from '@/shared/routes';
-import { Fonts, Palette, Space } from '@/shared/theme';
+import { Fonts, Space, type ThemeColors } from '@/shared/theme';
+import { useThemeStyles } from '@/shared/theme-context';
 
 export default function AccountWelcomeScreen() {
+  const styles = useThemeStyles(createStyles);
   const { status, configured, completeGuestEntry } = useAuth();
 
   const continueAsGuest = () => {
@@ -77,19 +79,19 @@ export default function AccountWelcomeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   brandBlock: { alignItems: 'center', paddingTop: Space.xxl, paddingBottom: Space.xl },
   logo: { width: 88, height: 88, marginBottom: Space.md },
-  brand: { color: Palette.text, fontFamily: Fonts.semibold },
-  system: { color: Palette.textMuted, marginTop: Space.sm, textAlign: 'center' },
-  intro: { gap: Space.sm, paddingVertical: Space.xl, borderTopWidth: 1, borderBottomWidth: 1, borderColor: Palette.border },
-  eyebrow: { color: Palette.orange },
-  heading: { color: Palette.text, fontFamily: Fonts.semibold },
-  copy: { color: Palette.textMuted },
-  warningPanel: { gap: Space.xs, marginTop: Space.lg, padding: Space.lg, borderWidth: 1, borderColor: Palette.orange, backgroundColor: Palette.orangeSoft },
-  warningTitle: { color: Palette.orange },
-  warningCopy: { color: Palette.text },
+  brand: { color: colors.text, fontFamily: Fonts.semibold },
+  system: { color: colors.textMuted, marginTop: Space.sm, textAlign: 'center' },
+  intro: { gap: Space.sm, paddingVertical: Space.xl, borderTopWidth: 1, borderBottomWidth: 1, borderColor: colors.border },
+  eyebrow: { color: colors.orange },
+  heading: { color: colors.text, fontFamily: Fonts.semibold },
+  copy: { color: colors.textMuted },
+  warningPanel: { gap: Space.xs, marginTop: Space.lg, padding: Space.lg, borderWidth: 1, borderColor: colors.orange, backgroundColor: colors.orangeSoft },
+  warningTitle: { color: colors.orange },
+  warningCopy: { color: colors.text },
   actions: { gap: Space.md, marginTop: Space.xl },
-  guestNote: { marginTop: Space.xl, paddingTop: Space.lg, borderTopWidth: 1, borderColor: Palette.border },
-  guestCopy: { color: Palette.textMuted, textAlign: 'center' },
+  guestNote: { marginTop: Space.xl, paddingTop: Space.lg, borderTopWidth: 1, borderColor: colors.border },
+  guestCopy: { color: colors.textMuted, textAlign: 'center' },
 });

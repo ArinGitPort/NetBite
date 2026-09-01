@@ -11,9 +11,11 @@ import { Screen } from '@/shared/components/screen';
 import { goBackOrReplace } from '@/shared/navigation';
 import { AppRoutes } from '@/shared/routes';
 import { getSyncStatusLabel } from '@/shared/learner-facing-copy';
-import { Fonts, Palette, Space } from '@/shared/theme';
+import { Fonts, Space, type ThemeColors } from '@/shared/theme';
+import { useThemeStyles } from '@/shared/theme-context';
 
 export default function AccountScreen() {
+  const styles = useThemeStyles(createStyles);
   const { status, user, profile, hasPro, testProEnabled, syncStatus, error, signOut, deleteAccount, syncNow } = useAuth();
   const [deleteVisible, setDeleteVisible] = useState(false);
   const [deleteError, setDeleteError] = useState<string>();
@@ -29,8 +31,8 @@ export default function AccountScreen() {
     <FeedbackModal visible={deleteVisible} tone="warning" eyebrow="PERMANENT ACTION" title="Delete this account?" message="Your online learning backup, profile, and Pro access record will be removed. Test-payment records may remain with the payment provider." detail="Guest progress saved separately on this device will not be deleted." icon="reset" onRequestClose={() => setDeleteVisible(false)} secondaryAction={{ label: 'Keep account', variant: 'secondary', onPress: () => setDeleteVisible(false) }} primaryAction={{ label: 'Delete account', variant: 'danger', onPress: () => void deleteAccount().then((nextError) => { if (nextError) { setDeleteError(nextError); setDeleteVisible(false); } else router.replace(AppRoutes.authWelcome); }) }} />
   </Screen>;
 }
-const styles = StyleSheet.create({
-  header: { marginVertical: Space.xl, gap: Space.xs }, eyebrow: { color: Palette.green }, title: { color: Palette.text, fontFamily: Fonts.semibold }, muted: { color: Palette.textMuted },
-  panel: { padding: Space.lg, gap: Space.sm, marginBottom: Space.md, borderWidth: 1, borderColor: Palette.border, backgroundColor: Palette.surface },
-  actions: { gap: Space.md }, green: { color: Palette.green }, warning: { color: Palette.orange },
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
+  header: { marginVertical: Space.xl, gap: Space.xs }, eyebrow: { color: colors.green }, title: { color: colors.text, fontFamily: Fonts.semibold }, muted: { color: colors.textMuted },
+  panel: { padding: Space.lg, gap: Space.sm, marginBottom: Space.md, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface },
+  actions: { gap: Space.md }, green: { color: colors.green }, warning: { color: colors.orange },
 });

@@ -3,7 +3,7 @@ import { StyleSheet } from 'react-native';
 
 import { connectSandboxInterfaces, createEmptySandboxWorkspace, createGuidedSandboxWorkspace, createReadyRoutedSandboxWorkspace } from '@/core/network/sandbox';
 import { SandboxScreen } from '@/features/sandbox/components/sandbox-screen';
-import { Palette } from '@/shared/theme';
+import { DarkPalette } from '@/shared/theme';
 import { useSandboxStore } from '@/store/use-sandbox-store';
 
 jest.mock('expo-router', () => ({ router: { dismissTo: jest.fn() } }));
@@ -73,8 +73,8 @@ describe('sandbox screen', () => {
     const destination = screen.getByLabelText('Ping destination IPv4 address');
     expect(destination.props.value).toBe('192.168.20.20');
     expect(destination.props.placeholder).toBe('EXAMPLE / 192.168.1.20');
-    expect(destination.props.placeholderTextColor).toBe(Palette.textMuted);
-    expect(StyleSheet.flatten(destination.props.style).color).toBe(Palette.white);
+    expect(destination.props.placeholderTextColor).toBe(DarkPalette.textMuted);
+    expect(StyleSheet.flatten(destination.props.style).color).toBe(DarkPalette.text);
     expect(screen.getByRole('button', { name: 'PC2 / 192.168.20.20' })).toBeTruthy();
   });
 

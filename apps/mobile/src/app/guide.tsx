@@ -5,7 +5,8 @@ import { Screen } from '@/shared/components/screen';
 import { Text } from '@/shared/components/console-text';
 import { goBackOrReplace } from '@/shared/navigation';
 import { AppRoutes } from '@/shared/routes';
-import { Fonts, Palette, Space } from '@/shared/theme';
+import { Fonts, Space, type ThemeColors } from '@/shared/theme';
+import { useThemeStyles } from '@/shared/theme-context';
 
 const sections = [
   {
@@ -31,6 +32,7 @@ const sections = [
 ] as const;
 
 export default function AppGuideScreen() {
+  const styles = useThemeStyles(createStyles);
   return (
     <Screen header={<PageHeader leading={{ accessibilityLabel: 'Back to Settings', icon: 'arrow-left', label: 'BACK / SETTINGS', onPress: () => goBackOrReplace(AppRoutes.settings) }} />}>
       <Text variant="label" style={styles.eyebrow}>ON-DEMAND HELP</Text>
@@ -49,13 +51,13 @@ export default function AppGuideScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  eyebrow: { color: Palette.orange },
-  title: { color: Palette.text, fontFamily: Fonts.semibold, marginTop: Space.sm },
-  intro: { color: Palette.textMuted, marginTop: Space.md, marginBottom: Space.xl },
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
+  eyebrow: { color: colors.orange },
+  title: { color: colors.text, fontFamily: Fonts.semibold, marginTop: Space.sm },
+  intro: { color: colors.textMuted, marginTop: Space.md, marginBottom: Space.xl },
   sections: { gap: Space.md },
-  section: { minWidth: 0, borderWidth: 1, borderColor: Palette.border, backgroundColor: Palette.surface, padding: Space.lg, gap: Space.sm },
-  number: { color: Palette.orange },
-  heading: { color: Palette.text, fontFamily: Fonts.semibold },
-  detail: { color: Palette.textMuted },
+  section: { minWidth: 0, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, padding: Space.lg, gap: Space.sm },
+  number: { color: colors.orange },
+  heading: { color: colors.text, fontFamily: Fonts.semibold },
+  detail: { color: colors.textMuted },
 });

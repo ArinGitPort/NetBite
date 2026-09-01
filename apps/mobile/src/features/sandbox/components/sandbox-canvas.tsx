@@ -7,7 +7,8 @@ import type { SandboxPosition, SandboxTraceEvent, SandboxWorkspace } from '@/cor
 import { DeviceGlyph } from '@/features/devices/components/device-glyph';
 import { Text } from '@/shared/components/console-text';
 import { TopologyLinkLabels } from '@/shared/components/topology-link-labels';
-import { Fonts, Palette, Space } from '@/shared/theme';
+import { Fonts, Space, type ThemeColors } from '@/shared/theme';
+import { useCanvasColors, useCanvasThemeStyles } from '@/shared/theme-context';
 
 const LOGICAL_WIDTH = 720;
 const LOGICAL_HEIGHT = 420;
@@ -45,6 +46,7 @@ function SandboxNode({
   fontScale: number;
   onMeasure: (height: number) => void;
 }) {
+  const styles = useCanvasThemeStyles(createStyles);
   const [live, setLive] = useState(device.position);
   const nodeWidth = displayedNodeWidth(scale);
   const nodeHeight = displayedNodeHeight(scale, fontScale);
@@ -89,6 +91,8 @@ export function SandboxCanvas({ workspace, selectedDeviceId, selectedLinkId, con
   onSelectLink: (linkId: string) => void;
   onMoveDevice: (deviceId: string, position: SandboxPosition) => void;
 }) {
+  const colors = useCanvasColors();
+  const styles = useCanvasThemeStyles(createStyles);
   const scale = zoom;
   const { fontScale } = useWindowDimensions();
   const canvasWidth = LOGICAL_WIDTH * scale + Math.max(0, NODE_PLATE_WIDTH - NODE_SIZE * scale);
@@ -127,7 +131,7 @@ export function SandboxCanvas({ workspace, selectedDeviceId, selectedLinkId, con
             <Svg width="100%" height="100%">
               {links.map(({ link, a, b }) => {
                 const active = traceEvent?.linkIds.includes(link.id);
-                return <Line key={link.id} x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke={active ? Palette.orange : selectedLinkId === link.id ? Palette.accentBright : Palette.border} strokeWidth={active ? 6 : 4} strokeLinecap="round" />;
+                return <Line key={link.id} x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke={active ? colors.orange : selectedLinkId === link.id ? colors.accentBright : colors.green} strokeWidth={active ? 6 : 4} strokeLinecap="round" />;
               })}
             </Svg>
           </View>
@@ -153,22 +157,22 @@ export function SandboxCanvas({ workspace, selectedDeviceId, selectedLinkId, con
   );
 }
 
-const styles = StyleSheet.create({
-  frame: { borderWidth: 1, borderColor: Palette.border, backgroundColor: Palette.surface, minWidth: 0 },
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
+  frame: { borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, minWidth: 0 },
   scrollContent: { minWidth: '100%' },
-  canvas: { position: 'relative', overflow: 'hidden', backgroundColor: Palette.background },
-  grid: { position: 'absolute', inset: 0, opacity: 0.28, borderWidth: 1, borderColor: Palette.grid, pointerEvents: 'none' },
+  canvas: { position: 'relative', overflow: 'hidden', backgroundColor: colors.background },
+  grid: { position: 'absolute', inset: 0, opacity: 0.45, borderWidth: 1, borderColor: colors.grid, pointerEvents: 'none' },
   cableLayer: { pointerEvents: 'none' },
   linkHitTarget: { position: 'absolute', height: 28, zIndex: 1 },
-  node: { position: 'absolute', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: Palette.border, backgroundColor: Palette.surfaceRaised, padding: 4, zIndex: 4 },
+  node: { position: 'absolute', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surfaceRaised, padding: 4, zIndex: 4 },
   glyphArea: { alignItems: 'center', justifyContent: 'center' },
-  nodeSelected: { borderColor: Palette.accentBright },
-  nodeActive: { borderColor: Palette.orange, backgroundColor: Palette.orangeSoft },
-  nodeLabel: { color: Palette.text, fontFamily: Fonts.medium, textAlign: 'center', maxWidth: '100%' },
+  nodeSelected: { borderColor: colors.accentBright },
+  nodeActive: { borderColor: colors.orange, backgroundColor: colors.orangeSoft },
+  nodeLabel: { color: colors.text, fontFamily: Fonts.medium, textAlign: 'center', maxWidth: '100%' },
   empty: { position: 'absolute', inset: 0, alignItems: 'center', justifyContent: 'center', padding: Space.xl, pointerEvents: 'none' },
-  emptyTitle: { color: Palette.textMuted },
-  emptyDetail: { color: Palette.textMuted, marginTop: Space.sm },
-  canvasFooter: { minHeight: 44, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: Space.sm, borderTopWidth: 1, borderTopColor: Palette.border, padding: Space.sm },
-  canvasStatus: { color: Palette.textMuted, flex: 1, minWidth: 180 },
-  zoomLabel: { color: Palette.orange },
+  emptyTitle: { color: colors.textMuted },
+  emptyDetail: { color: colors.textMuted, marginTop: Space.sm },
+  canvasFooter: { minHeight: 44, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: Space.sm, borderTopWidth: 1, borderTopColor: colors.border, padding: Space.sm },
+  canvasStatus: { color: colors.textMuted, flex: 1, minWidth: 180 },
+  zoomLabel: { color: colors.orange },
 });

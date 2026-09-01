@@ -15,7 +15,8 @@ import { SemanticIcon, type SemanticIconName } from '@/shared/components/semanti
 import { Text } from '@/shared/components/console-text';
 import { navigateOnce, returnToLearningPath } from '@/shared/navigation';
 import { AppRoutes } from '@/shared/routes';
-import { Fonts, Palette, Space } from '@/shared/theme';
+import { Fonts, Space, type ThemeColors } from '@/shared/theme';
+import { useTheme, useThemeStyles } from '@/shared/theme-context';
 import { useGameStore } from '@/store/use-game-store';
 
 function describeSavedItem(item: SavedLearningItem) {
@@ -34,6 +35,8 @@ function describeSavedItem(item: SavedLearningItem) {
 }
 
 export default function SavedScreen() {
+  const { colors } = useTheme();
+  const styles = useThemeStyles(createStyles);
   const { hasContentAccess } = useAuth();
   const items = useGameStore((state) => state.savedLearningItems);
   const removeItem = useGameStore((state) => state.removeLearningItem);
@@ -62,7 +65,7 @@ export default function SavedScreen() {
       const description = describeSavedItem(item);
       return <View key={item.key} style={styles.card}>
       <View style={styles.cardHeading}>
-        <View style={styles.iconPlate}><SemanticIcon color={Palette.orange} name={description.icon} size={24} /></View>
+        <View style={styles.iconPlate}><SemanticIcon color={colors.orange} name={description.icon} size={24} /></View>
         <View style={styles.cardCopy}><Text variant="technical" style={styles.source}>{description.source}</Text><Text variant="sectionHeading" style={styles.itemTitle}>{item.title}</Text><Text variant="bodySmall" style={styles.context}>{description.context}</Text></View>
       </View>
       <View style={styles.meta}><Text variant="label" style={styles.location}>{description.location}</Text>{itemLocked(item) ? <Text variant="technical" style={styles.warning}>PRO SOURCE LOCKED</Text> : null}</View>
@@ -74,6 +77,6 @@ export default function SavedScreen() {
   </Screen>;
 }
 
-const styles = StyleSheet.create({
-  eyebrow: { color: Palette.orange, marginTop: Space.xl }, title: { color: Palette.text, fontFamily: Fonts.semibold, marginTop: Space.sm, marginBottom: Space.xl }, card: { borderWidth: 1, borderColor: Palette.border, backgroundColor: Palette.surface, padding: Space.lg, gap: Space.md, marginBottom: Space.lg }, cardHeading: { flexDirection: 'row', alignItems: 'flex-start', gap: Space.md }, iconPlate: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: Palette.orange, backgroundColor: Palette.orangeSoft }, cardCopy: { minWidth: 0, flex: 1 }, source: { color: Palette.orange, marginBottom: Space.xs }, itemTitle: { color: Palette.text }, context: { color: Palette.textMuted, marginTop: Space.xs }, meta: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: Space.sm, borderTopWidth: 1, borderTopColor: Palette.border, paddingTop: Space.md }, location: { color: Palette.green }, actions: { gap: Space.sm }, warning: { color: Palette.danger }, muted: { color: Palette.textMuted }, empty: { borderWidth: 1, borderColor: Palette.border, padding: Space.xl, gap: Space.lg },
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
+  eyebrow: { color: colors.orange, marginTop: Space.xl }, title: { color: colors.text, fontFamily: Fonts.semibold, marginTop: Space.sm, marginBottom: Space.xl }, card: { borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, padding: Space.lg, gap: Space.md, marginBottom: Space.lg }, cardHeading: { flexDirection: 'row', alignItems: 'flex-start', gap: Space.md }, iconPlate: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.orange, backgroundColor: colors.orangeSoft }, cardCopy: { minWidth: 0, flex: 1 }, source: { color: colors.orange, marginBottom: Space.xs }, itemTitle: { color: colors.text }, context: { color: colors.textMuted, marginTop: Space.xs }, meta: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: Space.sm, borderTopWidth: 1, borderTopColor: colors.border, paddingTop: Space.md }, location: { color: colors.green }, actions: { gap: Space.sm }, warning: { color: colors.danger }, muted: { color: colors.textMuted }, empty: { borderWidth: 1, borderColor: colors.border, padding: Space.xl, gap: Space.lg },
 });

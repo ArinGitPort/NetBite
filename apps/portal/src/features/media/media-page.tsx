@@ -108,7 +108,7 @@ export function Assets() {
         detail="Uploaded images support recognition. Networking values and calculated facts remain displayed directly in the Android app."
       />
       {notice ? (
-        <div className="mb-4 rounded-control border border-signal-green/60 bg-signal-green-soft p-3 text-sm text-[#abd2c8]">
+        <div className="mb-4 rounded-control border border-signal-green/60 bg-signal-green-soft p-3 text-sm text-signal-green">
           {notice}
         </div>
       ) : null}
@@ -190,7 +190,7 @@ export function Assets() {
                   </small>
                 </div>
                 <ConfirmAction
-                  className="grid size-11 place-items-center rounded-control border border-signal-red/60 bg-signal-red-soft text-[#ff858a] hover:border-signal-red [&_svg]:size-[18px]"
+                  className="grid size-11 place-items-center rounded-control border border-signal-red/60 bg-signal-red-soft text-signal-red hover:border-signal-red [&_svg]:size-[18px]"
                   ariaLabel="Delete image"
                   confirmLabel="DELETE IMAGE"
                   detail="This permanently removes the unpublished image from draft storage."

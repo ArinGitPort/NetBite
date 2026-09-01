@@ -6,7 +6,8 @@ import { AppButton } from '@/shared/components/app-button';
 import { PageHeader } from '@/shared/components/page-header';
 import { Text } from '@/shared/components/console-text';
 import { Screen } from '@/shared/components/screen';
-import { Fonts, Palette, Space } from '@/shared/theme';
+import { Fonts, Space, type ThemeColors } from '@/shared/theme';
+import { useThemeStyles } from '@/shared/theme-context';
 import { useGameStore } from '@/store/use-game-store';
 import { AppRoutes } from '@/shared/routes';
 
@@ -26,6 +27,7 @@ const questions = [
 ] as const;
 
 export default function ReadinessScreen() {
+  const styles = useThemeStyles(createStyles);
   const save = useGameStore((state) => state.saveReadinessScore);
   const [index, setIndex] = useState(0);
   const [answers, setAnswers] = useState<string[]>([]);
@@ -38,5 +40,5 @@ export default function ReadinessScreen() {
   return <Screen header={header}><Text variant="label" style={styles.eyebrow}>PREREQUISITE DIAGNOSTIC / {index + 1} OF 12</Text><Text variant="screenTitle" style={styles.title}>CHECK YOUR FOUNDATION</Text><Text variant="body" style={styles.copy}>{prompt}</Text><View style={styles.answers}>{[a,b,c].map((choice) => <Pressable key={choice} accessibilityRole="radio" accessibilityState={{ checked: selected === choice }} onPress={() => setSelected(choice)} style={[styles.choice, selected === choice && styles.choiceSelected]}><Text variant="label" style={styles.choiceText}>{choice}</Text></Pressable>)}</View><AppButton disabled={!selected} label="Submit answer" onPress={() => { if (!selected) return; setAnswers((values) => [...values, selected]); setSelected(undefined); setIndex((value) => value + 1); }} /><Text variant="technical" style={styles.note}>NO PENALTY / RESULT IDENTIFIES WHETHER COURSE 2 PREREQUISITES ARE READY</Text></Screen>;
 }
 
-const styles = StyleSheet.create({ eyebrow: { color: Palette.orange, marginTop: Space.xl }, title: { color: Palette.text, fontFamily: Fonts.semibold, marginVertical: Space.md }, copy: { color: Palette.textMuted }, answers: { gap: Space.sm, marginVertical: Space.xl }, choice: { minHeight: 52, borderWidth: 1, borderColor: Palette.border, padding: Space.md, justifyContent: 'center' }, choiceSelected: { borderColor: Palette.orange, backgroundColor: Palette.orangeSoft }, choiceText: { color: Palette.text }, feedback: { color: Palette.orange, borderWidth: 1, borderColor: Palette.orange, padding: Space.md, marginVertical: Space.lg }, note: { color: Palette.textMuted, marginTop: Space.lg } });
+const createStyles = (colors: ThemeColors) => StyleSheet.create({ eyebrow: { color: colors.orange, marginTop: Space.xl }, title: { color: colors.text, fontFamily: Fonts.semibold, marginVertical: Space.md }, copy: { color: colors.textMuted }, answers: { gap: Space.sm, marginVertical: Space.xl }, choice: { minHeight: 52, borderWidth: 1, borderColor: colors.border, padding: Space.md, justifyContent: 'center' }, choiceSelected: { borderColor: colors.orange, backgroundColor: colors.orangeSoft }, choiceText: { color: colors.text }, feedback: { color: colors.orange, borderWidth: 1, borderColor: colors.orange, padding: Space.md, marginVertical: Space.lg }, note: { color: colors.textMuted, marginTop: Space.lg } });
 

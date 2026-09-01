@@ -13,10 +13,12 @@ import { Text } from '@/shared/components/console-text';
 import { Screen } from '@/shared/components/screen';
 import { returnToMenu } from '@/shared/navigation';
 import { AppRoutes } from '@/shared/routes';
-import { Fonts, Palette, Space } from '@/shared/theme';
+import { Fonts, Space, type ThemeColors } from '@/shared/theme';
+import { useThemeStyles } from '@/shared/theme-context';
 import { useGameStore } from '@/store/use-game-store';
 
 export default function CourseLibraryScreen() {
+  const styles = useThemeStyles(createStyles);
   const { hasContentAccess, presentationActive, testProEnabled } = useAuth();
   const accessBypass = presentationActive || testProEnabled;
   const state = useGameStore();
@@ -59,4 +61,4 @@ export default function CourseLibraryScreen() {
   </Screen>;
 }
 
-const styles = StyleSheet.create({ hero: { marginVertical: Space.xl, gap: Space.sm }, eyebrow: { color: Palette.orange }, title: { color: Palette.text, fontFamily: Fonts.semibold }, detail: { color: Palette.textMuted }, list: { gap: Space.lg } });
+const createStyles = (colors: ThemeColors) => StyleSheet.create({ hero: { marginVertical: Space.xl, gap: Space.sm }, eyebrow: { color: colors.orange }, title: { color: colors.text, fontFamily: Fonts.semibold }, detail: { color: colors.textMuted }, list: { gap: Space.lg } });

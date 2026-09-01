@@ -10,9 +10,11 @@ import { PageHeader } from '@/shared/components/page-header';
 import { Screen } from '@/shared/components/screen';
 import { goBackOrReplace } from '@/shared/navigation';
 import { AppRoutes } from '@/shared/routes';
-import { Fonts, Palette, Space } from '@/shared/theme';
+import { Fonts, Space, type ThemeColors } from '@/shared/theme';
+import { useThemeStyles } from '@/shared/theme-context';
 
 export default function RegisterScreen() {
+  const styles = useThemeStyles(createStyles);
   const { configured, registerEmail } = useAuth();
   const [name, setName] = useState(''); const [email, setEmail] = useState(''); const [password, setPassword] = useState('');
   const [message, setMessage] = useState<string>(); const [busy, setBusy] = useState(false);
@@ -43,8 +45,8 @@ export default function RegisterScreen() {
     </View>
   </Screen>;
 }
-const styles = StyleSheet.create({
-  header: { marginVertical: Space.xl, gap: Space.sm }, eyebrow: { color: Palette.green }, title: { color: Palette.text, fontFamily: Fonts.semibold },
-  form: { gap: Space.md, padding: Space.lg, borderWidth: 1, borderColor: Palette.border, backgroundColor: Palette.surface },
-  muted: { color: Palette.textMuted }, message: { color: Palette.orange },
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
+  header: { marginVertical: Space.xl, gap: Space.sm }, eyebrow: { color: colors.green }, title: { color: colors.text, fontFamily: Fonts.semibold },
+  form: { gap: Space.md, padding: Space.lg, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface },
+  muted: { color: colors.textMuted }, message: { color: colors.orange },
 });

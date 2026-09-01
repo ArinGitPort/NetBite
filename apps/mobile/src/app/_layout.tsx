@@ -23,6 +23,7 @@ import { BootstrapScreen } from '@/shared/components/bootstrap-screen';
 import { Text } from '@/shared/components/console-text';
 import { Screen } from '@/shared/components/screen';
 import { getRecoveryMessage } from '@/shared/learner-facing-copy';
+import { ThemeProvider, useTheme } from '@/shared/theme-context';
 import { useGameStore } from '@/store/use-game-store';
 import { useExperienceStore } from '@/store/use-experience-store';
 import { gameStorage } from '@/store/game-storage';
@@ -33,27 +34,29 @@ import { useOperationsLabStore } from '@/store/use-operations-lab-store';
 import { useProtocolLabStore } from '@/store/use-protocol-lab-store';
 import { useStandardsStore } from '@/store/use-standards-store';
 import { useWorkshopStore } from '@/store/use-workshop-store';
+import { useThemeStore } from '@/store/use-theme-store';
 
 SplashScreen.preventAutoHideAsync();
 if (!isRunningInExpoGo()) SplashScreen.setOptions({ duration: 450, fade: true });
 
 function ResolvedApplication() {
+  const { colors, resolvedTheme } = useTheme();
   const { status, continueAsGuest, error } = useAuth();
   const { resolved: contentResolved, runtimeKey } = useContentDelivery();
   if (!contentResolved) return <BootstrapScreen phase="storage" detail="Loading the latest verified learning materials from this device." />;
   if (status === 'loading') return <BootstrapScreen phase="auth" detail={error ?? 'Checking whether your online backup is available. You can continue offline at any time.'} onContinue={continueAsGuest} />;
   return (
-    <View style={styles.application}>
-      <StatusBar style="light" />
+    <View style={[styles.application, { backgroundColor: colors.background }]}>
+      <StatusBar style={resolvedTheme === 'dark' ? 'light' : 'dark'} />
       <PresentationBanner />
       <ResearchBanner />
-      <View style={styles.stack}><Stack key={runtimeKey} screenOptions={{ headerShown: false, animation: 'slide_from_right', contentStyle: { backgroundColor: '#151216' } }} /></View>
+      <View style={styles.stack}><Stack key={`${runtimeKey}-${resolvedTheme}`} screenOptions={{ headerShown: false, animation: 'slide_from_right', contentStyle: { backgroundColor: colors.background } }} /></View>
       <ProgressMergeModal />
     </View>
   );
 }
 
-export default function RootLayout() {
+function RootLayoutContent() {
   const [fontsLoaded, fontError] = useFonts({
     FiraCode_400Regular,
     FiraCode_500Medium,
@@ -75,6 +78,7 @@ export default function RootLayout() {
         { id: 'protocol-labs', hydrate: useProtocolLabStore.persist.rehydrate, hasHydrated: useProtocolLabStore.persist.hasHydrated },
         { id: 'standards', hydrate: useStandardsStore.persist.rehydrate, hasHydrated: useStandardsStore.persist.hasHydrated },
         { id: 'workshops', hydrate: useWorkshopStore.persist.rehydrate, hasHydrated: useWorkshopStore.persist.hasHydrated },
+        { id: 'theme', hydrate: useThemeStore.persist.rehydrate, hasHydrated: useThemeStore.persist.hasHydrated },
       ]);
       if (!active) return;
       if (result.status === 'failed') {
@@ -104,6 +108,10 @@ export default function RootLayout() {
   );
 }
 
+export default function RootLayout() {
+  return <ThemeProvider><RootLayoutContent /></ThemeProvider>;
+}
+
 async function preserveRecoveryCopy() {
   const recovery = {
     createdAt: new Date().toISOString(),
@@ -115,9 +123,10 @@ async function preserveRecoveryCopy() {
     protocolLabs: await gameStorage.getItem('netbite-protocol-labs-v1'),
     standards: await gameStorage.getItem('netbite-standards-cache-v1'),
     workshops: await gameStorage.getItem('netbite-workshops-v1'),
+    theme: await gameStorage.getItem('netbite-theme-v1'),
   };
   await gameStorage.setItem(`netbite-recovery-${Date.now()}`, JSON.stringify(recovery));
-  await Promise.all([useGameStore.persist.clearStorage(), useSandboxStore.persist.clearStorage(), usePresentationStore.persist.clearStorage(), useResearchStore.persist.clearStorage(), useOperationsLabStore.persist.clearStorage(), useProtocolLabStore.persist.clearStorage(), useStandardsStore.persist.clearStorage(), useWorkshopStore.persist.clearStorage()]);
+  await Promise.all([useGameStore.persist.clearStorage(), useSandboxStore.persist.clearStorage(), usePresentationStore.persist.clearStorage(), useResearchStore.persist.clearStorage(), useOperationsLabStore.persist.clearStorage(), useProtocolLabStore.persist.clearStorage(), useStandardsStore.persist.clearStorage(), useWorkshopStore.persist.clearStorage(), useThemeStore.persist.clearStorage()]);
   useGameStore.getState().resetLearningProgress();
   useGameStore.getState().resetLab();
   useSandboxStore.setState({ workspace: createEmptySandboxWorkspace(), guideSeen: false, past: [], future: [] });

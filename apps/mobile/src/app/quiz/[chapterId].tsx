@@ -17,11 +17,13 @@ import { PageHeader } from '@/shared/components/page-header';
 import { ProgressBar } from '@/shared/components/progress-bar';
 import { Screen } from '@/shared/components/screen';
 import { successHaptic, warningHaptic } from '@/shared/haptics';
-import { Fonts, Palette, Radius, Space } from '@/shared/theme';
+import { Fonts, Radius, Space, type ThemeColors } from '@/shared/theme';
+import { useThemeStyles } from '@/shared/theme-context';
 import { useGameStore } from '@/store/use-game-store';
 import { returnToOwningChapter } from '@/shared/navigation';
 
 export default function QuizScreen() {
+  const styles = useThemeStyles(createStyles);
   const { hasContentAccess, presentationActive, testProEnabled } = useAuth();
   const accessBypass = presentationActive || testProEnabled;
   const progress = useGameStore();
@@ -150,34 +152,34 @@ export default function QuizScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', marginBottom: Space.xxl },
   progress: { flex: 1 },
-  count: { width: 56, textAlign: 'right', color: Palette.textMuted },
-  eyebrow: { color: Palette.accentBright, fontFamily: Fonts.medium },
-  question: { color: Palette.text, fontFamily: Fonts.semibold, textTransform: 'uppercase', marginTop: Space.sm, marginBottom: Space.xl },
+  count: { width: 56, textAlign: 'right', color: colors.textMuted },
+  eyebrow: { color: colors.accentBright, fontFamily: Fonts.medium },
+  question: { color: colors.text, fontFamily: Fonts.semibold, textTransform: 'uppercase', marginTop: Space.sm, marginBottom: Space.xl },
   answers: { gap: Space.md },
-  answer: { minHeight: 56, flexDirection: 'row', alignItems: 'center', padding: Space.md, borderRadius: Radius.md, backgroundColor: Palette.surface, borderWidth: 1, borderColor: Palette.border },
-  answerLetter: { width: 32, height: 32, borderRadius: Radius.sm, backgroundColor: Palette.accentSoft, alignItems: 'center', justifyContent: 'center' },
-  answerLetterText: { color: Palette.text },
-  answerText: { flex: 1, minWidth: 0, marginLeft: Space.md, color: Palette.text },
-  correctAnswer: { borderColor: Palette.green, backgroundColor: Palette.surface },
-  wrongAnswer: { borderColor: Palette.danger, backgroundColor: Palette.surface },
-  correctLetter: { backgroundColor: Palette.greenSoft },
-  wrongLetter: { backgroundColor: Palette.dangerSoft },
-  pressed: { backgroundColor: Palette.accentSoft },
+  answer: { minHeight: 56, flexDirection: 'row', alignItems: 'center', padding: Space.md, borderRadius: Radius.md, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
+  answerLetter: { width: 32, height: 32, borderRadius: Radius.sm, backgroundColor: colors.accentSoft, alignItems: 'center', justifyContent: 'center' },
+  answerLetterText: { color: colors.text },
+  answerText: { flex: 1, minWidth: 0, marginLeft: Space.md, color: colors.text },
+  correctAnswer: { borderColor: colors.green, backgroundColor: colors.greenSoft },
+  wrongAnswer: { borderColor: colors.danger, backgroundColor: colors.dangerSoft },
+  correctLetter: { backgroundColor: colors.greenSoft },
+  wrongLetter: { backgroundColor: colors.dangerSoft },
+  pressed: { backgroundColor: colors.accentSoft },
   explanation: { padding: Space.lg, borderRadius: Radius.md, borderWidth: 1, marginTop: Space.xl },
-  correctExplanation: { backgroundColor: Palette.surface, borderColor: Palette.green },
-  wrongExplanation: { backgroundColor: Palette.surface, borderColor: Palette.orange },
-  explanationTitle: { color: Palette.text, fontFamily: Fonts.medium },
-  explanationText: { color: Palette.text, marginTop: Space.xs },
+  correctExplanation: { backgroundColor: colors.greenSoft, borderColor: colors.green },
+  wrongExplanation: { backgroundColor: colors.orangeSoft, borderColor: colors.orange },
+  explanationTitle: { color: colors.text, fontFamily: Fonts.medium },
+  explanationText: { color: colors.text, marginTop: Space.xs },
   spacer: { flex: 1, minHeight: Space.xl },
   resultHero: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 64 },
-  statusBlock: { width: 48, height: 32, borderWidth: 1, borderColor: Palette.green, alignItems: 'center', justifyContent: 'center' },
-  statusBlockAttempted: { borderColor: Palette.orange },
-  resultEyebrow: { color: Palette.green, fontFamily: Fonts.medium, marginTop: Space.xl },
-  resultEyebrowAttempted: { color: Palette.orange },
-  resultTitle: { color: Palette.text, fontFamily: Fonts.semibold, marginTop: Space.sm },
-  resultCopy: { color: Palette.textMuted, textAlign: 'center', marginTop: Space.md, maxWidth: 360 },
+  statusBlock: { width: 48, height: 32, borderWidth: 1, borderColor: colors.green, alignItems: 'center', justifyContent: 'center' },
+  statusBlockAttempted: { borderColor: colors.orange },
+  resultEyebrow: { color: colors.green, fontFamily: Fonts.medium, marginTop: Space.xl },
+  resultEyebrowAttempted: { color: colors.orange },
+  resultTitle: { color: colors.text, fontFamily: Fonts.semibold, marginTop: Space.sm },
+  resultCopy: { color: colors.textMuted, textAlign: 'center', marginTop: Space.md, maxWidth: 360 },
   resultActions: { gap: Space.md },
 });

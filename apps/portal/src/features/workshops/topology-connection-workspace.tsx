@@ -50,7 +50,7 @@ export function TopologyConnectionWorkspace(props: ConnectionWorkspaceProps) {
             <div className="grid gap-1">
               <span className="font-mono text-[0.62rem] tracking-[0.08em] text-signal-orange">SELECTED CONNECTION</span>
               <strong className="text-base text-copy">{props.endpoint(selectedLink, "from").deviceName} {props.endpoint(selectedLink, "from").interfaceName} — {props.endpoint(selectedLink, "to").deviceName} {props.endpoint(selectedLink, "to").interfaceName}</strong>
-              {hasWorkshopLinkPurposeConflict(selectedLink) ? <span className="text-xs text-[#f1ae78]">Needs attention: choose one connection purpose.</span> : null}
+              {hasWorkshopLinkPurposeConflict(selectedLink) ? <span className="text-xs text-signal-orange">Needs attention: choose one connection purpose.</span> : null}
             </div>
             <Button onClick={() => props.onEditEndpoints(selectedLink.id)} size="compact" tone="outline"><Cable />Change endpoints</Button>
           </header>

@@ -24,10 +24,12 @@ import { IconButton } from '@/shared/components/icon-button';
 import { PageHeader } from '@/shared/components/page-header';
 import { ProgressBar } from '@/shared/components/progress-bar';
 import { Screen } from '@/shared/components/screen';
+import { StudyNavigation } from '@/shared/components/study-navigation';
 import { SegmentedControl } from '@/shared/components/segmented-control';
 import { selectionHaptic, successHaptic } from '@/shared/haptics';
 import { useAppReducedMotion } from '@/shared/use-app-reduced-motion';
-import { Fonts, Palette, Radius, Space } from '@/shared/theme';
+import { Fonts, Radius, Space, type ThemeColors } from '@/shared/theme';
+import { useThemeStyles } from '@/shared/theme-context';
 import { useExperienceStore, type FlashcardOrientation } from '@/store/use-experience-store';
 import { useGameStore } from '@/store/use-game-store';
 import { returnToOwningChapter } from '@/shared/navigation';
@@ -55,6 +57,7 @@ function SwipeableCard({ children, onNext, onPrevious }: PropsWithChildren<{ onN
 }
 
 export default function FlashcardsScreen() {
+  const styles = useThemeStyles(createStyles);
   const { hasContentAccess, presentationActive, testProEnabled } = useAuth();
   const accessBypass = presentationActive || testProEnabled;
   const progress = useGameStore();
@@ -305,10 +308,11 @@ export default function FlashcardsScreen() {
           </View>
         </Pressable>
       </SwipeableCard>
-      <View style={styles.browseActions}>
-        <AppButton disabled={cardIndex === 0} label="Previous" leadingIcon="arrow-left" style={styles.browseButton} variant="utility" onPress={showPreviousCard} />
-        <AppButton disabled={cardIndex >= chapter.flashcards.length - 1} label="Next" trailingIcon="arrow-right" style={styles.browseButton} variant="utility" onPress={showNextCard} />
-      </View>
+      <StudyNavigation
+        previous={{ label: 'Previous', disabled: cardIndex === 0, onPress: showPreviousCard }}
+        next={{ label: 'Next', disabled: cardIndex >= chapter.flashcards.length - 1, onPress: showNextCard }}
+        style={styles.browseActions}
+      />
       <Modal animationType="fade" onRequestClose={() => setOptionsVisible(false)} statusBarTranslucent transparent visible={optionsVisible}>
         <View style={styles.optionsBackdrop}>
           <View accessibilityViewIsModal style={styles.optionsPanel}>
@@ -338,39 +342,38 @@ export default function FlashcardsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', marginBottom: Space.xl },
   progress: { flex: 1 },
-  count: { width: 64, textAlign: 'right', color: Palette.textMuted },
+  count: { width: 64, textAlign: 'right', color: colors.textMuted },
   sessionStatus: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: Space.sm },
-  modeLabel: { color: Palette.accentBright, fontFamily: Fonts.medium },
-  queueCount: { color: Palette.textMuted },
-  deckReviewed: { marginTop: Space.md, padding: Space.md, borderWidth: 1, borderColor: Palette.green, backgroundColor: Palette.greenSoft },
-  deckReviewedTitle: { color: Palette.green, fontFamily: Fonts.medium },
-  deckReviewedCopy: { color: Palette.text, marginTop: Space.xs },
+  modeLabel: { color: colors.accentBright, fontFamily: Fonts.medium },
+  queueCount: { color: colors.textMuted },
+  deckReviewed: { marginTop: Space.md, padding: Space.md, borderWidth: 1, borderColor: colors.green, backgroundColor: colors.greenSoft },
+  deckReviewedTitle: { color: colors.green, fontFamily: Fonts.medium },
+  deckReviewedCopy: { color: colors.text, marginTop: Space.xs },
   headerActions: { minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: Space.xs },
-  instructions: { color: Palette.textMuted, marginTop: Space.sm, marginBottom: Space.lg },
+  instructions: { color: colors.textMuted, marginTop: Space.sm, marginBottom: Space.lg },
   cardPressable: { minHeight: 380 },
   cardScene: { flex: 1, minHeight: 380 },
-  cardFace: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, minHeight: 380, borderRadius: Radius.lg, borderWidth: 1, borderColor: Palette.border, padding: Space.lg, alignItems: 'center', justifyContent: 'center', backfaceVisibility: 'hidden' },
-  cardFront: { backgroundColor: Palette.surfaceRaised, borderTopColor: Palette.accent, borderTopWidth: 2 },
-  cardBack: { backgroundColor: Palette.surfaceRaised, borderTopColor: Palette.orange, borderTopWidth: 2 },
+  cardFace: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, minHeight: 380, borderRadius: Radius.lg, borderWidth: 1, borderColor: colors.border, padding: Space.lg, alignItems: 'center', justifyContent: 'center', backfaceVisibility: 'hidden' },
+  cardFront: { backgroundColor: colors.surfaceRaised, borderTopColor: colors.accent, borderTopWidth: 2 },
+  cardBack: { backgroundColor: colors.surfaceRaised, borderTopColor: colors.orange, borderTopWidth: 2 },
   noPointerEvents: { pointerEvents: 'none' },
-  cardLabel: { color: Palette.accentBright, fontFamily: Fonts.medium },
-  prompt: { color: Palette.white, textAlign: 'center', fontFamily: Fonts.semibold, marginTop: Space.lg },
-  answer: { color: Palette.white, textAlign: 'center', marginTop: Space.lg },
-  tapHint: { position: 'absolute', bottom: Space.lg, color: Palette.textMuted, fontFamily: Fonts.regular, textAlign: 'center' },
-  explanation: { alignSelf: 'stretch', minWidth: 0, backgroundColor: Palette.surface, borderWidth: 1, borderColor: Palette.border, padding: Space.lg, borderRadius: Radius.md, marginTop: Space.xxl },
-  explanationLabel: { color: Palette.orange, fontFamily: Fonts.medium },
-  explanationText: { color: Palette.white, marginTop: Space.xs },
+  cardLabel: { color: colors.accentBright, fontFamily: Fonts.medium },
+  prompt: { color: colors.text, textAlign: 'center', fontFamily: Fonts.semibold, marginTop: Space.lg },
+  answer: { color: colors.text, textAlign: 'center', marginTop: Space.lg },
+  tapHint: { position: 'absolute', bottom: Space.lg, color: colors.textMuted, fontFamily: Fonts.regular, textAlign: 'center' },
+  explanation: { alignSelf: 'stretch', minWidth: 0, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, padding: Space.lg, borderRadius: Radius.md, marginTop: Space.xxl },
+  explanationLabel: { color: colors.orange, fontFamily: Fonts.medium },
+  explanationText: { color: colors.text, marginTop: Space.xs },
   pressed: { opacity: 0.85 },
-  browseActions: { flexDirection: 'row', gap: Space.sm, marginTop: Space.md, marginBottom: Space.md },
-  browseButton: { flex: 1, minWidth: 0 },
+  browseActions: { width: '100%', minWidth: 0, marginTop: Space.md, marginBottom: Space.md },
   optionsBackdrop: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: Space.xl, backgroundColor: 'rgba(10, 8, 11, 0.84)' },
-  optionsPanel: { width: '100%', maxWidth: 460, gap: Space.lg, padding: Space.xl, backgroundColor: Palette.surfaceRaised, borderWidth: 1, borderColor: Palette.border },
+  optionsPanel: { width: '100%', maxWidth: 460, gap: Space.lg, padding: Space.xl, backgroundColor: colors.surfaceRaised, borderWidth: 1, borderColor: colors.border },
   optionsHeader: { minHeight: 44, flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: Space.md },
   optionsHeading: { minWidth: 0, flex: 1 },
-  optionsEyebrow: { color: Palette.accentBright, fontFamily: Fonts.medium },
-  optionsTitle: { color: Palette.text, fontFamily: Fonts.semibold, marginTop: Space.xs },
-  optionsCopy: { color: Palette.textMuted },
+  optionsEyebrow: { color: colors.accentBright, fontFamily: Fonts.medium },
+  optionsTitle: { color: colors.text, fontFamily: Fonts.semibold, marginTop: Space.xs },
+  optionsCopy: { color: colors.textMuted },
 });

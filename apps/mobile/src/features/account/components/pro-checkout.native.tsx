@@ -11,7 +11,8 @@ import { createProPayment } from '@/services/payments';
 import { AppButton } from '@/shared/components/app-button';
 import { Text } from '@/shared/components/console-text';
 import { AppRoutes } from '@/shared/routes';
-import { Palette, Space } from '@/shared/theme';
+import { Space, type ThemeColors } from '@/shared/theme';
+import { useThemeStyles } from '@/shared/theme-context';
 
 const stripeKey = process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY;
 const wait = (milliseconds: number) => new Promise((resolve) => setTimeout(resolve, milliseconds));
@@ -32,6 +33,7 @@ function pendingCheckoutId(userId: string) {
 }
 
 function NativeCheckout() {
+  const styles = useThemeStyles(createStyles);
   const { initPaymentSheet, presentPaymentSheet } = useStripe();
   const { user, refreshEntitlement } = useAuth();
   const [purchaseStatus, setPurchaseStatus] = useState<PurchaseStatus>('idle');
@@ -111,6 +113,7 @@ function NativeCheckout() {
 }
 
 export function ProCheckout() {
+  const styles = useThemeStyles(createStyles);
   if (!stripeKey) {
     return <Text variant="bodySmall" style={styles.message}>Add EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY to enable test checkout.</Text>;
   }
@@ -121,6 +124,6 @@ export function ProCheckout() {
   );
 }
 
-const styles = StyleSheet.create({
-  message: { color: Palette.orange, marginBottom: Space.md },
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
+  message: { color: colors.orange, marginBottom: Space.md },
 });

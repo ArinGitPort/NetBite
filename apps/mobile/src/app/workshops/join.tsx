@@ -13,10 +13,13 @@ import { IconButton } from "@/shared/components/icon-button";
 import { PageHeader } from "@/shared/components/page-header";
 import { Screen } from "@/shared/components/screen";
 import { AppRoutes, workshopRoute } from "@/shared/routes";
-import { Fonts, Palette, Space } from "@/shared/theme";
+import { Fonts, Space, type ThemeColors } from "@/shared/theme";
+import { useTheme, useThemeStyles } from "@/shared/theme-context";
 import { useWorkshopStore } from "@/store/use-workshop-store";
 
 export default function JoinClassScreen() {
+  const { colors } = useTheme();
+  const styles = useThemeStyles(createStyles);
   const params = useLocalSearchParams<{ code?: string }>();
   const initialCode = typeof params.code === "string" ? normalizeWorkshopClassCode(params.code) : "";
   const [code, setCode] = useState(initialCode);
@@ -117,7 +120,7 @@ export default function JoinClassScreen() {
             onChangeText={(value) => setCode(normalizeWorkshopClassCode(value))}
             onSubmitEditing={() => { if (status === "authenticated" && code.length >= 6) void join(); }}
             placeholder="ABC234XY"
-            placeholderTextColor={Palette.textMuted}
+            placeholderTextColor={colors.textMuted}
             returnKeyType="join"
             style={styles.input}
             value={code}
@@ -144,19 +147,19 @@ export default function JoinClassScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  eyebrow: { color: Palette.orange },
-  copy: { color: Palette.textMuted, marginVertical: Space.md },
-  panel: { gap: Space.md, borderWidth: 1, borderColor: Palette.border, backgroundColor: Palette.surface, padding: Space.lg },
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
+  eyebrow: { color: colors.orange },
+  copy: { color: colors.textMuted, marginVertical: Space.md },
+  panel: { gap: Space.md, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, padding: Space.lg },
   methodHeading: { gap: Space.xs },
-  input: { minHeight: 56, borderWidth: 1, borderColor: Palette.border, backgroundColor: Palette.background, paddingHorizontal: Space.md, color: Palette.white, fontFamily: Fonts.semibold, fontSize: 18, letterSpacing: 3 },
-  hint: { color: Palette.textMuted },
-  error: { color: Palette.danger },
+  input: { minHeight: 56, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.background, paddingHorizontal: Space.md, color: colors.text, fontFamily: Fonts.semibold, fontSize: 18, letterSpacing: 3 },
+  hint: { color: colors.textMuted },
+  error: { color: colors.danger },
   dividerRow: { flexDirection: "row", alignItems: "center", gap: Space.sm },
-  divider: { height: 1, flex: 1, backgroundColor: Palette.border },
-  dividerLabel: { color: Palette.textMuted },
+  divider: { height: 1, flex: 1, backgroundColor: colors.border },
+  dividerLabel: { color: colors.textMuted },
   scannerHeading: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", gap: Space.md },
   scannerTitle: { minWidth: 0, flex: 1, gap: Space.xs },
-  cameraFrame: { height: 320, overflow: "hidden", borderWidth: 1, borderColor: Palette.border, backgroundColor: Palette.background },
-  scanTarget: { position: "absolute", width: 220, height: 220, alignSelf: "center", top: 50, borderWidth: 2, borderColor: Palette.orange, backgroundColor: "transparent" },
+  cameraFrame: { height: 320, overflow: "hidden", borderWidth: 1, borderColor: colors.border, backgroundColor: colors.background },
+  scanTarget: { position: "absolute", width: 220, height: 220, alignSelf: "center", top: 50, borderWidth: 2, borderColor: colors.orange, backgroundColor: "transparent" },
 });

@@ -3,13 +3,15 @@ import { Pressable, StyleSheet, View } from "react-native";
 
 import type { WorkshopLessonBlock } from "@/core/workshops/types";
 import { Text } from "@/shared/components/console-text";
-import { Fonts, Palette, Space } from "@/shared/theme";
+import { Fonts, Space, type ThemeColors } from "@/shared/theme";
+import { useThemeStyles } from "@/shared/theme-context";
 
 export function WorkshopCommandBlock({
   block,
 }: {
   block: WorkshopLessonBlock;
 }) {
+  const styles = useThemeStyles(createStyles);
   const [expanded, setExpanded] = useState(false);
   const groups = block.commandGroups ?? [];
   const lineCount = groups.reduce(
@@ -66,11 +68,11 @@ export function WorkshopCommandBlock({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   shell: {
     borderWidth: 1,
-    borderColor: Palette.border,
-    backgroundColor: Palette.surface,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
   },
   trigger: {
     minHeight: 56,
@@ -81,33 +83,33 @@ const styles = StyleSheet.create({
     gap: Space.md,
   },
   triggerCopy: { flex: 1, gap: Space.xs },
-  label: { color: Palette.orange },
-  muted: { color: Palette.textMuted },
+  label: { color: colors.orange },
+  muted: { color: colors.textMuted },
   action: {
-    color: Palette.white,
+    color: colors.text,
     fontFamily: Fonts.semibold,
     textAlign: "right",
   },
   content: {
     borderTopWidth: 1,
-    borderTopColor: Palette.border,
+    borderTopColor: colors.border,
     padding: Space.md,
     gap: Space.lg,
   },
   group: { gap: Space.sm },
   commands: {
-    color: Palette.text,
-    backgroundColor: Palette.background,
+    color: colors.text,
+    backgroundColor: colors.background,
     borderWidth: 1,
-    borderColor: Palette.border,
+    borderColor: colors.border,
     padding: Space.md,
     lineHeight: 21,
   },
-  explanation: { color: Palette.textMuted },
+  explanation: { color: colors.textMuted },
   notice: {
-    color: Palette.textMuted,
+    color: colors.textMuted,
     borderTopWidth: 1,
-    borderTopColor: Palette.border,
+    borderTopColor: colors.border,
     paddingTop: Space.md,
   },
 });

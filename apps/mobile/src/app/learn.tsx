@@ -17,11 +17,14 @@ import { Text } from '@/shared/components/console-text';
 import { ProgressBar } from '@/shared/components/progress-bar';
 import { Screen } from '@/shared/components/screen';
 import { AppRoutes } from '@/shared/routes';
-import { Fonts, Palette, Radius, Space } from '@/shared/theme';
+import { Fonts, Radius, Space, type ThemeColors } from '@/shared/theme';
+import { useTheme, useThemeStyles } from '@/shared/theme-context';
 import { useGameStore } from '@/store/use-game-store';
 import { useResearchStore } from '@/store/use-research-store';
 
 export default function LearningHomeScreen() {
+  const { colors } = useTheme();
+  const styles = useThemeStyles(createStyles);
   const { courseId: routeCourseId } = useLocalSearchParams<{ courseId?: string }>();
   const courseId: CourseId = routeCourseId === 'network-operations' ? 'network-operations' : 'network-foundations';
   const course = getCourse(courseId)!;
@@ -53,9 +56,9 @@ export default function LearningHomeScreen() {
   };
 
   const learningTools: { color: string; detail: string; icon: SemanticIconName; label: string; onPress: () => void; softColor: string; status: string }[] = [
-    { label: 'Progress & Review', status: 'LEARNING STATUS', detail: 'Mastery, weak topics, and recent activity', icon: 'quiz', color: Palette.accentBright, softColor: Palette.accentSoft, onPress: () => router.push(AppRoutes.progress) },
-    { label: 'Saved Learning', status: 'YOUR BOOKMARKS', detail: 'Bookmarked lessons and references', icon: 'bookmark', color: Palette.green, softColor: Palette.greenSoft, onPress: () => router.push(AppRoutes.saved) },
-    { label: 'Network Rulebook', status: 'OFFICIAL SOURCES', detail: 'See where ARP, DHCP, TCP, and other networking rules come from', icon: 'lesson', color: Palette.orange, softColor: Palette.orangeSoft, onPress: () => router.push(AppRoutes.standards) },
+    { label: 'Progress & Review', status: 'LEARNING STATUS', detail: 'Mastery, weak topics, and recent activity', icon: 'quiz', color: colors.accentBright, softColor: colors.accentSoft, onPress: () => router.push(AppRoutes.progress) },
+    { label: 'Saved Learning', status: 'YOUR BOOKMARKS', detail: 'Bookmarked lessons and references', icon: 'bookmark', color: colors.green, softColor: colors.greenSoft, onPress: () => router.push(AppRoutes.saved) },
+    { label: 'Network Rulebook', status: 'OFFICIAL SOURCES', detail: 'See where ARP, DHCP, TCP, and other networking rules come from', icon: 'lesson', color: colors.orange, softColor: colors.orangeSoft, onPress: () => router.push(AppRoutes.standards) },
   ];
 
   return (
@@ -125,45 +128,45 @@ export default function LearningHomeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  brand: { color: Palette.textMuted },
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
+  brand: { color: colors.textMuted },
   hero: { marginBottom: Space.xxl },
-  title: { color: Palette.text, fontFamily: Fonts.semibold },
-  subtitle: { color: Palette.textMuted, marginTop: Space.md, maxWidth: 430 },
-  continueCard: { backgroundColor: Palette.surface, borderRadius: Radius.lg, padding: Space.xl, gap: Space.lg, borderWidth: 1, borderColor: Palette.border },
+  title: { color: colors.text, fontFamily: Fonts.semibold },
+  subtitle: { color: colors.textMuted, marginTop: Space.md, maxWidth: 430 },
+  continueCard: { backgroundColor: colors.surface, borderRadius: Radius.lg, padding: Space.xl, gap: Space.lg, borderWidth: 1, borderColor: colors.border },
   cardTop: { flexDirection: 'row', alignItems: 'center' },
-  chapterBadge: { width: 48, height: 48, borderRadius: Radius.md, backgroundColor: Palette.greenSoft, borderWidth: 1, borderColor: Palette.green, alignItems: 'center', justifyContent: 'center' },
-  chapterBadgeText: { color: Palette.green, fontFamily: Fonts.semibold },
+  chapterBadge: { width: 48, height: 48, borderRadius: Radius.md, backgroundColor: colors.greenSoft, borderWidth: 1, borderColor: colors.green, alignItems: 'center', justifyContent: 'center' },
+  chapterBadgeText: { color: colors.green, fontFamily: Fonts.semibold },
   cardTitleGroup: { flex: 1, minWidth: 0, marginLeft: Space.md },
-  cardEyebrow: { color: Palette.textMuted, fontFamily: Fonts.medium },
-  cardTitle: { color: Palette.text, fontFamily: Fonts.semibold, marginTop: Space.xs, textTransform: 'uppercase' },
+  cardEyebrow: { color: colors.textMuted, fontFamily: Fonts.medium },
+  cardTitle: { color: colors.text, fontFamily: Fonts.semibold, marginTop: Space.xs, textTransform: 'uppercase' },
   progressRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: Space.xs },
-  muted: { color: Palette.textMuted },
-  progressPercent: { color: Palette.accentBright },
-  sectionTitle: { color: Palette.text, fontFamily: Fonts.semibold, marginTop: Space.xxl, marginBottom: Space.lg },
+  muted: { color: colors.textMuted },
+  progressPercent: { color: colors.accentBright },
+  sectionTitle: { color: colors.accent, fontFamily: Fonts.semibold, marginTop: Space.xxl, marginBottom: Space.lg },
   learningUtilities: { marginTop: Space.md },
-  toolRow: { minHeight: 72, flexDirection: 'row', alignItems: 'center', gap: Space.md, padding: Space.md, borderWidth: 1, borderLeftWidth: 4, borderColor: Palette.border, backgroundColor: Palette.background },
+  toolRow: { minHeight: 72, flexDirection: 'row', alignItems: 'center', gap: Space.md, padding: Space.md, borderWidth: 1, borderLeftWidth: 4, borderColor: colors.border, backgroundColor: colors.background },
   toolIcon: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
   toolCopy: { flex: 1, minWidth: 0 },
   toolStatus: { fontFamily: Fonts.medium, marginBottom: Space.xs },
-  toolTitle: { color: Palette.text, fontFamily: Fonts.semibold, textTransform: 'uppercase' },
-  toolDetail: { color: Palette.textMuted, marginTop: Space.xs },
+  toolTitle: { color: colors.text, fontFamily: Fonts.semibold, textTransform: 'uppercase' },
+  toolDetail: { color: colors.textMuted, marginTop: Space.xs },
   pressed: { opacity: 0.7 },
-  circuit: { position: 'relative', borderWidth: 1, borderColor: Palette.border, backgroundColor: Palette.surface, paddingVertical: Space.sm },
-  pathRail: { position: 'absolute', left: 21, top: 0, bottom: 0, width: 1, backgroundColor: Palette.border },
-  pathRow: { minHeight: 88, flexDirection: 'row', alignItems: 'center', paddingHorizontal: Space.lg, paddingVertical: Space.sm, borderBottomWidth: 1, borderBottomColor: Palette.border },
+  circuit: { position: 'relative', borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, paddingVertical: Space.sm },
+  pathRail: { position: 'absolute', left: 21, top: 0, bottom: 0, width: 1, backgroundColor: colors.border },
+  pathRow: { minHeight: 88, flexDirection: 'row', alignItems: 'center', paddingHorizontal: Space.lg, paddingVertical: Space.sm, borderBottomWidth: 1, borderBottomColor: colors.border },
   lastPathRow: { borderBottomWidth: 0 },
   circuitNode: { width: 12, height: 12, zIndex: 1 },
-  activeNode: { backgroundColor: Palette.active },
-  currentNode: { backgroundColor: Palette.orange, borderWidth: 1, borderColor: Palette.white },
-  completedNode: { backgroundColor: Palette.green },
-  lockedNode: { borderWidth: 1, borderColor: Palette.textMuted, backgroundColor: Palette.background },
+  activeNode: { backgroundColor: colors.active },
+  currentNode: { backgroundColor: colors.orange, borderWidth: 1, borderColor: colors.text },
+  completedNode: { backgroundColor: colors.green },
+  lockedNode: { borderWidth: 1, borderColor: colors.textMuted, backgroundColor: colors.background },
   lockedRow: { opacity: 0.72 },
-  currentPathRow: { borderLeftWidth: 4, borderLeftColor: Palette.orange, backgroundColor: Palette.surfaceRaised },
+  currentPathRow: { borderLeftWidth: 4, borderLeftColor: colors.orange, backgroundColor: colors.surfaceRaised },
   completedPathRow: { opacity: 0.82 },
   pathCopy: { flex: 1, minWidth: 0, marginLeft: Space.lg },
-  pathLabel: { color: Palette.accentBright, fontFamily: Fonts.medium },
-  currentPathLabel: { color: Palette.orange },
-  completedPathLabel: { color: Palette.green },
-  pathTitle: { color: Palette.text, fontFamily: Fonts.medium, marginVertical: Space.xs, textTransform: 'uppercase' },
+  pathLabel: { color: colors.accentBright, fontFamily: Fonts.medium },
+  currentPathLabel: { color: colors.orange },
+  completedPathLabel: { color: colors.green },
+  pathTitle: { color: colors.text, fontFamily: Fonts.medium, marginVertical: Space.xs, textTransform: 'uppercase' },
 });

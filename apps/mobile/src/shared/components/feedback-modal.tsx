@@ -4,7 +4,8 @@ import { AppIcon, type AppIconName } from '@/shared/components/app-icon';
 import { AppButton } from '@/shared/components/app-button';
 import { Text } from '@/shared/components/console-text';
 import { IconButton } from '@/shared/components/icon-button';
-import { Fonts, Palette, Radius, Space } from '@/shared/theme';
+import { Fonts, Radius, Space, type ThemeColors } from '@/shared/theme';
+import { useThemeStyles } from '@/shared/theme-context';
 
 type FeedbackTone = 'neutral' | 'warning' | 'success';
 
@@ -41,6 +42,7 @@ export function FeedbackModal({
   secondaryAction,
   onRequestClose,
 }: FeedbackModalProps) {
+  const styles = useThemeStyles(createStyles);
   const toneStyle = tone === 'success' ? styles.success : tone === 'warning' ? styles.warning : styles.neutral;
 
   return (
@@ -75,7 +77,7 @@ export function FeedbackModal({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   backdrop: {
     flex: 1,
     alignItems: 'center',
@@ -89,11 +91,11 @@ const styles = StyleSheet.create({
     borderRadius: Radius.lg,
     borderWidth: 1,
     padding: Space.xl,
-    backgroundColor: Palette.surfaceRaised,
+    backgroundColor: colors.surfaceRaised,
   },
-  neutral: { borderColor: Palette.border },
-  warning: { borderColor: Palette.orange },
-  success: { borderColor: Palette.green },
+  neutral: { borderColor: colors.border },
+  warning: { borderColor: colors.orange },
+  success: { borderColor: colors.green },
   header: {
     minHeight: 44,
     flexDirection: 'row',
@@ -101,19 +103,19 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   eyebrow: {
-    color: Palette.textMuted,
+    color: colors.textMuted,
     fontFamily: Fonts.medium,
     marginTop: Space.md,
   },
-  warningText: { color: Palette.orange },
-  successText: { color: Palette.green },
+  warningText: { color: colors.orange },
+  successText: { color: colors.green },
   title: {
-    color: Palette.text,
+    color: colors.text,
     fontFamily: Fonts.semibold,
     marginTop: Space.sm,
     textTransform: 'uppercase',
   },
-  message: { color: Palette.text, marginTop: Space.lg },
-  detail: { color: Palette.textMuted, marginTop: Space.sm },
+  message: { color: colors.text, marginTop: Space.lg },
+  detail: { color: colors.textMuted, marginTop: Space.sm },
   actions: { gap: Space.md, marginTop: Space.xl },
 });

@@ -179,7 +179,7 @@ export function LessonEditor({
                   }
                 />
                 <button
-                  className="grid size-11 place-items-center rounded-control border border-signal-red/60 bg-signal-red-soft text-[#ff858a] hover:border-signal-red [&_svg]:size-[18px]"
+                  className="grid size-11 place-items-center rounded-control border border-signal-red/60 bg-signal-red-soft text-signal-red hover:border-signal-red [&_svg]:size-[18px]"
                   aria-label={`Remove section ${index + 1}`}
                   onClick={() =>
                     change({
@@ -203,7 +203,7 @@ export function LessonEditor({
           </Field>
           <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-5">
             <button
-              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-control border border-copy bg-copy px-4 text-xs font-semibold text-canvas hover:bg-white hover:text-canvas disabled:pointer-events-none disabled:border-line/60 disabled:bg-raised/70 disabled:text-muted/75 [&_svg]:size-4"
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-control border border-copy bg-copy px-4 text-xs font-semibold text-canvas hover:bg-copy/85 hover:text-canvas active:bg-copy/75 disabled:pointer-events-none disabled:border-line/60 disabled:bg-raised/70 disabled:text-muted/75 [&_svg]:size-4"
               disabled={busy}
               onClick={() => void save()}
             >
@@ -228,7 +228,7 @@ export function LessonEditor({
             </div>
             <ConfirmAction
               ariaLabel={row.archived ? "Restore lesson" : "Archive lesson"}
-              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-control border border-signal-red/60 bg-transparent px-4 text-xs font-semibold text-[#ff858a] hover:bg-signal-red-soft disabled:pointer-events-none disabled:opacity-45 [&_svg]:size-4"
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-control border border-signal-red/60 bg-transparent px-4 text-xs font-semibold text-signal-red hover:bg-signal-red-soft disabled:pointer-events-none disabled:opacity-45 [&_svg]:size-4"
               confirmLabel={row.archived ? "RESTORE LESSON" : "ARCHIVE LESSON"}
               detail={
                 row.archived
@@ -276,7 +276,7 @@ function MobilePreview({ row }: { row: LessonRow }) {
               <p>{section.body}</p>
             </section>
           ))}
-          <div className="border-l-[3px] border-signal-green bg-signal-green-soft p-4 [&_strong]:text-[#9bc7bc]">
+          <div className="border-l-[3px] border-signal-green bg-signal-green-soft p-4 [&_strong]:text-signal-green">
             <strong>REMEMBER THIS</strong>
             <p>{row.draft.takeaway}</p>
           </div>

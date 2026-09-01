@@ -1,15 +1,19 @@
-import { StyleSheet, TextInput, type TextInputProps, View } from 'react-native';
+import { StyleSheet, TextInput, type StyleProp, type TextInputProps, type TextStyle, View } from 'react-native';
 
 import { Text } from '@/shared/components/console-text';
-import { Fonts, Palette, Space, Typography } from '@/shared/theme';
+import { Fonts, Space, Typography, type ThemeColors } from '@/shared/theme';
+import { useTheme, useThemeStyles } from '@/shared/theme-context';
 
 export interface FormFieldProps extends Omit<TextInputProps, 'style'> {
   label: string;
   help?: string;
   error?: string;
+  inputStyle?: StyleProp<TextStyle>;
 }
 
-export function FormField({ label, help, error, placeholderTextColor = Palette.textMuted, ...inputProps }: FormFieldProps) {
+export function FormField({ label, help, error, inputStyle, placeholderTextColor, ...inputProps }: FormFieldProps) {
+  const { colors } = useTheme();
+  const styles = useThemeStyles(createStyles);
   return (
     <View style={styles.field}>
       <Text variant="technical" style={styles.label}>{label}</Text>
@@ -18,20 +22,20 @@ export function FormField({ label, help, error, placeholderTextColor = Palette.t
         {...inputProps}
         accessibilityHint={inputProps.accessibilityHint ?? help}
         accessibilityLabel={inputProps.accessibilityLabel ?? label}
-        placeholderTextColor={placeholderTextColor}
-        selectionColor={Palette.orange}
-        style={[styles.input, error && styles.inputError]}
+        placeholderTextColor={placeholderTextColor ?? colors.textMuted}
+        selectionColor={colors.orange}
+        style={[styles.input, inputStyle, error && styles.inputError]}
       />
       {error ? <Text accessibilityLiveRegion="assertive" accessibilityRole="alert" variant="bodySmall" style={styles.error}>{error}</Text> : null}
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   field: { minWidth: 0, gap: Space.xs },
-  label: { color: Palette.text, fontFamily: Fonts.medium },
-  help: { color: Palette.textMuted },
-  input: { minWidth: 0, minHeight: 48, borderWidth: 1, borderColor: Palette.border, color: Palette.text, fontFamily: Fonts.regular, paddingHorizontal: Space.md, paddingVertical: Space.sm, ...Typography.body },
-  inputError: { borderColor: Palette.danger },
-  error: { color: Palette.danger },
+  label: { color: colors.text, fontFamily: Fonts.medium },
+  help: { color: colors.textMuted },
+  input: { minWidth: 0, minHeight: 48, borderWidth: 1, borderColor: colors.border, color: colors.text, fontFamily: Fonts.regular, paddingHorizontal: Space.md, paddingVertical: Space.sm, ...Typography.body },
+  inputError: { borderColor: colors.danger },
+  error: { color: colors.danger },
 });

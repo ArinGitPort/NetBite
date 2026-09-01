@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { useCallback, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Dialog } from "@/components/ui/dialog";
 
 export function LoadingState({ label = "Loading portal" }: { label?: string }) {
@@ -39,20 +40,11 @@ export function StatusBadge({
   className?: string;
   tone?: "neutral" | "green" | "orange" | "red";
 }) {
-  const colors =
-    tone === "green"
-      ? "border-signal-green/60 bg-signal-green-soft text-[#9ccabe]"
-      : tone === "orange"
-        ? "border-signal-orange/60 bg-signal-orange-soft text-[#efad7a]"
-        : tone === "red"
-          ? "border-signal-red/60 bg-signal-red-soft text-[#ff858a]"
-          : "border-line bg-raised text-muted";
+  const normalizedTone = tone === "green" ? "success" : tone === "orange" ? "warning" : tone === "red" ? "danger" : "neutral";
   return (
-    <span
-      className={`inline-flex min-h-6 w-fit items-center rounded-full border px-2.5 font-mono text-[0.58rem] font-semibold uppercase tracking-[0.045em] ${colors} ${className}`}
-    >
+    <Badge className={className} tone={normalizedTone}>
       {children}
-    </span>
+    </Badge>
   );
 }
 
@@ -205,7 +197,7 @@ export function ConfirmAction({
         >
           {error ? (
             <div
-              className="rounded-control border border-signal-red/60 bg-signal-red-soft p-3 text-sm text-[#ff9da1]"
+              className="rounded-control border border-signal-red/60 bg-signal-red-soft p-3 text-sm text-signal-red"
               role="alert"
             >
               {error}

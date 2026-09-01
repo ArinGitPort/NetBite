@@ -12,10 +12,12 @@ import { Screen } from '@/shared/components/screen';
 import { Text } from '@/shared/components/console-text';
 import { navigateOnce, returnToLearningPath } from '@/shared/navigation';
 import { AppRoutes } from '@/shared/routes';
-import { Fonts, Palette, Space } from '@/shared/theme';
+import { Fonts, Space, type ThemeColors } from '@/shared/theme';
+import { useThemeStyles } from '@/shared/theme-context';
 import { useGameStore } from '@/store/use-game-store';
 
 export default function ProgressScreen() {
+  const styles = useThemeStyles(createStyles);
   const { hasContentAccess } = useAuth();
   const state = useGameStore();
   const accessible = new Set(chapters.filter((chapter) => canAccessChapter(chapter.id, hasContentAccess)).map((chapter) => chapter.id));
@@ -50,8 +52,8 @@ export default function ProgressScreen() {
   </Screen>;
 }
 
-const styles = StyleSheet.create({
-  eyebrow: { color: Palette.orange }, title: { color: Palette.text, fontFamily: Fonts.semibold, marginVertical: Space.sm, marginBottom: Space.xl },
-  utilityRow: { marginTop: Space.md }, sectionTitle: { color: Palette.text, fontFamily: Fonts.semibold, marginTop: Space.xxl, marginBottom: Space.md },
-  chapterCard: { borderWidth: 1, borderColor: Palette.border, backgroundColor: Palette.surface, padding: Space.lg, gap: Space.sm, marginBottom: Space.md }, row: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: Space.sm }, chapterLabel: { color: Palette.accentBright }, chapterTitle: { color: Palette.text, textTransform: 'uppercase' }, muted: { color: Palette.textMuted }, success: { color: Palette.green }, history: { borderWidth: 1, borderColor: Palette.border, backgroundColor: Palette.surface }, historyRow: { flexDirection: 'row', gap: Space.md, padding: Space.md, borderBottomWidth: 1, borderBottomColor: Palette.border }, historyType: { color: Palette.orange, width: 88 }, historyCopy: { flex: 1, minWidth: 0 }, historyText: { color: Palette.text },
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
+  eyebrow: { color: colors.orange }, title: { color: colors.text, fontFamily: Fonts.semibold, marginVertical: Space.sm, marginBottom: Space.xl },
+  utilityRow: { marginTop: Space.md }, sectionTitle: { color: colors.text, fontFamily: Fonts.semibold, marginTop: Space.xxl, marginBottom: Space.md },
+  chapterCard: { borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, padding: Space.lg, gap: Space.sm, marginBottom: Space.md }, row: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: Space.sm }, chapterLabel: { color: colors.accentBright }, chapterTitle: { color: colors.text, textTransform: 'uppercase' }, muted: { color: colors.textMuted }, success: { color: colors.green }, history: { borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface }, historyRow: { flexDirection: 'row', gap: Space.md, padding: Space.md, borderBottomWidth: 1, borderBottomColor: colors.border }, historyType: { color: colors.orange, width: 88 }, historyCopy: { flex: 1, minWidth: 0 }, historyText: { color: colors.text },
 });

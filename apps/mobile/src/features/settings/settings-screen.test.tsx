@@ -1,4 +1,4 @@
-import { fireEvent, render } from '@testing-library/react-native';
+import { fireEvent, render, within } from '@testing-library/react-native';
 
 import SettingsScreen from '@/app/settings';
 
@@ -37,7 +37,7 @@ describe('settings reliability controls', () => {
   test('requires confirmation before destructive local actions', async () => {
     const screen = await render(<SettingsScreen />);
     expect(screen.queryByText('Reset learning progress')).toBeNull();
-    await fireEvent.press(screen.getByText('RESET OR ERASE DATA'));
+    await fireEvent.press(screen.getByText('Reset or erase data'));
     await fireEvent.press(screen.getByText('Reset learning progress'));
     expect(screen.getByText('Reset learning progress?')).toBeTruthy();
     await fireEvent.press(screen.getByText('Cancel'));
@@ -47,16 +47,29 @@ describe('settings reliability controls', () => {
 
   test('enables clearly labeled development test access', async () => {
     const screen = await render(<SettingsScreen />);
-    expect(screen.getByText('DEVELOPMENT TEST ACCESS')).toBeTruthy();
+    expect(screen.getByText('Development test access')).toBeTruthy();
+    expect(screen.queryByText(/every Network Operations module/i)).toBeNull();
+    await fireEvent.press(screen.getByText('Development test access'));
     expect(screen.getByText(/every Network Operations module/i)).toBeTruthy();
-    expect(screen.getByText('DISABLED / DEVELOPMENT ONLY')).toBeTruthy();
+    expect(screen.getByText('DISABLED')).toBeTruthy();
     await fireEvent.press(screen.getByText('Enable test access'));
     expect(mockAuthState.setTestProEnabled).toHaveBeenCalledWith(true);
   });
 
   test('opens guidance manually without resetting guide state', async () => {
     const screen = await render(<SettingsScreen />);
-    expect(screen.getByText('Open app guide')).toBeTruthy();
+    expect(screen.getByText('App guide')).toBeTruthy();
     expect(screen.queryByText('Replay contextual guides')).toBeNull();
+  });
+
+  test('offers system, light, and dark appearance choices', async () => {
+    const screen = await render(<SettingsScreen />);
+    expect(screen.getByText('Appearance')).toBeTruthy();
+    expect(screen.queryByLabelText('Appearance preference')).toBeNull();
+    await fireEvent.press(screen.getByText('Appearance'));
+    const appearance = within(screen.getByLabelText('Appearance preference'));
+    expect(appearance.getByRole('radio', { name: 'SYSTEM' })).toBeTruthy();
+    expect(appearance.getByRole('radio', { name: 'LIGHT' })).toBeTruthy();
+    expect(appearance.getByRole('radio', { name: 'DARK' })).toBeTruthy();
   });
 });

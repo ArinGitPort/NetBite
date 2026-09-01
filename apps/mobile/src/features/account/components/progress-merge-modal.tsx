@@ -3,9 +3,11 @@ import { Modal, StyleSheet, View } from 'react-native';
 import { useAuth } from '@/features/account/auth-context';
 import { AppButton } from '@/shared/components/app-button';
 import { Text } from '@/shared/components/console-text';
-import { Fonts, Palette, Space } from '@/shared/theme';
+import { Fonts, Space, type ThemeColors } from '@/shared/theme';
+import { useThemeStyles } from '@/shared/theme-context';
 
 export function ProgressMergeModal() {
+  const styles = useThemeStyles(createStyles);
   const { mergeRequest, resolveProgressMerge } = useAuth();
   if (!mergeRequest) return null;
   const localCount = mergeRequest.local.completedLessonIds.length + mergeRequest.local.completedLabIds.length;
@@ -28,11 +30,11 @@ export function ProgressMergeModal() {
   </Modal>;
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   backdrop: { flex: 1, justifyContent: 'center', padding: Space.lg, backgroundColor: 'rgba(10,8,10,0.9)' },
-  panel: { width: '100%', maxWidth: 520, alignSelf: 'center', padding: Space.lg, gap: Space.md, borderWidth: 1, borderColor: Palette.orange, backgroundColor: Palette.surface },
-  eyebrow: { color: Palette.orange },
-  title: { color: Palette.text, fontFamily: Fonts.semibold },
+  panel: { width: '100%', maxWidth: 520, alignSelf: 'center', padding: Space.lg, gap: Space.md, borderWidth: 1, borderColor: colors.orange, backgroundColor: colors.surface },
+  eyebrow: { color: colors.orange },
+  title: { color: colors.text, fontFamily: Fonts.semibold },
   compare: { gap: Space.sm },
-  record: { padding: Space.md, gap: Space.xs, borderWidth: 1, borderColor: Palette.border, backgroundColor: Palette.background },
+  record: { padding: Space.md, gap: Space.xs, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.background },
 });

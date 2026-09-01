@@ -23,7 +23,8 @@ import { SelectionControl } from '@/shared/components/selection-control';
 import { Text } from '@/shared/components/console-text';
 import { useMeasuredResponsiveLayout } from '@/shared/responsive-layout';
 import { returnToOwningChapter } from '@/shared/navigation';
-import { Fonts, Palette, Space } from '@/shared/theme';
+import { Fonts, Space, type ThemeColors } from '@/shared/theme';
+import { useTheme, useThemeStyles } from '@/shared/theme-context';
 import { getRecoveryMessage, getSimulatorBoundaryCopy } from '@/shared/learner-facing-copy';
 import { useGameStore } from '@/store/use-game-store';
 import { useOperationsLabStore } from '@/store/use-operations-lab-store';
@@ -78,6 +79,7 @@ const draftFromState = (state: TransportLabState): ConfigurationDraft => ({
 });
 
 export function TransportGuidedLab() {
+  const styles = useThemeStyles(createStyles);
   const stored = useProtocolLabStore((value) => value.sessions[LAB_ID]);
   const save = useProtocolLabStore((value) => value.save);
   const undo = useProtocolLabStore((value) => value.undo);
@@ -221,6 +223,7 @@ function getNextAction(state: TransportLabState, dirty: boolean, saveConfigurati
 }
 
 function TransportTopology({ compact, selected, state, onSelect }: { compact: boolean; selected: TransportLabState['selectedDeviceId']; state: TransportLabState; onSelect: (id: TransportLabState['selectedDeviceId']) => void }) {
+  const styles = useThemeStyles(createStyles);
   const nodes: { id: TransportLabState['selectedDeviceId']; label: string; detail: string; kind: 'pc' | 'router' | 'server' }[] = [
     { id: 'client', label: 'PC1', detail: `${state.client.address}:${state.client.port}`, kind: 'pc' },
     { id: 'network', label: 'R1', detail: 'FORWARDS BY IP', kind: 'router' },
@@ -230,6 +233,7 @@ function TransportTopology({ compact, selected, state, onSelect }: { compact: bo
 }
 
 function DeviceInspector({ state }: { state: TransportLabState }) {
+  const styles = useThemeStyles(createStyles);
   const content = state.selectedDeviceId === 'client'
     ? [`IPv4 / ${state.client.address}`, `SOURCE PORT / ${state.client.port}`, `TCP STATE / ${state.clientTcpState}`]
     : state.selectedDeviceId === 'server'
@@ -239,64 +243,70 @@ function DeviceInspector({ state }: { state: TransportLabState }) {
 }
 
 function ConfigurationPanel({ draft, error, onChange }: { draft: ConfigurationDraft; error?: string; onChange: (change: Partial<ConfigurationDraft>) => void }) {
+  const styles = useThemeStyles(createStyles);
   return <View style={styles.configPanel}><Text variant="label" style={styles.orange}>ENDPOINT CONFIGURATION</Text><Text variant="bodySmall" style={styles.muted}>Valid mistakes are saved. Malformed addresses or ports are rejected without changing the simulation.</Text><View style={styles.fieldGrid}><Input label="Client IPv4" value={draft.clientAddress} onChange={(clientAddress) => onChange({ clientAddress })} /><Input label="Source port" keyboard="number-pad" value={draft.clientPort} onChange={(clientPort) => onChange({ clientPort })} /><Input label="Server IPv4" value={draft.serverAddress} onChange={(serverAddress) => onChange({ serverAddress })} /><Input label="Destination port" keyboard="number-pad" value={draft.destinationPort} onChange={(destinationPort) => onChange({ destinationPort })} /><Choice label="Client protocol" value={draft.protocol} onChange={(protocol) => onChange({ protocol })} /><Choice label="Listener protocol" value={draft.listenerProtocol} onChange={(listenerProtocol) => onChange({ listenerProtocol })} /><Input label="Listening port" keyboard="number-pad" value={draft.listenerPort} onChange={(listenerPort) => onChange({ listenerPort })} /><View style={styles.field}><Text variant="technical" style={styles.muted}>SERVICE STATE</Text><SelectionControl accessibilityRole="switch" grow={false} label={draft.listenerOpen ? 'Listening' : 'Closed'} selected={draft.listenerOpen} onPress={() => onChange({ listenerOpen: !draft.listenerOpen })} /></View></View>{error ? <Text accessibilityLiveRegion="assertive" variant="bodySmall" style={styles.error}>{error}</Text> : null}</View>;
 }
 
 function Input({ label, value, onChange, keyboard = 'default' }: { label: string; value: string; onChange: (value: string) => void; keyboard?: 'default' | 'number-pad' }) {
-  return <View style={styles.field}><Text variant="technical" style={styles.muted}>{label}</Text><TextInput accessibilityLabel={label} autoCapitalize="none" autoCorrect={false} keyboardType={keyboard} onChangeText={onChange} placeholder={`ENTER ${label.toUpperCase()}`} placeholderTextColor={Palette.textMuted} selectionColor={Palette.orange} style={styles.input} value={value} /></View>;
+  const styles = useThemeStyles(createStyles);
+  const { colors } = useTheme();
+  return <View style={styles.field}><Text variant="technical" style={styles.muted}>{label}</Text><TextInput accessibilityLabel={label} autoCapitalize="none" autoCorrect={false} keyboardType={keyboard} onChangeText={onChange} placeholder={`ENTER ${label.toUpperCase()}`} placeholderTextColor={colors.textMuted} selectionColor={colors.orange} style={styles.input} value={value} /></View>;
 }
 
 function Choice({ label, value, onChange }: { label: string; value: TransportProtocol; onChange: (value: TransportProtocol) => void }) {
+  const styles = useThemeStyles(createStyles);
   return <View style={styles.field}><Text variant="technical" style={styles.muted}>{label}</Text><View style={styles.choiceRow}>{(['tcp', 'udp'] as const).map((protocol) => <Pressable key={protocol} accessibilityRole="radio" accessibilityState={{ checked: value === protocol }} onPress={() => onChange(protocol)} style={[styles.choice, value === protocol && styles.choiceSelected]}><Text variant="label">{protocol.toUpperCase()}</Text></Pressable>)}</View></View>;
 }
 
 function StateTables({ rows }: { rows: string[] }) {
+  const styles = useThemeStyles(createStyles);
   return <View style={styles.panel}><Text variant="label" style={styles.green}>LIVE ENDPOINT STATE</Text>{rows.map((row) => <Text key={row} variant="technical" style={styles.tableRow}>{row}</Text>)}</View>;
 }
 
 function EventTrace({ evidenceCount, selected, traceIndex, onChange }: { evidenceCount: number; selected?: TransportLabState['evidence'][number]; traceIndex: number; onChange: (index: number) => void }) {
+  const styles = useThemeStyles(createStyles);
   return <View style={styles.panel}><Text variant="label" style={styles.green}>EVENT TRACE</Text>{selected ? <><Text variant="technical" style={styles.muted}>EVENT {traceIndex + 1} OF {evidenceCount}</Text><Text accessibilityLiveRegion="polite" variant="bodySmall" style={[styles.body, selected.tone === 'warning' && styles.orange]}>{selected.text}</Text><View style={styles.traceActions}><AppButton disabled={traceIndex <= 0} label="Previous event" variant="utility" onPress={() => onChange(Math.max(0, traceIndex - 1))} /><AppButton disabled={traceIndex >= evidenceCount - 1} label="Next event" variant="utility" onPress={() => onChange(Math.min(evidenceCount - 1, traceIndex + 1))} /></View></> : <Text variant="technical" style={styles.muted}>NO EVENTS / COMPLETE THE CURRENT ACTION</Text>}</View>;
 }
 
-const styles = StyleSheet.create({
-  topologyPanel: { borderWidth: 1, borderColor: Palette.border, padding: Space.lg, gap: Space.sm, marginBottom: Space.md, minWidth: 0 },
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
+  topologyPanel: { borderWidth: 1, borderColor: colors.border, padding: Space.lg, gap: Space.sm, marginBottom: Space.md, minWidth: 0 },
   topology: { flexDirection: 'row', alignItems: 'center', width: '100%', minWidth: 0, marginTop: Space.sm },
   topologyCompact: { flexDirection: 'column', alignItems: 'stretch' },
   nodeUnit: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center' },
   nodeUnitCompact: { width: '100%', flexDirection: 'column' },
-  node: { minWidth: 0, flex: 1, minHeight: 150, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: Palette.border, padding: Space.sm, backgroundColor: Palette.surface },
-  nodeSelected: { borderColor: Palette.orange, backgroundColor: Palette.orangeSoft },
-  nodeLabel: { color: Palette.text, textAlign: 'center', marginTop: Space.xs },
-  nodeDetail: { color: Palette.textMuted, textAlign: 'center', flexShrink: 1 },
+  node: { minWidth: 0, flex: 1, minHeight: 150, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.border, padding: Space.sm, backgroundColor: colors.surface },
+  nodeSelected: { borderColor: colors.orange, backgroundColor: colors.orangeSoft },
+  nodeLabel: { color: colors.text, textAlign: 'center', marginTop: Space.xs },
+  nodeDetail: { color: colors.textMuted, textAlign: 'center', flexShrink: 1 },
   serverImage: { width: 68, height: 68 },
   cable: { width: 42, minWidth: 24, alignItems: 'center', justifyContent: 'center' },
   cableCompact: { width: '100%', minHeight: 52 },
-  cableLine: { height: 2, width: '100%', backgroundColor: Palette.accent },
+  cableLine: { height: 2, width: '100%', backgroundColor: colors.accent },
   cableLineCompact: { height: 40, width: 2 },
-  cableLabel: { color: Palette.orange, marginTop: Space.xs },
-  inspector: { borderLeftWidth: 3, borderColor: Palette.orange, backgroundColor: Palette.surfaceRaised, padding: Space.lg, gap: Space.xs, marginBottom: Space.md },
-  objectivePanel: { borderLeftWidth: 3, borderColor: Palette.orange, backgroundColor: Palette.surfaceRaised, padding: Space.lg, gap: Space.sm, marginBottom: Space.md },
-  completePanel: { borderWidth: 1, borderColor: Palette.green, backgroundColor: Palette.greenSoft, padding: Space.lg, gap: Space.sm, marginBottom: Space.md },
-  configPanel: { borderWidth: 1, borderColor: Palette.orange, padding: Space.lg, gap: Space.md, marginBottom: Space.md },
+  cableLabel: { color: colors.orange, marginTop: Space.xs },
+  inspector: { borderLeftWidth: 3, borderColor: colors.orange, backgroundColor: colors.surfaceRaised, padding: Space.lg, gap: Space.xs, marginBottom: Space.md },
+  objectivePanel: { borderLeftWidth: 3, borderColor: colors.orange, backgroundColor: colors.surfaceRaised, padding: Space.lg, gap: Space.sm, marginBottom: Space.md },
+  completePanel: { borderWidth: 1, borderColor: colors.green, backgroundColor: colors.greenSoft, padding: Space.lg, gap: Space.sm, marginBottom: Space.md },
+  configPanel: { borderWidth: 1, borderColor: colors.orange, padding: Space.lg, gap: Space.md, marginBottom: Space.md },
   fieldGrid: { minWidth: 0, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start', gap: Space.md },
   field: { minWidth: 220, flexBasis: 220, flexGrow: 1, flexShrink: 1, gap: Space.xs },
-  input: { minHeight: 48, borderWidth: 1, borderColor: Palette.border, color: Palette.text, fontFamily: Fonts.regular, fontSize: 14, paddingHorizontal: Space.md, paddingVertical: Space.sm },
+  input: { minHeight: 48, borderWidth: 1, borderColor: colors.border, color: colors.text, fontFamily: Fonts.regular, fontSize: 14, paddingHorizontal: Space.md, paddingVertical: Space.sm },
   choiceRow: { flexDirection: 'row', gap: Space.sm },
-  choice: { minHeight: 48, flex: 1, minWidth: 90, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: Palette.border, padding: Space.sm },
-  choiceSelected: { borderColor: Palette.orange, backgroundColor: Palette.orangeSoft },
-  primaryAction: { borderWidth: 1, borderColor: Palette.accent, padding: Space.lg, gap: Space.sm, marginBottom: Space.md },
-  panel: { borderWidth: 1, borderColor: Palette.border, padding: Space.lg, gap: Space.sm, marginBottom: Space.md },
-  tableRow: { color: Palette.text, borderBottomWidth: 1, borderBottomColor: Palette.border, paddingVertical: Space.sm },
+  choice: { minHeight: 48, flex: 1, minWidth: 90, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.border, padding: Space.sm },
+  choiceSelected: { borderColor: colors.orange, backgroundColor: colors.orangeSoft },
+  primaryAction: { borderWidth: 1, borderColor: colors.accent, padding: Space.lg, gap: Space.sm, marginBottom: Space.md },
+  panel: { borderWidth: 1, borderColor: colors.border, padding: Space.lg, gap: Space.sm, marginBottom: Space.md },
+  tableRow: { color: colors.text, borderBottomWidth: 1, borderBottomColor: colors.border, paddingVertical: Space.sm },
   traceActions: { flexDirection: 'row', flexWrap: 'wrap', gap: Space.sm },
-  whyPanel: { borderLeftWidth: 3, borderColor: Palette.green, backgroundColor: Palette.surfaceRaised, padding: Space.lg, gap: Space.sm, marginBottom: Space.md },
-  hintPanel: { borderWidth: 1, borderColor: Palette.orange, padding: Space.lg, gap: Space.sm, marginBottom: Space.md },
-  warningPanel: { borderWidth: 1, borderColor: Palette.orange, padding: Space.lg, gap: Space.sm, marginBottom: Space.md },
-  tools: { borderTopWidth: 1, borderColor: Palette.border, gap: Space.sm, marginTop: Space.xl, paddingTop: Space.lg },
-  boundary: { color: Palette.textMuted, marginVertical: Space.xl },
-  heading: { color: Palette.text, fontFamily: Fonts.semibold },
-  body: { color: Palette.text },
-  muted: { color: Palette.textMuted },
-  green: { color: Palette.green, fontFamily: Fonts.semibold },
-  orange: { color: Palette.orange, fontFamily: Fonts.semibold },
-  error: { color: Palette.danger, borderWidth: 1, borderColor: Palette.danger, padding: Space.md },
+  whyPanel: { borderLeftWidth: 3, borderColor: colors.green, backgroundColor: colors.surfaceRaised, padding: Space.lg, gap: Space.sm, marginBottom: Space.md },
+  hintPanel: { borderWidth: 1, borderColor: colors.orange, padding: Space.lg, gap: Space.sm, marginBottom: Space.md },
+  warningPanel: { borderWidth: 1, borderColor: colors.orange, padding: Space.lg, gap: Space.sm, marginBottom: Space.md },
+  tools: { borderTopWidth: 1, borderColor: colors.border, gap: Space.sm, marginTop: Space.xl, paddingTop: Space.lg },
+  boundary: { color: colors.textMuted, marginVertical: Space.xl },
+  heading: { color: colors.text, fontFamily: Fonts.semibold },
+  body: { color: colors.text },
+  muted: { color: colors.textMuted },
+  green: { color: colors.green, fontFamily: Fonts.semibold },
+  orange: { color: colors.orange, fontFamily: Fonts.semibold },
+  error: { color: colors.danger, borderWidth: 1, borderColor: colors.danger, padding: Space.md },
 });

@@ -21,13 +21,16 @@ import { IconButton } from '@/shared/components/icon-button';
 import { PageHeader } from '@/shared/components/page-header';
 import { ProgressBar } from '@/shared/components/progress-bar';
 import { Screen } from '@/shared/components/screen';
+import { StudyNavigation } from '@/shared/components/study-navigation';
 import { selectionHaptic, successHaptic } from '@/shared/haptics';
-import { Fonts, Palette, Radius, Space } from '@/shared/theme';
+import { Fonts, Radius, Space, type ThemeColors } from '@/shared/theme';
+import { useThemeStyles } from '@/shared/theme-context';
 import { useGameStore } from '@/store/use-game-store';
 import { resolveLessonLabOrigin, returnToOriginatingLab, returnToOwningChapter } from '@/shared/navigation';
 import { labRoute, lessonRoute } from '@/shared/routes';
 
 export default function LessonScreen() {
+  const styles = useThemeStyles(createStyles);
   const { hasContentAccess, presentationActive, testProEnabled } = useAuth();
   const accessBypass = presentationActive || testProEnabled;
   const progress = useGameStore();
@@ -188,21 +191,10 @@ export default function LessonScreen() {
         />
       ) : null}
       <View style={styles.spacer} />
-      <View style={styles.navigationActions}>
-        <AppButton
-          label="Previous lesson"
-          leadingIcon="arrow-left"
-          disabled={!previousLesson}
-          variant="secondary"
-          onPress={goToPreviousLesson}
-        />
-        <AppButton
-          label={index === chapter.lessons.length - 1 ? 'Finish lessons' : 'Next lesson'}
-          disabled={checkpointBlocking}
-          trailingIcon={index === chapter.lessons.length - 1 ? 'check' : 'arrow-right'}
-          onPress={finish}
-        />
-      </View>
+      <StudyNavigation
+        previous={{ label: 'Previous lesson', disabled: !previousLesson, onPress: goToPreviousLesson }}
+        next={{ label: index === chapter.lessons.length - 1 ? 'Finish lessons' : 'Next lesson', disabled: checkpointBlocking, complete: index === chapter.lessons.length - 1, onPress: finish }}
+      />
       <FeedbackModal
         visible={completionVisible}
         tone="success"
@@ -223,29 +215,28 @@ export default function LessonScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   headerRow: { flexDirection: 'row', alignItems: 'center', marginBottom: Space.xxl },
   progress: { flex: 1 },
-  count: { width: 56, textAlign: 'right', color: Palette.textMuted },
-  eyebrow: { color: Palette.accentBright, fontFamily: Fonts.medium, marginBottom: Space.sm },
-  title: { color: Palette.text, fontFamily: Fonts.semibold, textTransform: 'uppercase', marginBottom: Space.xl },
+  count: { width: 56, textAlign: 'right', color: colors.textMuted },
+  eyebrow: { color: colors.accentBright, fontFamily: Fonts.medium, marginBottom: Space.sm },
+  title: { color: colors.text, fontFamily: Fonts.semibold, textTransform: 'uppercase', marginBottom: Space.xl },
   headerSaveActions: { flexDirection: 'row', alignItems: 'center', gap: Space.xs },
-  body: { color: Palette.text, marginTop: Space.xl },
+  body: { color: colors.text, marginTop: Space.xl },
   section: { marginTop: Space.lg },
-  sectionHeading: { color: Palette.orange, fontFamily: Fonts.semibold, textTransform: 'uppercase', marginBottom: Space.xs },
-  sectionBody: { color: Palette.text },
-  termNote: { backgroundColor: Palette.surfaceRaised, borderWidth: 1, borderColor: Palette.border, padding: Space.lg, marginTop: Space.md },
-  termNoteLabel: { color: Palette.accentBright, fontFamily: Fonts.medium, marginBottom: Space.xs },
-  termNoteText: { color: Palette.text },
-  supportingAsset: { borderWidth: 1, borderColor: Palette.border, backgroundColor: Palette.surface, padding: Space.md, gap: Space.sm, marginTop: Space.lg },
-  supportingImage: { width: '100%', maxHeight: 360, backgroundColor: Palette.background },
-  assetAlt: { color: Palette.textMuted },
-  sources: { borderWidth: 1, borderColor: Palette.border, backgroundColor: Palette.surface, padding: Space.lg, gap: Space.md, marginTop: Space.lg },
-  sourceRow: { borderTopWidth: 1, borderTopColor: Palette.border, paddingTop: Space.md, gap: Space.sm },
-  sourceLabel: { color: Palette.text, fontFamily: Fonts.medium },
-  takeaway: { backgroundColor: Palette.surface, borderWidth: 1, borderColor: Palette.green, padding: Space.lg, borderRadius: Radius.md, marginTop: Space.xl },
-  takeawayLabel: { color: Palette.green, fontFamily: Fonts.medium, marginBottom: Space.xs },
-  takeawayText: { color: Palette.text },
+  sectionHeading: { color: colors.orange, fontFamily: Fonts.semibold, textTransform: 'uppercase', marginBottom: Space.xs },
+  sectionBody: { color: colors.text },
+  termNote: { backgroundColor: colors.surfaceRaised, borderWidth: 1, borderColor: colors.border, padding: Space.lg, marginTop: Space.md },
+  termNoteLabel: { color: colors.accentBright, fontFamily: Fonts.medium, marginBottom: Space.xs },
+  termNoteText: { color: colors.text },
+  supportingAsset: { borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, padding: Space.md, gap: Space.sm, marginTop: Space.lg },
+  supportingImage: { width: '100%', maxHeight: 360, backgroundColor: colors.background },
+  assetAlt: { color: colors.textMuted },
+  sources: { borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, padding: Space.lg, gap: Space.md, marginTop: Space.lg },
+  sourceRow: { borderTopWidth: 1, borderTopColor: colors.border, paddingTop: Space.md, gap: Space.sm },
+  sourceLabel: { color: colors.text, fontFamily: Fonts.medium },
+  takeaway: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.green, padding: Space.lg, borderRadius: Radius.md, marginTop: Space.xl },
+  takeawayLabel: { color: colors.green, fontFamily: Fonts.medium, marginBottom: Space.xs },
+  takeawayText: { color: colors.text },
   spacer: { flex: 1, minHeight: Space.xl },
-  navigationActions: { gap: Space.md },
 });

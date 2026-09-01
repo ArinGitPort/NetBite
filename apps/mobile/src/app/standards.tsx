@@ -9,12 +9,14 @@ import { DisclosureSection } from '@/shared/components/disclosure-section';
 import { PageHeader } from '@/shared/components/page-header';
 import { Screen } from '@/shared/components/screen';
 import { AppRoutes } from '@/shared/routes';
-import { Fonts, Palette, Space } from '@/shared/theme';
+import { Fonts, Space, type ThemeColors } from '@/shared/theme';
+import { useThemeStyles } from '@/shared/theme-context';
 import { useStandardsStore } from '@/store/use-standards-store';
 
 const INITIAL_REFERENCE = RFC_REFERENCES.find((reference) => reference.id === 'rfc826') ?? RFC_REFERENCES[0];
 
 export default function NetworkStandardsScreen() {
+  const styles = useThemeStyles(createStyles);
   const cacheMetadata = useStandardsStore((state) => state.cacheMetadata);
   const getCachedMetadata = useStandardsStore((state) => state.getCachedMetadata);
   const [selected, setSelected] = useState<RfcReference>(INITIAL_REFERENCE);
@@ -136,6 +138,7 @@ export default function NetworkStandardsScreen() {
 }
 
 function RfcRecord({ entry, reference, source, onOpenOfficialDocument }: { entry: RfcCacheEntry; reference: RfcReference; source: 'live' | 'cache'; onOpenOfficialDocument: () => void }) {
+  const styles = useThemeStyles(createStyles);
   const { metadata } = entry;
   const published = metadata.revisions.map((revision) => revision.published).filter(Boolean).join(', ') || 'NOT LISTED';
   const authorText = metadata.authors.length
@@ -173,6 +176,7 @@ function RfcRecord({ entry, reference, source, onOpenOfficialDocument }: { entry
 }
 
 function MetadataField({ label, value, wide = false }: { label: string; value: string; wide?: boolean }) {
+  const styles = useThemeStyles(createStyles);
   return <View style={[styles.field, wide && styles.fieldWide]}><Text variant="technical" style={styles.fieldLabel}>{label}</Text><Text selectable variant="bodySmall" style={styles.fieldValue}>{value}</Text></View>;
 }
 
@@ -181,49 +185,49 @@ function formatTimestamp(value: string) {
   return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   header: { minHeight: 44, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: Space.md, marginBottom: Space.xl },
-  apiBadge: { color: Palette.green },
-  eyebrow: { color: Palette.orange },
-  title: { color: Palette.text, fontFamily: Fonts.semibold, marginTop: Space.xs },
-  intro: { color: Palette.textMuted, marginTop: Space.md, marginBottom: Space.xl },
-  explainer: { borderWidth: 1, borderLeftWidth: 4, borderColor: Palette.green, backgroundColor: Palette.greenSoft, padding: Space.lg, gap: Space.sm, marginBottom: Space.xl },
-  explainerCopy: { color: Palette.text },
-  definition: { color: Palette.textMuted },
-  definitionTerm: { color: Palette.green, fontFamily: Fonts.semibold },
+  apiBadge: { color: colors.green },
+  eyebrow: { color: colors.orange },
+  title: { color: colors.text, fontFamily: Fonts.semibold, marginTop: Space.xs },
+  intro: { color: colors.textMuted, marginTop: Space.md, marginBottom: Space.xl },
+  explainer: { borderWidth: 1, borderLeftWidth: 4, borderColor: colors.green, backgroundColor: colors.greenSoft, padding: Space.lg, gap: Space.sm, marginBottom: Space.xl },
+  explainerCopy: { color: colors.text },
+  definition: { color: colors.textMuted },
+  definitionTerm: { color: colors.green, fontFamily: Fonts.semibold },
   referenceGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Space.sm, marginBottom: Space.xl },
-  referenceButton: { minHeight: 64, minWidth: 118, flexGrow: 1, flexBasis: '30%', borderWidth: 1, borderColor: Palette.border, backgroundColor: Palette.surface, justifyContent: 'center', padding: Space.md },
-  referenceButtonActive: { borderColor: Palette.orange, backgroundColor: Palette.orangeSoft },
-  referenceNumber: { color: Palette.text },
-  referenceActiveText: { color: Palette.orange },
-  referenceTopic: { color: Palette.textMuted, marginTop: Space.xs },
+  referenceButton: { minHeight: 64, minWidth: 118, flexGrow: 1, flexBasis: '30%', borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, justifyContent: 'center', padding: Space.md },
+  referenceButtonActive: { borderColor: colors.orange, backgroundColor: colors.orangeSoft },
+  referenceNumber: { color: colors.text },
+  referenceActiveText: { color: colors.orange },
+  referenceTopic: { color: colors.textMuted, marginTop: Space.xs },
   pressed: { opacity: 0.72 },
-  requestPanel: { borderWidth: 1, borderColor: Palette.orange, backgroundColor: Palette.surface, padding: Space.lg, gap: Space.md, marginBottom: Space.lg },
+  requestPanel: { borderWidth: 1, borderColor: colors.orange, backgroundColor: colors.surface, padding: Space.lg, gap: Space.md, marginBottom: Space.lg },
   requestHeading: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: Space.md },
   requestCopy: { flex: 1, minWidth: 0 },
-  panelEyebrow: { color: Palette.orange },
-  selectedTopic: { color: Palette.text, marginTop: Space.xs },
-  selectedPurpose: { color: Palette.textMuted, marginTop: Space.xs },
+  panelEyebrow: { color: colors.orange },
+  selectedTopic: { color: colors.text, marginTop: Space.xs },
+  selectedPurpose: { color: colors.textMuted, marginTop: Space.xs },
   sourceBadge: { borderWidth: 1, paddingHorizontal: Space.sm, paddingVertical: Space.xs },
-  liveBadge: { color: Palette.green, borderColor: Palette.green },
-  cacheBadge: { color: Palette.orange, borderColor: Palette.orange },
-  errorPanel: { borderWidth: 1, borderColor: Palette.danger, backgroundColor: Palette.dangerSoft, padding: Space.lg, gap: Space.md, marginBottom: Space.lg },
-  errorTitle: { color: Palette.danger },
-  errorCopy: { color: Palette.orange },
+  liveBadge: { color: colors.green, borderColor: colors.green },
+  cacheBadge: { color: colors.orange, borderColor: colors.orange },
+  errorPanel: { borderWidth: 1, borderColor: colors.danger, backgroundColor: colors.dangerSoft, padding: Space.lg, gap: Space.md, marginBottom: Space.lg },
+  errorTitle: { color: colors.danger },
+  errorCopy: { color: colors.orange },
   actionRow: { gap: Space.sm },
-  loadingPanel: { minHeight: 140, borderWidth: 1, borderColor: Palette.border, backgroundColor: Palette.surface, justifyContent: 'center', padding: Space.xl, gap: Space.sm, marginBottom: Space.lg },
-  muted: { color: Palette.textMuted },
+  loadingPanel: { minHeight: 140, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, justifyContent: 'center', padding: Space.xl, gap: Space.sm, marginBottom: Space.lg },
+  muted: { color: colors.textMuted },
   record: { gap: Space.lg, marginBottom: Space.lg },
-  recordHeader: { borderWidth: 1, borderColor: Palette.green, backgroundColor: Palette.greenSoft, padding: Space.lg, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start', gap: Space.md },
-  recordTitle: { color: Palette.text, fontFamily: Fonts.semibold, marginTop: Space.xs },
-  whyPanel: { borderWidth: 1, borderLeftWidth: 4, borderColor: Palette.green, backgroundColor: Palette.surface, padding: Space.lg },
-  whyLabel: { color: Palette.green },
-  whyCopy: { color: Palette.text, marginTop: Space.sm },
+  recordHeader: { borderWidth: 1, borderColor: colors.green, backgroundColor: colors.greenSoft, padding: Space.lg, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start', gap: Space.md },
+  recordTitle: { color: colors.text, fontFamily: Fonts.semibold, marginTop: Space.xs },
+  whyPanel: { borderWidth: 1, borderLeftWidth: 4, borderColor: colors.green, backgroundColor: colors.surface, padding: Space.lg },
+  whyLabel: { color: colors.green },
+  whyCopy: { color: colors.text, marginTop: Space.sm },
   fieldGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Space.sm },
-  field: { minWidth: 180, flexGrow: 1, flexBasis: '46%', borderWidth: 1, borderColor: Palette.border, backgroundColor: Palette.surface, padding: Space.md },
+  field: { minWidth: 180, flexGrow: 1, flexBasis: '46%', borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, padding: Space.md },
   fieldWide: { flexBasis: '100%' },
-  fieldLabel: { color: Palette.textMuted },
-  fieldValue: { color: Palette.text, marginTop: Space.xs },
-  abstractPanel: { borderWidth: 1, borderColor: Palette.border, backgroundColor: Palette.surface, padding: Space.lg },
-  abstract: { color: Palette.text, marginTop: Space.sm },
+  fieldLabel: { color: colors.textMuted },
+  fieldValue: { color: colors.text, marginTop: Space.xs },
+  abstractPanel: { borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, padding: Space.lg },
+  abstract: { color: colors.text, marginTop: Space.sm },
 });

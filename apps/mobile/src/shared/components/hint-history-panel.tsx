@@ -2,9 +2,11 @@ import { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { Text } from '@/shared/components/console-text';
-import { Fonts, Palette, Space } from '@/shared/theme';
+import { Fonts, Space, type ThemeColors } from '@/shared/theme';
+import { useThemeStyles } from '@/shared/theme-context';
 
 export function HintHistoryPanel({ hints, total = hints.length, stripContext = false }: { hints: string[]; total?: number; stripContext?: boolean }) {
+  const styles = useThemeStyles(createStyles);
   const [expanded, setExpanded] = useState(true);
   const previousCount = useRef(hints.length);
 
@@ -28,13 +30,13 @@ export function HintHistoryPanel({ hints, total = hints.length, stripContext = f
   </View>;
 }
 
-const styles = StyleSheet.create({
-  panel: { minWidth: 0, borderWidth: 1, borderColor: Palette.orange, backgroundColor: Palette.surface },
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
+  panel: { minWidth: 0, borderWidth: 1, borderColor: colors.orange, backgroundColor: colors.surface },
   header: { minHeight: 48, paddingHorizontal: Space.md, paddingVertical: Space.sm, flexDirection: 'row', alignItems: 'center', gap: Space.md },
-  pressed: { backgroundColor: Palette.orangeSoft },
+  pressed: { backgroundColor: colors.orangeSoft },
   headerCopy: { flex: 1, minWidth: 0, flexDirection: 'row', flexWrap: 'wrap', gap: Space.sm },
-  title: { color: Palette.orange, fontFamily: Fonts.semibold }, count: { color: Palette.textMuted }, toggle: { color: Palette.text },
-  history: { borderTopWidth: 1, borderTopColor: Palette.orange, padding: Space.sm, gap: Space.sm },
-  hint: { minWidth: 0, gap: Space.xs, padding: Space.sm, borderWidth: 1, borderColor: Palette.border, backgroundColor: Palette.background },
-  hintLabel: { color: Palette.orange, fontFamily: Fonts.semibold },
+  title: { color: colors.orange, fontFamily: Fonts.semibold }, count: { color: colors.textMuted }, toggle: { color: colors.text },
+  history: { borderTopWidth: 1, borderTopColor: colors.orange, padding: Space.sm, gap: Space.sm },
+  hint: { minWidth: 0, gap: Space.xs, padding: Space.sm, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.background },
+  hintLabel: { color: colors.orange, fontFamily: Fonts.semibold },
 });

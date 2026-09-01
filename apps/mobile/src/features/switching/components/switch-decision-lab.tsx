@@ -8,6 +8,7 @@ import {
 } from '@/core/network/switching';
 import { DeviceGlyph } from '@/features/devices/components/device-glyph';
 import { LabSetupSupport } from '@/features/practice/components/foundation-lab-support';
+import { LabGoalPanel } from '@/features/practice/components/lab-goal-panel';
 import {
   SWITCH_DESK_ENDPOINTS,
   SWITCH_DESK_PORTS,
@@ -21,7 +22,8 @@ import { FeedbackModal } from '@/shared/components/feedback-modal';
 import { PageHeader } from '@/shared/components/page-header';
 import { Screen } from '@/shared/components/screen';
 import { selectionHaptic, successHaptic, warningHaptic } from '@/shared/haptics';
-import { Fonts, Palette, Space } from '@/shared/theme';
+import { Fonts, Space, type ThemeColors } from '@/shared/theme';
+import { useThemeStyles } from '@/shared/theme-context';
 import { useGameStore } from '@/store/use-game-store';
 import { returnToOwningChapter } from '@/shared/navigation';
 import { getSimulatorBoundaryCopy } from '@/shared/learner-facing-copy';
@@ -44,6 +46,7 @@ function decisionExplanation(decision: SwitchDecision) {
 }
 
 export function SwitchDecisionLab() {
+  const styles = useThemeStyles(createStyles);
   const completeLab = useGameStore((state) => state.completeLab);
   const [scenarioIndex, setScenarioIndex] = useState(0);
   const [macTable, setMacTable] = useState<MacTableEntry[]>([]);
@@ -111,10 +114,7 @@ export function SwitchDecisionLab() {
 
       <Text variant="label" style={styles.eyebrow}>GUIDED PRACTICE / SWITCH DESK</Text>
       <Text variant="screenTitle" style={styles.title}>PREDICT THE SWITCH DECISION</Text>
-      <View style={styles.objective}>
-        <Text variant="label" style={styles.objectiveLabel}>YOUR GOAL</Text>
-        <Text variant="body" style={styles.objectiveText}>Process four frames. Predict the output before the switch updates its MAC address table.</Text>
-      </View>
+      <LabGoalPanel goal="Process four frames. Predict the output before the switch updates its MAC address table." />
       <Text variant="technical" style={styles.scopeNote}>STEP MODEL ONLY / NO TIMING OR TRAFFIC SIMULATION</Text>
       <LabSetupSupport labId={LAB_ID} />
 
@@ -235,54 +235,51 @@ export function SwitchDecisionLab() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   headerRow: { minHeight: 44, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: Space.sm },
-  eyebrow: { color: Palette.orange, fontFamily: Fonts.medium, marginTop: Space.md },
-  title: { color: Palette.text, fontFamily: Fonts.semibold, marginTop: Space.sm, marginBottom: Space.lg },
-  objective: { padding: Space.lg, backgroundColor: Palette.surface, borderWidth: 1, borderColor: Palette.green },
-  objectiveLabel: { color: Palette.green, fontFamily: Fonts.medium },
-  objectiveText: { color: Palette.text, marginTop: Space.xs },
-  scopeNote: { color: Palette.textMuted, marginVertical: Space.md },
-  topologyPanel: { padding: Space.md, backgroundColor: Palette.surface, borderWidth: 1, borderColor: Palette.border },
-  switchHeader: { minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: Space.md, paddingBottom: Space.md, borderBottomWidth: 1, borderBottomColor: Palette.border },
+  eyebrow: { color: colors.orange, fontFamily: Fonts.medium, marginTop: Space.md },
+  title: { color: colors.text, fontFamily: Fonts.semibold, marginTop: Space.sm, marginBottom: Space.lg },
+  scopeNote: { color: colors.textMuted, marginVertical: Space.md },
+  topologyPanel: { padding: Space.md, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
+  switchHeader: { minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: Space.md, paddingBottom: Space.md, borderBottomWidth: 1, borderBottomColor: colors.border },
   switchHeaderCopy: { flex: 1, minWidth: 0 },
-  panelLabel: { color: Palette.textMuted, fontFamily: Fonts.medium },
-  panelCopy: { color: Palette.text, marginTop: Space.xs },
+  panelLabel: { color: colors.textMuted, fontFamily: Fonts.medium },
+  panelCopy: { color: colors.text, marginTop: Space.xs },
   endpointRow: { flexDirection: 'row', gap: Space.xs, marginTop: Space.md },
-  endpoint: { flex: 1, minWidth: 0, alignItems: 'center', padding: Space.xs, backgroundColor: Palette.background, borderWidth: 1, borderColor: Palette.border },
-  ingressEndpoint: { borderColor: Palette.orange },
-  egressEndpoint: { borderColor: Palette.green },
-  endpointName: { color: Palette.text, fontFamily: Fonts.medium },
-  endpointPort: { color: Palette.textMuted, textAlign: 'center' },
-  endpointMac: { color: Palette.accentBright, textAlign: 'center' },
-  framePanel: { marginTop: Space.md, backgroundColor: Palette.surface, borderWidth: 1, borderColor: Palette.accent },
-  frameHeading: { padding: Space.md, borderBottomWidth: 1, borderBottomColor: Palette.border },
-  frameTitle: { color: Palette.accentBright, fontFamily: Fonts.medium, marginTop: Space.xs },
+  endpoint: { flex: 1, minWidth: 0, alignItems: 'center', padding: Space.xs, backgroundColor: colors.background, borderWidth: 1, borderColor: colors.border },
+  ingressEndpoint: { borderColor: colors.orange, backgroundColor: colors.orangeSoft },
+  egressEndpoint: { borderColor: colors.green, backgroundColor: colors.greenSoft },
+  endpointName: { color: colors.text, fontFamily: Fonts.medium },
+  endpointPort: { color: colors.textMuted, textAlign: 'center' },
+  endpointMac: { color: colors.accentBright, textAlign: 'center' },
+  framePanel: { marginTop: Space.md, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.accent },
+  frameHeading: { padding: Space.md, borderBottomWidth: 1, borderBottomColor: colors.border },
+  frameTitle: { color: colors.accentBright, fontFamily: Fonts.medium, marginTop: Space.xs },
   frameFields: { padding: Space.md, gap: Space.sm },
-  frameField: { minWidth: 0, padding: Space.sm, backgroundColor: Palette.background, borderWidth: 1, borderColor: Palette.border },
-  fieldLabel: { color: Palette.textMuted, fontFamily: Fonts.medium },
-  fieldValue: { color: Palette.text, marginTop: 2 },
-  ingressField: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: Space.sm, backgroundColor: Palette.background, borderWidth: 1, borderColor: Palette.orange },
-  ingressValue: { color: Palette.orange, fontFamily: Fonts.semibold },
-  tablePanel: { marginTop: Space.md, padding: Space.md, backgroundColor: Palette.surface, borderWidth: 1, borderColor: Palette.border },
-  tableHeader: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: Space.sm, borderBottomWidth: 1, borderBottomColor: Palette.border },
-  tableHeaderText: { color: Palette.textMuted, fontFamily: Fonts.medium },
-  emptyTable: { color: Palette.textMuted, paddingVertical: Space.sm, textAlign: 'center' },
-  tableRow: { minHeight: 32, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderBottomWidth: 1, borderBottomColor: Palette.grid },
-  tableMac: { minWidth: 0, flexShrink: 1, color: Palette.text },
-  tablePort: { color: Palette.green, fontFamily: Fonts.semibold },
-  prompt: { color: Palette.text, fontFamily: Fonts.medium, marginTop: Space.lg, marginBottom: Space.sm },
+  frameField: { minWidth: 0, padding: Space.sm, backgroundColor: colors.background, borderWidth: 1, borderColor: colors.border },
+  fieldLabel: { color: colors.textMuted, fontFamily: Fonts.medium },
+  fieldValue: { color: colors.text, marginTop: 2 },
+  ingressField: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: Space.sm, backgroundColor: colors.orangeSoft, borderWidth: 1, borderColor: colors.orange },
+  ingressValue: { color: colors.orange, fontFamily: Fonts.semibold },
+  tablePanel: { marginTop: Space.md, padding: Space.md, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
+  tableHeader: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: Space.sm, borderBottomWidth: 1, borderBottomColor: colors.border },
+  tableHeaderText: { color: colors.textMuted, fontFamily: Fonts.medium },
+  emptyTable: { color: colors.textMuted, paddingVertical: Space.sm, textAlign: 'center' },
+  tableRow: { minHeight: 32, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderBottomWidth: 1, borderBottomColor: colors.grid },
+  tableMac: { minWidth: 0, flexShrink: 1, color: colors.text },
+  tablePort: { color: colors.green, fontFamily: Fonts.semibold },
+  prompt: { color: colors.text, fontFamily: Fonts.medium, marginTop: Space.lg, marginBottom: Space.sm },
   predictions: { flexDirection: 'row', flexWrap: 'wrap', gap: Space.sm },
-  prediction: { minWidth: 136, flexGrow: 1, flexBasis: '46%', minHeight: 56, alignItems: 'center', justifyContent: 'center', padding: Space.xs, backgroundColor: Palette.surface, borderWidth: 1, borderColor: Palette.border },
-  predictionSelected: { backgroundColor: Palette.surfaceRaised, borderColor: Palette.accent },
-  predictionText: { color: Palette.textMuted, fontFamily: Fonts.medium, textAlign: 'center' },
-  predictionTextSelected: { color: Palette.accentBright },
-  feedback: { marginTop: Space.md, padding: Space.md, backgroundColor: Palette.surface, borderWidth: 1 },
-  correctFeedback: { borderColor: Palette.green },
-  wrongFeedback: { borderColor: Palette.orange },
+  prediction: { minWidth: 136, flexGrow: 1, flexBasis: '46%', minHeight: 56, alignItems: 'center', justifyContent: 'center', padding: Space.xs, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
+  predictionSelected: { backgroundColor: colors.accentSoft, borderColor: colors.accent },
+  predictionText: { color: colors.textMuted, fontFamily: Fonts.medium, textAlign: 'center' },
+  predictionTextSelected: { color: colors.accentBright },
+  feedback: { marginTop: Space.md, padding: Space.md, backgroundColor: colors.surface, borderWidth: 1 },
+  correctFeedback: { borderColor: colors.green, backgroundColor: colors.greenSoft },
+  wrongFeedback: { borderColor: colors.orange, backgroundColor: colors.orangeSoft },
   feedbackLabel: { fontFamily: Fonts.medium },
-  correctFeedbackText: { color: Palette.green },
-  wrongFeedbackText: { color: Palette.orange },
-  feedbackText: { color: Palette.text, marginTop: Space.xs },
+  correctFeedbackText: { color: colors.green },
+  wrongFeedbackText: { color: colors.orange },
+  feedbackText: { color: colors.text, marginTop: Space.xs },
   actions: { marginTop: Space.lg },
 });

@@ -13,6 +13,7 @@ import { CourseLockedScreen } from '@/features/account/components/course-locked-
 import { TopologyCanvas } from '@/features/topology/components/topology-canvas';
 import { createLabRegistry } from '@/features/practice/lab-registry';
 import { LabSetupSupport } from '@/features/practice/components/foundation-lab-support';
+import { LabGoalPanel } from '@/features/practice/components/lab-goal-panel';
 import { AppButton } from '@/shared/components/app-button';
 import { Text } from '@/shared/components/console-text';
 import { ContentNotFound } from '@/shared/components/content-not-found';
@@ -20,11 +21,13 @@ import { FeedbackModal } from '@/shared/components/feedback-modal';
 import { PageHeader } from '@/shared/components/page-header';
 import { Screen } from '@/shared/components/screen';
 import { successHaptic, warningHaptic } from '@/shared/haptics';
-import { Fonts, Palette, Radius, Space } from '@/shared/theme';
+import { Fonts, Radius, Space, type ThemeColors } from '@/shared/theme';
+import { useThemeStyles } from '@/shared/theme-context';
 import { useGameStore } from '@/store/use-game-store';
 import { returnToOwningChapter } from '@/shared/navigation';
 
 function FirstNetworkLab() {
+  const styles = useThemeStyles(createStyles);
   const topology = useGameStore((state) => state.topology);
   const selectedId = useGameStore((state) => state.selectedConnectionStartId);
   const cancelConnection = useGameStore((state) => state.cancelConnection);
@@ -79,10 +82,7 @@ function FirstNetworkLab() {
       <Text variant="label" style={styles.eyebrow}>MINI LAB</Text>
       <Text variant="screenTitle" style={styles.title}>{chapterOneLab.title}</Text>
       <LabSetupSupport labId={chapterOneLab.id} />
-      <View style={styles.objective}>
-        <Text variant="label" style={styles.objectiveLabel}>YOUR GOAL</Text>
-        <Text variant="body" style={styles.objectiveText}>{chapterOneLab.objective}</Text>
-      </View>
+      <LabGoalPanel goal={chapterOneLab.objective} style={styles.objectiveSpacing} />
 
       <View style={styles.instructionsRow}>
         <Text variant="label" style={styles.instructions}>
@@ -163,21 +163,19 @@ export default function LabScreen() {
   return <LabComponent />;
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   headerRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: Space.sm, minHeight: 44, alignItems: 'center' },
-  eyebrow: { color: Palette.green, fontFamily: Fonts.medium, marginTop: Space.md },
-  title: { color: Palette.text, fontFamily: Fonts.semibold, marginTop: Space.sm, marginBottom: Space.lg },
-  objective: { backgroundColor: Palette.surface, borderRadius: Radius.md, borderWidth: 1, borderColor: Palette.green, padding: Space.lg, marginBottom: Space.lg },
-  objectiveLabel: { color: Palette.green, fontFamily: Fonts.medium },
-  objectiveText: { color: Palette.text, marginTop: Space.xs },
+  eyebrow: { color: colors.green, fontFamily: Fonts.medium, marginTop: Space.md },
+  title: { color: colors.text, fontFamily: Fonts.semibold, marginTop: Space.sm, marginBottom: Space.lg },
+  objectiveSpacing: { marginBottom: Space.lg },
   instructionsRow: { flexDirection: 'row', alignItems: 'center', gap: Space.sm, marginBottom: Space.md },
-  instructions: { flex: 1, minWidth: 0, color: Palette.textMuted, textTransform: 'uppercase' },
-  connectButton: { minHeight: 44, justifyContent: 'center', paddingHorizontal: Space.lg, backgroundColor: Palette.accentSoft, borderRadius: Radius.sm, borderWidth: 1, borderColor: Palette.accent },
-  connectButtonActive: { backgroundColor: Palette.orangeSoft, borderColor: Palette.orange },
-  connectText: { color: Palette.accentBright, fontFamily: Fonts.medium, textTransform: 'uppercase' },
-  connectTextActive: { color: Palette.orange },
+  instructions: { flex: 1, minWidth: 0, color: colors.textMuted, textTransform: 'uppercase' },
+  connectButton: { minHeight: 44, justifyContent: 'center', paddingHorizontal: Space.lg, backgroundColor: colors.accentSoft, borderRadius: Radius.sm, borderWidth: 1, borderColor: colors.accent },
+  connectButtonActive: { backgroundColor: colors.orangeSoft, borderColor: colors.orange },
+  connectText: { color: colors.accentBright, fontFamily: Fonts.medium, textTransform: 'uppercase' },
+  connectTextActive: { color: colors.orange },
   actions: { gap: Space.md, marginTop: Space.xl },
-  hintPanel: { marginTop: Space.md, padding: Space.md, backgroundColor: Palette.surface, borderWidth: 1, borderColor: Palette.orange },
-  hintLabel: { color: Palette.orange, fontFamily: Fonts.medium },
-  hintText: { color: Palette.text, marginTop: Space.xs },
+  hintPanel: { marginTop: Space.md, padding: Space.md, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.orange },
+  hintLabel: { color: colors.orange, fontFamily: Fonts.medium },
+  hintText: { color: colors.text, marginTop: Space.xs },
 });

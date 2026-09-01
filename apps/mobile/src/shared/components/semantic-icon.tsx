@@ -1,9 +1,9 @@
 import { SymbolView, type SymbolViewProps } from 'expo-symbols';
 import { StyleSheet, View } from 'react-native';
 
-import { Palette } from '@/shared/theme';
+import { useTheme } from '@/shared/theme-context';
 
-export type SemanticIconName = 'learn' | 'sandbox' | 'account' | 'settings' | 'lesson' | 'lab' | 'quiz' | 'flashcards' | 'add' | 'refresh' | 'connect' | 'configure' | 'test' | 'more' | 'bookmark' | 'saved' | 'status-pending' | 'status-complete' | 'status-attention' | 'status-locked' | 'status-info';
+export type SemanticIconName = 'learn' | 'sandbox' | 'account' | 'settings' | 'lesson' | 'lab' | 'quiz' | 'flashcards' | 'add' | 'refresh' | 'connect' | 'configure' | 'test' | 'more' | 'bookmark' | 'saved' | 'backup' | 'appearance' | 'haptics' | 'motion' | 'help' | 'diagnostics' | 'presentation' | 'reset' | 'status-pending' | 'status-complete' | 'status-attention' | 'status-locked' | 'status-info';
 
 const symbols: Record<SemanticIconName, SymbolViewProps['name']> = {
   learn: { ios: 'book.fill', android: 'menu_book', web: 'menu_book' },
@@ -22,6 +22,14 @@ const symbols: Record<SemanticIconName, SymbolViewProps['name']> = {
   more: { ios: 'ellipsis', android: 'more_horiz', web: 'more_horiz' },
   bookmark: { ios: 'bookmark.fill', android: 'bookmark', web: 'bookmark' },
   saved: { ios: 'checkmark.circle.fill', android: 'check_circle', web: 'check_circle' },
+  backup: { ios: 'icloud.and.arrow.up', android: 'cloud_upload', web: 'cloud_upload' },
+  appearance: { ios: 'circle.lefthalf.filled', android: 'contrast', web: 'contrast' },
+  haptics: { ios: 'hand.tap.fill', android: 'vibration', web: 'vibration' },
+  motion: { ios: 'figure.walk.motion', android: 'animation', web: 'animation' },
+  help: { ios: 'questionmark.circle.fill', android: 'help', web: 'help' },
+  diagnostics: { ios: 'stethoscope', android: 'troubleshoot', web: 'troubleshoot' },
+  presentation: { ios: 'play.rectangle.fill', android: 'present_to_all', web: 'present_to_all' },
+  reset: { ios: 'trash.fill', android: 'delete', web: 'delete' },
   'status-pending': { ios: 'circle', android: 'radio_button_unchecked', web: 'radio_button_unchecked' },
   'status-complete': { ios: 'checkmark.circle.fill', android: 'check_circle', web: 'check_circle' },
   'status-attention': { ios: 'exclamationmark.triangle.fill', android: 'warning', web: 'warning' },
@@ -29,8 +37,9 @@ const symbols: Record<SemanticIconName, SymbolViewProps['name']> = {
   'status-info': { ios: 'info.circle.fill', android: 'info', web: 'info' },
 };
 
-export function SemanticIcon({ name, size = 24, color = Palette.text }: { name: SemanticIconName; size?: number; color?: string }) {
-  return <View accessible={false} style={[styles.frame, { width: size, height: size }]}><SymbolView name={symbols[name]} size={size} tintColor={color} style={{ width: size, height: size }} /></View>;
+export function SemanticIcon({ name, size = 24, color }: { name: SemanticIconName; size?: number; color?: string }) {
+  const { colors } = useTheme();
+  return <View accessible={false} style={[styles.frame, { width: size, height: size }]}><SymbolView name={symbols[name]} size={size} tintColor={color ?? colors.text} style={{ width: size, height: size }} /></View>;
 }
 
 const styles = StyleSheet.create({ frame: { alignItems: 'center', justifyContent: 'center' } });

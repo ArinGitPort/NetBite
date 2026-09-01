@@ -3,7 +3,8 @@ import { ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { GridBackground } from '@/shared/components/grid-background';
-import { Palette, Space } from '@/shared/theme';
+import { Space, type ThemeColors } from '@/shared/theme';
+import { useThemeStyles } from '@/shared/theme-context';
 
 interface ScreenProps extends PropsWithChildren {
   header?: ReactNode;
@@ -13,6 +14,7 @@ interface ScreenProps extends PropsWithChildren {
 }
 
 export function Screen({ children, header, scroll = true, scrollRef, scrollTestID }: ScreenProps) {
+  const styles = useThemeStyles(createStyles);
   const { width } = useWindowDimensions();
   const body = <View style={[styles.content, width <= 430 ? styles.contentCompact : styles.contentComfortable]}>{children}</View>;
 
@@ -31,8 +33,8 @@ export function Screen({ children, header, scroll = true, scrollRef, scrollTestI
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: Palette.background },
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
+  safeArea: { flex: 1, backgroundColor: colors.background },
   fixed: { flex: 1, alignItems: 'center' },
   scrollContent: { flexGrow: 1, alignItems: 'center' },
   content: { width: '100%', maxWidth: 720, minWidth: 0, flexGrow: 1 },

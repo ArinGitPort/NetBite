@@ -7,11 +7,14 @@ import type { SolvedExampleTopology } from '@/features/practice/solved-lab-examp
 import { DeviceGlyph } from '@/features/devices/components/device-glyph';
 import { Text } from '@/shared/components/console-text';
 import { calculateTopologyLabelLayout, TopologyLinkLabels } from '@/shared/components/topology-link-labels';
-import { Fonts, Palette, Space } from '@/shared/theme';
+import { Fonts, Space, type ThemeColors } from '@/shared/theme';
+import { useCanvasColors, useCanvasThemeStyles } from '@/shared/theme-context';
 
 interface Point { x: number; y: number }
 
 export function SolvedTopologyDiagram({ topology, selectedId, onSelect }: { topology: SolvedExampleTopology; selectedId?: string; onSelect: (id: string) => void }) {
+  const colors = useCanvasColors();
+  const styles = useCanvasThemeStyles(createStyles);
   const { fontScale } = useWindowDimensions();
   const layout = useMemo(() => buildLayout(topology), [topology]);
   const labelLayout = useMemo(() => calculateTopologyLabelLayout({
@@ -31,7 +34,7 @@ export function SolvedTopologyDiagram({ topology, selectedId, onSelect }: { topo
   return <ScrollView accessibilityLabel={topology.description} horizontal showsHorizontalScrollIndicator contentContainerStyle={styles.scroll}>
     <View style={[styles.canvas, { width: layout.width, height: layout.height }]}>
       <Svg accessible={false} pointerEvents="none" style={StyleSheet.absoluteFill} width={layout.width} height={layout.height}>
-        {topology.links.map((link) => { const a = layout.points[link.from]; const b = layout.points[link.to]; return a && b ? <Line key={link.id} x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke={Palette.green} strokeWidth={3} /> : null; })}
+        {topology.links.map((link) => { const a = layout.points[link.from]; const b = layout.points[link.to]; return a && b ? <Line key={link.id} x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke={colors.green} strokeWidth={3} /> : null; })}
       </Svg>
       {topology.links.map((link) => {
         const a = layout.points[link.from]; const b = layout.points[link.to];
@@ -89,9 +92,9 @@ function orderPath(topology: SolvedExampleTopology) {
   return ordered.length === topology.nodes.length ? ordered : topology.nodes;
 }
 
-const styles = StyleSheet.create({
-  scroll: { minWidth: '100%' }, canvas: { position: 'relative', overflow: 'hidden', borderWidth: 1, borderColor: Palette.border, backgroundColor: Palette.background },
-  node: { position: 'absolute', zIndex: 2, width: 104, minHeight: 92, padding: Space.xs, alignItems: 'center', justifyContent: 'center', gap: Space.xs, borderWidth: 1, borderColor: Palette.border, backgroundColor: Palette.surfaceRaised },
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
+  scroll: { minWidth: '100%' }, canvas: { position: 'relative', overflow: 'hidden', borderWidth: 1, borderColor: colors.border, backgroundColor: colors.background },
+  node: { position: 'absolute', zIndex: 2, width: 104, minHeight: 92, padding: Space.xs, alignItems: 'center', justifyContent: 'center', gap: Space.xs, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surfaceRaised },
   server: { width: 44, height: 44 },
-  selected: { borderWidth: 2, borderColor: Palette.orange, backgroundColor: Palette.orangeSoft }, nodeName: { color: Palette.text, fontFamily: Fonts.semibold, textAlign: 'center' },
+  selected: { borderWidth: 2, borderColor: colors.orange, backgroundColor: colors.orangeSoft }, nodeName: { color: colors.text, fontFamily: Fonts.semibold, textAlign: 'center' },
 });

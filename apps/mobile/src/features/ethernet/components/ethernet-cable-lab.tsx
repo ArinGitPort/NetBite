@@ -9,19 +9,22 @@ import {
 } from '@/core/network/ethernet-cabling';
 import { DeviceGlyph } from '@/features/devices/components/device-glyph';
 import { LabSetupSupport } from '@/features/practice/components/foundation-lab-support';
+import { LabGoalPanel } from '@/features/practice/components/lab-goal-panel';
 import { AppButton } from '@/shared/components/app-button';
 import { Text } from '@/shared/components/console-text';
 import { FeedbackModal } from '@/shared/components/feedback-modal';
 import { PageHeader } from '@/shared/components/page-header';
 import { Screen } from '@/shared/components/screen';
 import { selectionHaptic, successHaptic, warningHaptic } from '@/shared/haptics';
-import { Fonts, Palette, Space } from '@/shared/theme';
+import { Fonts, Space, type ThemeColors } from '@/shared/theme';
+import { useThemeStyles } from '@/shared/theme-context';
 import { useGameStore } from '@/store/use-game-store';
 import { returnToOwningChapter } from '@/shared/navigation';
 
 const LAB_ID = 'ethernet-cables';
 
 export function EthernetCableLab() {
+  const styles = useThemeStyles(createStyles);
   const completeLab = useGameStore((state) => state.completeLab);
   const [selections, setSelections] = useState<Partial<Record<string, EthernetCableType>>>({});
   const [result, setResult] = useState<EthernetCableLabResult>();
@@ -52,10 +55,7 @@ export function EthernetCableLab() {
       <Text variant="label" style={styles.eyebrow}>LESSON 3 PRACTICE / MANUAL MODE</Text>
       <Text variant="screenTitle" style={styles.title}>APPLY THE COPPER CABLE RULE</Text>
       <LabSetupSupport labId={LAB_ID} />
-      <View style={styles.objective}>
-        <Text variant="label" style={styles.objectiveLabel}>YOUR GOAL</Text>
-        <Text variant="body" style={styles.objectiveText}>Apply the manual cabling rule from Lesson 3 to each copper Ethernet link.</Text>
-      </View>
+      <LabGoalPanel goal="Apply the manual cabling rule from Lesson 3 to each copper Ethernet link." />
       <View style={styles.modernNote}>
         <Text variant="label" style={styles.modernNoteLabel}>MODERN NETWORK NOTE</Text>
         <Text variant="bodySmall" style={styles.modernNoteText}>Auto-MDIX can correct the wiring automatically. Manual mode lets you practice what the ports would otherwise handle for you.</Text>
@@ -127,28 +127,25 @@ export function EthernetCableLab() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   headerRow: { minHeight: 44, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: Space.sm },
-  eyebrow: { color: Palette.orange, fontFamily: Fonts.medium, marginTop: Space.md },
-  title: { color: Palette.text, fontFamily: Fonts.semibold, marginTop: Space.sm, marginBottom: Space.lg },
-  objective: { padding: Space.lg, backgroundColor: Palette.surface, borderWidth: 1, borderColor: Palette.green },
-  objectiveLabel: { color: Palette.green, fontFamily: Fonts.medium },
-  objectiveText: { color: Palette.text, marginTop: Space.xs },
-  modernNote: { padding: Space.md, marginTop: Space.md, backgroundColor: Palette.surface, borderWidth: 1, borderColor: Palette.orange },
-  modernNoteLabel: { color: Palette.orange, fontFamily: Fonts.medium },
-  modernNoteText: { color: Palette.text, marginTop: Space.xs },
+  eyebrow: { color: colors.orange, fontFamily: Fonts.medium, marginTop: Space.md },
+  title: { color: colors.text, fontFamily: Fonts.semibold, marginTop: Space.sm, marginBottom: Space.lg },
+  modernNote: { padding: Space.md, marginTop: Space.md, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.orange },
+  modernNoteLabel: { color: colors.orange, fontFamily: Fonts.medium },
+  modernNoteText: { color: colors.text, marginTop: Space.xs },
   tasks: { gap: Space.md, marginTop: Space.lg },
-  taskCard: { padding: Space.md, gap: Space.md, backgroundColor: Palette.surface, borderWidth: 1, borderColor: Palette.border },
-  taskLabel: { color: Palette.textMuted, fontFamily: Fonts.medium },
+  taskCard: { padding: Space.md, gap: Space.md, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
+  taskLabel: { color: colors.textMuted, fontFamily: Fonts.medium },
   linkDiagram: { minHeight: 96, flexDirection: 'row', alignItems: 'center' },
   endpoint: { width: 80, minWidth: 0, alignItems: 'center', gap: Space.xs, zIndex: 1 },
-  endpointLabel: { color: Palette.text, fontFamily: Fonts.medium, textAlign: 'center', textTransform: 'uppercase' },
-  cableLine: { flex: 1, height: 2, backgroundColor: Palette.border },
-  cableLineSelected: { backgroundColor: Palette.accent },
+  endpointLabel: { color: colors.text, fontFamily: Fonts.medium, textAlign: 'center', textTransform: 'uppercase' },
+  cableLine: { flex: 1, height: 2, backgroundColor: colors.border },
+  cableLineSelected: { backgroundColor: colors.accent },
   cableChoices: { flexDirection: 'row', flexWrap: 'wrap', gap: Space.sm },
-  cableChoice: { minWidth: 136, flexGrow: 1, flexBasis: '46%', minHeight: 52, alignItems: 'center', justifyContent: 'center', paddingHorizontal: Space.xs, paddingVertical: Space.sm, backgroundColor: Palette.background, borderWidth: 1, borderColor: Palette.border },
-  cableChoiceSelected: { backgroundColor: Palette.surfaceRaised, borderColor: Palette.accent },
-  cableChoiceText: { color: Palette.textMuted, fontFamily: Fonts.medium, textAlign: 'center' },
-  cableChoiceTextSelected: { color: Palette.accentBright },
+  cableChoice: { minWidth: 136, flexGrow: 1, flexBasis: '46%', minHeight: 52, alignItems: 'center', justifyContent: 'center', paddingHorizontal: Space.xs, paddingVertical: Space.sm, backgroundColor: colors.background, borderWidth: 1, borderColor: colors.border },
+  cableChoiceSelected: { backgroundColor: colors.surfaceRaised, borderColor: colors.accent },
+  cableChoiceText: { color: colors.textMuted, fontFamily: Fonts.medium, textAlign: 'center' },
+  cableChoiceTextSelected: { color: colors.accentBright },
   actions: { marginTop: Space.xl },
 });

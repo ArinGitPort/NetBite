@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import type { PracticeConfig } from '@/features/practice/practice-configs';
 import { LabSetupSupport } from '@/features/practice/components/foundation-lab-support';
+import { LabGoalPanel } from '@/features/practice/components/lab-goal-panel';
 import { AppButton } from '@/shared/components/app-button';
 import { Text } from '@/shared/components/console-text';
 import { FeedbackModal } from '@/shared/components/feedback-modal';
@@ -11,12 +12,14 @@ import { PageHeader } from '@/shared/components/page-header';
 import { ProgressBar } from '@/shared/components/progress-bar';
 import { Screen } from '@/shared/components/screen';
 import { selectionHaptic, successHaptic, warningHaptic } from '@/shared/haptics';
-import { Fonts, Palette, Radius, Space } from '@/shared/theme';
+import { Fonts, Radius, Space, type ThemeColors } from '@/shared/theme';
+import { useThemeStyles } from '@/shared/theme-context';
 import { useGameStore } from '@/store/use-game-store';
 import { returnToOwningChapter } from '@/shared/navigation';
 import { WhyExplanation } from '@/shared/components/why-explanation';
 
 export function GuidedPracticeLab({ config }: { config: PracticeConfig }) {
+  const styles = useThemeStyles(createStyles);
   const completeLab = useGameStore((state) => state.completeLab);
   const [stageIndex, setStageIndex] = useState(0);
   const [selected, setSelected] = useState<string>();
@@ -63,10 +66,7 @@ export function GuidedPracticeLab({ config }: { config: PracticeConfig }) {
     <Screen header={<PageHeader leading={{ accessibilityLabel: `Back to Chapter ${config.chapterId}`, icon: 'arrow-left', label: 'BACK / CHAPTER', onPress: () => returnToOwningChapter('lab', config.id) }} trailing={[{ accessibilityLabel: 'Reset practice', icon: 'reset', label: 'RESET', onPress: () => setResetVisible(true) }]} />}>
       <Text variant="label" style={styles.eyebrow}>{config.eyebrow}</Text>
       <Text variant="screenTitle" style={styles.title}>{config.title}</Text>
-      <View style={styles.objective}>
-        <Text variant="label" style={styles.objectiveLabel}>YOUR GOAL</Text>
-        <Text variant="body" style={styles.objectiveText}>{config.objective}</Text>
-      </View>
+      <LabGoalPanel goal={config.objective} style={styles.objective} />
       <Text variant="technical" style={styles.scope}>{config.scopeNote}</Text>
       <LabSetupSupport labId={config.id} />
       <ProgressBar progress={(stageIndex + (resolved ? 1 : 0)) / config.stages.length} />
@@ -115,31 +115,29 @@ export function GuidedPracticeLab({ config }: { config: PracticeConfig }) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   header: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: Space.sm, minHeight: 44 },
-  eyebrow: { color: Palette.orange, fontFamily: Fonts.medium, marginTop: Space.md },
-  title: { color: Palette.text, fontFamily: Fonts.semibold, marginTop: Space.sm },
-  objective: { marginTop: Space.lg, borderWidth: 1, borderColor: Palette.green, borderRadius: Radius.md, padding: Space.lg, backgroundColor: Palette.greenSoft },
-  objectiveLabel: { color: Palette.green, fontFamily: Fonts.medium },
-  objectiveText: { color: Palette.text, marginTop: Space.xs },
-  scope: { color: Palette.textMuted, marginVertical: Space.md },
-  stage: { marginVertical: Space.lg, padding: Space.lg, borderWidth: 1, borderColor: Palette.border, backgroundColor: Palette.surface, borderRadius: Radius.md },
-  stageCount: { color: Palette.green },
-  context: { color: Palette.textMuted, marginTop: Space.md },
-  prompt: { color: Palette.text, fontFamily: Fonts.semibold, marginTop: Space.lg },
+  eyebrow: { color: colors.orange, fontFamily: Fonts.medium, marginTop: Space.md },
+  title: { color: colors.text, fontFamily: Fonts.semibold, marginTop: Space.sm },
+  objective: { marginTop: Space.lg },
+  scope: { color: colors.textMuted, marginVertical: Space.md },
+  stage: { marginVertical: Space.lg, padding: Space.lg, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, borderRadius: Radius.md },
+  stageCount: { color: colors.green },
+  context: { color: colors.textMuted, marginTop: Space.md },
+  prompt: { color: colors.text, fontFamily: Fonts.semibold, marginTop: Space.lg },
   choices: { gap: Space.sm, marginTop: Space.lg },
-  choice: { minHeight: 48, justifyContent: 'center', padding: Space.md, borderWidth: 1, borderColor: Palette.border, backgroundColor: Palette.surfaceRaised, borderRadius: Radius.sm },
-  choiceActive: { borderColor: Palette.orange, backgroundColor: Palette.orangeSoft },
-  choiceText: { color: Palette.textMuted, textAlign: 'center' },
-  choiceTextActive: { color: Palette.text },
+  choice: { minHeight: 48, justifyContent: 'center', padding: Space.md, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surfaceRaised, borderRadius: Radius.sm },
+  choiceActive: { borderColor: colors.orange, backgroundColor: colors.orangeSoft },
+  choiceText: { color: colors.textMuted, textAlign: 'center' },
+  choiceTextActive: { color: colors.text },
   feedback: { marginTop: Space.lg, padding: Space.md, borderWidth: 1 },
-  feedbackSuccess: { borderColor: Palette.green, backgroundColor: Palette.greenSoft },
-  feedbackWarning: { borderColor: Palette.orange, backgroundColor: Palette.orangeSoft },
-  successText: { color: Palette.green }, warningText: { color: Palette.orange },
-  feedbackText: { color: Palette.text, marginTop: Space.xs },
-  hintPanel: { marginTop: Space.md, padding: Space.md, borderWidth: 1, borderColor: Palette.border, backgroundColor: Palette.background },
-  hintLabel: { color: Palette.orange, fontFamily: Fonts.medium, marginBottom: Space.xs },
-  hintText: { color: Palette.text },
-  hintButton: { minHeight: 48, alignItems: 'center', justifyContent: 'center', marginTop: Space.md, borderWidth: 1, borderColor: Palette.border },
-  hintButtonText: { color: Palette.textMuted, fontFamily: Fonts.medium },
+  feedbackSuccess: { borderColor: colors.green, backgroundColor: colors.greenSoft },
+  feedbackWarning: { borderColor: colors.orange, backgroundColor: colors.orangeSoft },
+  successText: { color: colors.green }, warningText: { color: colors.orange },
+  feedbackText: { color: colors.text, marginTop: Space.xs },
+  hintPanel: { marginTop: Space.md, padding: Space.md, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.background },
+  hintLabel: { color: colors.orange, fontFamily: Fonts.medium, marginBottom: Space.xs },
+  hintText: { color: colors.text },
+  hintButton: { minHeight: 48, alignItems: 'center', justifyContent: 'center', marginTop: Space.md, borderWidth: 1, borderColor: colors.border },
+  hintButtonText: { color: colors.textMuted, fontFamily: Fonts.medium },
 });

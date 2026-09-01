@@ -20,7 +20,8 @@ import {
   normalizeWorkshopTopology,
 } from "@netbite/workshops/topology-authoring";
 import { Text } from "@/shared/components/console-text";
-import { Fonts, Palette, Space } from "@/shared/theme";
+import { Fonts, Space, type ThemeColors } from "@/shared/theme";
+import { useCanvasColors, useCanvasThemeStyles } from "@/shared/theme-context";
 
 const artwork = {
   pc: require("@/assets/images/devices/device-pc-mobile.png"),
@@ -53,6 +54,8 @@ export function WorkshopTopologyView({
 }: {
   topology: WorkshopTopology;
 }) {
+  const colors = useCanvasColors();
+  const styles = useCanvasThemeStyles(createStyles);
   const topology = useMemo(
     () => normalizeWorkshopTopology(rawTopology),
     [rawTopology],
@@ -318,10 +321,10 @@ export function WorkshopTopologyView({
                     y2={cable.end.y}
                     stroke={
                       link?.state === "down"
-                        ? Palette.danger
+                        ? colors.danger
                         : link?.id === selectedLinkId
-                          ? Palette.orange
-                          : Palette.green
+                          ? colors.orange
+                          : colors.green
                     }
                     strokeWidth={1.5}
                     vectorEffect="non-scaling-stroke"
@@ -499,6 +502,7 @@ function SelectedConnection({
   topology: WorkshopTopology;
   linkId: string;
 }) {
+  const styles = useCanvasThemeStyles(createStyles);
   const link = topology.links.find((candidate) => candidate.id === linkId);
   if (!link) return null;
   const from = topology.devices.find(
@@ -548,6 +552,7 @@ function SelectedConnection({
 }
 
 function DeviceInspector({ device }: { device: WorkshopTopologyDevice }) {
+  const styles = useCanvasThemeStyles(createStyles);
   return (
     <View style={styles.inspector}>
       <Text variant="label" style={styles.label}>
@@ -751,23 +756,23 @@ function DeviceInspector({ device }: { device: WorkshopTopologyDevice }) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   shell: {
     gap: Space.md,
     borderWidth: 1,
-    borderColor: Palette.border,
+    borderColor: colors.border,
     padding: Space.md,
-    backgroundColor: Palette.surface,
+    backgroundColor: colors.surface,
   },
-  muted: { color: Palette.textMuted },
+  muted: { color: colors.textMuted },
   viewTools: { gap: Space.sm },
-  viewHint: { color: Palette.textMuted },
+  viewHint: { color: colors.textMuted },
   zoomActions: { flexDirection: "row", gap: Space.sm, alignItems: "center" },
   zoomButton: {
     minWidth: 44,
     minHeight: 44,
     borderWidth: 1,
-    borderColor: Palette.border,
+    borderColor: colors.border,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -775,7 +780,7 @@ const styles = StyleSheet.create({
     minHeight: 44,
     paddingHorizontal: Space.md,
     borderWidth: 1,
-    borderColor: Palette.border,
+    borderColor: colors.border,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -783,8 +788,8 @@ const styles = StyleSheet.create({
     height: topologyCanvasHeight,
     overflow: "hidden",
     borderWidth: 1,
-    borderColor: Palette.border,
-    backgroundColor: Palette.background,
+    borderColor: colors.border,
+    backgroundColor: colors.background,
   },
   worldCanvas: { position: "absolute", left: 0, top: 0 },
   device: {
@@ -794,61 +799,61 @@ const styles = StyleSheet.create({
     marginLeft: -43,
     marginTop: -39,
     borderWidth: 1,
-    borderColor: Palette.border,
-    backgroundColor: Palette.surfaceRaised,
+    borderColor: colors.border,
+    backgroundColor: colors.surfaceRaised,
     alignItems: "center",
     justifyContent: "center",
     padding: Space.xs,
     zIndex: 2,
   },
   deviceSelected: {
-    borderColor: Palette.orange,
-    backgroundColor: Palette.orangeSoft,
+    borderColor: colors.orange,
+    backgroundColor: colors.orangeSoft,
   },
   endpointPlate: {
     position: "absolute",
     paddingHorizontal: 5,
     borderWidth: 1,
-    borderColor: Palette.textMuted,
-    backgroundColor: "#171419",
+    borderColor: colors.textMuted,
+    backgroundColor: colors.surface,
     alignItems: "center",
     justifyContent: "center",
     zIndex: 3,
   },
-  endpointPlateText: { color: Palette.white, fontSize: 9 },
+  endpointPlateText: { color: colors.text, fontSize: 9 },
   contextPlate: {
     position: "absolute",
     paddingHorizontal: Space.sm,
     borderWidth: 1,
-    borderColor: Palette.textMuted,
-    backgroundColor: "#171419",
+    borderColor: colors.textMuted,
+    backgroundColor: colors.surface,
     alignItems: "center",
     justifyContent: "center",
     zIndex: 3,
   },
-  contextPlateSelected: { borderColor: Palette.orange },
+  contextPlateSelected: { borderColor: colors.orange },
   contextPlateWarning: {
-    borderColor: Palette.orange,
-    backgroundColor: Palette.orangeSoft,
+    borderColor: colors.orange,
+    backgroundColor: colors.orangeSoft,
   },
-  contextPlateText: { color: Palette.white, textAlign: "center", fontSize: 9 },
+  contextPlateText: { color: colors.text, textAlign: "center", fontSize: 9 },
   artwork: { width: 46, height: 42 },
   deviceName: { fontFamily: Fonts.semibold, textAlign: "center" },
   inspector: {
     borderWidth: 1,
-    borderColor: Palette.green,
-    backgroundColor: Palette.greenSoft,
+    borderColor: colors.green,
+    backgroundColor: colors.greenSoft,
     padding: Space.md,
     gap: Space.sm,
   },
-  label: { color: Palette.green },
+  label: { color: colors.green },
   record: {
     borderTopWidth: 1,
-    borderTopColor: Palette.border,
+    borderTopColor: colors.border,
     paddingTop: Space.sm,
     gap: 3,
   },
-  recordTitle: { color: Palette.orange, fontFamily: Fonts.semibold },
+  recordTitle: { color: colors.orange, fontFamily: Fonts.semibold },
   note: { gap: Space.xs, marginTop: Space.sm },
   linkRecordGrid: { flexDirection: "row", gap: Space.md },
   linkRecordEndpoint: { flex: 1, gap: 3 },
@@ -856,18 +861,18 @@ const styles = StyleSheet.create({
   link: {
     minHeight: 74,
     borderWidth: 1,
-    borderColor: Palette.border,
+    borderColor: colors.border,
     padding: Space.sm,
     flexDirection: "row",
     alignItems: "center",
   },
   endpoint: { width: 86 },
   endpointRight: { alignItems: "flex-end" },
-  endpointDevice: { color: Palette.white, fontFamily: Fonts.semibold },
+  endpointDevice: { color: colors.text, fontFamily: Fonts.semibold },
   connection: { flex: 1, alignItems: "center", gap: 5 },
-  line: { width: "100%", height: 1, backgroundColor: Palette.green },
-  lineDown: { backgroundColor: Palette.danger },
-  context: { color: Palette.orange, textAlign: "center" },
-  up: { color: Palette.green },
-  down: { color: Palette.danger },
+  line: { width: "100%", height: 1, backgroundColor: colors.green },
+  lineDown: { backgroundColor: colors.danger },
+  context: { color: colors.orange, textAlign: "center" },
+  up: { color: colors.green },
+  down: { color: colors.danger },
 });

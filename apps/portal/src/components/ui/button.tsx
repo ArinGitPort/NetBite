@@ -11,11 +11,11 @@ export const buttonVariants = cva(
         neutral:
           "border-line bg-raised text-copy hover:border-muted hover:bg-surface",
         primary:
-          "border-copy bg-copy text-canvas hover:border-white hover:bg-white hover:text-canvas",
+          "border-copy bg-copy text-canvas hover:border-copy hover:bg-copy/85 hover:text-canvas active:bg-copy/75",
         secondary:
-          "border-signal-orange/60 bg-signal-orange-soft text-[#f1ae78] hover:border-signal-orange",
+          "border-signal-orange/60 bg-signal-orange-soft text-signal-orange hover:border-signal-orange",
         destructive:
-          "border-signal-red/60 bg-signal-red-soft text-[#ff858a] hover:border-signal-red",
+          "border-signal-red/60 bg-signal-red-soft text-signal-red hover:border-signal-red",
         outline:
           "border-line bg-transparent text-copy hover:border-muted hover:bg-raised",
         ghost:

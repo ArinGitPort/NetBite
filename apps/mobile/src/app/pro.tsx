@@ -9,9 +9,11 @@ import { PageHeader } from '@/shared/components/page-header';
 import { Screen } from '@/shared/components/screen';
 import { goBackOrReplace } from '@/shared/navigation';
 import { AppRoutes } from '@/shared/routes';
-import { Fonts, Palette, Space } from '@/shared/theme';
+import { Fonts, Space, type ThemeColors } from '@/shared/theme';
+import { useThemeStyles } from '@/shared/theme-context';
 
 export default function ProScreen() {
+  const styles = useThemeStyles(createStyles);
   const { status, hasPro, hasContentAccess, testProEnabled } = useAuth();
   return (
     <Screen header={<PageHeader leading={{ accessibilityLabel: 'Back to previous screen', icon: 'arrow-left', label: 'BACK', onPress: () => goBackOrReplace('/') }} />}>
@@ -55,17 +57,17 @@ export default function ProScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   hero: { alignItems: 'center', paddingVertical: Space.xxl, gap: Space.sm },
-  eyebrow: { color: Palette.orange, textAlign: 'center' },
-  title: { color: Palette.text, fontFamily: Fonts.semibold },
-  price: { color: Palette.orange },
-  test: { color: Palette.orange },
-  panel: { padding: Space.lg, gap: Space.sm, borderWidth: 1, borderColor: Palette.border, backgroundColor: Palette.surface, marginBottom: Space.lg },
-  owned: { padding: Space.lg, gap: Space.sm, borderWidth: 1, borderColor: Palette.green, backgroundColor: Palette.surface, marginBottom: Space.lg },
-  testOwned: { padding: Space.lg, gap: Space.sm, borderWidth: 1, borderColor: Palette.orange, backgroundColor: Palette.surface, marginBottom: Space.lg },
-  guestAccess: { padding: Space.lg, gap: Space.sm, borderWidth: 1, borderColor: Palette.green, backgroundColor: Palette.surface, marginBottom: Space.lg },
-  green: { color: Palette.green },
-  message: { color: Palette.orange, marginBottom: Space.md },
-  boundary: { color: Palette.textMuted, textAlign: 'center', marginTop: Space.xl },
+  eyebrow: { color: colors.orange, textAlign: 'center' },
+  title: { color: colors.text, fontFamily: Fonts.semibold },
+  price: { color: colors.orange },
+  test: { color: colors.orange },
+  panel: { padding: Space.lg, gap: Space.sm, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, marginBottom: Space.lg },
+  owned: { padding: Space.lg, gap: Space.sm, borderWidth: 1, borderColor: colors.green, backgroundColor: colors.surface, marginBottom: Space.lg },
+  testOwned: { padding: Space.lg, gap: Space.sm, borderWidth: 1, borderColor: colors.orange, backgroundColor: colors.surface, marginBottom: Space.lg },
+  guestAccess: { padding: Space.lg, gap: Space.sm, borderWidth: 1, borderColor: colors.green, backgroundColor: colors.surface, marginBottom: Space.lg },
+  green: { color: colors.green },
+  message: { color: colors.orange, marginBottom: Space.md },
+  boundary: { color: colors.textMuted, textAlign: 'center', marginTop: Space.xl },
 });

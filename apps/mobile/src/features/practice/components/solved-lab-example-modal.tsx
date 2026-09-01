@@ -9,9 +9,11 @@ import { LinkConnectionRecord } from '@/shared/components/link-connection-record
 import { PageHeader } from '@/shared/components/page-header';
 import { Screen } from '@/shared/components/screen';
 import { NumberedStepRow, StatusRow } from '@/shared/components/status-row';
-import { Fonts, Palette, Space } from '@/shared/theme';
+import { Fonts, Space, type ThemeColors } from '@/shared/theme';
+import { useThemeStyles } from '@/shared/theme-context';
 
 export function SolvedLabExampleModal({ labId, visible, onClose }: { labId: string; visible: boolean; onClose: () => void }) {
+  const styles = useThemeStyles(createStyles);
   const result = useMemo(() => {
     if (!visible) return undefined;
     try { return { snapshot: buildSolvedLabExample(labId) }; }
@@ -29,6 +31,7 @@ export function SolvedLabExampleModal({ labId, visible, onClose }: { labId: stri
 }
 
 function SolvedContent({ snapshot }: { snapshot: SolvedLabExampleSnapshot }) {
+  const styles = useThemeStyles(createStyles);
   const [selectedNodeId, setSelectedNodeId] = useState(snapshot.topology?.nodes[0]?.id);
   const selectedNode = snapshot.topology?.nodes.find((node) => node.id === selectedNodeId);
   return <>
@@ -44,6 +47,7 @@ function SolvedContent({ snapshot }: { snapshot: SolvedLabExampleSnapshot }) {
 }
 
 function SolvedSection({ entry, selectedDeviceLabel, deviceLabels }: { entry: SolvedExampleSection; selectedDeviceLabel?: string; deviceLabels: string[] }) {
+  const styles = useThemeStyles(createStyles);
   const rows = entry.kind === 'configuration' && selectedDeviceLabel ? rowsForDevice(entry.rows, selectedDeviceLabel, deviceLabels) : entry.rows;
   const records = entry.records?.filter((record) => !selectedDeviceLabel || !record.deviceLabel || record.deviceLabel === selectedDeviceLabel);
   const isVerification = entry.kind === 'results';
@@ -60,6 +64,7 @@ function SolvedSection({ entry, selectedDeviceLabel, deviceLabels }: { entry: So
 }
 
 function StructuredRecord({ record }: { record: SolvedExampleRecord }) {
+  const styles = useThemeStyles(createStyles);
   return <View style={styles.structuredRecord}>
     <Text variant="label" style={styles.recordTitle}>{record.title}</Text>
     {record.fields.filter((field) => field.label !== 'Device').map((field) => <View key={`${record.id}-${field.label}`} style={styles.fieldRow}><Text variant="bodySmall" style={styles.fieldLabel}>{field.label}</Text><Text selectable variant="technical" style={styles.fieldValue}>{field.value}</Text></View>)}
@@ -78,14 +83,14 @@ function connectionPort(label: string | undefined, endpoint: 'a' | 'b') {
   const parts = label.replaceAll('—', '-').split(/\s+-\s+|\s+↔\s+/).map((part) => part.trim());
   return (endpoint === 'a' ? parts[0] : parts[1]) || 'INTERFACE';
 }
-function Reason({ label, value }: { label: string; value: string }) { return <View style={styles.reason}><Text variant="label" style={styles.orange}>{label}</Text><Text selectable variant="bodySmall">{value}</Text></View>; }
-function Unavailable({ detail }: { detail?: string }) { return <View style={styles.panel}><Text variant="sectionHeading">EXAMPLE TEMPORARILY UNAVAILABLE</Text><Text variant="bodySmall" style={styles.muted}>Your lab is safe and unchanged. Return to the lab and try this example again later.</Text>{__DEV__ && detail ? <Text variant="technical" style={styles.muted}>{detail}</Text> : null}</View>; }
+function Reason({ label, value }: { label: string; value: string }) { const styles = useThemeStyles(createStyles); return <View style={styles.reason}><Text variant="label" style={styles.orange}>{label}</Text><Text selectable variant="bodySmall">{value}</Text></View>; }
+function Unavailable({ detail }: { detail?: string }) { const styles = useThemeStyles(createStyles); return <View style={styles.panel}><Text variant="sectionHeading">EXAMPLE TEMPORARILY UNAVAILABLE</Text><Text variant="bodySmall" style={styles.muted}>Your lab is safe and unchanged. Return to the lab and try this example again later.</Text>{__DEV__ && detail ? <Text variant="technical" style={styles.muted}>{detail}</Text> : null}</View>; }
 
-const styles = StyleSheet.create({
-  page: { gap: Space.lg }, intro: { gap: Space.sm }, studyGuide: { minWidth: 0, gap: Space.md, padding: Space.lg, borderLeftWidth: 3, borderLeftColor: Palette.green, backgroundColor: Palette.greenSoft },
-  panel: { minWidth: 0, gap: Space.md, padding: Space.lg, borderWidth: 1, borderColor: Palette.border, backgroundColor: Palette.surface }, selection: { color: Palette.orange },
-  addressingNote: { minWidth: 0, gap: Space.xs, padding: Space.md, borderLeftWidth: 3, borderLeftColor: Palette.green, backgroundColor: Palette.greenSoft },
-  rows: { minWidth: 0, gap: 0 }, row: { minWidth: 0, paddingVertical: Space.sm, borderBottomWidth: 1, borderBottomColor: Palette.border }, commandRow: { backgroundColor: Palette.background, paddingHorizontal: Space.sm },
-  records: { minWidth: 0, gap: Space.sm }, structuredRecord: { minWidth: 0, gap: Space.xs, padding: Space.md, borderWidth: 1, borderColor: Palette.border, backgroundColor: Palette.background }, recordTitle: { color: Palette.green, fontFamily: Fonts.semibold }, fieldRow: { minWidth: 0, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'baseline', gap: Space.sm, paddingVertical: 2 }, fieldLabel: { minWidth: 116, flexShrink: 0, color: Palette.textMuted }, fieldValue: { minWidth: 0, flex: 1, color: Palette.text }, commandGroup: { minWidth: 0, gap: Space.sm },
-  reason: { minWidth: 0, gap: Space.xs }, muted: { color: Palette.textMuted }, orange: { color: Palette.orange, fontFamily: Fonts.semibold }, green: { color: Palette.green, fontFamily: Fonts.semibold },
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
+  page: { gap: Space.lg }, intro: { gap: Space.sm }, studyGuide: { minWidth: 0, gap: Space.md, padding: Space.lg, borderLeftWidth: 3, borderLeftColor: colors.green, backgroundColor: colors.greenSoft },
+  panel: { minWidth: 0, gap: Space.md, padding: Space.lg, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface }, selection: { color: colors.orange },
+  addressingNote: { minWidth: 0, gap: Space.xs, padding: Space.md, borderLeftWidth: 3, borderLeftColor: colors.green, backgroundColor: colors.greenSoft },
+  rows: { minWidth: 0, gap: 0 }, row: { minWidth: 0, paddingVertical: Space.sm, borderBottomWidth: 1, borderBottomColor: colors.border }, commandRow: { backgroundColor: colors.background, paddingHorizontal: Space.sm },
+  records: { minWidth: 0, gap: Space.sm }, structuredRecord: { minWidth: 0, gap: Space.xs, padding: Space.md, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.background }, recordTitle: { color: colors.green, fontFamily: Fonts.semibold }, fieldRow: { minWidth: 0, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'baseline', gap: Space.sm, paddingVertical: 2 }, fieldLabel: { minWidth: 116, flexShrink: 0, color: colors.textMuted }, fieldValue: { minWidth: 0, flex: 1, color: colors.text }, commandGroup: { minWidth: 0, gap: Space.sm },
+  reason: { minWidth: 0, gap: Space.xs }, muted: { color: colors.textMuted }, orange: { color: colors.orange, fontFamily: Fonts.semibold }, green: { color: colors.green, fontFamily: Fonts.semibold },
 });

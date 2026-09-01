@@ -4,9 +4,11 @@ import { AccessibilityInfo, Pressable, StyleSheet, View } from 'react-native';
 import type { LessonExample } from '@/content/types';
 import { EducationalLessonIllustration } from '@/features/lessons/components/educational-lesson-illustration';
 import { Text } from '@/shared/components/console-text';
-import { Fonts, Palette, Space } from '@/shared/theme';
+import { Fonts, Space, type ThemeColors } from '@/shared/theme';
+import { useThemeStyles } from '@/shared/theme-context';
 
 export function LessonWorkedExample({ example }: { example: LessonExample }) {
+  const styles = useThemeStyles(createStyles);
   const steps = example.steps ?? [];
   const guided = example.presentation === 'guided' && steps.length > 0;
   const [stepIndex, setStepIndex] = useState(0);
@@ -76,6 +78,7 @@ export function LessonWorkedExample({ example }: { example: LessonExample }) {
 }
 
 function ExampleButton({ disabled = false, label, onPress }: { disabled?: boolean; label: string; onPress: () => void }) {
+  const styles = useThemeStyles(createStyles);
   return (
     <Pressable
       accessibilityLabel={label}
@@ -89,23 +92,23 @@ function ExampleButton({ disabled = false, label, onPress }: { disabled?: boolea
   );
 }
 
-const styles = StyleSheet.create({
-  example: { marginTop: Space.lg, padding: Space.lg, backgroundColor: Palette.surfaceRaised, borderWidth: 1, borderColor: Palette.border },
-  label: { color: Palette.accentBright, fontFamily: Fonts.medium, marginBottom: Space.sm },
-  setup: { color: Palette.textMuted, marginBottom: Space.xs },
-  step: { flexDirection: 'row', alignItems: 'flex-start', marginTop: Space.md, padding: Space.md, backgroundColor: Palette.background, borderWidth: 1, borderColor: Palette.border },
-  stepNumber: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: Palette.orange },
-  stepNumberText: { color: Palette.orange, fontFamily: Fonts.semibold },
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
+  example: { marginTop: Space.lg, padding: Space.lg, backgroundColor: colors.surfaceRaised, borderWidth: 1, borderColor: colors.border },
+  label: { color: colors.accentBright, fontFamily: Fonts.medium, marginBottom: Space.sm },
+  setup: { color: colors.textMuted, marginBottom: Space.xs },
+  step: { flexDirection: 'row', alignItems: 'flex-start', marginTop: Space.md, padding: Space.md, backgroundColor: colors.background, borderWidth: 1, borderColor: colors.border },
+  stepNumber: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.orange },
+  stepNumberText: { color: colors.orange, fontFamily: Fonts.semibold },
   stepCopy: { flex: 1, minWidth: 0, marginLeft: Space.md },
-  stepLabel: { color: Palette.text, fontFamily: Fonts.semibold },
-  stepText: { color: Palette.textMuted, marginTop: Space.xs },
-  stepValue: { color: Palette.green, marginTop: Space.sm },
-  progress: { color: Palette.orange, marginTop: Space.md },
+  stepLabel: { color: colors.text, fontFamily: Fonts.semibold },
+  stepText: { color: colors.textMuted, marginTop: Space.xs },
+  stepValue: { color: colors.green, marginTop: Space.sm },
+  progress: { color: colors.orange, marginTop: Space.md },
   controls: { flexDirection: 'row', flexWrap: 'wrap', gap: Space.sm, marginTop: Space.md },
-  control: { minWidth: 132, minHeight: 44, flexGrow: 1, flexBasis: 132, alignItems: 'center', justifyContent: 'center', paddingHorizontal: Space.md, paddingVertical: Space.sm, borderWidth: 1, borderColor: Palette.border, backgroundColor: Palette.background },
-  controlPressed: { borderColor: Palette.orange, backgroundColor: Palette.surface },
-  controlDisabled: { backgroundColor: Palette.surface, opacity: 0.55 },
-  controlText: { color: Palette.text, fontFamily: Fonts.medium, textAlign: 'center' },
-  controlTextDisabled: { color: Palette.textMuted },
-  result: { color: Palette.text, marginTop: Space.md },
+  control: { minWidth: 132, minHeight: 44, flexGrow: 1, flexBasis: 132, alignItems: 'center', justifyContent: 'center', paddingHorizontal: Space.md, paddingVertical: Space.sm, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.background },
+  controlPressed: { borderColor: colors.orange, backgroundColor: colors.surface },
+  controlDisabled: { backgroundColor: colors.surface, opacity: 0.55 },
+  controlText: { color: colors.text, fontFamily: Fonts.medium, textAlign: 'center' },
+  controlTextDisabled: { color: colors.textMuted },
+  result: { color: colors.text, marginTop: Space.md },
 });

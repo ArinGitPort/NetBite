@@ -27,10 +27,14 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#151216",
+          "backgroundColor": "#F6F3F5",
           "image": "./assets/images/branding/netbite-splash.png",
           "imageWidth": 320,
-          "resizeMode": "contain"
+          "resizeMode": "contain",
+          "dark": {
+            "backgroundColor": "#151216",
+            "image": "./assets/images/branding/netbite-splash.png"
+          }
         }
       ],
       "expo-sqlite",

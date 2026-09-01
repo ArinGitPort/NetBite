@@ -17,8 +17,8 @@ export function WorkshopNotice({
     <div
       className={`mb-4 flex min-h-11 items-center justify-between gap-3 rounded-control border p-2 pl-3 text-sm ${
         error
-          ? "border-signal-red/60 bg-signal-red-soft text-[#ff9da1]"
-          : "border-signal-green/60 bg-signal-green-soft text-[#abd2c8]"
+          ? "border-signal-red/60 bg-signal-red-soft text-signal-red"
+          : "border-signal-green/60 bg-signal-green-soft text-signal-green"
       }`}
       role={error ? "alert" : "status"}
     >

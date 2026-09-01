@@ -220,7 +220,7 @@ export function Curriculum() {
         </DialogFrame>
       ) : null}
       {notice ? (
-        <div className="mb-4 rounded-control border border-signal-green/60 bg-signal-green-soft p-3 text-sm text-[#abd2c8]">
+        <div className="mb-4 rounded-control border border-signal-green/60 bg-signal-green-soft p-3 text-sm text-signal-green">
           {notice}
         </div>
       ) : null}

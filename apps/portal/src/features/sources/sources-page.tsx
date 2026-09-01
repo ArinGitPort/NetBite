@@ -89,7 +89,7 @@ export function Sources() {
         detail="Record the primary RFC, IEEE/IANA, or official vendor material supporting authored claims."
       />
       {notice ? (
-        <div className="mb-4 rounded-control border border-signal-green/60 bg-signal-green-soft p-3 text-sm text-[#abd2c8]">
+        <div className="mb-4 rounded-control border border-signal-green/60 bg-signal-green-soft p-3 text-sm text-signal-green">
           {notice}
         </div>
       ) : null}
@@ -156,7 +156,7 @@ export function Sources() {
           <h2 className="text-lg">Reference library</h2>
           {rows.map((row) => (
             <article
-              className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 border-t border-line py-4 max-sm:grid-cols-1 [&>div:first-child]:grid [&>div:first-child]:gap-1 [&_a]:break-all [&_a]:font-mono [&_a]:text-xs [&_a]:text-[#8eb8da] [&_p]:m-0 [&_p]:text-sm"
+              className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 border-t border-line py-4 max-sm:grid-cols-1 [&>div:first-child]:grid [&>div:first-child]:gap-1 [&_a]:break-all [&_a]:font-mono [&_a]:text-xs [&_a]:text-signal-blue [&_p]:m-0 [&_p]:text-sm"
               key={row.id}
             >
               <div>
@@ -175,7 +175,7 @@ export function Sources() {
                   EDIT
                 </Button>
                 <ConfirmAction
-                  className="grid size-11 place-items-center rounded-control border border-signal-red/60 bg-signal-red-soft text-[#ff858a] hover:border-signal-red [&_svg]:size-[18px]"
+                  className="grid size-11 place-items-center rounded-control border border-signal-red/60 bg-signal-red-soft text-signal-red hover:border-signal-red [&_svg]:size-[18px]"
                   ariaLabel="Delete source"
                   confirmLabel="DELETE SOURCE"
                   detail="This removes the reference from the draft library. Published curriculum packages remain unchanged."

@@ -145,7 +145,7 @@ function PublishedVersion({
     <article className="grid gap-4 border-t border-line py-5 first:border-t-0 sm:grid-cols-[64px_minmax(0,1fr)]">
       <div
         aria-label={`Version ${row.release_version}`}
-        className="grid size-14 place-items-center self-start rounded-control border border-signal-green/70 bg-signal-green-soft font-mono text-xs font-semibold text-[#abd2c8]"
+        className="grid size-14 place-items-center self-start rounded-control border border-signal-green/70 bg-signal-green-soft font-mono text-xs font-semibold text-signal-green"
       >
         V{row.release_version}
       </div>

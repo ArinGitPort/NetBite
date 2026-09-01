@@ -13,7 +13,8 @@ import { Text } from "@/shared/components/console-text";
 import { Screen } from "@/shared/components/screen";
 import { goBackOrReplace } from "@/shared/navigation";
 import { AppRoutes } from "@/shared/routes";
-import { Fonts, Palette, Space } from "@/shared/theme";
+import { Fonts, Space, type ThemeColors } from "@/shared/theme";
+import { useThemeStyles } from "@/shared/theme-context";
 import { useGameStore } from "@/store/use-game-store";
 
 const escapeHtml = (value: string) =>
@@ -26,6 +27,7 @@ const escapeHtml = (value: string) =>
   );
 
 export default function CertificateScreen() {
+  const styles = useThemeStyles(createStyles);
   const { courseId } = useLocalSearchParams<{ courseId: string }>();
   const course = getCourse(courseId);
   const progress = useGameStore();
@@ -93,22 +95,22 @@ export default function CertificateScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   frame: {
     borderWidth: 2,
-    borderColor: Palette.accent,
+    borderColor: colors.accent,
     padding: Space.xxl,
     gap: Space.lg,
     alignItems: "center",
     marginVertical: Space.xxl,
   },
-  eyebrow: { color: Palette.accentBright },
+  eyebrow: { color: colors.accentBright },
   title: {
-    color: Palette.text,
+    color: colors.text,
     fontFamily: Fonts.semibold,
     textAlign: "center",
   },
-  copy: { color: Palette.textMuted, textAlign: "center" },
-  name: { color: Palette.orange, textAlign: "center" },
-  note: { color: Palette.textMuted, textAlign: "center", marginTop: Space.xl },
+  copy: { color: colors.textMuted, textAlign: "center" },
+  name: { color: colors.orange, textAlign: "center" },
+  note: { color: colors.textMuted, textAlign: "center", marginTop: Space.xl },
 });

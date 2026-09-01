@@ -8,9 +8,11 @@ import { Text } from '@/shared/components/console-text';
 import { Screen } from '@/shared/components/screen';
 import { goBackOrReplace } from '@/shared/navigation';
 import { AppRoutes } from '@/shared/routes';
-import { Fonts, Palette, Space } from '@/shared/theme';
+import { Fonts, Space, type ThemeColors } from '@/shared/theme';
+import { useThemeStyles } from '@/shared/theme-context';
 
 export function PremiumLockedScreen({ label = 'THIS ACTIVITY' }: { label?: string }) {
+  const styles = useThemeStyles(createStyles);
   const { status } = useAuth();
   return <Screen header={<PageHeader leading={{ accessibilityLabel: 'Back to learning path', icon: 'arrow-left', label: 'BACK / LEARN', onPress: () => goBackOrReplace('/learn') }} />}>
     <View style={styles.panel}>
@@ -24,9 +26,9 @@ export function PremiumLockedScreen({ label = 'THIS ACTIVITY' }: { label?: strin
   </Screen>;
 }
 
-const styles = StyleSheet.create({
-  panel: { marginTop: Space.xxl, padding: Space.lg, gap: Space.md, borderWidth: 1, borderColor: Palette.orange, backgroundColor: Palette.surface },
-  eyebrow: { color: Palette.orange },
-  title: { color: Palette.text, fontFamily: Fonts.semibold },
-  test: { color: Palette.orange },
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
+  panel: { marginTop: Space.xxl, padding: Space.lg, gap: Space.md, borderWidth: 1, borderColor: colors.orange, backgroundColor: colors.surface },
+  eyebrow: { color: colors.orange },
+  title: { color: colors.text, fontFamily: Fonts.semibold },
+  test: { color: colors.orange },
 });

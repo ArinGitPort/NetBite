@@ -16,10 +16,12 @@ import {
   workshopLessonRoute,
   workshopRoute,
 } from "@/shared/routes";
-import { Palette, Space } from "@/shared/theme";
+import { Space, type ThemeColors } from "@/shared/theme";
+import { useThemeStyles } from "@/shared/theme-context";
 import { useWorkshopStore } from "@/store/use-workshop-store";
 
 export default function MyClassesScreen() {
+  const styles = useThemeStyles(createStyles);
   const { status, accountRole } = useAuth();
   const library = useWorkshopStore((state) => state.library);
   const lastUpdatedAt = useWorkshopStore((state) => state.lastUpdatedAt);
@@ -208,33 +210,33 @@ export default function MyClassesScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   headerActions: { flexDirection: "row", alignItems: "center", gap: Space.xs },
-  eyebrow: { color: Palette.orange },
-  copy: { color: Palette.textMuted, marginTop: Space.sm },
-  availability: { color: Palette.green, marginTop: Space.md, marginBottom: Space.lg },
+  eyebrow: { color: colors.orange },
+  copy: { color: colors.textMuted, marginTop: Space.sm },
+  availability: { color: colors.green, marginTop: Space.md, marginBottom: Space.lg },
   notice: {
     gap: Space.md,
     borderWidth: 1,
-    borderColor: Palette.orange,
-    backgroundColor: Palette.orangeSoft,
+    borderColor: colors.orange,
+    backgroundColor: colors.orangeSoft,
     padding: Space.lg,
   },
-  warning: { color: Palette.orange, marginVertical: Space.md },
+  warning: { color: colors.orange, marginVertical: Space.md },
   section: {
-    color: Palette.green,
+    color: colors.green,
     marginTop: Space.xl,
     marginBottom: Space.sm,
   },
   list: { gap: Space.md },
   empty: {
     borderWidth: 1,
-    borderColor: Palette.border,
+    borderColor: colors.border,
     padding: Space.xl,
     gap: Space.sm,
   },
   updated: {
-    color: Palette.textMuted,
+    color: colors.textMuted,
     textAlign: "center",
     marginTop: Space.xl,
   },

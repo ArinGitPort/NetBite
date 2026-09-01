@@ -5,9 +5,9 @@ import { cn } from "@/lib/class-names";
 type FeedbackTone = "success" | "warning" | "error";
 
 const tones: Record<FeedbackTone, string> = {
-  success: "border-signal-green bg-signal-green-soft text-[#abd2c8]",
-  warning: "border-signal-orange bg-signal-orange-soft text-[#f0b184]",
-  error: "border-signal-red bg-signal-red-soft text-[#ff9da1]",
+  success: "border-signal-green bg-signal-green-soft text-signal-green",
+  warning: "border-signal-orange bg-signal-orange-soft text-signal-orange",
+  error: "border-signal-red bg-signal-red-soft text-signal-red",
 };
 
 export function Feedback({

@@ -186,7 +186,7 @@ export function ConnectDevicesDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange} title={editingLink ? "Change connection endpoints" : "Choose exact connection ports"} description="Choose the physical port at each end. Logical interfaces such as subinterfaces use their parent's cable.">
       <div className="grid gap-4 sm:grid-cols-2">{endpoint("FIRST END", fromDeviceId, setFromDeviceId, fromInterfaceId, setFromInterfaceId, fromInterfaces)}{endpoint("SECOND END", toDeviceId, setToDeviceId, toInterfaceId, setToInterfaceId, toInterfaces)}</div>
-      {error ? <p className="m-0 rounded-control border border-signal-red/60 bg-signal-red-soft p-3 text-xs text-[#ff9da1]">{error}</p> : null}
+      {error ? <p className="m-0 rounded-control border border-signal-red/60 bg-signal-red-soft p-3 text-xs text-signal-red">{error}</p> : null}
       <div className="flex justify-end gap-3"><Button onClick={() => onOpenChange(false)} tone="outline">Cancel</Button><Button disabled={!fromInterfaceId || !toInterfaceId || Boolean(error)} onClick={submit} tone="primary"><Cable />{editingLink ? "Save endpoints" : "Create cable"}</Button></div>
     </Dialog>
   );

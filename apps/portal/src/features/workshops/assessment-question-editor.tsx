@@ -77,7 +77,7 @@ export function AssessmentQuestionEditor({
             <TooltipTrigger asChild>
               <button
                 aria-label={`Remove question ${index + 1}`}
-                className="grid size-11 place-items-center rounded-control border border-line bg-raised text-copy hover:border-signal-red/60 hover:bg-signal-red-soft hover:text-[#ff858a] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-signal-orange [&_svg]:size-[18px]"
+                className="grid size-11 place-items-center rounded-control border border-line bg-raised text-copy hover:border-signal-red/60 hover:bg-signal-red-soft hover:text-signal-red focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-signal-orange [&_svg]:size-[18px]"
                 onClick={onRemove}
                 type="button"
               >

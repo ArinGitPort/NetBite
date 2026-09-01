@@ -19,7 +19,8 @@ import { FeedbackModal } from '@/shared/components/feedback-modal';
 import { GridBackground } from '@/shared/components/grid-background';
 import { selectionHaptic, successHaptic, warningHaptic } from '@/shared/haptics';
 import { useAppReducedMotion } from '@/shared/use-app-reduced-motion';
-import { Fonts, Palette, Radius, Space } from '@/shared/theme';
+import { Fonts, Radius, Space, type ThemeColors } from '@/shared/theme';
+import { useCanvasColors, useCanvasThemeStyles } from '@/shared/theme-context';
 import { useGameStore } from '@/store/use-game-store';
 
 const NODE_SIZE = 88;
@@ -57,6 +58,7 @@ const DraggableDevice = memo(function DraggableDevice({
   onDragEnd,
   onSelect,
 }: DraggableDeviceProps) {
+  const styles = useCanvasThemeStyles(createStyles);
   const moveDevice = useGameStore((state) => state.moveDevice);
   const selectedConnectionId = useGameStore((state) => state.selectedConnectionStartId);
   const x = useSharedValue(device.position.x);
@@ -120,6 +122,8 @@ interface TopologyCanvasProps {
 }
 
 export function TopologyCanvas({ connectionMode }: TopologyCanvasProps) {
+  const colors = useCanvasColors();
+  const styles = useCanvasThemeStyles(createStyles);
   const topology = useGameStore((state) => state.topology);
   const addDevice = useGameStore((state) => state.addDevice);
   const clearDeviceForRemoval = useGameStore((state) => state.clearDeviceForRemoval);
@@ -369,7 +373,7 @@ export function TopologyCanvas({ connectionMode }: TopologyCanvasProps) {
                     y1={y1}
                     x2={x2}
                     y2={y2}
-                    stroke={selectedCableId === cable.id ? Palette.orange : Palette.accent}
+                    stroke={selectedCableId === cable.id ? colors.orange : colors.accent}
                     strokeWidth={selectedCableId === cable.id ? 7 : 5}
                     strokeLinecap="round"
                   />
@@ -382,7 +386,7 @@ export function TopologyCanvas({ connectionMode }: TopologyCanvasProps) {
                     y1={y1}
                     x2={x2}
                     y2={y2}
-                    stroke={Palette.white}
+                    stroke={colors.text}
                     strokeOpacity={0.01}
                     strokeWidth={28}
                     strokeLinecap="round"
@@ -555,13 +559,13 @@ export function TopologyCanvas({ connectionMode }: TopologyCanvasProps) {
   );
 }
 
-const styles = StyleSheet.create({
-  canvas: { height: CANVAS_HEIGHT, backgroundColor: Palette.surface, borderRadius: Radius.lg, borderWidth: 1, borderColor: Palette.border, overflow: 'hidden' },
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
+  canvas: { height: CANVAS_HEIGHT, backgroundColor: colors.background, borderRadius: Radius.lg, borderWidth: 1, borderColor: colors.border, overflow: 'hidden' },
   cableLayer: { pointerEvents: 'box-none' },
   nodePosition: { position: 'absolute', left: 0, top: 0, width: NODE_SIZE, height: NODE_SIZE },
-  node: { flex: 1, borderRadius: Radius.md, backgroundColor: Palette.surfaceRaised, borderWidth: 1, borderColor: Palette.border, alignItems: 'center', justifyContent: 'center', gap: Space.sm },
-  selectedConnectionNode: { borderWidth: 2, borderColor: Palette.orange, backgroundColor: Palette.orangeSoft },
-  selectedNode: { borderWidth: 2, borderColor: Palette.accent, backgroundColor: Palette.accentSoft },
+  node: { flex: 1, borderRadius: Radius.md, backgroundColor: colors.surfaceRaised, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center', gap: Space.sm },
+  selectedConnectionNode: { borderWidth: 2, borderColor: colors.orange, backgroundColor: colors.orangeSoft },
+  selectedNode: { borderWidth: 2, borderColor: colors.accent, backgroundColor: colors.accentSoft },
   packet: {
     position: 'absolute',
     left: 0,
@@ -571,39 +575,39 @@ const styles = StyleSheet.create({
     zIndex: 20,
     elevation: 8,
     padding: 3,
-    backgroundColor: Palette.background,
+    backgroundColor: colors.background,
     borderWidth: 1,
-    borderColor: Palette.orange,
+    borderColor: colors.orange,
   },
   packetReady: { borderStyle: 'dashed' },
   noPointerEvents: { pointerEvents: 'none' },
   packetImage: { width: '100%', height: '100%' },
-  nodeLabel: { width: '100%', textAlign: 'center', color: Palette.text, fontFamily: Fonts.medium, textTransform: 'uppercase', paddingHorizontal: Space.xs },
-  canvasHint: { color: Palette.textMuted, textTransform: 'uppercase', marginTop: Space.sm },
-  connectionNotice: { color: Palette.orange, marginTop: Space.sm },
-  selectionActions: { gap: Space.sm, marginTop: Space.md, padding: Space.md, backgroundColor: Palette.surface, borderWidth: 1, borderColor: Palette.accent },
-  selectionLabel: { color: Palette.accentBright, fontFamily: Fonts.medium },
-  selectionDescription: { color: Palette.text },
-  packetDemo: { gap: Space.sm, marginTop: Space.lg, padding: Space.md, backgroundColor: Palette.surface, borderWidth: 1, borderColor: Palette.border },
+  nodeLabel: { width: '100%', textAlign: 'center', color: colors.text, fontFamily: Fonts.medium, textTransform: 'uppercase', paddingHorizontal: Space.xs },
+  canvasHint: { color: colors.textMuted, textTransform: 'uppercase', marginTop: Space.sm },
+  connectionNotice: { color: colors.orange, marginTop: Space.sm },
+  selectionActions: { gap: Space.sm, marginTop: Space.md, padding: Space.md, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.accent },
+  selectionLabel: { color: colors.accentBright, fontFamily: Fonts.medium },
+  selectionDescription: { color: colors.text },
+  packetDemo: { gap: Space.sm, marginTop: Space.lg, padding: Space.md, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
   packetDemoHeading: { minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: Space.sm },
   packetDemoHeadingCopy: { minWidth: 0, flex: 1 },
   packetPreview: { width: 44, height: 44 },
-  packetDemoLabel: { color: Palette.orange, fontFamily: Fonts.medium },
-  packetDemoNote: { color: Palette.textMuted },
-  packetDemoCopy: { color: Palette.textMuted, textTransform: 'uppercase' },
-  packetStageActive: { color: Palette.orange },
+  packetDemoLabel: { color: colors.orange, fontFamily: Fonts.medium },
+  packetDemoNote: { color: colors.textMuted },
+  packetDemoCopy: { color: colors.textMuted, textTransform: 'uppercase' },
+  packetStageActive: { color: colors.orange },
   packetRoutePicker: { gap: Space.sm, paddingVertical: Space.xs },
   packetRouteRow: { flexDirection: 'row', alignItems: 'flex-start', gap: Space.sm },
-  packetRouteLabel: { width: 44, paddingTop: 13, color: Palette.textMuted, fontFamily: Fonts.medium },
+  packetRouteLabel: { width: 44, paddingTop: 13, color: colors.textMuted, fontFamily: Fonts.medium },
   packetRouteOptions: { flex: 1, flexDirection: 'row', flexWrap: 'wrap', gap: Space.xs },
-  packetRouteOption: { minHeight: 44, justifyContent: 'center', paddingHorizontal: Space.sm, backgroundColor: Palette.background, borderWidth: 1, borderColor: Palette.border },
-  packetRouteOptionSelected: { backgroundColor: Palette.orangeSoft, borderColor: Palette.orange },
-  packetRouteOptionText: { color: Palette.textMuted, fontFamily: Fonts.medium, textTransform: 'uppercase' },
-  packetRouteOptionTextSelected: { color: Palette.orange },
-  trayLabel: { color: Palette.textMuted, fontFamily: Fonts.medium, marginTop: Space.lg, marginBottom: Space.sm },
+  packetRouteOption: { minHeight: 44, justifyContent: 'center', paddingHorizontal: Space.sm, backgroundColor: colors.background, borderWidth: 1, borderColor: colors.border },
+  packetRouteOptionSelected: { backgroundColor: colors.orangeSoft, borderColor: colors.orange },
+  packetRouteOptionText: { color: colors.textMuted, fontFamily: Fonts.medium, textTransform: 'uppercase' },
+  packetRouteOptionTextSelected: { color: colors.orange },
+  trayLabel: { color: colors.textMuted, fontFamily: Fonts.medium, marginTop: Space.lg, marginBottom: Space.sm },
   tray: { flexDirection: 'row', gap: Space.sm },
-  trayItem: { flex: 1, minHeight: 72, flexDirection: 'row', flexWrap: 'wrap', gap: Space.sm, padding: Space.xs, borderRadius: Radius.md, backgroundColor: Palette.surface, borderWidth: 1, borderColor: Palette.border, alignItems: 'center', justifyContent: 'center' },
-  trayText: { color: Palette.text, fontFamily: Fonts.medium, textTransform: 'uppercase' },
+  trayItem: { flex: 1, minHeight: 72, flexDirection: 'row', flexWrap: 'wrap', gap: Space.sm, padding: Space.xs, borderRadius: Radius.md, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
+  trayText: { color: colors.text, fontFamily: Fonts.medium, textTransform: 'uppercase' },
   pressed: { opacity: 0.7 },
   disabled: { opacity: 0.45 },
 });

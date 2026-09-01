@@ -8,7 +8,8 @@ import { DisclosureSection } from '@/shared/components/disclosure-section';
 import { lessonRoute } from '@/shared/routes';
 import { NumberedStepRow, StatusRow } from '@/shared/components/status-row';
 import { SolvedExampleLauncher } from '@/features/practice/components/solved-example-launcher';
-import { Fonts, Palette, Space } from '@/shared/theme';
+import { Fonts, Space, type ThemeColors } from '@/shared/theme';
+import { useThemeStyles } from '@/shared/theme-context';
 
 export const labSetupSupportIds = [
   'first-network',
@@ -45,6 +46,7 @@ const authoredFacts: Record<string, string[]> = {
 };
 
 export function LabSetupSupport({ labId }: { labId: string }) {
+  const styles = useThemeStyles(createStyles);
   if (!supportedLabIds.has(labId)) return null;
   const chapter = getChapterByLabId(labId);
   if (!chapter) return null;
@@ -73,12 +75,13 @@ export function LabSetupSupport({ labId }: { labId: string }) {
 }
 
 function Group({ label, children }: { label: string; children: ReactNode }) {
+  const styles = useThemeStyles(createStyles);
   return <View style={styles.group}><Text variant="label" style={styles.green}>{label}</Text>{children}</View>;
 }
 
-const styles = StyleSheet.create({
-  group: { gap: Space.sm, borderTopWidth: 1, borderTopColor: Palette.border, paddingTop: Space.md },
-  green: { color: Palette.green, fontFamily: Fonts.semibold },
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
+  group: { gap: Space.sm, borderTopWidth: 1, borderTopColor: colors.border, paddingTop: Space.md },
+  green: { color: colors.green, fontFamily: Fonts.semibold },
   links: { gap: Space.sm },
-  link: { minHeight: 44, justifyContent: 'center', borderWidth: 1, borderColor: Palette.border, padding: Space.md },
+  link: { minHeight: 44, justifyContent: 'center', borderWidth: 1, borderColor: colors.border, padding: Space.md },
 });

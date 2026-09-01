@@ -5,10 +5,12 @@ import type { OperationsLabBriefing as OperationsLabBriefingDefinition } from '@
 import { lessonRoute } from '@/shared/routes';
 import { Text } from '@/shared/components/console-text';
 import { StatusRow } from '@/shared/components/status-row';
-import { Fonts, Palette, Space } from '@/shared/theme';
+import { Fonts, Space, type ThemeColors } from '@/shared/theme';
+import { useThemeStyles } from '@/shared/theme-context';
 import { SolvedExampleLauncher } from '@/features/practice/components/solved-example-launcher';
 
 export function OperationsLabBriefing({ labId, briefing, expanded, onToggle }: { labId: string; briefing: OperationsLabBriefingDefinition; expanded: boolean; onToggle: () => void }) {
+  const styles = useThemeStyles(createStyles);
   return <><View style={styles.shell}>
     <Pressable accessibilityHint="Opens a worked walkthrough of the lab setup" accessibilityRole="button" accessibilityState={{ expanded }} onPress={onToggle} style={styles.header}>
       <View style={styles.headerCopy}><Text variant="label" style={styles.orange}>LEARN THE SETUP</Text><Text variant="bodySmall" style={styles.copy}>{briefing.goal}</Text></View>
@@ -23,12 +25,12 @@ export function OperationsLabBriefing({ labId, briefing, expanded, onToggle }: {
   </View><SolvedExampleLauncher labId={labId} /></>;
 }
 
-const styles = StyleSheet.create({
-  shell: { minWidth: 0, borderWidth: 1, borderColor: Palette.orange, backgroundColor: Palette.surface, marginBottom: Space.md },
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
+  shell: { minWidth: 0, borderWidth: 1, borderColor: colors.orange, backgroundColor: colors.surface, marginBottom: Space.md },
   header: { minHeight: 52, padding: Space.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: Space.md },
-  headerCopy: { flex: 1, minWidth: 0, gap: Space.xs }, toggle: { color: Palette.text }, content: { borderTopWidth: 1, borderTopColor: Palette.border, padding: Space.md, gap: Space.lg },
-  group: { minWidth: 0, gap: Space.sm }, example: { minWidth: 0, gap: Space.sm, padding: Space.md, borderLeftWidth: 3, borderLeftColor: Palette.orange, backgroundColor: Palette.surfaceRaised },
-  step: { minWidth: 0, flexDirection: 'row', alignItems: 'flex-start', gap: Space.sm }, number: { width: 28, height: 28, flexShrink: 0, borderWidth: 1, borderColor: Palette.orange, alignItems: 'center', justifyContent: 'center' }, numberText: { color: Palette.orange }, stepCopy: { flex: 1, minWidth: 0, color: Palette.text },
-  result: { color: Palette.text, fontFamily: Fonts.medium, borderTopWidth: 1, borderTopColor: Palette.border, paddingTop: Space.sm }, copy: { color: Palette.textMuted }, orange: { color: Palette.orange, fontFamily: Fonts.semibold }, green: { color: Palette.green, fontFamily: Fonts.semibold },
-  lessonLinks: { flexDirection: 'row', flexWrap: 'wrap', gap: Space.sm }, lessonLink: { minHeight: 44, minWidth: 0, justifyContent: 'center', borderWidth: 1, borderColor: Palette.border, paddingHorizontal: Space.md, paddingVertical: Space.sm },
+  headerCopy: { flex: 1, minWidth: 0, gap: Space.xs }, toggle: { color: colors.text }, content: { borderTopWidth: 1, borderTopColor: colors.border, padding: Space.md, gap: Space.lg },
+  group: { minWidth: 0, gap: Space.sm }, example: { minWidth: 0, gap: Space.sm, padding: Space.md, borderLeftWidth: 3, borderLeftColor: colors.orange, backgroundColor: colors.surfaceRaised },
+  step: { minWidth: 0, flexDirection: 'row', alignItems: 'flex-start', gap: Space.sm }, number: { width: 28, height: 28, flexShrink: 0, borderWidth: 1, borderColor: colors.orange, alignItems: 'center', justifyContent: 'center' }, numberText: { color: colors.orange }, stepCopy: { flex: 1, minWidth: 0, color: colors.text },
+  result: { color: colors.text, fontFamily: Fonts.medium, borderTopWidth: 1, borderTopColor: colors.border, paddingTop: Space.sm }, copy: { color: colors.textMuted }, orange: { color: colors.orange, fontFamily: Fonts.semibold }, green: { color: colors.green, fontFamily: Fonts.semibold },
+  lessonLinks: { flexDirection: 'row', flexWrap: 'wrap', gap: Space.sm }, lessonLink: { minHeight: 44, minWidth: 0, justifyContent: 'center', borderWidth: 1, borderColor: colors.border, paddingHorizontal: Space.md, paddingVertical: Space.sm },
 });

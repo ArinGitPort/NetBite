@@ -2,7 +2,8 @@ import { StyleSheet, View } from 'react-native';
 
 import { Text } from '@/shared/components/console-text';
 import { SemanticIcon, type SemanticIconName } from '@/shared/components/semantic-icon';
-import { Fonts, Palette, Space, type TypographyRole } from '@/shared/theme';
+import { Fonts, Space, type ThemeColors, type TypographyRole } from '@/shared/theme';
+import { useTheme, useThemeStyles } from '@/shared/theme-context';
 
 export type StatusRowState = 'pending' | 'complete' | 'attention' | 'locked' | 'info';
 
@@ -17,15 +18,16 @@ interface StatusRowProps {
   testID?: string;
 }
 
-const statusPresentation: Record<StatusRowState, { icon: SemanticIconName; color: string; label: string }> = {
-  pending: { icon: 'status-pending', color: Palette.textMuted, label: 'PENDING' },
-  complete: { icon: 'status-complete', color: Palette.green, label: 'COMPLETE' },
-  attention: { icon: 'status-attention', color: Palette.orange, label: 'NEEDS ATTENTION' },
-  locked: { icon: 'status-locked', color: Palette.textMuted, label: 'LOCKED' },
-  info: { icon: 'status-info', color: Palette.text, label: 'INFORMATION' },
-};
-
 export function StatusRow({ label, state, value, description, variant = 'technical', showStateLabel = true, stateLabel, testID }: StatusRowProps) {
+  const { colors } = useTheme();
+  const styles = useThemeStyles(createStyles);
+  const statusPresentation: Record<StatusRowState, { icon: SemanticIconName; color: string; label: string }> = {
+    pending: { icon: 'status-pending', color: colors.textMuted, label: 'PENDING' },
+    complete: { icon: 'status-complete', color: colors.green, label: 'COMPLETE' },
+    attention: { icon: 'status-attention', color: colors.orange, label: 'NEEDS ATTENTION' },
+    locked: { icon: 'status-locked', color: colors.textMuted, label: 'LOCKED' },
+    info: { icon: 'status-info', color: colors.text, label: 'INFORMATION' },
+  };
   const presentation = statusPresentation[state];
   const displayedState = stateLabel ?? presentation.label;
   const spokenValue = value ? `, ${value}` : '';
@@ -52,6 +54,7 @@ export function StatusRow({ label, state, value, description, variant = 'technic
 }
 
 export function NumberedStepRow({ number, children }: { number: number; children: string }) {
+  const styles = useThemeStyles(createStyles);
   return (
     <View accessibilityLabel={`Step ${number}. ${children}`} style={styles.step}>
       <View accessible={false} style={styles.number}><Text variant="label" style={styles.numberText}>{number}</Text></View>
@@ -60,17 +63,17 @@ export function NumberedStepRow({ number, children }: { number: number; children
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   row: { minWidth: 0, flexDirection: 'row', alignItems: 'flex-start', gap: Space.sm, paddingVertical: Space.xs },
   icon: { width: 20, minHeight: 20, flexShrink: 0, alignItems: 'center', justifyContent: 'center' },
   copy: { flex: 1, minWidth: 0, gap: Space.xs },
   primaryLine: { minWidth: 0, flexDirection: 'row', flexWrap: 'wrap', gap: Space.xs },
   label: { flexShrink: 1, fontFamily: Fonts.medium },
-  value: { color: Palette.text, flexShrink: 1 },
-  description: { color: Palette.textMuted },
+  value: { color: colors.text, flexShrink: 1 },
+  description: { color: colors.textMuted },
   state: { flexShrink: 0, marginLeft: 'auto', textAlign: 'right' },
   step: { minWidth: 0, flexDirection: 'row', alignItems: 'flex-start', gap: Space.sm },
-  number: { width: 28, height: 28, flexShrink: 0, borderWidth: 1, borderColor: Palette.orange, alignItems: 'center', justifyContent: 'center' },
-  numberText: { color: Palette.orange },
-  stepCopy: { flex: 1, minWidth: 0, color: Palette.text },
+  number: { width: 28, height: 28, flexShrink: 0, borderWidth: 1, borderColor: colors.orange, alignItems: 'center', justifyContent: 'center' },
+  numberText: { color: colors.orange },
+  stepCopy: { flex: 1, minWidth: 0, color: colors.text },
 });

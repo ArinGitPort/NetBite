@@ -4,7 +4,8 @@ import { StyleSheet, useWindowDimensions, View } from 'react-native';
 import { type AppIconName } from '@/shared/components/app-icon';
 import { IconButton } from '@/shared/components/icon-button';
 import { Text } from '@/shared/components/console-text';
-import { Palette, Space } from '@/shared/theme';
+import { Space, type ThemeColors } from '@/shared/theme';
+import { useThemeStyles } from '@/shared/theme-context';
 
 export interface PageHeaderAction {
   accessibilityHint?: string;
@@ -40,6 +41,7 @@ function HeaderAction({ action }: { action: PageHeaderAction }) {
 }
 
 export function PageHeader({ leading, status, trailing = [], trailingContent }: PageHeaderProps) {
+  const styles = useThemeStyles(createStyles);
   const { width } = useWindowDimensions();
   const gutter = getPageHeaderGutter(width);
 
@@ -61,7 +63,7 @@ export function PageHeader({ leading, status, trailing = [], trailingContent }: 
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   header: {
     width: '100%',
     minWidth: 0,
@@ -72,8 +74,8 @@ const styles = StyleSheet.create({
     gap: Space.sm,
     paddingVertical: 4,
     borderBottomWidth: 1,
-    borderBottomColor: Palette.border,
-    backgroundColor: Palette.background,
+    borderBottomColor: colors.border,
+    backgroundColor: colors.background,
   },
   leading: {
     alignItems: 'flex-start',
@@ -90,5 +92,5 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
     gap: Space.sm,
   },
-  status: { minWidth: 0, flexShrink: 1, color: Palette.textMuted, textAlign: 'right' },
+  status: { minWidth: 0, flexShrink: 1, color: colors.textMuted, textAlign: 'right' as const },
 });

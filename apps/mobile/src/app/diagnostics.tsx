@@ -12,7 +12,8 @@ import { FeedbackModal } from '@/shared/components/feedback-modal';
 import { Text } from '@/shared/components/console-text';
 import { Screen } from '@/shared/components/screen';
 import { goBackOrReplace } from '@/shared/navigation';
-import { Fonts, Palette, Space } from '@/shared/theme';
+import { Fonts, Space, type ThemeColors } from '@/shared/theme';
+import { useThemeStyles } from '@/shared/theme-context';
 import { getSyncStatusLabel } from '@/shared/learner-facing-copy';
 import { useExperienceStore } from '@/store/use-experience-store';
 import { useGameStore } from '@/store/use-game-store';
@@ -20,6 +21,7 @@ import { useResearchStore } from '@/store/use-research-store';
 import { useSandboxStore } from '@/store/use-sandbox-store';
 
 export default function DiagnosticsScreen() {
+  const styles = useThemeStyles(createStyles);
   const { status, configured, syncStatus } = useAuth();
   const workspace = useSandboxStore((state) => state.workspace);
   const [report, setReport] = useState('');
@@ -85,12 +87,12 @@ export default function DiagnosticsScreen() {
   </Screen>;
 }
 
-const styles = StyleSheet.create({
-  eyebrow: { color: Palette.orange, marginTop: Space.xl },
-  title: { color: Palette.text, fontFamily: Fonts.semibold, marginTop: Space.sm },
-  body: { color: Palette.textMuted, marginVertical: Space.lg },
-  panel: { borderWidth: 1, borderColor: Palette.border, backgroundColor: Palette.surface, padding: Space.lg },
-  report: { color: Palette.text, textTransform: 'none' },
-  notice: { color: Palette.orange, marginTop: Space.md },
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
+  eyebrow: { color: colors.orange, marginTop: Space.xl },
+  title: { color: colors.text, fontFamily: Fonts.semibold, marginTop: Space.sm },
+  body: { color: colors.textMuted, marginVertical: Space.lg },
+  panel: { borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, padding: Space.lg },
+  report: { color: colors.text, textTransform: 'none' },
+  notice: { color: colors.orange, marginTop: Space.md },
   actions: { gap: Space.sm, marginTop: Space.lg },
 });

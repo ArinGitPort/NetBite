@@ -103,7 +103,7 @@ export function ClassShareCard({
             Private class invitation
           </span>
         </div>
-        <span className={`inline-flex min-h-6 w-fit items-center rounded-full border px-2.5 font-mono text-[0.58rem] font-semibold uppercase tracking-[0.045em] ${row.join_enabled ? "border-signal-green/60 bg-signal-green-soft text-[#abd2c8]" : "border-line bg-raised text-muted"}`}>
+        <span className={`inline-flex min-h-6 w-fit items-center rounded-full border px-2.5 font-mono text-[0.58rem] font-semibold uppercase tracking-[0.045em] ${row.join_enabled ? "border-signal-green/60 bg-signal-green-soft text-signal-green" : "border-line bg-raised text-muted"}`}>
           {row.join_enabled ? "ENROLLMENT OPEN" : "CODE REVOKED"}
         </span>
       </header>
@@ -258,7 +258,7 @@ function ClassRoster({
           <LoaderCircle className="size-4 animate-spin" /> Loading students
         </div>
       ) : error ? (
-        <div className="flex flex-wrap items-center justify-between gap-3 py-3 text-sm text-[#ff9da1]">
+        <div className="flex flex-wrap items-center justify-between gap-3 py-3 text-sm text-signal-red">
           <span>{error}</span>
           <Button onClick={onRetry} tone="outline">TRY AGAIN</Button>
         </div>

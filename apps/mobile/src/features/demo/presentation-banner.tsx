@@ -1,10 +1,12 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { Text } from '@/shared/components/console-text';
-import { Palette, Space } from '@/shared/theme';
+import { Space, type ThemeColors } from '@/shared/theme';
+import { useThemeStyles } from '@/shared/theme-context';
 import { usePresentationStore } from '@/store/use-presentation-store';
 
 export function PresentationBanner() {
+  const styles = useThemeStyles(createStyles);
   const active = usePresentationStore((state) => state.active);
   const restorePresentation = usePresentationStore((state) => state.restorePresentation);
   if (!active) return null;
@@ -18,9 +20,9 @@ export function PresentationBanner() {
   );
 }
 
-const styles = StyleSheet.create({
-  banner: { minHeight: 44, paddingHorizontal: Space.md, paddingVertical: Space.xs, backgroundColor: Palette.orangeSoft, borderBottomWidth: 1, borderBottomColor: Palette.orange, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: Space.sm },
-  label: { color: Palette.orange, flexShrink: 1 },
-  button: { minHeight: 36, justifyContent: 'center', borderWidth: 1, borderColor: Palette.orange, paddingHorizontal: Space.md },
-  buttonText: { color: Palette.text },
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
+  banner: { minHeight: 44, paddingHorizontal: Space.md, paddingVertical: Space.xs, backgroundColor: colors.orangeSoft, borderBottomWidth: 1, borderBottomColor: colors.orange, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: Space.sm },
+  label: { color: colors.orange, flexShrink: 1 },
+  button: { minHeight: 36, justifyContent: 'center', borderWidth: 1, borderColor: colors.orange, paddingHorizontal: Space.md },
+  buttonText: { color: colors.text },
 });

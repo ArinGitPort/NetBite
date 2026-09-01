@@ -8,9 +8,11 @@ import { EducationalLessonIllustration } from '@/features/lessons/components/edu
 import { educationalIllustrations, isEducationalIllustration } from '@/features/lessons/educational-illustration-registry';
 import { Text } from '@/shared/components/console-text';
 import { useMeasuredResponsiveLayout } from '@/shared/responsive-layout';
-import { Palette, Radius, Space } from '@/shared/theme';
+import { Radius, Space, type ThemeColors } from '@/shared/theme';
+import { useThemeStyles } from '@/shared/theme-context';
 
 export function LessonIllustration({ type }: { type: LessonIllustrationType }) {
+  const styles = useThemeStyles(createStyles);
   const accessibilityLabel = educationalIllustrations[type].accessibilityLabel;
   const responsive = useMeasuredResponsiveLayout();
   const contentWidth = Math.max(0, responsive.width - Space.xl * 2);
@@ -167,28 +169,28 @@ export function LessonIllustration({ type }: { type: LessonIllustrationType }) {
   );
 }
 
-const styles = StyleSheet.create({
-  card: { minWidth: 0, minHeight: 160, borderRadius: Radius.lg, borderWidth: 1, borderColor: Palette.border, padding: Space.xl, backgroundColor: Palette.surface, justifyContent: 'center', gap: Space.xl },
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
+  card: { minWidth: 0, minHeight: 160, borderRadius: Radius.lg, borderWidth: 1, borderColor: colors.border, padding: Space.xl, backgroundColor: colors.surface, justifyContent: 'center', gap: Space.xl },
   networkDiagram: { position: 'relative', flexDirection: 'row', alignItems: 'flex-start' },
-  cable: { position: 'absolute', height: 2, backgroundColor: Palette.accent },
+  cable: { position: 'absolute', height: 2, backgroundColor: colors.accent },
   networkDevice: { flex: 1, zIndex: 1, alignItems: 'center' },
   imageStage: { width: '100%', alignItems: 'center', justifyContent: 'center' },
   deviceRow: { flexDirection: 'row', justifyContent: 'space-around', gap: Space.md },
   deviceItem: { alignItems: 'center', gap: Space.sm },
-  deviceLabel: { color: Palette.text, textTransform: 'uppercase', textAlign: 'center' },
-  diagramCaption: { color: Palette.textMuted, textAlign: 'center' },
+  deviceLabel: { color: colors.text, textTransform: 'uppercase', textAlign: 'center' },
+  diagramCaption: { color: colors.textMuted, textAlign: 'center' },
   frameDiagram: { minHeight: 72, flexDirection: 'row', alignItems: 'stretch' },
   frameDiagramCompact: { flexWrap: 'wrap' },
-  frameField: { minWidth: 0, justifyContent: 'center', alignItems: 'center', padding: Space.xs, borderWidth: 1, borderColor: Palette.border },
+  frameField: { minWidth: 0, justifyContent: 'center', alignItems: 'center', padding: Space.xs, borderWidth: 1, borderColor: colors.border },
   frameFieldCompact: { flexGrow: 1, flexBasis: '45%', minHeight: 56 },
-  frameAddress: { flex: 2, backgroundColor: Palette.accentSoft },
-  frameData: { flex: 4, backgroundColor: Palette.surfaceRaised },
-  frameCheck: { flex: 1.5, backgroundColor: Palette.orangeSoft },
-  frameFieldLabel: { color: Palette.text, textAlign: 'center' },
+  frameAddress: { flex: 2, backgroundColor: colors.accentSoft },
+  frameData: { flex: 4, backgroundColor: colors.surfaceRaised },
+  frameCheck: { flex: 1.5, backgroundColor: colors.orangeSoft },
+  frameFieldLabel: { color: colors.text, textAlign: 'center' },
   ethernetAsset: { width: '100%', height: 150 },
   mediaRow: { flexDirection: 'row', gap: Space.xl },
   mediaRowCompact: { flexDirection: 'column' },
   mediaItem: { flex: 1, alignItems: 'center', gap: Space.md },
   mediaImage: { width: '100%', height: 104 },
-  mediaSignal: { color: Palette.textMuted, textAlign: 'center' },
+  mediaSignal: { color: colors.textMuted, textAlign: 'center' },
 });

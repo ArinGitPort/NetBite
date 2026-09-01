@@ -5,7 +5,8 @@ import { AppIcon } from "@/shared/components/app-icon";
 import { DisclosureSection } from "@/shared/components/disclosure-section";
 import { SemanticIcon } from "@/shared/components/semantic-icon";
 import { Text } from "@/shared/components/console-text";
-import { Fonts, Palette, Space } from "@/shared/theme";
+import { Fonts, Space, type ThemeColors } from "@/shared/theme";
+import { useTheme, useThemeStyles } from "@/shared/theme-context";
 
 export function WorkshopSavedLessons({
   lessons,
@@ -16,6 +17,8 @@ export function WorkshopSavedLessons({
   onOpen: (lessonId: string) => void;
   savedLessonIds: string[];
 }) {
+  const styles = useThemeStyles(createStyles);
+  const { colors } = useTheme();
   const savedLessons = lessons.filter((lesson) =>
     savedLessonIds.includes(lesson.id),
   );
@@ -47,7 +50,7 @@ export function WorkshopSavedLessons({
             >
               <View style={styles.iconPlate}>
                 <SemanticIcon
-                  color={Palette.green}
+                  color={colors.green}
                   name="saved"
                   size={22}
                 />
@@ -69,7 +72,7 @@ export function WorkshopSavedLessons({
         })
       ) : (
         <View style={styles.empty}>
-          <SemanticIcon color={Palette.textMuted} name="bookmark" size={24} />
+          <SemanticIcon color={colors.textMuted} name="bookmark" size={24} />
           <View style={styles.copy}>
             <Text variant="label" style={styles.title}>
               NO SAVED LESSONS YET
@@ -84,7 +87,7 @@ export function WorkshopSavedLessons({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   savedRow: {
     minHeight: 76,
     flexDirection: "row",
@@ -92,9 +95,9 @@ const styles = StyleSheet.create({
     gap: Space.md,
     borderWidth: 1,
     borderLeftWidth: 4,
-    borderColor: Palette.border,
-    borderLeftColor: Palette.green,
-    backgroundColor: Palette.background,
+    borderColor: colors.border,
+    borderLeftColor: colors.green,
+    backgroundColor: colors.background,
     padding: Space.md,
   },
   pressed: { opacity: 0.7 },
@@ -104,17 +107,17 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: Palette.green,
-    backgroundColor: Palette.greenSoft,
+    borderColor: colors.green,
+    backgroundColor: colors.greenSoft,
   },
   copy: { minWidth: 0, flex: 1 },
-  location: { color: Palette.green, fontFamily: Fonts.medium },
+  location: { color: colors.green, fontFamily: Fonts.medium },
   title: {
-    color: Palette.text,
+    color: colors.text,
     fontFamily: Fonts.semibold,
     textTransform: "uppercase",
   },
-  summary: { color: Palette.textMuted, marginTop: Space.xs },
+  summary: { color: colors.textMuted, marginTop: Space.xs },
   empty: {
     minHeight: 72,
     flexDirection: "row",

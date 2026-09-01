@@ -8,11 +8,13 @@ import { PageHeader } from '@/shared/components/page-header';
 import { Text } from '@/shared/components/console-text';
 import { Screen } from '@/shared/components/screen';
 import { goBackOrReplace, navigateOnce } from '@/shared/navigation';
-import { Fonts, Palette, Space } from '@/shared/theme';
+import { Fonts, Space, type ThemeColors } from '@/shared/theme';
+import { useThemeStyles } from '@/shared/theme-context';
 import { formatResearchSummary, isResearchCapabilityEnabled, researchTasks, useResearchStore } from '@/store/use-research-store';
 import { usePresentationStore } from '@/store/use-presentation-store';
 
 export default function ResearchScreen() {
+  const styles = useThemeStyles(createStyles);
   const active = useResearchStore((state) => state.active);
   const tasks = useResearchStore((state) => state.tasks);
   const startSession = useResearchStore((state) => state.startSession);
@@ -64,9 +66,9 @@ export default function ResearchScreen() {
   </Screen>;
 }
 
-const styles = StyleSheet.create({
-  eyebrow: { color: Palette.orange, marginTop: Space.xl }, title: { color: Palette.text, fontFamily: Fonts.semibold, marginTop: Space.sm, marginBottom: Space.xl },
-  panel: { borderWidth: 1, borderColor: Palette.border, backgroundColor: Palette.surface, padding: Space.lg, gap: Space.md },
-  progress: { borderLeftWidth: 4, borderLeftColor: Palette.green, backgroundColor: Palette.surface, padding: Space.lg, gap: Space.md },
-  body: { color: Palette.textMuted }, green: { color: Palette.green }, summary: { color: Palette.text, textTransform: 'none' }, notice: { color: Palette.orange },
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
+  eyebrow: { color: colors.orange, marginTop: Space.xl }, title: { color: colors.text, fontFamily: Fonts.semibold, marginTop: Space.sm, marginBottom: Space.xl },
+  panel: { borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, padding: Space.lg, gap: Space.md },
+  progress: { borderLeftWidth: 4, borderLeftColor: colors.green, backgroundColor: colors.surface, padding: Space.lg, gap: Space.md },
+  body: { color: colors.textMuted }, green: { color: colors.green }, summary: { color: colors.text, textTransform: 'none' }, notice: { color: colors.orange },
 });

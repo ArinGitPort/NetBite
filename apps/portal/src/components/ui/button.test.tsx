@@ -7,7 +7,7 @@ describe("Button", () => {
   test("uses an explicit high-contrast primary treatment", () => {
     render(<Button tone="primary">Publish</Button>);
     const button = screen.getByRole("button", { name: "Publish" });
-    expect(button).toHaveClass("bg-copy", "text-canvas");
+    expect(button).toHaveClass("bg-copy", "text-canvas", "hover:bg-copy/85", "hover:text-canvas");
   });
 
   test("keeps disabled text and background explicit", () => {

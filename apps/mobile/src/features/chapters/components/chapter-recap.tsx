@@ -2,9 +2,11 @@ import { StyleSheet, View } from 'react-native';
 
 import type { ChapterDefinition } from '@/content/types';
 import { Text } from '@/shared/components/console-text';
-import { Fonts, Palette, Space } from '@/shared/theme';
+import { Fonts, Space, type ThemeColors } from '@/shared/theme';
+import { useThemeStyles } from '@/shared/theme-context';
 
 export function ChapterRecap({ recap }: Pick<ChapterDefinition, 'recap'>) {
+  const styles = useThemeStyles(createStyles);
   return (
     <View accessibilityLabel="Chapter completion recap" style={styles.panel}>
       <Text variant="label" style={styles.eyebrow}>CHAPTER COMPLETE / FIELD REPORT</Text>
@@ -24,11 +26,11 @@ export function ChapterRecap({ recap }: Pick<ChapterDefinition, 'recap'>) {
   );
 }
 
-const styles = StyleSheet.create({
-  panel: { marginBottom: Space.lg, backgroundColor: Palette.surface, borderWidth: 1, borderColor: Palette.green },
-  eyebrow: { padding: Space.md, color: Palette.green, fontFamily: Fonts.medium, borderBottomWidth: 1, borderBottomColor: Palette.border },
-  row: { padding: Space.md, borderBottomWidth: 1, borderBottomColor: Palette.border },
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
+  panel: { marginBottom: Space.lg, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.green },
+  eyebrow: { padding: Space.md, color: colors.green, fontFamily: Fonts.medium, borderBottomWidth: 1, borderBottomColor: colors.border },
+  row: { padding: Space.md, borderBottomWidth: 1, borderBottomColor: colors.border },
   lastRow: { borderBottomWidth: 0 },
-  label: { color: Palette.textMuted, fontFamily: Fonts.medium, marginBottom: Space.xs },
-  value: { color: Palette.text },
+  label: { color: colors.textMuted, fontFamily: Fonts.medium, marginBottom: Space.xs },
+  value: { color: colors.text },
 });

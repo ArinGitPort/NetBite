@@ -4,9 +4,11 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { AppIcon } from '@/shared/components/app-icon';
 import { Text } from '@/shared/components/console-text';
-import { Fonts, Palette, Space } from '@/shared/theme';
+import { Fonts, Space, type ThemeColors } from '@/shared/theme';
+import { useThemeStyles } from '@/shared/theme-context';
 
 export function DisclosureSection({ title, summary, defaultExpanded = false, danger = false, children }: PropsWithChildren<{ title: string; summary?: string; defaultExpanded?: boolean; danger?: boolean }>) {
+  const styles = useThemeStyles(createStyles);
   const [expanded, setExpanded] = useState(defaultExpanded);
   return (
     <View style={[styles.section, danger && styles.danger]}>
@@ -19,16 +21,16 @@ export function DisclosureSection({ title, summary, defaultExpanded = false, dan
   );
 }
 
-const styles = StyleSheet.create({
-  section: { borderWidth: 1, borderColor: Palette.border, backgroundColor: Palette.surface, marginBottom: Space.lg },
-  danger: { borderColor: Palette.danger },
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
+  section: { borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, marginBottom: Space.lg },
+  danger: { borderColor: colors.danger },
   header: { minHeight: 64, flexDirection: 'row', alignItems: 'center', padding: Space.lg, gap: Space.md },
-  pressed: { backgroundColor: Palette.accentSoft },
+  pressed: { backgroundColor: colors.accentSoft },
   copy: { flex: 1, minWidth: 0 },
-  title: { color: Palette.text, fontFamily: Fonts.semibold, textTransform: 'uppercase' },
-  dangerText: { color: Palette.danger },
-  summary: { color: Palette.textMuted, marginTop: Space.xs },
+  title: { color: colors.text, fontFamily: Fonts.semibold, textTransform: 'uppercase' as const },
+  dangerText: { color: colors.danger },
+  summary: { color: colors.textMuted, marginTop: Space.xs },
   chevron: { transform: [{ rotate: '0deg' }] },
   chevronExpanded: { transform: [{ rotate: '90deg' }] },
-  body: { borderTopWidth: 1, borderTopColor: Palette.border, padding: Space.lg, gap: Space.md },
+  body: { borderTopWidth: 1, borderTopColor: colors.border, padding: Space.lg, gap: Space.md },
 });

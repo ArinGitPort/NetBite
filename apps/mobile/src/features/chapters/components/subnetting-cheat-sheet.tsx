@@ -2,7 +2,8 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 
 import { Text } from '@/shared/components/console-text';
 import { DisclosureSection } from '@/shared/components/disclosure-section';
-import { Fonts, Palette, Space } from '@/shared/theme';
+import { Fonts, Space, type ThemeColors } from '@/shared/theme';
+import { useThemeStyles } from '@/shared/theme-context';
 
 const columns = [
   { group: '128', mask: '128', fourth: '/25', third: '/17', second: '/9', first: '/1' },
@@ -101,6 +102,7 @@ const workedExamples = [
 ] as const;
 
 export function SubnettingCheatSheet() {
+  const styles = useThemeStyles(createStyles);
   return (
     <DisclosureSection
       title="SUBNETTING CHEAT SHEET"
@@ -210,58 +212,58 @@ export function SubnettingCheatSheet() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   content: { gap: Space.md },
-  eyebrow: { color: Palette.orange, fontFamily: Fonts.medium },
-  description: { color: Palette.textMuted },
-  example: { borderLeftWidth: 3, borderColor: Palette.green, backgroundColor: Palette.greenSoft, padding: Space.md },
-  exampleText: { color: Palette.text },
-  scrollCue: { color: Palette.orange },
-  table: { minWidth: 784, borderWidth: 1, borderColor: Palette.border },
-  row: { flexDirection: 'row', minHeight: 44, borderBottomWidth: 1, borderColor: Palette.border },
-  rowHeading: { width: 144, justifyContent: 'center', paddingHorizontal: Space.sm, backgroundColor: Palette.surfaceRaised, borderRightWidth: 1, borderColor: Palette.border },
-  rowHeadingText: { color: Palette.orange, fontFamily: Fonts.medium },
-  cell: { width: 80, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4, borderRightWidth: 1, borderColor: Palette.border },
-  cellText: { color: Palette.text, fontFamily: Fonts.semibold },
-  focusCell: { backgroundColor: Palette.greenSoft },
-  focusText: { color: Palette.green },
-  focusTitle: { color: Palette.orange, fontFamily: Fonts.medium, marginTop: Space.sm },
-  focusList: { borderWidth: 1, borderColor: Palette.border },
-  focusRow: { minHeight: 48, flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1, borderColor: Palette.border, paddingHorizontal: Space.md },
-  prefix: { width: 52, color: Palette.orange, fontFamily: Fonts.semibold },
+  eyebrow: { color: colors.orange, fontFamily: Fonts.medium },
+  description: { color: colors.textMuted },
+  example: { borderLeftWidth: 3, borderColor: colors.green, backgroundColor: colors.greenSoft, padding: Space.md },
+  exampleText: { color: colors.text },
+  scrollCue: { color: colors.orange },
+  table: { minWidth: 784, borderWidth: 1, borderColor: colors.border },
+  row: { flexDirection: 'row', minHeight: 44, borderBottomWidth: 1, borderColor: colors.border },
+  rowHeading: { width: 144, justifyContent: 'center', paddingHorizontal: Space.sm, backgroundColor: colors.surfaceRaised, borderRightWidth: 1, borderColor: colors.border },
+  rowHeadingText: { color: colors.orange, fontFamily: Fonts.medium },
+  cell: { width: 80, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4, borderRightWidth: 1, borderColor: colors.border },
+  cellText: { color: colors.text, fontFamily: Fonts.semibold },
+  focusCell: { backgroundColor: colors.greenSoft },
+  focusText: { color: colors.green },
+  focusTitle: { color: colors.orange, fontFamily: Fonts.medium, marginTop: Space.sm },
+  focusList: { borderWidth: 1, borderColor: colors.border },
+  focusRow: { minHeight: 48, flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1, borderColor: colors.border, paddingHorizontal: Space.md },
+  prefix: { width: 52, color: colors.orange, fontFamily: Fonts.semibold },
   focusCopy: { flex: 1, minWidth: 0, flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: Space.sm },
-  mask: { color: Palette.text },
-  block: { color: Palette.textMuted },
-  method: { marginTop: Space.sm, borderTopWidth: 1, borderColor: Palette.border, paddingTop: Space.lg, gap: Space.md },
-  methodEyebrow: { color: Palette.green, fontFamily: Fonts.medium },
-  methodTitle: { color: Palette.text, fontFamily: Fonts.semibold },
-  methodIntro: { color: Palette.textMuted },
+  mask: { color: colors.text },
+  block: { color: colors.textMuted },
+  method: { marginTop: Space.sm, borderTopWidth: 1, borderColor: colors.border, paddingTop: Space.lg, gap: Space.md },
+  methodEyebrow: { color: colors.green, fontFamily: Fonts.medium },
+  methodTitle: { color: colors.text, fontFamily: Fonts.semibold },
+  methodIntro: { color: colors.textMuted },
   methodRow: { flexDirection: 'row', alignItems: 'flex-start', gap: Space.md },
-  stepNumber: { width: 32, minHeight: 32, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: Palette.orange, backgroundColor: Palette.orangeSoft },
-  stepNumberText: { color: Palette.orange, fontFamily: Fonts.semibold },
+  stepNumber: { width: 32, minHeight: 32, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.orange, backgroundColor: colors.orangeSoft },
+  stepNumberText: { color: colors.orange, fontFamily: Fonts.semibold },
   stepCopy: { flex: 1, minWidth: 0, gap: 4 },
-  stepTitle: { color: Palette.text, fontFamily: Fonts.semibold },
-  stepDetail: { color: Palette.textMuted },
+  stepTitle: { color: colors.text, fontFamily: Fonts.semibold },
+  stepDetail: { color: colors.textMuted },
   stepHighlights: { marginTop: 4, gap: 4 },
-  stepHighlight: { color: Palette.green, fontFamily: Fonts.semibold },
-  rangeBox: { marginTop: 4, borderWidth: 1, borderColor: Palette.border },
-  rangeRow: { minHeight: 48, justifyContent: 'center', paddingHorizontal: Space.md, paddingVertical: Space.sm, borderBottomWidth: 1, borderBottomColor: Palette.border, gap: 2 },
-  rangeTarget: { borderLeftWidth: 3, borderLeftColor: Palette.orange, backgroundColor: Palette.orangeSoft },
-  rangeLabel: { color: Palette.green, fontFamily: Fonts.medium },
-  rangeValue: { color: Palette.text, fontFamily: Fonts.semibold },
-  rangeTargetText: { color: Palette.orange },
-  stepConclusion: { borderLeftWidth: 3, borderLeftColor: Palette.green, backgroundColor: Palette.greenSoft, padding: Space.md, gap: 4 },
-  conclusionLabel: { color: Palette.green, fontFamily: Fonts.semibold },
-  conclusionText: { color: Palette.text },
-  resultBox: { borderLeftWidth: 3, borderColor: Palette.green, backgroundColor: Palette.greenSoft, padding: Space.md, gap: Space.sm },
-  resultTitle: { color: Palette.green, fontFamily: Fonts.semibold },
-  resultText: { color: Palette.text },
+  stepHighlight: { color: colors.green, fontFamily: Fonts.semibold },
+  rangeBox: { marginTop: 4, borderWidth: 1, borderColor: colors.border },
+  rangeRow: { minHeight: 48, justifyContent: 'center', paddingHorizontal: Space.md, paddingVertical: Space.sm, borderBottomWidth: 1, borderBottomColor: colors.border, gap: 2 },
+  rangeTarget: { borderLeftWidth: 3, borderLeftColor: colors.orange, backgroundColor: colors.orangeSoft },
+  rangeLabel: { color: colors.green, fontFamily: Fonts.medium },
+  rangeValue: { color: colors.text, fontFamily: Fonts.semibold },
+  rangeTargetText: { color: colors.orange },
+  stepConclusion: { borderLeftWidth: 3, borderLeftColor: colors.green, backgroundColor: colors.greenSoft, padding: Space.md, gap: 4 },
+  conclusionLabel: { color: colors.green, fontFamily: Fonts.semibold },
+  conclusionText: { color: colors.text },
+  resultBox: { borderLeftWidth: 3, borderColor: colors.green, backgroundColor: colors.greenSoft, padding: Space.md, gap: Space.sm },
+  resultTitle: { color: colors.green, fontFamily: Fonts.semibold },
+  resultText: { color: colors.text },
   examples: { gap: Space.md },
-  workedExample: { borderWidth: 1, borderColor: Palette.border, backgroundColor: Palette.surfaceRaised, padding: Space.md, gap: Space.sm },
-  workedTitle: { color: Palette.orange, fontFamily: Fonts.semibold },
-  given: { color: Palette.text, fontFamily: Fonts.medium },
+  workedExample: { borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surfaceRaised, padding: Space.md, gap: Space.sm },
+  workedTitle: { color: colors.orange, fontFamily: Fonts.semibold },
+  given: { color: colors.text, fontFamily: Fonts.medium },
   exampleSteps: { gap: 4 },
-  exampleStep: { color: Palette.textMuted },
-  exampleResults: { borderLeftWidth: 3, borderColor: Palette.green, paddingLeft: Space.md, gap: 4, marginTop: Space.xs },
-  note: { color: Palette.textMuted },
+  exampleStep: { color: colors.textMuted },
+  exampleResults: { borderLeftWidth: 3, borderColor: colors.green, paddingLeft: Space.md, gap: 4, marginTop: Space.xs },
+  note: { color: colors.textMuted },
 });

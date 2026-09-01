@@ -1,5 +1,8 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import type { ThemeColors } from '@/shared/theme';
+import { useThemeStyles } from '@/shared/theme-context';
+
 type BootstrapPhase = 'fonts' | 'storage' | 'auth' | 'degraded';
 
 interface BootstrapScreenProps {
@@ -17,6 +20,7 @@ const phaseLabel: Record<BootstrapPhase, string> = {
 };
 
 export function BootstrapScreen({ phase, detail, onRetry, onContinue }: BootstrapScreenProps) {
+  const styles = useThemeStyles(createStyles);
   return (
     <View accessibilityRole="summary" style={styles.screen}>
       <View style={styles.mark}><Text style={styles.markText}>N</Text></View>
@@ -32,16 +36,16 @@ export function BootstrapScreen({ phase, detail, onRetry, onContinue }: Bootstra
   );
 }
 
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: '#151216', alignItems: 'center', justifyContent: 'center', padding: 24, gap: 12 },
-  mark: { width: 64, height: 64, borderWidth: 1, borderColor: '#C04848', backgroundColor: '#3A171C', alignItems: 'center', justifyContent: 'center' },
-  markText: { color: '#E56B6F', fontSize: 18, fontWeight: '700' },
-  title: { color: '#DDD8DA', fontSize: 18, fontWeight: '700', letterSpacing: 1.2 },
-  phase: { color: '#D18B5A', fontSize: 12, letterSpacing: 1.2, textAlign: 'center' },
-  detail: { color: '#AAA3A8', fontSize: 13, lineHeight: 20, textAlign: 'center', maxWidth: 420 },
-  track: { width: 180, height: 2, backgroundColor: '#303633', overflow: 'hidden' },
-  signal: { width: 72, height: 2, backgroundColor: '#C04848' },
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
+  screen: { flex: 1, backgroundColor: colors.background, alignItems: 'center' as const, justifyContent: 'center' as const, padding: 24, gap: 12 },
+  mark: { width: 64, height: 64, borderWidth: 1, borderColor: colors.accent, backgroundColor: colors.accentSoft, alignItems: 'center' as const, justifyContent: 'center' as const },
+  markText: { color: colors.accentBright, fontSize: 18, fontWeight: '700' as const },
+  title: { color: colors.text, fontSize: 18, fontWeight: '700' as const, letterSpacing: 1.2 },
+  phase: { color: colors.orange, fontSize: 12, letterSpacing: 1.2, textAlign: 'center' as const },
+  detail: { color: colors.textMuted, fontSize: 13, lineHeight: 20, textAlign: 'center' as const, maxWidth: 420 },
+  track: { width: 180, height: 2, backgroundColor: colors.border, overflow: 'hidden' as const },
+  signal: { width: 72, height: 2, backgroundColor: colors.accent },
   actions: { width: '100%', maxWidth: 420, gap: 8, marginTop: 8 },
-  button: { minHeight: 44, borderWidth: 1, borderColor: '#C04848', alignItems: 'center', justifyContent: 'center', padding: 8 },
-  buttonText: { color: '#DDD8DA', fontSize: 12, fontWeight: '700', letterSpacing: 1.2 },
+  button: { minHeight: 44, borderWidth: 1, borderColor: colors.accent, alignItems: 'center' as const, justifyContent: 'center' as const, padding: 8 },
+  buttonText: { color: colors.text, fontSize: 12, fontWeight: '700' as const, letterSpacing: 1.2 },
 });

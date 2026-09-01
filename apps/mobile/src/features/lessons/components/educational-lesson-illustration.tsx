@@ -19,7 +19,8 @@ import {
 } from '@/features/lessons/educational-illustration-registry';
 import { Text } from '@/shared/components/console-text';
 import { useMeasuredResponsiveLayout, type ResponsiveMode } from '@/shared/responsive-layout';
-import { DiagramPalette, Fonts, Palette, Space } from '@/shared/theme';
+import { Fonts, Space, type ThemeColors } from '@/shared/theme';
+import { useDiagramColors, useThemeStyles } from '@/shared/theme-context';
 
 const educationAssets: Record<EducationAssetName, number> = {
   'server-terminal': require('@/assets/images/education/server-terminal-mobile.png'),
@@ -38,8 +39,6 @@ const educationAssets: Record<EducationAssetName, number> = {
   'application-window': require('@/assets/images/education/application-window-mobile.png'),
 };
 
-const toneColors: Record<DiagramTone, { border: string; fill: string; text: string }> = DiagramPalette;
-
 function Token({ token, size = 72 }: { token: VisualToken; size?: number }) {
   if (token === 'pc' || token === 'switch' || token === 'router') return <DeviceGlyph type={token} size={size} />;
   if (token === 'copper-cable') return <Image accessibilityIgnoresInvertColors contentFit="contain" source={require('@/assets/images/ethernet/ethernet-copper-cable-mobile.png')} style={{ width: size, height: size }} />;
@@ -47,6 +46,8 @@ function Token({ token, size = 72 }: { token: VisualToken; size?: number }) {
 }
 
 function NodeCard({ node, compact = false }: { node: DiagramNode; compact?: boolean }) {
+  const styles = useThemeStyles(createStyles);
+  const toneColors = useDiagramColors();
   const tone = toneColors[node.tone ?? 'neutral'];
   return (
     <View style={[styles.nodeCard, compact && styles.nodeCardCompact, { borderColor: tone.border, backgroundColor: tone.fill }]}>
@@ -58,6 +59,7 @@ function NodeCard({ node, compact = false }: { node: DiagramNode; compact?: bool
 }
 
 function Direction({ vertical = false }: { vertical?: boolean }) {
+  const styles = useThemeStyles(createStyles);
   return (
     <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={[styles.direction, vertical && styles.directionVertical]}>
       <View style={[styles.directionLine, vertical && styles.directionLineVertical]} />
@@ -67,6 +69,7 @@ function Direction({ vertical = false }: { vertical?: boolean }) {
 }
 
 function NodeFlow({ nodes, topology = false, mode }: { nodes: DiagramNode[]; topology?: boolean; mode: ResponsiveMode }) {
+  const styles = useThemeStyles(createStyles);
   const vertical = mode === 'compact';
   return (
     <View style={[styles.flow, vertical && styles.flowVertical, !vertical && nodes.length > 3 && styles.flowWrap]}>
@@ -82,6 +85,7 @@ function NodeFlow({ nodes, topology = false, mode }: { nodes: DiagramNode[]; top
 }
 
 function Comparison({ nodes, mode }: { nodes: DiagramNode[]; mode: ResponsiveMode }) {
+  const styles = useThemeStyles(createStyles);
   return (
     <View style={styles.comparison}>
       {nodes.map((node, index) => (
@@ -95,6 +99,8 @@ function Comparison({ nodes, mode }: { nodes: DiagramNode[]; mode: ResponsiveMod
 }
 
 function AddressRange({ segments, mode, presentation = 'auto' }: { segments: DiagramSegment[]; mode: ResponsiveMode; presentation?: IllustrationPresentation }) {
+  const styles = useThemeStyles(createStyles);
+  const toneColors = useDiagramColors();
   const stacked = presentation === 'full-address' && mode !== 'wide';
   return (
     <View style={[styles.segmentRow, stacked && styles.segmentColumn]}>
@@ -133,6 +139,7 @@ function AddressRange({ segments, mode, presentation = 'auto' }: { segments: Dia
 }
 
 function TechnicalTable({ headers = [], rows = [], mode }: { headers?: string[]; rows?: string[][]; mode: ResponsiveMode }) {
+  const styles = useThemeStyles(createStyles);
   if (mode === 'compact') {
     return (
       <View style={styles.tableCards}>
@@ -164,6 +171,7 @@ function TechnicalTable({ headers = [], rows = [], mode }: { headers?: string[];
 }
 
 function BitStrip({ bits, mode }: { bits: DiagramBit[]; mode: ResponsiveMode }) {
+  const styles = useThemeStyles(createStyles);
   return (
     <View style={styles.bitStrip}>
       {bits.map((bit) => {
@@ -181,6 +189,7 @@ function BitStrip({ bits, mode }: { bits: DiagramBit[]; mode: ResponsiveMode }) 
 }
 
 function SubnetMap({ rows, mode }: { rows: DiagramSubnetRow[]; mode: ResponsiveMode }) {
+  const styles = useThemeStyles(createStyles);
   return (
     <View style={styles.subnetMap}>
       {rows.map((row, index) => (
@@ -197,6 +206,7 @@ function SubnetMap({ rows, mode }: { rows: DiagramSubnetRow[]; mode: ResponsiveM
 }
 
 function SubnetField({ compact, label, toneStyle, value }: { compact: boolean; label: string; toneStyle: object; value: string }) {
+  const styles = useThemeStyles(createStyles);
   return (
     <View style={[styles.subnetField, compact && styles.subnetFieldCompact]}>
       <Text variant="technical" style={styles.subnetFieldLabel}>{label}</Text>
@@ -217,6 +227,8 @@ function layerToken(layer: DiagramSegment): VisualToken {
 }
 
 function Stack({ layers, mode }: { layers: DiagramSegment[]; mode: ResponsiveMode }) {
+  const styles = useThemeStyles(createStyles);
+  const toneColors = useDiagramColors();
   return (
     <View style={styles.stack}>
       {layers.map((layer) => {
@@ -237,6 +249,8 @@ function Stack({ layers, mode }: { layers: DiagramSegment[]; mode: ResponsiveMod
 }
 
 function Mapping({ mappings = [], mode }: { mappings?: [string, string][]; mode: ResponsiveMode }) {
+  const styles = useThemeStyles(createStyles);
+  const toneColors = useDiagramColors();
   const compact = mode === 'compact';
   return (
     <View style={styles.mapping}>
@@ -256,6 +270,8 @@ function Mapping({ mappings = [], mode }: { mappings?: [string, string][]; mode:
 }
 
 function NumberLine({ markers }: { markers: DiagramMarker[] }) {
+  const styles = useThemeStyles(createStyles);
+  const toneColors = useDiagramColors();
   return (
     <View style={styles.numberLine}>
       {markers.map((marker, index) => {
@@ -279,6 +295,7 @@ function NumberLine({ markers }: { markers: DiagramMarker[] }) {
 }
 
 function PrefixLadder({ rows }: { rows: DiagramPrefixRow[] }) {
+  const styles = useThemeStyles(createStyles);
   return (
     <View style={styles.prefixLadder}>
       {rows.map((row, index) => (
@@ -299,6 +316,8 @@ function PrefixLadder({ rows }: { rows: DiagramPrefixRow[] }) {
 }
 
 function PacketFields({ groups, activeFieldIds = [], mode }: { groups: DiagramProtocolGroup[]; activeFieldIds?: string[]; mode: ResponsiveMode }) {
+  const styles = useThemeStyles(createStyles);
+  const toneColors = useDiagramColors();
   const active = new Set(activeFieldIds);
   return (
     <View style={styles.protocolGroups}>
@@ -319,10 +338,10 @@ function PacketFields({ groups, activeFieldIds = [], mode }: { groups: DiagramPr
                   style={[
                     styles.protocolField,
                     mode === 'compact' && styles.protocolFieldCompact,
-                    { borderColor: highlighted ? tone.border : '#3D3F42', backgroundColor: highlighted ? tone.fill : '#18171A' },
+                    highlighted ? { borderColor: tone.border, backgroundColor: tone.fill } : styles.protocolFieldInactive,
                   ]}>
                   <Text variant="technical" style={[styles.protocolFieldLabel, !highlighted && styles.protocolFieldMuted]}>{field.label}</Text>
-                  <Text variant="label" style={[styles.protocolFieldValue, { color: highlighted ? tone.text : '#8E8B8F' }]}>{field.value}</Text>
+                  <Text variant="label" style={[styles.protocolFieldValue, { color: highlighted ? tone.text : undefined }, !highlighted && styles.protocolFieldMuted]}>{field.value}</Text>
                   <Text variant="technical" style={[styles.protocolFieldDetail, !highlighted && styles.protocolFieldMuted]}>{field.detail}</Text>
                 </View>
               );
@@ -335,6 +354,7 @@ function PacketFields({ groups, activeFieldIds = [], mode }: { groups: DiagramPr
 }
 
 export function EducationalLessonIllustration({ type, stageId }: { type: LessonIllustration; stageId?: string }) {
+  const styles = useThemeStyles(createStyles);
   const illustration = educationalIllustrations[type];
   const responsive = useMeasuredResponsiveLayout();
   const stage = stageId ? illustration.stages?.find((candidate) => candidate.id === stageId) : undefined;
@@ -363,9 +383,9 @@ export function EducationalLessonIllustration({ type, stageId }: { type: LessonI
   );
 }
 
-const styles = StyleSheet.create({
-  card: { minWidth: 0, minHeight: 192, padding: Space.lg, gap: Space.lg, backgroundColor: '#1B1A1D', borderWidth: 1, borderColor: '#4B4D50' },
-  title: { color: '#E0DEE0', fontFamily: Fonts.semibold, textAlign: 'center' },
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
+  card: { minWidth: 0, minHeight: 192, padding: Space.lg, gap: Space.lg, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
+  title: { color: colors.text, fontFamily: Fonts.semibold, textAlign: 'center' },
   flow: { minWidth: 0, flexDirection: 'row', alignItems: 'stretch', justifyContent: 'center' },
   flowVertical: { flexDirection: 'column' },
   flowWrap: { flexWrap: 'wrap', gap: Space.sm },
@@ -375,12 +395,12 @@ const styles = StyleSheet.create({
   nodeCard: { flex: 1, minWidth: 0, minHeight: 146, alignItems: 'center', justifyContent: 'center', padding: Space.sm, borderWidth: 1 },
   nodeCardCompact: { width: '100%', minHeight: 126 },
   nodeLabel: { fontFamily: Fonts.semibold, textAlign: 'center' },
-  nodeDetail: { color: '#C5C3C5', marginTop: Space.xs, textAlign: 'center' },
+  nodeDetail: { color: colors.textMuted, marginTop: Space.xs, textAlign: 'center' },
   direction: { width: 24, alignItems: 'center', justifyContent: 'center' },
   directionVertical: { width: '100%', height: 32 },
-  directionLine: { position: 'absolute', left: 2, right: 2, height: 2, backgroundColor: '#B65B56' },
+  directionLine: { position: 'absolute', left: 2, right: 2, height: 2, backgroundColor: colors.accent },
   directionLineVertical: { top: 2, bottom: 2, left: '50%', right: undefined, width: 2, height: undefined },
-  directionArrow: { color: '#D18B5A', fontFamily: Fonts.semibold, backgroundColor: '#1B1A1D' },
+  directionArrow: { color: colors.orange, fontFamily: Fonts.semibold, backgroundColor: colors.surface },
   linkLabel: { display: 'none' },
   comparison: { minWidth: 0, flexDirection: 'row', flexWrap: 'wrap', gap: Space.md },
   comparisonItem: { minWidth: 136, flex: 1, flexBasis: 180 },
@@ -390,89 +410,90 @@ const styles = StyleSheet.create({
   segmentColumn: { flexDirection: 'column', flexWrap: 'nowrap', gap: Space.sm },
   segment: { minWidth: 0, minHeight: 104, alignItems: 'center', justifyContent: 'center', padding: Space.sm, borderWidth: 1 },
   segmentStacked: { width: '100%', minHeight: 88 },
-  segmentLabel: { color: '#BCB9BC', textAlign: 'center' },
+  segmentLabel: { color: colors.textMuted, textAlign: 'center' },
   segmentValue: { marginTop: Space.xs, fontFamily: Fonts.semibold, textAlign: 'center' },
   segmentValueLines: { width: '100%', marginTop: Space.xs, gap: Space.xs },
   segmentValueLine: { alignItems: 'center' },
-  segmentLineLabel: { color: '#BCB9BC' },
+  segmentLineLabel: { color: colors.textMuted },
   segmentLineValue: { fontFamily: Fonts.semibold, textAlign: 'center' },
-  segmentDetail: { color: '#BCB9BC', marginTop: Space.xs, textAlign: 'center' },
-  table: { minWidth: 0, borderWidth: 1, borderColor: '#55585A', backgroundColor: '#121114' },
-  tableRow: { minHeight: 40, flexDirection: 'row', alignItems: 'stretch', borderBottomWidth: 1, borderBottomColor: '#3D3F42' },
-  tableCell: { flex: 1, minWidth: 0, paddingHorizontal: Space.xs, paddingVertical: Space.sm, color: '#D0CDD0', textAlign: 'center' },
-  tableHeader: { color: '#D18B5A', fontFamily: Fonts.semibold },
-  tableFirstCell: { color: '#DDE7E4', fontFamily: Fonts.medium },
+  segmentDetail: { color: colors.textMuted, marginTop: Space.xs, textAlign: 'center' },
+  table: { minWidth: 0, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.background },
+  tableRow: { minHeight: 40, flexDirection: 'row', alignItems: 'stretch', borderBottomWidth: 1, borderBottomColor: colors.border },
+  tableCell: { flex: 1, minWidth: 0, paddingHorizontal: Space.xs, paddingVertical: Space.sm, color: colors.text, textAlign: 'center' },
+  tableHeader: { color: colors.orange, fontFamily: Fonts.semibold },
+  tableFirstCell: { color: colors.green, fontFamily: Fonts.medium },
   tableCards: { gap: Space.sm },
-  tableCard: { padding: Space.sm, gap: Space.xs, borderWidth: 1, borderColor: '#55585A', backgroundColor: '#121114' },
-  tableField: { minWidth: 0, paddingVertical: Space.xs, borderBottomWidth: 1, borderBottomColor: '#3D3F42' },
-  tableFieldLabel: { color: '#D18B5A', fontFamily: Fonts.semibold },
-  tableFieldValue: { minWidth: 0, marginTop: 2, color: '#D0CDD0' },
+  tableCard: { padding: Space.sm, gap: Space.xs, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.background },
+  tableField: { minWidth: 0, paddingVertical: Space.xs, borderBottomWidth: 1, borderBottomColor: colors.border },
+  tableFieldLabel: { color: colors.orange, fontFamily: Fonts.semibold },
+  tableFieldValue: { minWidth: 0, marginTop: 2, color: colors.text },
   bitStrip: { minWidth: 0, flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 3 },
   bitCell: { width: 52, minHeight: 84, alignItems: 'center', justifyContent: 'center', padding: Space.xs, borderWidth: 1 },
   bitCellCompact: { minWidth: 52, maxWidth: 72, flexGrow: 1, flexBasis: '22%' },
-  bitNetwork: { borderColor: '#71958B', backgroundColor: '#263C38' },
-  bitHost: { borderColor: '#B77449', backgroundColor: '#4A3326' },
-  bitPlace: { color: '#C5C3C5' },
-  bitValue: { color: '#F0ECEF', fontFamily: Fonts.semibold, marginVertical: 2 },
-  bitRole: { color: '#C5C3C5' },
+  bitNetwork: { borderColor: colors.green, backgroundColor: colors.greenSoft },
+  bitHost: { borderColor: colors.orange, backgroundColor: colors.orangeSoft },
+  bitPlace: { color: colors.textMuted },
+  bitValue: { color: colors.text, fontFamily: Fonts.semibold, marginVertical: 2 },
+  bitRole: { color: colors.textMuted },
   subnetMap: { minWidth: 0, gap: Space.sm },
-  subnetRow: { minWidth: 0, padding: Space.sm, gap: Space.xs, borderWidth: 1, borderColor: '#55585A', backgroundColor: '#121114' },
-  subnetIndex: { color: '#D18B5A', fontFamily: Fonts.semibold },
+  subnetRow: { minWidth: 0, padding: Space.sm, gap: Space.xs, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.background },
+  subnetIndex: { color: colors.orange, fontFamily: Fonts.semibold },
   subnetField: { minWidth: 0, flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: Space.xs },
   subnetFieldCompact: { flexDirection: 'column', alignItems: 'flex-start' },
-  subnetFieldLabel: { minWidth: 88, color: '#99969A' },
+  subnetFieldLabel: { minWidth: 88, color: colors.textMuted },
   subnetFieldValue: { minWidth: 0, flexShrink: 1 },
-  subnetNetwork: { color: '#D9E7F0' },
-  subnetUsable: { color: '#D7E6E2' },
-  subnetBroadcast: { color: '#F0DDCF' },
+  subnetNetwork: { color: colors.accentBright },
+  subnetUsable: { color: colors.green },
+  subnetBroadcast: { color: colors.orange },
   stack: { minWidth: 0, gap: 3 },
   layer: { minWidth: 0, minHeight: 56, flexDirection: 'row', alignItems: 'center', padding: Space.xs, borderWidth: 1 },
   layerNumber: { width: 40, minHeight: 40, alignItems: 'center', justifyContent: 'center', borderRightWidth: 1 },
   layerNumberCompact: { width: 36 },
   layerCopy: { flex: 1, minWidth: 0, marginLeft: Space.sm },
   layerName: { fontFamily: Fonts.semibold },
-  layerDetail: { color: '#C4C1C4', marginTop: 2 },
+  layerDetail: { color: colors.textMuted, marginTop: 2 },
   mapping: { minWidth: 0, gap: Space.xs },
   mappingHeader: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: '7%' },
-  mappingHeaderText: { width: '42%', color: '#D18B5A', textAlign: 'center' },
+  mappingHeaderText: { width: '42%', color: colors.orange, textAlign: 'center' },
   mappingRow: { minWidth: 0, minHeight: 64, flexDirection: 'row', alignItems: 'stretch' },
   mappingRowCompact: { flexDirection: 'column', alignItems: 'stretch' },
   mappingCell: { width: '43%', minWidth: 0, alignItems: 'center', justifyContent: 'center', padding: Space.xs, borderWidth: 1 },
   mappingCellCompact: { width: '100%', minHeight: 52 },
   mappingText: { fontFamily: Fonts.medium, textAlign: 'center' },
-  mappingArrow: { width: '14%', alignSelf: 'center', color: '#D18B5A', textAlign: 'center' },
+  mappingArrow: { width: '14%', alignSelf: 'center', color: colors.orange, textAlign: 'center' },
   mappingArrowCompact: { width: '100%', paddingVertical: 2 },
   numberLine: { minWidth: 0 },
   numberLineRow: { minWidth: 0, flexDirection: 'row', alignItems: 'stretch' },
   numberLineRail: { width: 30, alignItems: 'center' },
   numberLineDot: { width: 16, height: 16, marginTop: 28, borderWidth: 2 },
-  numberLineConnector: { width: 2, flex: 1, minHeight: 32, backgroundColor: '#62666A' },
+  numberLineConnector: { width: 2, flex: 1, minHeight: 32, backgroundColor: colors.border },
   numberLineCard: { minWidth: 0, flex: 1, minHeight: 76, marginBottom: Space.sm, padding: Space.sm, borderWidth: 1 },
-  numberLineLabel: { color: '#BCB9BC' },
+  numberLineLabel: { color: colors.textMuted },
   numberLineValue: { marginTop: 2, fontFamily: Fonts.semibold },
-  numberLineDetail: { color: '#BCB9BC', marginTop: Space.xs },
+  numberLineDetail: { color: colors.textMuted, marginTop: Space.xs },
   prefixLadder: { minWidth: 0, gap: Space.sm },
-  prefixRow: { minWidth: 0, padding: Space.sm, gap: Space.sm, borderWidth: 1, borderColor: '#55585A', backgroundColor: '#121114' },
-  prefixRowActive: { borderColor: '#A28C54', backgroundColor: '#292519' },
+  prefixRow: { minWidth: 0, padding: Space.sm, gap: Space.sm, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.background },
+  prefixRowActive: { borderColor: colors.orange, backgroundColor: colors.orangeSoft },
   prefixTitle: { minWidth: 0, flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: Space.xs },
-  prefixValue: { color: '#F0DDCF', fontFamily: Fonts.semibold },
-  prefixMask: { color: '#D0CDD0' },
+  prefixValue: { color: colors.orange, fontFamily: Fonts.semibold },
+  prefixMask: { color: colors.text },
   prefixFacts: { minWidth: 0, flexDirection: 'row', flexWrap: 'wrap', gap: Space.sm },
-  prefixFact: { color: '#C5C3C5' },
-  prefixBlock: { color: '#D18B5A', fontFamily: Fonts.semibold },
+  prefixFact: { color: colors.textMuted },
+  prefixBlock: { color: colors.orange, fontFamily: Fonts.semibold },
   protocolGroups: { minWidth: 0, gap: Space.md },
-  protocolGroup: { minWidth: 0, borderWidth: 1, borderColor: '#55585A', backgroundColor: '#121114' },
-  protocolGroupHeader: { minWidth: 0, padding: Space.sm, borderBottomWidth: 1, borderBottomColor: '#3D3F42' },
-  protocolGroupLabel: { color: '#D18B5A', fontFamily: Fonts.semibold },
-  protocolGroupDetail: { color: '#BCB9BC', marginTop: 2 },
+  protocolGroup: { minWidth: 0, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.background },
+  protocolGroupHeader: { minWidth: 0, padding: Space.sm, borderBottomWidth: 1, borderBottomColor: colors.border },
+  protocolGroupLabel: { color: colors.orange, fontFamily: Fonts.semibold },
+  protocolGroupDetail: { color: colors.textMuted, marginTop: 2 },
   protocolFields: { minWidth: 0, flexDirection: 'row', flexWrap: 'wrap' },
   protocolFieldsCompact: { flexDirection: 'column', flexWrap: 'nowrap' },
   protocolField: { minWidth: 132, minHeight: 112, flexGrow: 1, flexBasis: 156, justifyContent: 'center', padding: Space.sm, borderWidth: 1 },
   protocolFieldCompact: { width: '100%', minWidth: 0, minHeight: 96, flexBasis: 'auto' },
-  protocolFieldLabel: { color: '#BCB9BC' },
+  protocolFieldLabel: { color: colors.textMuted },
   protocolFieldValue: { minWidth: 0, marginTop: Space.xs, fontFamily: Fonts.semibold },
-  protocolFieldDetail: { color: '#C5C3C5', marginTop: Space.xs },
-  protocolFieldMuted: { color: '#777579' },
-  stageTitle: { color: Palette.green, textAlign: 'center' },
-  footer: { color: Palette.textMuted, textAlign: 'center' },
+  protocolFieldDetail: { color: colors.textMuted, marginTop: Space.xs },
+  protocolFieldInactive: { borderColor: colors.border, backgroundColor: colors.surfaceRaised },
+  protocolFieldMuted: { color: colors.textMuted, opacity: 0.7 },
+  stageTitle: { color: colors.green, textAlign: 'center' },
+  footer: { color: colors.textMuted, textAlign: 'center' },
 });

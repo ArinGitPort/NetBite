@@ -18,7 +18,8 @@ import { Text } from '@/shared/components/console-text';
 import { PageHeader } from '@/shared/components/page-header';
 import { ProgressBar } from '@/shared/components/progress-bar';
 import { Screen } from '@/shared/components/screen';
-import { Fonts, Palette, Radius, Space } from '@/shared/theme';
+import { Fonts, Radius, Space, type ThemeColors } from '@/shared/theme';
+import { useTheme, useThemeStyles } from '@/shared/theme-context';
 import { AppRoutes } from '@/shared/routes';
 import { useGameStore } from '@/store/use-game-store';
 
@@ -34,6 +35,8 @@ interface ActivityRowProps {
 }
 
 function ActivityRow({ index, type, title, detail, complete, current, icon, onPress }: ActivityRowProps) {
+  const { colors } = useTheme();
+  const styles = useThemeStyles(createStyles);
   return (
     <Pressable
       accessibilityHint={current ? 'Opens the next unfinished activity' : `Opens this ${type.toLowerCase()}`}
@@ -42,7 +45,7 @@ function ActivityRow({ index, type, title, detail, complete, current, icon, onPr
       onPress={onPress}
       style={({ pressed }) => [styles.activity, current && styles.currentActivity, complete && !current && styles.completedActivity, pressed && styles.pressed]}>
       <View style={[styles.activityNumber, complete && styles.activityComplete]}>
-        {complete ? <AppIcon name="check" size={24} /> : <SemanticIcon color={current ? Palette.orange : Palette.textMuted} name={icon} size={22} />}
+        {complete ? <AppIcon name="check" size={24} /> : <SemanticIcon color={current ? colors.orange : colors.textMuted} name={icon} size={22} />}
       </View>
       <View style={styles.activityCopy}>
         <Text variant="label" style={[styles.activityType, current && styles.currentActivityType]}>{current ? `NEXT / ${type}` : `${String(index).padStart(2, '0')} / ${type}`}</Text>
@@ -55,6 +58,7 @@ function ActivityRow({ index, type, title, detail, complete, current, icon, onPr
 }
 
 export default function ChapterScreen() {
+  const styles = useThemeStyles(createStyles);
   const { hasContentAccess, presentationActive, testProEnabled } = useAuth();
   const accessBypass = presentationActive || testProEnabled;
   const { chapterId } = useLocalSearchParams<{ chapterId: string }>();
@@ -127,24 +131,24 @@ export default function ChapterScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   back: { alignSelf: 'flex-start' },
-  hero: { backgroundColor: Palette.surfaceRaised, padding: Space.xl, borderRadius: Radius.lg, borderWidth: 1, borderColor: Palette.accent, marginVertical: Space.lg, gap: Space.md },
-  chapterLabel: { color: Palette.accentBright, fontFamily: Fonts.medium },
-  title: { color: Palette.white, fontFamily: Fonts.semibold, textTransform: 'uppercase' },
-  subtitle: { color: Palette.textMuted, marginBottom: Space.sm },
-  progressText: { color: Palette.textMuted, fontFamily: Fonts.regular },
-  sectionTitle: { color: Palette.text, fontFamily: Fonts.semibold, marginTop: Space.xl, marginBottom: Space.md },
-  activity: { flexDirection: 'row', alignItems: 'center', backgroundColor: Palette.surface, borderWidth: 1, borderColor: Palette.border, borderRadius: Radius.md, padding: Space.lg, marginBottom: Space.md },
-  currentActivity: { borderLeftWidth: 4, borderColor: Palette.orange, backgroundColor: Palette.surfaceRaised },
+  hero: { backgroundColor: colors.surfaceRaised, padding: Space.xl, borderRadius: Radius.lg, borderWidth: 1, borderColor: colors.accent, marginVertical: Space.lg, gap: Space.md },
+  chapterLabel: { color: colors.accentBright, fontFamily: Fonts.medium },
+  title: { color: colors.text, fontFamily: Fonts.semibold, textTransform: 'uppercase' },
+  subtitle: { color: colors.textMuted, marginBottom: Space.sm },
+  progressText: { color: colors.textMuted, fontFamily: Fonts.regular },
+  sectionTitle: { color: colors.accent, fontFamily: Fonts.semibold, marginTop: Space.xl, marginBottom: Space.md },
+  activity: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: Radius.md, padding: Space.lg, marginBottom: Space.md },
+  currentActivity: { borderLeftWidth: 4, borderColor: colors.orange, backgroundColor: colors.surfaceRaised },
   completedActivity: { opacity: 0.82 },
   pressed: { opacity: 0.7 },
-  activityNumber: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: Radius.sm, backgroundColor: Palette.accentSoft },
-  activityComplete: { backgroundColor: Palette.mint },
-  activityNumberText: { color: Palette.accentBright, fontFamily: Fonts.medium },
+  activityNumber: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: Radius.sm, backgroundColor: colors.accentSoft },
+  activityComplete: { backgroundColor: colors.greenSoft },
+  activityNumberText: { color: colors.accentBright, fontFamily: Fonts.medium },
   activityCopy: { flex: 1, minWidth: 0, marginLeft: Space.md },
-  activityType: { color: Palette.accentBright, fontFamily: Fonts.medium },
-  currentActivityType: { color: Palette.orange },
-  activityTitle: { color: Palette.text, fontFamily: Fonts.medium, marginVertical: Space.xs, textTransform: 'uppercase' },
-  activityDetail: { color: Palette.textMuted, textTransform: 'uppercase' },
+  activityType: { color: colors.accentBright, fontFamily: Fonts.medium },
+  currentActivityType: { color: colors.orange },
+  activityTitle: { color: colors.text, fontFamily: Fonts.medium, marginVertical: Space.xs, textTransform: 'uppercase' },
+  activityDetail: { color: colors.textMuted, textTransform: 'uppercase' },
 });

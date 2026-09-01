@@ -2,18 +2,20 @@ import { StyleSheet, View } from 'react-native';
 
 import { SemanticIcon } from '@/shared/components/semantic-icon';
 import { Text } from '@/shared/components/console-text';
-import { Fonts, Palette, Space } from '@/shared/theme';
+import { Fonts, Space, type ThemeColors } from '@/shared/theme';
+import { useTheme, useThemeStyles } from '@/shared/theme-context';
 
 export type InlineFeedbackTone = 'info' | 'success' | 'warning' | 'danger';
 
-const tone = {
-  info: { color: Palette.textMuted, background: Palette.surface, icon: 'status-info' as const },
-  success: { color: Palette.green, background: Palette.greenSoft, icon: 'status-complete' as const },
-  warning: { color: Palette.orange, background: Palette.orangeSoft, icon: 'status-attention' as const },
-  danger: { color: Palette.danger, background: Palette.dangerSoft, icon: 'status-attention' as const },
-};
-
 export function InlineFeedback({ title, message, feedbackTone = 'info', live = false }: { title: string; message?: string; feedbackTone?: InlineFeedbackTone; live?: boolean }) {
+  const { colors } = useTheme();
+  const styles = useThemeStyles(createStyles);
+  const tone = {
+    info: { color: colors.textMuted, background: colors.surface, icon: 'status-info' as const },
+    success: { color: colors.green, background: colors.greenSoft, icon: 'status-complete' as const },
+    warning: { color: colors.orange, background: colors.orangeSoft, icon: 'status-attention' as const },
+    danger: { color: colors.danger, background: colors.dangerSoft, icon: 'status-attention' as const },
+  };
   const appearance = tone[feedbackTone];
   return (
     <View accessible accessibilityLiveRegion={live ? 'polite' : 'none'} accessibilityRole={live || feedbackTone === 'warning' || feedbackTone === 'danger' ? 'alert' : undefined} style={[styles.feedback, { borderColor: appearance.color, backgroundColor: appearance.background }]}>
@@ -26,9 +28,9 @@ export function InlineFeedback({ title, message, feedbackTone = 'info', live = f
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   feedback: { minWidth: 0, flexDirection: 'row', alignItems: 'flex-start', gap: Space.sm, padding: Space.sm, borderLeftWidth: 3 },
   copy: { minWidth: 0, flex: 1 },
   title: { fontFamily: Fonts.semibold },
-  message: { color: Palette.text, marginTop: 2 },
+  message: { color: colors.text, marginTop: 2 },
 });

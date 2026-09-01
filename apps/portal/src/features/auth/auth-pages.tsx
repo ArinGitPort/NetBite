@@ -93,22 +93,17 @@ export function Login() {
   };
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_30%_28%,rgb(224_79_86/5.5%),transparent_31%)]">
-      <header className="flex min-h-11 items-center justify-between border-b border-white/7 px-5 text-xs text-[#c7c3c6] sm:px-10">
-        <span>NETBITE Instructor Console</span>
-        <span className="text-muted">Instructor administration</span>
+      <header className="flex min-h-16 items-center border-b border-line px-5 sm:px-10">
+        <div className="flex items-center gap-3" aria-label="NetBite">
+          <span className="grid size-10 place-items-center overflow-hidden rounded-control border border-line bg-surface shadow-[inset_3px_0_var(--color-signal-red)]">
+            <img alt="" className="size-7 object-contain" src={netbiteLogo} />
+          </span>
+          <strong className="text-sm tracking-[0.04em]">NETBITE</strong>
+        </div>
       </header>
 
-      <div className="mx-auto grid min-h-[calc(100vh-44px)] w-[min(1070px,calc(100%-48px))] items-center gap-12 py-12 lg:grid-cols-[1.1fr_0.9fr]">
+      <div className="mx-auto grid min-h-[calc(100vh-64px)] w-[min(1070px,calc(100%-48px))] items-center gap-12 py-12 lg:grid-cols-[1.1fr_0.9fr]">
         <section className="flex flex-col justify-center">
-          <div className="mb-10 flex items-center gap-3">
-            <div className="grid size-[42px] place-items-center overflow-hidden border border-signal-red bg-signal-red-soft shadow-[inset_4px_0_var(--color-signal-red)] [&_img]:size-[78%] [&_img]:object-contain">
-              <img alt="" src={netbiteLogo} />
-            </div>
-            <div className="grid gap-1">
-              <strong className="text-sm">NETBITE</strong>
-              <span className="text-xs text-muted">Instructor Console</span>
-            </div>
-          </div>
           <h1 className="max-w-[690px] text-[clamp(2.45rem,4.7vw,4.7rem)] font-bold leading-[1.05] tracking-[-0.045em]">
             Publish accurate networking lessons without rebuilding the learner
             app.
@@ -117,7 +112,7 @@ export function Login() {
             Prepare lessons, check related content, and publish approved
             materials to connected Android learners.
           </p>
-          <ul className="mt-6 grid list-none gap-3 p-0 text-sm text-[#cbc6ca]">
+          <ul className="mt-6 grid list-none gap-3 p-0 text-sm text-copy">
             <li className="flex items-center gap-3">
               <CheckCircle2
                 aria-hidden="true"
@@ -214,7 +209,7 @@ export function Login() {
             <div className="grid grid-cols-[1fr_auto] overflow-hidden rounded-control border border-line bg-canvas focus-within:border-signal-orange focus-within:ring-2 focus-within:ring-signal-orange/15">
               <input
                 autoComplete="current-password"
-                className="min-h-11 min-w-0 border-0 bg-transparent px-3 py-2.5 text-copy outline-none placeholder:text-muted/70"
+                className="min-h-11 min-w-0 border-0 bg-transparent px-3 py-2.5 text-copy outline-none placeholder:text-muted"
                 placeholder="Enter your password"
                 required
                 type={showPassword ? "text" : "password"}

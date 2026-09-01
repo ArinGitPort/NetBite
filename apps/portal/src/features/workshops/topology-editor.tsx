@@ -396,7 +396,7 @@ export function TopologyEditor({
       />
       {connectionMode ? (
         <div
-          className="border-b border-signal-orange/50 bg-signal-orange-soft px-4 py-3 text-xs text-[#f1ae78]"
+          className="border-b border-signal-orange/50 bg-signal-orange-soft px-4 py-3 text-xs text-signal-orange"
           role="status"
         >
           Drag from one device to another, or tap the first device and then the

@@ -13,10 +13,12 @@ import {
   workshopAssessmentRoute,
   workshopLessonRoute,
 } from "@/shared/routes";
-import { Fonts, Palette, Space } from "@/shared/theme";
+import { Fonts, Space, type ThemeColors } from "@/shared/theme";
+import { useThemeStyles } from "@/shared/theme-context";
 import { useWorkshopStore } from "@/store/use-workshop-store";
 
 export default function WorkshopOverviewScreen() {
+  const styles = useThemeStyles(createStyles);
   const { classId } = useLocalSearchParams<{ classId: string }>();
   const entry = useWorkshopStore((state) =>
     state.library.find((item) => item.classId === classId),
@@ -148,6 +150,7 @@ export default function WorkshopOverviewScreen() {
 }
 
 function FlashcardPreview({ cards }: { cards: WorkshopFlashcard[] }) {
+  const styles = useThemeStyles(createStyles);
   const [index, setIndex] = useState(0);
   const [answer, setAnswer] = useState(false);
   const card = cards[index];
@@ -207,20 +210,20 @@ function FlashcardPreview({ cards }: { cards: WorkshopFlashcard[] }) {
   );
 }
 
-const styles = StyleSheet.create({
-  eyebrow: { color: Palette.orange },
-  description: { color: Palette.textMuted, marginTop: Space.sm },
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
+  eyebrow: { color: colors.orange },
+  description: { color: colors.textMuted, marginTop: Space.sm },
   instructor: {
     marginTop: Space.lg,
     borderWidth: 1,
-    borderColor: Palette.border,
+    borderColor: colors.border,
     padding: Space.md,
     gap: Space.xs,
   },
   savedLessons: { marginTop: Space.lg },
-  muted: { color: Palette.textMuted },
+  muted: { color: colors.textMuted },
   section: {
-    color: Palette.green,
+    color: colors.green,
     marginTop: Space.xl,
     marginBottom: Space.sm,
   },
@@ -230,8 +233,8 @@ const styles = StyleSheet.create({
     minHeight: 250,
     borderWidth: 1,
     borderTopWidth: 3,
-    borderColor: Palette.accent,
-    backgroundColor: Palette.surfaceRaised,
+    borderColor: colors.accent,
+    backgroundColor: colors.surfaceRaised,
     padding: Space.xl,
     justifyContent: "space-between",
     gap: Space.lg,
@@ -248,7 +251,7 @@ const styles = StyleSheet.create({
     minHeight: 44,
     minWidth: 100,
     borderWidth: 1,
-    borderColor: Palette.border,
+    borderColor: colors.border,
     justifyContent: "center",
     alignItems: "center",
   },

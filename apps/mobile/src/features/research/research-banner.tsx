@@ -2,10 +2,12 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { Text } from '@/shared/components/console-text';
 import { navigateOnce } from '@/shared/navigation';
-import { Palette, Space } from '@/shared/theme';
+import { Space, type ThemeColors } from '@/shared/theme';
+import { useThemeStyles } from '@/shared/theme-context';
 import { useResearchStore } from '@/store/use-research-store';
 
 export function ResearchBanner() {
+  const styles = useThemeStyles(createStyles);
   const active = useResearchStore((state) => state.active);
   const tasks = useResearchStore((state) => state.tasks);
   if (!active) return null;
@@ -15,4 +17,4 @@ export function ResearchBanner() {
   </Pressable>;
 }
 
-const styles = StyleSheet.create({ banner: { minHeight: 36, paddingHorizontal: Space.lg, paddingVertical: Space.sm, alignItems: 'center', justifyContent: 'center', backgroundColor: Palette.orangeSoft, borderBottomWidth: 1, borderBottomColor: Palette.orange }, label: { color: Palette.orange, textAlign: 'center' } });
+const createStyles = (colors: ThemeColors) => StyleSheet.create({ banner: { minHeight: 36, paddingHorizontal: Space.lg, paddingVertical: Space.sm, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.orangeSoft, borderBottomWidth: 1, borderBottomColor: colors.orange }, label: { color: colors.orange, textAlign: 'center' } });

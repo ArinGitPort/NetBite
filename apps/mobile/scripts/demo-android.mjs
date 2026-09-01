@@ -2,11 +2,14 @@ import { execFileSync, spawn } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import net from 'node:net';
 
 const root = process.cwd();
+const mobileRoot = dirname(dirname(fileURLToPath(import.meta.url)));
 const require = createRequire(import.meta.url);
 const expoCli = join(dirname(require.resolve('expo/package.json')), 'bin', 'cli');
+const repositoryRoot = dirname(dirname(mobileRoot));
 const clearMetroCache = process.argv.includes('--clear');
 const adb = process.env.ANDROID_HOME ? join(process.env.ANDROID_HOME, 'platform-tools', 'adb.exe') : join(process.env.LOCALAPPDATA ?? '', 'Android', 'Sdk', 'platform-tools', 'adb.exe');
 const fail = (message, recovery) => { console.error(`\nNETBITE DEMO START STOPPED\n${message}\n\nRECOVERY\n${recovery}\n`); process.exit(1); };
@@ -38,8 +41,10 @@ const getWindowsPortOwner = () => {
 };
 const stopVerifiedNetBiteMetro = async () => {
   const owner = getWindowsPortOwner();
-  const normalizedRoot = root.toLowerCase();
-  if (!owner || !owner.commandLine.toLowerCase().includes(normalizedRoot)) {
+  const normalizedCommand = owner?.commandLine.toLowerCase() ?? '';
+  const belongsToNetBite = normalizedCommand.includes(repositoryRoot.toLowerCase());
+  const isExpoCli = normalizedCommand.includes(expoCli.toLowerCase());
+  if (!owner || !belongsToNetBite || !isExpoCli) {
     fail(
       'Clean start found a Metro server on port 8081, but it could not be verified as this NetBite project.',
       'Stop the terminal currently running Metro, then retry npm run android:clean. No process was terminated.',
