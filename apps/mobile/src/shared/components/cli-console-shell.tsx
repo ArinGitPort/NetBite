@@ -1,5 +1,5 @@
 import { useState, type ReactNode, type RefObject } from 'react';
-import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StatusBar, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppButton } from '@/shared/components/app-button';
@@ -79,10 +79,11 @@ export function CliConsoleShell({ visible, accessibilityLabel, eyebrow, title, b
   return (
     <Modal animationType="slide" onRequestClose={onClose} visible={visible}>
       <FixedThemeProvider theme="dark">
-      <SafeAreaView accessibilityLabel={accessibilityLabel} accessibilityViewIsModal edges={['top', 'right', 'bottom', 'left']} style={styles.safe} testID={testID}>
-        <PageHeader leading={{ accessibilityLabel: 'Close CLI', icon: 'close', label: 'CLOSE', onPress: onClose }} status="FULL-SCREEN CONSOLE" />
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.keyboard}>
-          <View style={styles.console}>
+        <StatusBar backgroundColor={Palette.background} barStyle="light-content" />
+        <SafeAreaView accessibilityLabel={accessibilityLabel} accessibilityViewIsModal edges={['top', 'right', 'bottom', 'left']} style={styles.safe} testID={testID}>
+          <PageHeader leading={{ accessibilityLabel: 'Close CLI', icon: 'close', label: 'CLOSE', onPress: onClose }} status="FULL-SCREEN CONSOLE" />
+          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.keyboard}>
+            <View style={styles.console}>
             <View style={styles.topContext} testID={`${testID}-top-context`}>
               <View style={styles.heading}>
                 <Text variant="label" style={styles.eyebrow}>{eyebrow}</Text>
@@ -132,9 +133,9 @@ export function CliConsoleShell({ visible, accessibilityLabel, eyebrow, title, b
               <AppButton disabled={submitDisabled ?? !input.trim()} label="Run command" onPress={onSubmit} style={styles.action} />
               {footerActions}
             </View>
-          </View>
-        </KeyboardAvoidingView>
-      </SafeAreaView>
+            </View>
+          </KeyboardAvoidingView>
+        </SafeAreaView>
       </FixedThemeProvider>
     </Modal>
   );
