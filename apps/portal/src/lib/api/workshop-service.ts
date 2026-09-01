@@ -116,6 +116,20 @@ export async function getWorkshopClasses(): Promise<WorkshopClassRow[]> {
   throwIfServiceError(error, "Classes could not be loaded.");
   return (data ?? []) as WorkshopClassRow[];
 }
+export async function getInstructorOverview() {
+  const db = client();
+  const [workshops, classes, assessments] = await Promise.all([
+    getWorkshops(),
+    getWorkshopClasses(),
+    db.from("workshop_assessments").select("id,mode,archived"),
+  ]);
+  throwIfServiceError(assessments.error, "Assessment summary could not be loaded.");
+  return {
+    workshops,
+    classes,
+    assessments: (assessments.data ?? []) as Array<{ id: string; mode: "practice" | "graded"; archived: boolean }>,
+  };
+}
 export async function setWorkshopClassEnrollment(classId: string, enabled: boolean): Promise<void> {
   const { error } = await client().from("workshop_classes").update({ join_enabled: enabled }).eq("id", classId);
   throwIfServiceError(error, "Class enrollment could not be updated.");

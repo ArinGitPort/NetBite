@@ -17,6 +17,8 @@ describe('Transport guided mini-simulator', () => {
 
   test('renders a connected inspectable topology and endpoint state', async () => {
     const screen = await render(<TransportGuidedLab />);
+    expect(screen.getByTestId('screen-footer')).toBeTruthy();
+    expect(screen.getByTestId('screen-action-bar')).toBeTruthy();
     expect(screen.getByText('FIXED INTERACTIVE TOPOLOGY')).toBeTruthy();
     expect(screen.getByLabelText(/PC1, 192.0.2.10:53000/)).toBeTruthy();
     expect(screen.getByLabelText(/WEB1, 192.0.2.20:443/)).toBeTruthy();
@@ -29,7 +31,7 @@ describe('Transport guided mini-simulator', () => {
     const screen = await render(<TransportGuidedLab />);
     await fireEvent.changeText(screen.getByLabelText('Source port'), '70000');
     await fireEvent.press(screen.getByText('Save endpoint configuration'));
-    expect(await screen.findByText(/ports must be whole numbers/i)).toBeTruthy();
+    expect((await screen.findAllByText(/ports must be whole numbers/i)).length).toBeGreaterThanOrEqual(2);
     expect(useProtocolLabStore.getState().sessions['transport-service-desk']).toBeUndefined();
   });
 
@@ -41,6 +43,7 @@ describe('Transport guided mini-simulator', () => {
 
     await fireEvent.press(screen.getByText('Save endpoint configuration'));
     await fireEvent.press(await screen.findByText('Verify endpoints and listener'));
+    expect(screen.getByTestId('screen-action-bar')).toBeTruthy();
     await fireEvent.press(await screen.findByText('Send SYN'));
     expect(await screen.findByText(/CLIENT TCP \/ SYN_SENT/)).toBeTruthy();
     await fireEvent.press(screen.getByText('Send SYN-ACK'));

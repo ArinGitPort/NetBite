@@ -2,7 +2,6 @@ import {
   ArrowRight,
   BookOpen,
   CalendarDays,
-  CheckCircle2,
   ClipboardCheck,
   Layers3,
   LibraryBig,
@@ -14,7 +13,9 @@ import {
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
+import { administratorNavigation } from "@/app/navigation";
 import { PageHeader } from "@/components/layout/page-header";
+import { DashboardMetricCard as MetricCard, DashboardQuickAccess, DashboardWorkflowPanel } from "@/features/dashboard/dashboard-primitives";
 import {
   EmptyState,
   LoadingState,
@@ -51,6 +52,9 @@ const workflow = [
     title: "Deliver offline",
   },
 ];
+
+const quickAccessIds = new Set(["curriculum", "assessments", "assets", "releases"]);
+const quickAccessItems = administratorNavigation.filter(({ id }) => quickAccessIds.has(id));
 
 export function Dashboard() {
   const navigate = useNavigate();
@@ -100,6 +104,8 @@ export function Dashboard() {
         title="Curriculum overview"
       />
 
+      <DashboardQuickAccess items={quickAccessItems} />
+
       <section aria-label="Curriculum summary" className="mb-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard
           icon={BookOpen}
@@ -129,31 +135,7 @@ export function Dashboard() {
       </section>
 
       <div className="grid items-stretch gap-5 xl:grid-cols-[minmax(0,1.55fr)_minmax(340px,.75fr)]">
-        <section className="overflow-hidden rounded-panel border border-line bg-surface shadow-panel">
-          <header className="flex flex-wrap items-start justify-between gap-4 p-5">
-            <div className="grid max-w-xl gap-1.5">
-              <p className="m-0 font-mono text-[0.62rem] font-semibold tracking-[0.13em] text-signal-orange">
-                PUBLISHING WORKFLOW
-              </p>
-              <h2 className="m-0 text-lg">From draft to learner device</h2>
-              <p className="m-0 text-sm leading-6 text-muted">
-                Every release follows the same controlled path before it reaches Android.
-              </p>
-            </div>
-            <StatusBadge tone={latestRelease ? "green" : "orange"}>
-              {latestRelease ? "OFFLINE COPY AVAILABLE" : "FIRST RELEASE NEEDED"}
-            </StatusBadge>
-          </header>
-          <ol className="m-0 grid list-none border-t border-line md:grid-cols-2">
-            {workflow.map((step, index) => (
-              <WorkflowStep
-                final={index === workflow.length - 1}
-                key={step.number}
-                {...step}
-              />
-            ))}
-          </ol>
-        </section>
+        <DashboardWorkflowPanel description="Every release follows the same controlled path before it reaches Android." eyebrow="PUBLISHING WORKFLOW" status={<StatusBadge tone={latestRelease ? "green" : "orange"}>{latestRelease ? "OFFLINE COPY AVAILABLE" : "FIRST RELEASE NEEDED"}</StatusBadge>} steps={workflow} title="From draft to learner device" />
 
         <LatestRelease
           onOpenPublishing={() => navigate("/admin/publishing")}
@@ -161,78 +143,6 @@ export function Dashboard() {
         />
       </div>
     </>
-  );
-}
-
-function MetricCard({
-  accent = "green",
-  icon: Icon,
-  label,
-  note,
-  value,
-}: {
-  accent?: "green" | "orange";
-  icon: LucideIcon;
-  label: string;
-  note: string;
-  value: number;
-}) {
-  const accentStyle =
-    accent === "orange"
-      ? "border-signal-orange/50 bg-signal-orange-soft text-signal-orange"
-      : "border-signal-green/50 bg-signal-green-soft text-signal-green";
-  return (
-    <article className="group relative grid min-h-40 overflow-hidden rounded-panel border border-line bg-surface p-5 shadow-panel transition-colors hover:border-muted">
-      <div className="flex items-start justify-between gap-4">
-        <div className={`grid size-11 place-items-center rounded-control border ${accentStyle}`}>
-          <Icon className="size-5" />
-        </div>
-        <span className="font-mono text-[0.6rem] font-semibold uppercase tracking-[0.1em] text-muted">
-          {label}
-        </span>
-      </div>
-      <div className="mt-5 grid gap-1.5">
-        <strong className="text-4xl leading-none tracking-[-0.04em] text-copy">{value}</strong>
-        <small className="text-xs leading-5 text-muted">{note}</small>
-      </div>
-      <span className={`absolute inset-x-0 bottom-0 h-0.5 ${accent === "orange" ? "bg-signal-orange" : "bg-signal-green"}`} />
-    </article>
-  );
-}
-
-function WorkflowStep({
-  detail,
-  final,
-  icon: Icon,
-  number,
-  title,
-}: {
-  detail: string;
-  final: boolean;
-  icon: LucideIcon;
-  number: string;
-  title: string;
-}) {
-  return (
-    <li className="group relative grid min-h-48 gap-5 border-t border-line p-5 first:border-t-0 md:border-l md:[&:nth-child(-n+2)]:border-t-0 md:[&:nth-child(odd)]:border-l-0">
-      <div className="flex items-center justify-between gap-3">
-        <span className="grid size-10 place-items-center rounded-control border border-signal-orange/50 bg-signal-orange-soft text-signal-orange">
-          <Icon className="size-4" />
-        </span>
-        <span className="font-mono text-[0.65rem] font-semibold tracking-[0.12em] text-muted">
-          STEP {number}
-        </span>
-      </div>
-      <div className="grid content-start gap-2">
-        <h3 className="m-0 text-base">{title}</h3>
-        <p className="m-0 text-sm leading-6 text-muted">{detail}</p>
-      </div>
-      {!final ? (
-        <ArrowRight className="absolute bottom-5 right-5 size-4 text-line transition-colors group-hover:text-signal-orange" />
-      ) : (
-        <CheckCircle2 className="absolute bottom-5 right-5 size-4 text-signal-green" />
-      )}
-    </li>
   );
 }
 

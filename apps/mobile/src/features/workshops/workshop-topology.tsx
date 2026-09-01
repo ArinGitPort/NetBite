@@ -20,7 +20,7 @@ import {
   normalizeWorkshopTopology,
 } from "@netbite/workshops/topology-authoring";
 import { Text } from "@/shared/components/console-text";
-import { Fonts, Space, type ThemeColors } from "@/shared/theme";
+import { Fonts, Space, Typography, type ThemeColors } from "@/shared/theme";
 import { useCanvasColors, useCanvasThemeStyles } from "@/shared/theme-context";
 
 const artwork = {
@@ -820,7 +820,7 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     justifyContent: "center",
     zIndex: 3,
   },
-  endpointPlateText: { color: colors.text, fontSize: 9 },
+  endpointPlateText: { color: colors.text, ...Typography.technical },
   contextPlate: {
     position: "absolute",
     paddingHorizontal: Space.sm,
@@ -836,7 +836,7 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     borderColor: colors.orange,
     backgroundColor: colors.orangeSoft,
   },
-  contextPlateText: { color: colors.text, textAlign: "center", fontSize: 9 },
+  contextPlateText: { color: colors.text, textAlign: "center", ...Typography.technical },
   artwork: { width: 46, height: 42 },
   deviceName: { fontFamily: Fonts.semibold, textAlign: "center" },
   inspector: {

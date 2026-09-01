@@ -21,7 +21,7 @@ import { TopologyNotice } from "@/features/workshops/topology-notice";
 import { TopologyToolbar } from "@/features/workshops/topology-toolbar";
 import { TopologyValidation } from "@/features/workshops/topology-validation";
 import { useTopologyCanvasInteractions } from "@/features/workshops/hooks/use-topology-canvas-interactions";
-import { useTopologySave } from "@/features/workshops/hooks/use-topology-save";
+import { useTopologyDraft } from "@/features/workshops/hooks/use-topology-draft";
 export { defaultTopology } from "@/features/workshops/topology-model";
 
 export function TopologyEditor({
@@ -31,15 +31,8 @@ export function TopologyEditor({
   row: WorkshopTopologyRow;
   onSaved: (value: WorkshopTopologyRow) => void;
 }) {
-  const [topology, setTopology] = useState(
-    normalizeWorkshopTopology(row.definition as unknown as WorkshopTopology),
-  );
-  useEffect(() => {
-    const title = String(row.definition.title ?? "Untitled topology");
-    setTopology((current) =>
-      current.title === title ? current : { ...current, title },
-    );
-  }, [row.definition.title]);
+  const initialTopology = normalizeWorkshopTopology(row.definition as unknown as WorkshopTopology);
+  const [topology, setTopology] = useState(initialTopology);
   const [selectedId, setSelectedId] = useState<string>();
   const [selectedLinkId, setSelectedLinkId] = useState<string>();
   const [connectionOpen, setConnectionOpen] = useState(false);
@@ -371,11 +364,19 @@ export function TopologyEditor({
     canvasRef, connectionMode, pan: canvasPan, setPan: setCanvasPan,
     setPanning: setCanvasPanning, viewport: canvasViewport, setTopology,
   });
-  const { save, saving } = useTopologySave({ row, topology, hasErrors: issues.some((issue) => issue.severity === "error"), onSaved, setNotice });
+  const hasErrors = issues.some((issue) => issue.severity === "error");
+  const { dirty, save, saving } = useTopologyDraft({
+    row, topology, setTopology, hasErrors, setNotice, onSaved,
+    clearSelection: () => {
+      setSelectedId(undefined);
+      setSelectedLinkId(undefined);
+    },
+  });
   return (
     <div className="mt-2 grid">
       <TopologyToolbar
         count={topology.devices.length}
+        dirty={dirty}
         saving={saving}
         connectionMode={connectionMode}
         canReset={canvasPan.x !== 0 || canvasPan.y !== 0}

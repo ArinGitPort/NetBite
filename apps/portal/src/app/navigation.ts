@@ -25,6 +25,12 @@ export interface NavigationItem {
 
 export const instructorNavigation: NavigationItem[] = [
   {
+    id: "instructor-dashboard",
+    label: "Overview",
+    path: "/instructor/overview",
+    icon: LayoutDashboard,
+  },
+  {
     id: "workshops",
     label: "Lesson collections",
     path: "/instructor/workshops",
@@ -114,6 +120,7 @@ export const legacyHashRoutes: Record<string, string> = {
   assets: "/admin/media",
   releases: "/admin/publishing",
   audit: "/admin/activity",
+  "instructor-overview": "/instructor/overview",
   workshops: "/instructor/workshops",
   classes: "/instructor/classes",
   "workshop-assessments": "/instructor/assessments",
@@ -128,7 +135,7 @@ export function normalizeLegacyHash(hash: string) {
 export function defaultPathForAccess(accessLevel: AdminAccess["accessLevel"]) {
   return accessLevel === "administrator"
     ? "/admin/overview"
-    : "/instructor/workshops";
+    : "/instructor/overview";
 }
 
 export function isPathAllowedForAccess(

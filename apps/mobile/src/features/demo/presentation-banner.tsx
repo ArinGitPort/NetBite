@@ -23,6 +23,6 @@ export function PresentationBanner() {
 const createStyles = (colors: ThemeColors) => StyleSheet.create({
   banner: { minHeight: 44, paddingHorizontal: Space.md, paddingVertical: Space.xs, backgroundColor: colors.orangeSoft, borderBottomWidth: 1, borderBottomColor: colors.orange, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: Space.sm },
   label: { color: colors.orange, flexShrink: 1 },
-  button: { minHeight: 36, justifyContent: 'center', borderWidth: 1, borderColor: colors.orange, paddingHorizontal: Space.md },
+  button: { minHeight: 44, justifyContent: 'center', borderWidth: 1, borderColor: colors.orange, paddingHorizontal: Space.md },
   buttonText: { color: colors.text },
 });

@@ -9,6 +9,7 @@ import {
   X,
 } from "lucide-react";
 import { useState } from "react";
+import { useUnsavedDraft } from "@/app/providers/unsaved-changes-provider";
 import * as curriculumApi from "@/lib/api/curriculum-service";
 import type { LessonRow } from "@/lib/api/types";
 import {
@@ -31,22 +32,33 @@ export function LessonEditor({
 }) {
   const [tab, setTab] = useState<"edit" | "preview">("edit");
   const [busy, setBusy] = useState(false);
+  const [savedRow, setSavedRow] = useState(row);
   const draft = row.draft;
+  const dirty = JSON.stringify(row) !== JSON.stringify(savedRow);
   const change = (patch: Partial<typeof draft>) =>
     onChange({ ...row, draft: { ...draft, ...patch } });
   const save = async () => {
+    if (busy || !dirty) return true;
     setBusy(true);
     try {
       await curriculumApi.saveLesson(row);
+      setSavedRow(row);
       onSaved(
         "Lesson draft saved. It is not visible to learners until publication.",
       );
+      return true;
     } catch (error) {
       onSaved((error as Error).message);
+      return false;
     } finally {
       setBusy(false);
     }
   };
+  useUnsavedDraft(`curriculum-lesson:${row.id}`, {
+    dirty,
+    save,
+    discard: () => onChange(savedRow),
+  });
   const archive = async () => {
     setBusy(true);
     try {
@@ -65,6 +77,9 @@ export function LessonEditor({
           </p>
           <h2>{draft.title}</h2>
           <small className="font-mono">{row.id}</small>
+          <p className={dirty ? "mb-0 mt-2 text-xs text-signal-orange" : "mb-0 mt-2 text-xs text-muted"} role="status">
+            {dirty ? "UNSAVED CHANGES" : "ALL CHANGES SAVED"}
+          </p>
         </div>
         <div className="inline-flex min-h-11 rounded-control border border-line bg-canvas p-1 [&>button]:min-w-24 [&>button]:rounded-[6px] [&>button]:border-0 [&>button]:px-3 [&>button]:text-xs [&>button]:font-semibold [&>button]:text-muted">
           <button
@@ -204,7 +219,7 @@ export function LessonEditor({
           <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-5">
             <button
               className="inline-flex min-h-11 items-center justify-center gap-2 rounded-control border border-copy bg-copy px-4 text-xs font-semibold text-canvas hover:bg-copy/85 hover:text-canvas active:bg-copy/75 disabled:pointer-events-none disabled:border-line/60 disabled:bg-raised/70 disabled:text-muted/75 [&_svg]:size-4"
-              disabled={busy}
+              disabled={busy || !dirty}
               onClick={() => void save()}
             >
               <Save />
@@ -213,14 +228,14 @@ export function LessonEditor({
             <div className="flex flex-wrap items-center justify-end gap-2">
               <button
                 className="inline-flex min-h-10 items-center justify-center gap-2 rounded-control border border-transparent bg-transparent px-3 text-xs font-semibold text-muted hover:border-line hover:bg-raised hover:text-copy disabled:pointer-events-none disabled:opacity-45 [&_svg]:size-4"
-                disabled={busy || row.archived}
+              disabled={busy || dirty || row.archived}
                 onClick={() => void onMove(-1)}
               >
                 <ArrowUp /> MOVE EARLIER
               </button>
               <button
                 className="inline-flex min-h-10 items-center justify-center gap-2 rounded-control border border-transparent bg-transparent px-3 text-xs font-semibold text-muted hover:border-line hover:bg-raised hover:text-copy disabled:pointer-events-none disabled:opacity-45 [&_svg]:size-4"
-                disabled={busy || row.archived}
+              disabled={busy || dirty || row.archived}
                 onClick={() => void onMove(1)}
               >
                 <ArrowDown /> MOVE LATER
@@ -235,7 +250,7 @@ export function LessonEditor({
                   ? "The draft will return to the active lesson list. Existing published versions are unchanged."
                   : "The draft will leave the active lesson list. Existing published versions remain unchanged."
               }
-              disabled={busy}
+              disabled={busy || dirty}
               eyebrow={row.archived ? "RESTORE DRAFT" : "ARCHIVE DRAFT"}
               onConfirm={archive}
               title={`${row.archived ? "Restore" : "Archive"} ${draft.title}?`}

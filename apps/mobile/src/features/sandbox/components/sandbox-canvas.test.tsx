@@ -77,7 +77,9 @@ describe('sandbox canvas device and cable labels', () => {
 
     expect(screen.getByText('E0')).toBeTruthy();
     expect(screen.getByText('F0/1')).toBeTruthy();
-    await fireEvent.press(screen.getByRole('button', { name: 'Cable from PC1 E0 to SW1 F0/1' }));
+    const cableTarget = screen.getByRole('button', { name: 'Cable from PC1 E0 to SW1 F0/1' });
+    expect(StyleSheet.flatten(cableTarget.props.style).height).toBe(44);
+    await fireEvent.press(cableTarget);
     expect(callbacks.onSelectLink).toHaveBeenCalledWith(connection.ok ? connection.link.id : 'missing');
 
     await fireEvent(screen.getByLabelText(/PC1, pc/i), 'layout', { nativeEvent: { layout: { width: 128, height: 360, x: 0, y: 0 } } });

@@ -131,6 +131,10 @@ describe("instructor workshop portal", () => {
       ),
       { target: { value: "A router forwards traffic between networks." } },
     );
+    expect(screen.getByRole("status")).toHaveTextContent("UNSAVED CHANGES");
+    fireEvent.click(screen.getByRole("button", { name: "SAVE LESSON" }));
+    await waitFor(() => expect(api.saveWorkshopLesson).toHaveBeenCalled());
+    expect(screen.getByText("ALL CHANGES SAVED")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("tab", { name: "PREVIEW" }));
     const lessonPreview = screen.getByTestId("workshop-lesson-mobile-preview");
     expect(lessonPreview).toBeTruthy();

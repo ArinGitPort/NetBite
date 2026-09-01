@@ -7,6 +7,9 @@ import { StatusBadge as Badge } from "@/components/ui/admin-primitives";
 import { Button as UiButton } from "@/components/ui/button";
 import { Feedback as UiFeedback } from "@/components/ui/feedback";
 import { InputField } from "@/components/ui/form-field";
+import { StrokeText } from "@/components/ui/stroke-text";
+import { ThemeMenu } from "@/components/ui/theme-menu";
+import { LoginAmbient } from "@/features/auth/login-ambient";
 import { supabase } from "@/lib/supabase";
 
 export function SetupRequired() {
@@ -92,21 +95,39 @@ export function Login() {
     }
   };
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_30%_28%,rgb(224_79_86/5.5%),transparent_31%)]">
-      <header className="flex min-h-16 items-center border-b border-line px-5 sm:px-10">
-        <div className="flex items-center gap-3" aria-label="NetBite">
-          <span className="grid size-10 place-items-center overflow-hidden rounded-control border border-line bg-surface shadow-[inset_3px_0_var(--color-signal-red)]">
-            <img alt="" className="size-7 object-contain" src={netbiteLogo} />
+    <main className="relative isolate min-h-screen overflow-hidden">
+      <LoginAmbient />
+      <header className="relative z-20 flex min-h-16 items-center border-b border-line bg-canvas/75 px-5 backdrop-blur-xl sm:px-10">
+        <div className="flex items-center gap-2.5" aria-label="NetBite">
+          <span className="relative grid size-9 shrink-0 place-items-center" aria-hidden="true">
+            <span className="absolute inset-1.5 rounded-full bg-signal-red opacity-20 blur-md" />
+            <img
+              alt=""
+              className="relative size-8 object-contain drop-shadow-[0_4px_10px_rgb(224_79_86/18%)]"
+              src={netbiteLogo}
+            />
           </span>
-          <strong className="text-sm tracking-[0.04em]">NETBITE</strong>
+          <strong className="text-[0.82rem] tracking-[0.08em]">NETBITE</strong>
+        </div>
+        <div className="ml-auto flex items-center gap-3">
+          <span className="hidden font-mono text-[0.58rem] font-semibold uppercase tracking-[0.12em] text-muted sm:inline">Portal appearance</span>
+          <ThemeMenu />
         </div>
       </header>
 
-      <div className="mx-auto grid min-h-[calc(100vh-64px)] w-[min(1070px,calc(100%-48px))] items-center gap-12 py-12 lg:grid-cols-[1.1fr_0.9fr]">
+      <div className="relative z-10 mx-auto grid min-h-[calc(100vh-64px)] w-[min(1070px,calc(100%-48px))] items-center gap-12 py-12 lg:grid-cols-[1.1fr_0.9fr]">
         <section className="flex flex-col justify-center">
-          <h1 className="max-w-[690px] text-[clamp(2.45rem,4.7vw,4.7rem)] font-bold leading-[1.05] tracking-[-0.045em]">
-            Publish accurate networking lessons without rebuilding the learner
-            app.
+          <div className="mb-5 flex flex-wrap items-center gap-3">
+            <Badge tone="green">CURRICULUM CONTROL PLANE</Badge>
+            <span className="font-mono text-[0.6rem] uppercase tracking-[0.1em] text-muted">ANDROID DELIVERY / OFFLINE READY</span>
+          </div>
+          <h1 className="max-w-[650px] text-[clamp(2.35rem,4.15vw,4.15rem)] font-bold leading-[1.04] tracking-[-0.045em]">
+            <span className="block">Publish accurate</span>
+            <StrokeText
+              className="my-[0.035em] max-w-[650px] text-signal-red"
+              text="networking lessons"
+            />
+            <span className="block">without rebuilding the learner app.</span>
           </h1>
           <p className="mt-4 max-w-[650px] text-base leading-8 text-muted">
             Prepare lessons, check related content, and publish approved
@@ -137,7 +158,7 @@ export function Login() {
           </ul>
 
           <section
-            className="mt-8 rounded-panel border border-line bg-surface/70 p-5"
+            className="mt-8 rounded-panel border border-line bg-surface/75 p-5 shadow-panel backdrop-blur-xl transition-[border-color,transform] duration-300 hover:-translate-y-0.5 hover:border-muted motion-reduce:transform-none"
             aria-label="Publishing workflow"
           >
             <div className="mb-4 flex items-center justify-between">
@@ -181,9 +202,10 @@ export function Login() {
         </section>
 
         <form
-          className="grid w-full gap-5 rounded-panel border border-line bg-surface p-5 shadow-panel sm:p-8"
+          className="relative grid w-full gap-5 overflow-hidden rounded-panel border border-line bg-surface/90 p-5 shadow-[0_28px_90px_rgb(0_0_0/22%)] backdrop-blur-2xl sm:p-8"
           onSubmit={submit}
         >
+          <span aria-hidden="true" className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-signal-red to-transparent" />
           <Badge>
             <LockKeyhole aria-hidden="true" size={13} /> Authorized staff only
           </Badge>

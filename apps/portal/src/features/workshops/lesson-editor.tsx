@@ -12,6 +12,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { useState } from "react";
+import { useUnsavedDraft } from "@/app/providers/unsaved-changes-provider";
 import type { WorkshopLessonBlock } from "@netbite/workshops/contracts";
 import { Button } from "@/components/ui/button";
 import { ConfirmationDialog } from "@/components/ui/dialog";
@@ -125,6 +126,7 @@ export function LessonEditor({
 }) {
   const [view, setView] = useState<"edit" | "preview">("edit");
   const [pendingAction, setPendingAction] = useState<"save" | "delete">();
+  const [savedLesson, setSavedLesson] = useState(lesson);
   const [draggedBlockIndex, setDraggedBlockIndex] = useState<number>();
   const [dropTargetIndex, setDropTargetIndex] = useState<number>();
   const draft = lesson.draft as {
@@ -133,6 +135,7 @@ export function LessonEditor({
     blocks?: WorkshopLessonBlock[];
   };
   const blocks = draft.blocks ?? [];
+  const dirty = JSON.stringify(lesson) !== JSON.stringify(savedLesson);
   const update = (patch: Record<string, unknown>) =>
     onChange({ ...lesson, draft: { ...lesson.draft, ...patch } });
   const updateBlock = (index: number, patch: Partial<WorkshopLessonBlock>) =>
@@ -170,21 +173,29 @@ export function LessonEditor({
       ],
     });
   const save = async () => {
-    if (pendingAction) return;
+    if (pendingAction || !dirty) return true;
     setPendingAction("save");
     try {
       await workshopApi.saveWorkshopLesson(lesson);
+      setSavedLesson(lesson);
       onSaved();
+      return true;
     } catch (reason) {
       onError(
         reason instanceof Error
           ? reason.message
           : "The lesson could not be saved.",
       );
+      return false;
     } finally {
       setPendingAction(undefined);
     }
   };
+  useUnsavedDraft(`workshop-lesson:${lesson.id}`, {
+    dirty,
+    save,
+    discard: () => onChange(savedLesson),
+  });
   const remove = async () => {
     if (pendingAction) return;
     setPendingAction("delete");
@@ -202,7 +213,10 @@ export function LessonEditor({
   return (
     <div className="grid gap-4 bg-surface p-5 text-[0.8rem] max-sm:p-4">
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3 border-b border-line pb-4">
-        <strong>LESSON CONTENT</strong>
+        <div className="grid gap-1">
+          <strong>LESSON CONTENT</strong>
+          <span className={dirty ? "text-xs text-signal-orange" : "text-xs text-muted"} role="status">{dirty ? "UNSAVED CHANGES" : "ALL CHANGES SAVED"}</span>
+        </div>
         <div className="flex flex-wrap items-center gap-2">
           <Tabs
             value={view}
@@ -218,7 +232,7 @@ export function LessonEditor({
             </TabsList>
           </Tabs>
           <Button
-            disabled={Boolean(pendingAction)}
+            disabled={Boolean(pendingAction) || !dirty}
             onClick={() => void save()}
             tone="primary"
           >
@@ -232,7 +246,7 @@ export function LessonEditor({
             onConfirm={remove}
             title="Delete this lesson?"
             trigger={
-              <Button disabled={Boolean(pendingAction)} tone="destructive">
+              <Button disabled={Boolean(pendingAction) || dirty} tone="destructive">
                 <Trash2 />
                 {pendingAction === "delete" ? "DELETING..." : "DELETE LESSON"}
               </Button>

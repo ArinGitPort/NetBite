@@ -17,12 +17,13 @@ describe('Operations guided simulator', () => {
 
   test('rejects malformed fields without mutating the session', async () => {
     const screen = await render(<OperationsGuidedLab definition={definition} />);
+    expect(screen.getByTestId('screen-footer')).toBeTruthy();
     await fireEvent.press(screen.getByText('TCP'));
     await fireEvent.changeText(screen.getByLabelText('Client source port'), '70000');
     await fireEvent.changeText(screen.getByLabelText('Server destination port'), '443');
     await fireEvent.changeText(screen.getByLabelText('Server listening port'), '443');
     await fireEvent.press(screen.getByText('Save configuration'));
-    expect(await screen.findByText(/port from 1 to 65535/i)).toBeTruthy();
+    expect((await screen.findAllByText(/port from 1 to 65535/i)).length).toBeGreaterThanOrEqual(2);
     expect(useOperationsLabStore.getState().sessions[definition.id]).toBeUndefined();
   });
 

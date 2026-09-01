@@ -23,6 +23,7 @@ describe('admin application', () => {
     expect(administratorViews).not.toContain('gradebook');
 
     expect(instructorViews).toEqual([
+      'instructor-dashboard',
       'workshops',
       'workshop-assessments',
       'classes',
@@ -33,6 +34,7 @@ describe('admin application', () => {
     expect(isPathAllowedForAccess('administrator', '/admin/curriculum')).toBe(true);
     expect(isPathAllowedForAccess('administrator', '/instructor/workshops')).toBe(false);
     expect(isPathAllowedForAccess('instructor', '/instructor/classes')).toBe(true);
+    expect(isPathAllowedForAccess('instructor', '/instructor/overview')).toBe(true);
     expect(isPathAllowedForAccess('instructor', '/admin/overview')).toBe(false);
   });
 

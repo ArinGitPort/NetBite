@@ -9,13 +9,13 @@ export function useTopologySave({ row, topology, hasErrors, onSaved, setNotice }
 }) {
   const [saving, setSaving] = useState(false);
   const save = async () => {
-    if (saving) return;
-    if (hasErrors) return setNotice("Resolve the topology errors before saving.");
+    if (saving) return false;
+    if (hasErrors) { setNotice("Resolve the topology errors before saving."); return false; }
     setSaving(true); setNotice(undefined);
     try {
       const saved = await workshopApi.saveWorkshopTopology({ ...row, definition: topology as unknown as Record<string, unknown> });
-      onSaved(saved); setNotice("Topology saved.");
-    } catch (reason) { setNotice(reason instanceof Error ? reason.message : "The topology could not be saved."); }
+      onSaved(saved); setNotice("Topology saved."); return true;
+    } catch (reason) { setNotice(reason instanceof Error ? reason.message : "The topology could not be saved."); return false; }
     finally { setSaving(false); }
   };
   return { save, saving };

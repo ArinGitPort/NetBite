@@ -1,11 +1,12 @@
 import { lazy, Suspense } from "react";
-import { HashRouter, Navigate, Route, Routes } from "react-router-dom";
+import { createHashRouter, Navigate, Route, RouterProvider, Routes } from "react-router-dom";
 
 import { LoadingState } from "@/components/ui/admin-primitives";
 import { Login, SetupRequired } from "@/features/auth";
 import { configured } from "@/lib/supabase";
 import { defaultPathForAccess, normalizeLegacyHash } from "@/app/navigation";
 import { AuthProvider, usePortalAuth } from "@/app/providers/auth-provider";
+import { UnsavedChangesProvider } from "@/app/providers/unsaved-changes-provider";
 import { RoleGuard, WorkspaceGuard } from "@/app/route-guards/workspace-guard";
 
 const Dashboard = lazy(() => import("@/features/dashboard").then((module) => ({ default: module.Dashboard })));
@@ -17,6 +18,7 @@ const Assets = lazy(() => import("@/features/media").then((module) => ({ default
 const Releases = lazy(() => import("@/features/publishing").then((module) => ({ default: module.Releases })));
 const Audit = lazy(() => import("@/features/activity").then((module) => ({ default: module.Audit })));
 const CollectionsPage = lazy(() => import("@/features/workshops").then((module) => ({ default: module.CollectionsPage })));
+const InstructorDashboard = lazy(() => import("@/features/workshops").then((module) => ({ default: module.InstructorDashboard })));
 const WorkshopClassesPage = lazy(() => import("@/features/workshops").then((module) => ({ default: module.WorkshopClassesPage })));
 const WorkshopAssessmentsPage = lazy(() => import("@/features/workshops").then((module) => ({ default: module.WorkshopAssessmentsPage })));
 const WorkshopGradebookPage = lazy(() => import("@/features/workshops").then((module) => ({ default: module.WorkshopGradebookPage })));
@@ -42,6 +44,7 @@ function PortalRoutes() {
             <Route path="/admin/activity" element={<Audit />} />
           </Route>
           <Route element={<RoleGuard role="instructor" />}>
+            <Route path="/instructor/overview" element={<InstructorDashboard />} />
             <Route path="/instructor/workshops" element={<CollectionsPage />} />
             <Route path="/instructor/classes" element={<WorkshopClassesPage />} />
             <Route path="/instructor/assessments" element={<WorkshopAssessmentsPage />} />
@@ -62,6 +65,16 @@ function normalizeInitialHash() {
 }
 
 export function PortalRouter() {
-  normalizeInitialHash();
-  return <HashRouter><AuthProvider><PortalRoutes /></AuthProvider></HashRouter>;
+  if (!portalRouter) {
+    normalizeInitialHash();
+    portalRouter = createHashRouter([
+      {
+        path: "*",
+        element: <AuthProvider><UnsavedChangesProvider><PortalRoutes /></UnsavedChangesProvider></AuthProvider>,
+      },
+    ]);
+  }
+  return <RouterProvider router={portalRouter} />;
 }
+
+let portalRouter: ReturnType<typeof createHashRouter> | undefined;

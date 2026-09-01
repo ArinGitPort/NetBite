@@ -2,7 +2,7 @@ import { CalendarDays, FileClock, ShieldCheck, UserRound } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import { PageHeader } from "@/components/layout/page-header";
-import { EmptyState, StatusBadge } from "@/components/ui/admin-primitives";
+import { EmptyState, LoadingState, StatusBadge } from "@/components/ui/admin-primitives";
 import { Feedback } from "@/components/ui/feedback";
 import { FilterToolbar } from "@/components/ui/filter-toolbar";
 import { SelectField } from "@/components/ui/select";
@@ -144,10 +144,7 @@ export function Audit() {
           </FilterToolbar>
         ) : null}
         {loading ? (
-          <div className="flex min-h-52 items-center justify-center gap-3 border-t border-line text-sm text-muted">
-            <span className="size-6 animate-spin rounded-full border-2 border-line border-t-signal-orange" />
-            Loading audit log
-          </div>
+          <div className="border-t border-line"><LoadingState label="Loading audit log" /></div>
         ) : error ? null : visibleRows.length ? (
           <ol className="m-0 grid list-none px-5">
             {visibleRows.map((row) => (

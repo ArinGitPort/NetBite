@@ -50,8 +50,10 @@ import {
 } from "@/components/ui/admin-primitives";
 import { Button } from "@/components/ui/button";
 import { LessonEditor } from "@/features/curriculum/lesson-editor";
+import { useGuardedTransition } from "@/app/providers/unsaved-changes-provider";
 
 export function Curriculum() {
+  const requestTransition = useGuardedTransition();
   const [data, setData] =
     useState<Awaited<ReturnType<typeof curriculumApi.getCurriculum>>>();
   const [chapterId, setChapterId] = useState("1");
@@ -246,7 +248,7 @@ export function Curriculum() {
                   <button
                     aria-expanded={expanded}
                     className={`flex min-h-14 w-full items-center justify-between gap-3 rounded-control border px-3 py-2 text-left text-xs ${expanded ? "border-line bg-raised text-copy" : "border-transparent text-muted hover:border-line hover:bg-raised"}`}
-                    onClick={() => {
+                    onClick={() => requestTransition(() => {
                       if (expanded) {
                         setExpandedCourseId("");
                         return;
@@ -257,7 +259,7 @@ export function Curriculum() {
                         setChapterId(firstChapter.id);
                         setLessonId(undefined);
                       }
-                    }}
+                    })}
                     type="button"
                   >
                     <span className="grid min-w-0 gap-1">
@@ -280,10 +282,10 @@ export function Curriculum() {
                         <button
                           key={item.id}
                           className={`flex min-h-14 w-full items-center gap-3 rounded-control border px-3 py-2 text-left text-xs ${item.id === chapterId ? "border-line bg-raised text-copy" : "border-transparent text-muted hover:border-line hover:bg-raised"}`}
-                          onClick={() => {
+                          onClick={() => requestTransition(() => {
                             setChapterId(item.id);
                             setLessonId(undefined);
-                          }}
+                          })}
                         >
                           <span className="shrink-0 font-mono text-xs">
                             {String(
@@ -342,7 +344,7 @@ export function Curriculum() {
             <button
               key={lesson.id}
               className={`grid min-h-[72px] min-w-0 w-full grid-cols-[34px_minmax(0,1fr)_auto_18px] items-center gap-3 border-0 border-b border-line bg-transparent px-2 py-3 text-left text-xs hover:bg-raised max-sm:grid-cols-[30px_minmax(0,1fr)_18px] ${lesson.id === lessonId ? "bg-raised" : ""} ${lesson.archived ? "opacity-55" : ""}`}
-              onClick={() => setLessonId(lesson.id)}
+              onClick={() => requestTransition(() => setLessonId(lesson.id))}
             >
               <span className="font-mono text-xs text-signal-orange">
                 {String(lesson.position).padStart(2, "0")}
@@ -383,6 +385,7 @@ export function Curriculum() {
         >
           {selected ? (
             <LessonEditor
+              key={selected.id}
               row={selected}
               onChange={updateSelected}
               onMove={moveSelected}

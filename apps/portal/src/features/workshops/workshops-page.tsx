@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { Classes, Gradebook } from "@/features/classes";
 import { PageHeader } from "@/components/layout/page-header";
+import { LoadingState } from "@/components/ui/admin-primitives";
 import { Button } from "@/components/ui/button";
 import {
   Tabs,
@@ -36,8 +37,10 @@ import { WorkshopAssessmentsWorkspace } from "@/features/workshops/workshop-asse
 import { TopologyDetailsDialog } from "@/features/workshops/topology-details-dialog";
 import { WorkshopNotice } from "@/features/workshops/workshop-notice";
 import { getWorkshopPageCopy } from "@/features/workshops/workshop-page-copy";
+import { useGuardedTransition } from "@/app/providers/unsaved-changes-provider";
 
 export function WorkshopStudio({ area }: { area: WorkshopArea }) {
+  const requestTransition = useGuardedTransition();
   const {
     loading, workshops, setWorkshops, selectedId, setSelectedId, lessons,
     topologies, setTopologies, assessments, setAssessments, classes, versions, selectedLesson,
@@ -60,12 +63,8 @@ export function WorkshopStudio({ area }: { area: WorkshopArea }) {
           label={page.label}
           title={page.title}
         />
-        <section
-          className="flex min-h-52 items-center justify-center gap-3 rounded-panel border border-line bg-surface p-5 text-sm text-muted shadow-panel"
-          aria-live="polite"
-        >
-          <span className="size-7 animate-spin rounded-full border-2 border-line border-t-signal-orange" />
-          <strong>Loading your instructor workspace</strong>
+        <section className="rounded-panel border border-line bg-surface shadow-panel">
+          <LoadingState label="Loading your instructor workspace" />
         </section>
       </>
     );
@@ -153,7 +152,7 @@ export function WorkshopStudio({ area }: { area: WorkshopArea }) {
             <button
               className={`grid min-h-16 min-w-0 gap-1 rounded-control border px-3 py-2 text-left ${workshop.id === selectedId ? "border-signal-orange bg-raised" : "border-transparent text-muted hover:border-line hover:bg-raised"}`}
               key={workshop.id}
-              onClick={() => setSelectedId(workshop.id)}
+              onClick={() => requestTransition(() => setSelectedId(workshop.id))}
             >
               <span className="break-words font-semibold">
                 {workshop.title}
@@ -176,7 +175,9 @@ export function WorkshopStudio({ area }: { area: WorkshopArea }) {
                         ? "PUBLISHED COLLECTION"
                         : "DRAFT COLLECTION"}
                   </span>
-                  <h2 className="break-words">{selectedWorkshop.title}</h2>
+                  <h2 className="mt-2.5 break-words leading-tight">
+                    {selectedWorkshop.title}
+                  </h2>
                   <p className="mb-2 mt-2 max-w-2xl text-sm leading-6 text-muted">
                     {selectedWorkshop.description ||
                       "Add a short description so students know what this collection covers."}
@@ -261,16 +262,16 @@ export function WorkshopStudio({ area }: { area: WorkshopArea }) {
               </div>
               <Tabs
                 className="mb-5"
-                onValueChange={(value) =>
+                onValueChange={(value) => requestTransition(() =>
                   setCollectionView(value as "lessons" | "topologies")
-                }
+                )}
                 value={collectionView}
               >
                 <TabsList aria-label="Collection content">
                   <TabsTrigger
                     aria-label={`Lessons, ${lessons.length} ${lessons.length === 1 ? "item" : "items"}`}
                     className="inline-flex items-center"
-                    onClick={() => setCollectionView("lessons")}
+                    onClick={() => requestTransition(() => setCollectionView("lessons"))}
                     value="lessons"
                   >
                     <BookOpen aria-hidden="true" className="mr-2 size-4" />
@@ -282,7 +283,7 @@ export function WorkshopStudio({ area }: { area: WorkshopArea }) {
                   <TabsTrigger
                     aria-label={`Topologies, ${topologies.length} ${topologies.length === 1 ? "item" : "items"}`}
                     className="inline-flex items-center"
-                    onClick={() => setCollectionView("topologies")}
+                    onClick={() => requestTransition(() => setCollectionView("topologies"))}
                     value="topologies"
                   >
                     <Cable aria-hidden="true" className="mr-2 size-4" />
@@ -301,7 +302,7 @@ export function WorkshopStudio({ area }: { area: WorkshopArea }) {
                           <SelectField
                             allowEmpty={false}
                             ariaLabel="Selected topology"
-                            onValueChange={setSelectedTopology}
+                            onValueChange={(value) => requestTransition(() => setSelectedTopology(value))}
                             options={topologies.map((row) => ({
                               value: row.stable_id,
                               label: String(
@@ -317,7 +318,7 @@ export function WorkshopStudio({ area }: { area: WorkshopArea }) {
                             <Button
                               aria-label="Create topology"
                               disabled={selectedWorkshop.archived}
-                              onClick={addTopology}
+                              onClick={() => requestTransition(addTopology)}
                               size="icon"
                               tone="secondary"
                             >
@@ -344,6 +345,7 @@ export function WorkshopStudio({ area }: { area: WorkshopArea }) {
                         </Tooltip>
                       </div>
                       <TopologyEditor
+                        key={selectedTopology}
                         row={selectedTopologyRow!}
                         onSaved={(saved) => {
                           setTopologies((value) =>
@@ -375,7 +377,7 @@ export function WorkshopStudio({ area }: { area: WorkshopArea }) {
                       <button
                         className="inline-flex min-h-11 items-center justify-center gap-2 rounded-control border border-signal-orange/60 bg-signal-orange-soft px-4 text-xs font-semibold text-signal-orange hover:border-signal-orange disabled:pointer-events-none disabled:opacity-45 [&_svg]:size-4"
                         disabled={addingLesson || selectedWorkshop.archived}
-                        onClick={() => void addLesson()}
+                        onClick={() => requestTransition(() => void addLesson())}
                       >
                         {addingLesson ? (
                           <LoaderCircle className="animate-spin" />
@@ -392,7 +394,7 @@ export function WorkshopStudio({ area }: { area: WorkshopArea }) {
                               : "text-muted hover:bg-raised"
                           }`}
                           key={lesson.id}
-                          onClick={() => setSelectedLesson(lesson.id)}
+                          onClick={() => requestTransition(() => setSelectedLesson(lesson.id))}
                         >
                           <small className="block font-mono text-signal-orange">
                             {String(index + 1).padStart(2, "0")}

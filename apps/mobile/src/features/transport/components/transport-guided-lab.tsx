@@ -17,6 +17,7 @@ import { operationsLabDefinitions } from '@/features/operations/operations-lab-d
 import { restoreProtocolState, type GuidedProtocolAdapter } from '@/features/protocol-labs/guided-protocol-adapter';
 import { GuidedProtocolLabShell } from '@/features/protocol-labs/components/guided-protocol-lab-shell';
 import { AppButton } from '@/shared/components/app-button';
+import { ScreenActionBar } from '@/shared/components/screen-action-bar';
 import { FeedbackModal } from '@/shared/components/feedback-modal';
 import { HintHistoryPanel } from '@/shared/components/hint-history-panel';
 import { SelectionControl } from '@/shared/components/selection-control';
@@ -156,6 +157,7 @@ export function TransportGuidedLab() {
   return (
     <GuidedProtocolLabShell
       autosaveLabel="SAVED ON THIS DEVICE"
+      footer={!result.complete && nextAction ? <ScreenActionBar feedback={formError} label={`OBJECTIVE ${state.objectiveIndex + 1} / NEXT STEP`} tone={formError ? 'error' : 'normal'}><AppButton label={nextAction.label} onPress={nextAction.onPress} /></ScreenActionBar> : undefined}
       labId={LAB_ID}
       objectiveLabel={result.complete ? 'SIMULATION COMPLETE' : `OBJECTIVE ${state.objectiveIndex + 1} OF ${objectives.length}`}
       onBack={() => returnToOwningChapter('lab', LAB_ID)}
@@ -175,8 +177,6 @@ export function TransportGuidedLab() {
         </View> : <View style={styles.completePanel}><Text variant="label" style={styles.green}>ALL OBJECTIVES VERIFIED</Text><Text variant="body" style={styles.body}>You built TCP state manually, recovered one missing segment, and compared the evidence available from UDP.</Text></View>}
 
         {showConfig && !result.complete ? <ConfigurationPanel draft={draft} error={formError ?? state.lastError} onChange={(change) => { setDraftOverride((value) => ({ ...(value ?? draftFromState(state)), ...change })); setFormError(undefined); }} /> : formError ? <Text accessibilityLiveRegion="assertive" variant="bodySmall" style={styles.error}>{formError}</Text> : null}
-
-        {!result.complete && nextAction ? <View style={styles.primaryAction}><Text variant="technical" style={styles.muted}>NEXT STEP</Text><AppButton label={nextAction.label} onPress={nextAction.onPress} /></View> : null}
 
         <StateTables rows={[...tables.endpoints, ...tables.listeners, ...tables.connection]} />
         <EventTrace evidenceCount={state.evidence.length} selected={selectedEvidence} traceIndex={effectiveTraceIndex} onChange={setTraceIndex} />

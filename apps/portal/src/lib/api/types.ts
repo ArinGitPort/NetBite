@@ -12,7 +12,7 @@ export interface SafeAdminError {
 
 export type AdminView =
   | "dashboard" | "curriculum" | "assessments" | "sources" | "assets"
-  | "releases" | "audit" | "workshops" | "classes"
+  | "releases" | "audit" | "instructor-dashboard" | "workshops" | "classes"
   | "workshop-assessments" | "gradebook" | "instructors";
 
 export interface WorkshopRow {

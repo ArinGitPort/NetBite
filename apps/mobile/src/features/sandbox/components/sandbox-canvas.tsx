@@ -143,7 +143,7 @@ export function SandboxCanvas({ workspace, selectedDeviceId, selectedLinkId, con
             const angle = Math.atan2(b.y - a.y, b.x - a.x);
             const fromName = workspace.devices.find((device) => device.id === link.a.deviceId)?.name ?? link.a.deviceId;
             const toName = workspace.devices.find((device) => device.id === link.b.deviceId)?.name ?? link.b.deviceId;
-            return <Pressable key={`${link.id}-target`} accessibilityHint="Selects this cable for inspection or removal" accessibilityLabel={`Cable from ${fromName} ${link.a.interfaceId} to ${toName} ${link.b.interfaceId}`} accessibilityRole="button" onPress={() => onSelectLink(link.id)} style={[styles.linkHitTarget, { left: (a.x + b.x) / 2 - width / 2, top: (a.y + b.y) / 2 - 14, width, transform: [{ rotate: `${angle}rad` }] }]} />;
+            return <Pressable key={`${link.id}-target`} accessibilityHint="Selects this cable for inspection or removal" accessibilityLabel={`Cable from ${fromName} ${link.a.interfaceId} to ${toName} ${link.b.interfaceId}`} accessibilityRole="button" onPress={() => onSelectLink(link.id)} style={[styles.linkHitTarget, { left: (a.x + b.x) / 2 - width / 2, top: (a.y + b.y) / 2 - 22, width, transform: [{ rotate: `${angle}rad` }] }]} />;
           })}
           {workspace.devices.map((device) => <SandboxNode key={`${device.id}:${device.position.x}:${device.position.y}`} device={device} scale={scale} fontScale={fontScale} selected={selectedDeviceId === device.id || connectionStartId === device.id} active={Boolean(traceEvent?.deviceIds.includes(device.id))} connectMode={connectMode} onPress={() => onSelectDevice(device.id)} onMeasure={(height) => setMeasuredNodeHeights((current) => Math.abs((current[device.id] ?? 0) - height) < 0.5 ? current : { ...current, [device.id]: height })} onDragLive={(position) => setLivePositions((current) => { if (position) return { ...current, [device.id]: position }; const next = { ...current }; delete next[device.id]; return next; })} onDrag={(position) => onMoveDevice(device.id, position)} />)}
           {!workspace.devices.length ? <View style={styles.empty}><Text variant="sectionHeading" style={styles.emptyTitle}>EMPTY WORKSPACE</Text><Text variant="bodySmall" style={styles.emptyDetail}>Add a PC, switch, or router below.</Text></View> : null}
@@ -163,7 +163,7 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   canvas: { position: 'relative', overflow: 'hidden', backgroundColor: colors.background },
   grid: { position: 'absolute', inset: 0, opacity: 0.45, borderWidth: 1, borderColor: colors.grid, pointerEvents: 'none' },
   cableLayer: { pointerEvents: 'none' },
-  linkHitTarget: { position: 'absolute', height: 28, zIndex: 1 },
+  linkHitTarget: { position: 'absolute', height: 44, zIndex: 1 },
   node: { position: 'absolute', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surfaceRaised, padding: 4, zIndex: 4 },
   glyphArea: { alignItems: 'center', justifyContent: 'center' },
   nodeSelected: { borderColor: colors.accentBright },

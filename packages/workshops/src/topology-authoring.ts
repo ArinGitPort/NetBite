@@ -323,10 +323,10 @@ function labelSize(
   return {
     width: Math.max(
       kind === "endpoint" ? 30 : 64,
-      text.length * (kind === "endpoint" ? 5 : 6.2) * scale +
+      text.length * (kind === "endpoint" ? 6.2 : 6.8) * scale +
         horizontalPadding,
     ),
-    height: 20 * scale,
+    height: 22 * scale,
   };
 }
 

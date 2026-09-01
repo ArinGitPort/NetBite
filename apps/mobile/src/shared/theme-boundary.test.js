@@ -26,4 +26,11 @@ describe('mobile theme migration boundary', () => {
 
     expect(offenders).toEqual([]);
   });
+
+  test('keeps workshop topology labels on the shared readable technical type role', () => {
+    const sourceRoot = __dirname.replace(/[\\/]shared$/, '');
+    const source = readFileSync(join(sourceRoot, 'features', 'workshops', 'workshop-topology.tsx'), 'utf8');
+    expect(source).not.toMatch(/fontSize:\s*(?:[0-9]|10)\b/);
+    expect(source.match(/Typography\.technical/g)).toHaveLength(2);
+  });
 });

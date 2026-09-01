@@ -5,12 +5,12 @@ import { useCallback, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog } from "@/components/ui/dialog";
+import LiquidWaveSpinner from "@/components/shadcn-space/spinner/spinner-10";
 
 export function LoadingState({ label = "Loading portal" }: { label?: string }) {
   return (
-    <div className="flex min-h-60 flex-col items-center justify-center gap-3 text-center text-muted">
-      <span className="size-7 animate-spin rounded-full border-2 border-line border-t-signal-orange" />
-      <strong>{label}</strong>
+    <div aria-label={label} aria-live="polite" className="flex min-h-60 items-center justify-center text-center" role="status">
+      <LiquidWaveSpinner className="max-w-sm" size="sm" words={[label]} />
     </div>
   );
 }

@@ -18,12 +18,13 @@ interface GuidedProtocolLabShellProps extends PropsWithChildren {
   autosaveLabel: string;
   onBack: () => void;
   headerAction?: ReactNode;
+  footer?: ReactNode;
 }
 
-export function GuidedProtocolLabShell({ labId, title, subtitle, objectiveLabel, progress, autosaveLabel, onBack, headerAction, children }: GuidedProtocolLabShellProps) {
+export function GuidedProtocolLabShell({ labId, title, subtitle, objectiveLabel, progress, autosaveLabel, onBack, headerAction, footer, children }: GuidedProtocolLabShellProps) {
   const styles = useThemeStyles(createStyles);
   return (
-    <Screen header={<PageHeader leading={{ accessibilityLabel: 'Back from guided simulator', icon: 'arrow-left', label: 'BACK / MODULE', onPress: onBack }} status={headerAction ? undefined : autosaveLabel} trailingContent={headerAction} />}>
+    <Screen footer={footer} header={<PageHeader leading={{ accessibilityLabel: 'Back from guided simulator', icon: 'arrow-left', label: 'BACK / MODULE', onPress: onBack }} status={headerAction ? undefined : autosaveLabel} trailingContent={headerAction} />}>
       <Text variant="label" style={styles.eyebrow}>GUIDED MINI-SIMULATOR</Text>
       <Text variant="screenTitle" style={styles.title}>{title}</Text>
       <Text variant="technical" style={styles.subtitle}>{subtitle}</Text>

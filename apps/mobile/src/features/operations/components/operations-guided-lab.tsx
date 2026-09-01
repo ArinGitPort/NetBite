@@ -25,6 +25,7 @@ import { SelectionControl } from '@/shared/components/selection-control';
 import { Text } from '@/shared/components/console-text';
 import { ProgressBar } from '@/shared/components/progress-bar';
 import { Screen } from '@/shared/components/screen';
+import { ScreenActionBar } from '@/shared/components/screen-action-bar';
 import { useMeasuredResponsiveLayout } from '@/shared/responsive-layout';
 import { Fonts, Radius, Space, type ThemeColors } from '@/shared/theme';
 import { useTheme, useThemeStyles } from '@/shared/theme-context';
@@ -112,6 +113,10 @@ export function OperationsGuidedLab({ definition, onComplete }: { definition: Op
   const effectiveDraft = useMemo(() => Object.fromEntries(current.fields.map((field) => [field.id, draft[field.id] ?? session.configuration[field.id]])), [current.fields, draft, session.configuration]);
   const dirty = current.fields.some((field) => draft[field.id] !== undefined && draft[field.id] !== session.configuration[field.id]);
   const configured = current.fields.every((field) => session.configuration[field.id] !== undefined) && !dirty;
+  const draftReady = current.fields.every((field) => {
+    const value = effectiveDraft[field.id];
+    return value !== undefined && value !== '' && !(typeof value === 'number' && Number.isNaN(value));
+  });
   const currentOutcome = useMemo(() => evaluateSimulationObjective(definition.id, current, session, authored.explanation), [authored.explanation, current, definition.id, session]);
   const objectiveState = finished ? 'complete' : session.lastResult && !session.lastResult.passed ? 'attention' : configured ? 'ready' : Object.keys(session.configuration).length ? 'in-progress' : 'not-started';
   const workspaceTitle = ({
@@ -186,7 +191,9 @@ export function OperationsGuidedLab({ definition, onComplete }: { definition: Op
 
   if (!simulator) return <Screen header={<PageHeader leading={{ accessibilityLabel: 'Back to course library', icon: 'arrow-left', label: 'BACK / COURSES', onPress: () => router.replace(AppRoutes.courses) }} />}><Text variant="screenTitle">SIMULATOR UNAVAILABLE</Text></Screen>;
 
-  return <Screen header={<PageHeader leading={{ accessibilityLabel: 'Back from guided simulator', icon: 'arrow-left', label: definition.id === 'network-operations-capstone' ? 'BACK / COURSES' : 'BACK / MODULE', onPress: () => definition.id === 'network-operations-capstone' ? router.dismissTo(AppRoutes.courses) : returnToOwningChapter('lab', definition.id) }} status="SAVED ON THIS DEVICE" />}>
+  const footer = finished ? undefined : <ScreenActionBar feedback={validationError} label={`OBJECTIVE ${currentIndex + 1} / ${configured ? 'RUN PROTOCOL ACTION' : 'SAVE CONFIGURATION'}`} tone={validationError ? 'error' : 'normal'}><AppButton disabled={!configured && !draftReady} label={configured ? current.actionLabel : 'Save configuration'} leadingIcon={configured ? 'check' : undefined} onPress={configured ? verify : applyConfiguration} /></ScreenActionBar>;
+
+  return <Screen footer={footer} header={<PageHeader leading={{ accessibilityLabel: 'Back from guided simulator', icon: 'arrow-left', label: definition.id === 'network-operations-capstone' ? 'BACK / COURSES' : 'BACK / MODULE', onPress: () => definition.id === 'network-operations-capstone' ? router.dismissTo(AppRoutes.courses) : returnToOwningChapter('lab', definition.id) }} status="SAVED ON THIS DEVICE" />}>
     <View onLayout={onLayout}>
       <Text variant="label" style={styles.eyebrow}>GUIDED MINI-SIMULATOR</Text>
       <Text variant="screenTitle" style={styles.title}>{definition.title}</Text>
@@ -210,7 +217,7 @@ export function OperationsGuidedLab({ definition, onComplete }: { definition: Op
           <Text variant="label" style={styles.configurationTitle}>LEARNER CONFIGURATION</Text>
           {current.fields.map((field) => <FieldControl key={field.id} field={field} value={effectiveDraft[field.id]} onChange={(value) => { setDraft((state) => ({ ...state, [field.id]: value })); setValidationError(undefined); }} />)}
           {validationError ? <Text accessibilityLiveRegion="assertive" variant="bodySmall" style={styles.error}>{validationError}</Text> : null}
-          {!configured ? <AppButton label="Save configuration" onPress={applyConfiguration} /> : <><Text variant="label" style={styles.protocolActionTitle}>RUN PROTOCOL ACTION</Text><AppButton label={current.actionLabel} leadingIcon="check" onPress={verify} /></>}
+          {configured ? <Text variant="label" style={styles.protocolActionTitle}>READY TO RUN / USE THE ACTION BAR BELOW</Text> : null}
         </View>
 
         {simulator.cliEnabled ? <View style={styles.cliPanel}><Text variant="label" style={styles.cliTitle}>OPTIONAL NETBITE CLI</Text><Text variant="bodySmall" style={styles.line}>The console changes the same configuration shown in the device panel.</Text><AppButton label="Open full-screen CLI" variant="secondary" onPress={() => setCliVisible(true)} /></View> : null}
