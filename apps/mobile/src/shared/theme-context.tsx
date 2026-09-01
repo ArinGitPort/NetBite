@@ -40,6 +40,12 @@ export function ThemeProvider({ children }: PropsWithChildren) {
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }
 
+export function FixedThemeProvider({ children, theme }: PropsWithChildren<{ theme: ResolvedTheme }>) {
+  const parent = useTheme();
+  const value = useMemo(() => ({ ...parent, colors: Themes[theme], resolvedTheme: theme }), [parent, theme]);
+  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
+}
+
 export function useTheme() {
   return useContext(ThemeContext);
 }

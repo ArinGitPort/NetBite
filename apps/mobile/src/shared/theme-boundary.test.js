@@ -3,9 +3,6 @@ const { readFileSync, readdirSync } = require('node:fs');
 const { extname, join, relative } = require('node:path');
 
 const approvedLegacyPaletteFiles = new Set([
-  'features/cli/components/cli-lab.tsx',
-  'features/cli/components/cli-topology-view.tsx',
-  'features/cli/components/guided-cli-objective-panel.tsx',
   'shared/components/cli-console-shell.tsx',
 ]);
 

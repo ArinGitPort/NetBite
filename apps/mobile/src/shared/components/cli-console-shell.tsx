@@ -8,6 +8,7 @@ import { PageHeader } from '@/shared/components/page-header';
 import { SegmentedControl } from '@/shared/components/segmented-control';
 import { Text } from '@/shared/components/console-text';
 import { Fonts, Palette, Space, Typography } from '@/shared/theme';
+import { FixedThemeProvider } from '@/shared/theme-context';
 
 export interface CliConsoleLine {
   id: string | number;
@@ -77,6 +78,7 @@ export function CliConsoleShell({ visible, accessibilityLabel, eyebrow, title, b
   const [referenceExpanded, setReferenceExpanded] = useState(false);
   return (
     <Modal animationType="slide" onRequestClose={onClose} visible={visible}>
+      <FixedThemeProvider theme="dark">
       <SafeAreaView accessibilityLabel={accessibilityLabel} accessibilityViewIsModal edges={['top', 'right', 'bottom', 'left']} style={styles.safe} testID={testID}>
         <PageHeader leading={{ accessibilityLabel: 'Close CLI', icon: 'close', label: 'CLOSE', onPress: onClose }} status="FULL-SCREEN CONSOLE" />
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.keyboard}>
@@ -133,6 +135,7 @@ export function CliConsoleShell({ visible, accessibilityLabel, eyebrow, title, b
           </View>
         </KeyboardAvoidingView>
       </SafeAreaView>
+      </FixedThemeProvider>
     </Modal>
   );
 }

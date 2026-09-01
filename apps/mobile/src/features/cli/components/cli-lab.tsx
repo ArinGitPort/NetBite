@@ -39,7 +39,8 @@ import { PageHeader } from '@/shared/components/page-header';
 import { useMeasuredResponsiveLayout } from '@/shared/responsive-layout';
 import { Screen } from '@/shared/components/screen';
 import { selectionHaptic, successHaptic, warningHaptic } from '@/shared/haptics';
-import { Fonts, Palette, Space } from '@/shared/theme';
+import { DarkPalette, Fonts, Space, type ThemeColors } from '@/shared/theme';
+import { useThemeStyles } from '@/shared/theme-context';
 import { useGameStore } from '@/store/use-game-store';
 import { returnToOwningChapter } from '@/shared/navigation';
 import { getSimulatorBoundaryCopy } from '@/shared/learner-facing-copy';
@@ -80,6 +81,7 @@ function interVlanProgress(state: CliNetworkState) {
 }
 
 function GuideModal({ visible, onClose }: { visible: boolean; onClose: () => void }) {
+  const styles = useThemeStyles(createStyles);
   return (
     <Modal animationType="fade" onRequestClose={onClose} transparent visible={visible}>
       <View style={styles.modalBackdrop}>
@@ -98,6 +100,7 @@ function GuideModal({ visible, onClose }: { visible: boolean; onClose: () => voi
 }
 
 function PredictionPanel({ choices, selected, feedback, onSelect }: { choices: CliPredictionChoice[]; selected?: string; feedback?: string; onSelect: (id: string) => void }) {
+  const styles = useThemeStyles(createStyles);
   return (
     <View style={styles.predictionPanel}>
       {choices.map((choice) => (
@@ -111,6 +114,7 @@ function PredictionPanel({ choices, selected, feedback, onSelect }: { choices: C
 }
 
 export function CliLab({ definition }: { definition: CliLabDefinition }) {
+  const styles = useThemeStyles(createStyles);
   const completeLab = useGameStore((state) => state.completeLab);
   const markCliGuideSeen = useGameStore((state) => state.markCliGuideSeen);
   const { mode: responsiveMode, onLayout } = useMeasuredResponsiveLayout();
@@ -390,44 +394,44 @@ export function CliLab({ definition }: { definition: CliLabDefinition }) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   screen: { width: '100%', flexGrow: 1, minHeight: 0 },
   header: { width: '100%', minWidth: 0, minHeight: 44, flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: Space.sm },
   headerActions: { minWidth: 0, maxWidth: '100%', flexShrink: 1, flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end', gap: Space.sm },
-  orange: { color: Palette.orange, fontFamily: Fonts.medium }, green: { color: Palette.green, fontFamily: Fonts.medium },
-  title: { color: Palette.text, fontFamily: Fonts.semibold, marginTop: Space.xs }, scope: { color: Palette.textMuted, marginVertical: Space.sm },
-  viewSwitch: { width: '100%', minWidth: 0, flexDirection: 'row', marginBottom: Space.sm, borderWidth: 1, borderColor: Palette.border, backgroundColor: Palette.surface },
+  orange: { color: colors.orange, fontFamily: Fonts.medium }, green: { color: colors.green, fontFamily: Fonts.medium },
+  title: { color: colors.text, fontFamily: Fonts.semibold, marginTop: Space.xs }, scope: { color: colors.textMuted, marginVertical: Space.sm },
+  viewSwitch: { width: '100%', minWidth: 0, flexDirection: 'row', marginBottom: Space.sm, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface },
   viewOption: { minWidth: 0, minHeight: 44, flex: 1, alignItems: 'center', justifyContent: 'center', padding: Space.sm },
-  viewOptionActive: { borderWidth: 1, borderColor: Palette.orange, backgroundColor: Palette.orangeSoft },
-  viewOptionTextActive: { color: Palette.orange, fontFamily: Fonts.semibold },
+  viewOptionActive: { borderWidth: 1, borderColor: colors.orange, backgroundColor: colors.orangeSoft },
+  viewOptionTextActive: { color: colors.orange, fontFamily: Fonts.semibold },
   deviceTabs: { flexDirection: 'row', flexWrap: 'wrap', gap: Space.xs, marginBottom: Space.sm },
-  deviceTab: { minWidth: 72, minHeight: 44, flexGrow: 1, alignItems: 'center', justifyContent: 'center', padding: Space.xs, borderWidth: 1, borderColor: Palette.border, backgroundColor: Palette.surface },
-  deviceTabActive: { borderColor: Palette.orange, backgroundColor: Palette.orangeSoft }, deviceTabText: { textAlign: 'center' },
+  deviceTab: { minWidth: 72, minHeight: 44, flexGrow: 1, alignItems: 'center', justifyContent: 'center', padding: Space.xs, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface },
+  deviceTabActive: { borderColor: colors.orange, backgroundColor: colors.orangeSoft }, deviceTabText: { textAlign: 'center' },
   workspace: { width: '100%', minWidth: 0, flexGrow: 1, flexShrink: 0, minHeight: 0, alignItems: 'stretch', gap: Space.sm },
-  statusPanel: { width: '100%', minWidth: 0, padding: Space.sm, borderWidth: 1, borderColor: Palette.border, backgroundColor: Palette.surface },
+  statusPanel: { width: '100%', minWidth: 0, padding: Space.sm, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface },
   statusHeader: { minHeight: 44, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }, statusBody: { gap: Space.xs },
-  networkMap: { flexDirection: 'row', flexWrap: 'wrap', gap: Space.xs }, networkNode: { minWidth: 0, minHeight: 52, flexGrow: 1, justifyContent: 'center', padding: Space.xs, borderWidth: 1, borderColor: Palette.border, backgroundColor: Palette.background }, networkNodeStandard: { flexBasis: '29%' }, networkNodeWide: { flexBasis: '46%' }, networkNodeActive: { borderColor: Palette.orange, backgroundColor: Palette.orangeSoft }, networkNodeName: { color: Palette.text, textAlign: 'center' }, networkNodeDetail: { color: Palette.textMuted, textAlign: 'center' },
-  fixedMap: { marginTop: Space.sm, gap: Space.xs }, mapRecord: { minWidth: 0, padding: Space.sm, gap: 2, borderWidth: 1, borderColor: Palette.border, backgroundColor: Palette.background },
-  terminal: { width: '100%', maxWidth: '100%', flexGrow: 1, flexShrink: 0, minWidth: 0, minHeight: 540, borderWidth: 1, borderColor: Palette.border, backgroundColor: '#100E11' }, terminalCompact: { minHeight: 520 },
+  networkMap: { flexDirection: 'row', flexWrap: 'wrap', gap: Space.xs }, networkNode: { minWidth: 0, minHeight: 52, flexGrow: 1, justifyContent: 'center', padding: Space.xs, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.background }, networkNodeStandard: { flexBasis: '29%' }, networkNodeWide: { flexBasis: '46%' }, networkNodeActive: { borderColor: colors.orange, backgroundColor: colors.orangeSoft }, networkNodeName: { color: colors.text, textAlign: 'center' }, networkNodeDetail: { color: colors.textMuted, textAlign: 'center' },
+  fixedMap: { marginTop: Space.sm, gap: Space.xs }, mapRecord: { minWidth: 0, padding: Space.sm, gap: 2, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.background },
+  terminal: { width: '100%', maxWidth: '100%', flexGrow: 1, flexShrink: 0, minWidth: 0, minHeight: 540, borderWidth: 1, borderColor: DarkPalette.border, backgroundColor: '#100E11' }, terminalCompact: { minHeight: 520 },
   terminalFullscreen: { width: '100%', maxWidth: 960, minHeight: 0, flex: 1, alignSelf: 'center' },
-  terminalHeader: { width: '100%', minWidth: 0, minHeight: 52, flexDirection: 'row', alignItems: 'center', gap: Space.sm, paddingHorizontal: Space.sm, borderBottomWidth: 1, borderBottomColor: Palette.border },
+  terminalHeader: { width: '100%', minWidth: 0, minHeight: 52, flexDirection: 'row', alignItems: 'center', gap: Space.sm, paddingHorizontal: Space.sm, borderBottomWidth: 1, borderBottomColor: DarkPalette.border },
   terminalHeaderCopy: { flex: 1, minWidth: 0 }, terminalModeButton: { minWidth: 132, flexGrow: 0 },
   transcriptScroll: { minHeight: 260 }, transcriptScrollCompact: { minHeight: 220 }, transcriptFullscreen: { flex: 1, minHeight: 0 },
-  transcript: { flexGrow: 1, padding: Space.sm, gap: Space.sm }, banner: { color: Palette.text }, terminalMode: { color: Palette.textMuted }, transcriptEntry: { gap: 2 }, commandLine: { color: Palette.white },
-  output: { color: Palette.text }, outputMuted: { color: Palette.textMuted }, outputSuccess: { color: Palette.green }, outputWarning: { color: Palette.orange },
+  transcript: { flexGrow: 1, padding: Space.sm, gap: Space.sm }, banner: { color: DarkPalette.text }, terminalMode: { color: DarkPalette.textMuted }, transcriptEntry: { gap: 2 }, commandLine: { color: DarkPalette.text },
+  output: { color: DarkPalette.text }, outputMuted: { color: DarkPalette.textMuted }, outputSuccess: { color: DarkPalette.green }, outputWarning: { color: DarkPalette.orange },
   liveRegion: { position: 'absolute', width: 1, height: 1, opacity: 0 },
-  suggestions: { width: '100%', minWidth: 0, flexDirection: 'row', flexWrap: 'wrap', gap: Space.xs, padding: Space.sm, borderTopWidth: 1, borderTopColor: Palette.border },
-  suggestion: { maxWidth: '100%', minWidth: 0, minHeight: 44, flexShrink: 1, justifyContent: 'center', paddingHorizontal: Space.sm, borderWidth: 1, borderColor: Palette.border, backgroundColor: Palette.surface }, suggestionText: { minWidth: 0, flexShrink: 1, color: Palette.text },
-  inputRow: { width: '100%', minWidth: 0, minHeight: 48, flexDirection: 'row', alignItems: 'center', paddingLeft: Space.sm, borderTopWidth: 1, borderTopColor: Palette.border },
-  inputRowCompact: { flexWrap: 'wrap', paddingLeft: 0 }, prompt: { color: Palette.green, fontFamily: Fonts.semibold }, promptCompact: { width: '100%', minHeight: 36, paddingHorizontal: Space.sm, paddingTop: Space.sm, borderBottomWidth: 1, borderBottomColor: Palette.border }, input: { flex: 1, minWidth: 0, minHeight: 48, paddingHorizontal: Space.xs, color: Palette.white, fontFamily: Fonts.regular, fontSize: 14, lineHeight: 22 },
-  historyButton: { width: 44, minHeight: 48, alignItems: 'center', justifyContent: 'center', borderLeftWidth: 1, borderLeftColor: Palette.border },
+  suggestions: { width: '100%', minWidth: 0, flexDirection: 'row', flexWrap: 'wrap', gap: Space.xs, padding: Space.sm, borderTopWidth: 1, borderTopColor: DarkPalette.border },
+  suggestion: { maxWidth: '100%', minWidth: 0, minHeight: 44, flexShrink: 1, justifyContent: 'center', paddingHorizontal: Space.sm, borderWidth: 1, borderColor: DarkPalette.border, backgroundColor: DarkPalette.surface }, suggestionText: { minWidth: 0, flexShrink: 1, color: DarkPalette.text },
+  inputRow: { width: '100%', minWidth: 0, minHeight: 48, flexDirection: 'row', alignItems: 'center', paddingLeft: Space.sm, borderTopWidth: 1, borderTopColor: DarkPalette.border },
+  inputRowCompact: { flexWrap: 'wrap', paddingLeft: 0 }, prompt: { color: DarkPalette.green, fontFamily: Fonts.semibold }, promptCompact: { width: '100%', minHeight: 36, paddingHorizontal: Space.sm, paddingTop: Space.sm, borderBottomWidth: 1, borderBottomColor: DarkPalette.border }, input: { flex: 1, minWidth: 0, minHeight: 48, paddingHorizontal: Space.xs, color: DarkPalette.text, fontFamily: Fonts.regular, fontSize: 14, lineHeight: 22 },
+  historyButton: { width: 44, minHeight: 48, alignItems: 'center', justifyContent: 'center', borderLeftWidth: 1, borderLeftColor: DarkPalette.border },
   terminalActions: { width: '100%', minWidth: 0, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'stretch', gap: Space.sm, padding: Space.sm }, actionButton: { minWidth: 0, flexBasis: 200, flexGrow: 1, flexShrink: 1 }, actionButtonStacked: { width: '100%', flexBasis: '100%' },
-  assessment: { padding: Space.sm, gap: Space.sm, borderWidth: 1, borderColor: Palette.orange, backgroundColor: Palette.surface },
-  predictionPanel: { gap: Space.xs }, prediction: { minHeight: 44, justifyContent: 'center', padding: Space.sm, borderWidth: 1, borderColor: Palette.border }, predictionActive: { borderColor: Palette.orange }, predictionText: { textAlign: 'center' }, feedback: { color: Palette.text },
-  hintPanel: { marginTop: Space.sm, padding: Space.sm, gap: Space.sm, borderWidth: 1, borderColor: Palette.orange, backgroundColor: Palette.orangeSoft },
-  hint: { padding: Space.sm, gap: Space.xs, borderWidth: 1, borderColor: Palette.border, backgroundColor: Palette.surface },
-  hintNumber: { color: Palette.orange, fontFamily: Fonts.semibold },
+  assessment: { padding: Space.sm, gap: Space.sm, borderWidth: 1, borderColor: colors.orange, backgroundColor: colors.surface },
+  predictionPanel: { gap: Space.xs }, prediction: { minHeight: 44, justifyContent: 'center', padding: Space.sm, borderWidth: 1, borderColor: colors.border }, predictionActive: { borderColor: colors.orange }, predictionText: { textAlign: 'center' }, feedback: { color: colors.text },
+  hintPanel: { marginTop: Space.sm, padding: Space.sm, gap: Space.sm, borderWidth: 1, borderColor: colors.orange, backgroundColor: colors.orangeSoft },
+  hint: { padding: Space.sm, gap: Space.xs, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface },
+  hintNumber: { color: colors.orange, fontFamily: Fonts.semibold },
   footerActions: { width: '100%', minWidth: 0, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'stretch', gap: Space.sm, marginTop: Space.sm },
-  fullscreenSafe: { flex: 1, backgroundColor: Palette.background }, fullscreenBody: { flex: 1, minHeight: 0, padding: Space.sm, backgroundColor: Palette.background },
-  modalBackdrop: { flex: 1, justifyContent: 'center', padding: Space.lg, backgroundColor: 'rgba(10,8,10,0.88)' }, guidePanel: { width: '100%', maxWidth: 520, alignSelf: 'center', padding: Space.lg, gap: Space.md, borderWidth: 1, borderColor: Palette.green, backgroundColor: Palette.surface }, guideCard: { padding: Space.sm, borderWidth: 1, borderColor: Palette.border }, guideTitle: { color: Palette.text, marginBottom: Space.xs },
+  fullscreenSafe: { flex: 1, backgroundColor: DarkPalette.background }, fullscreenBody: { flex: 1, minHeight: 0, padding: Space.sm, backgroundColor: DarkPalette.background },
+  modalBackdrop: { flex: 1, justifyContent: 'center', padding: Space.lg, backgroundColor: 'rgba(10,8,10,0.88)' }, guidePanel: { width: '100%', maxWidth: 520, alignSelf: 'center', padding: Space.lg, gap: Space.md, borderWidth: 1, borderColor: colors.green, backgroundColor: colors.surface }, guideCard: { padding: Space.sm, borderWidth: 1, borderColor: colors.border }, guideTitle: { color: colors.text, marginBottom: Space.xs },
 });

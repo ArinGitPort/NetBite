@@ -19,7 +19,8 @@ import { DisclosureSection } from '@/shared/components/disclosure-section';
 import { LinkConnectionRecord } from '@/shared/components/link-connection-record';
 import { calculateTopologyLabelLayout, TopologyLinkLabels } from '@/shared/components/topology-link-labels';
 import type { ResponsiveMode } from '@/shared/responsive-layout';
-import { Fonts, Palette, Space } from '@/shared/theme';
+import { Fonts, Space, type ThemeColors } from '@/shared/theme';
+import { useCanvasColors, useCanvasThemeStyles } from '@/shared/theme-context';
 
 export interface CliVisualTrace {
   destination: string;
@@ -86,10 +87,12 @@ function connectedEndpoint(network: CliNetworkState, deviceId: string, interface
 }
 
 function DetailField({ label, value }: { label: string; value: string }) {
+  const styles = useCanvasThemeStyles(createStyles);
   return <View style={styles.detailField}><Text variant="bodySmall" style={styles.detailLabel}>{label}</Text><Text selectable variant="technical" style={styles.detailValue}>{value}</Text></View>;
 }
 
 function InterfaceRecord({ device, network, item }: { device: CliDeviceState; network: CliNetworkState; item: CliDeviceState['interfaces'][number] }) {
+  const styles = useCanvasThemeStyles(createStyles);
   const range = item.ipv4 && item.prefix !== undefined ? calculateSubnetRange(item.ipv4, item.prefix) : undefined;
   return <View style={styles.record}>
     <Text variant="label" style={styles.strong}>INTERFACE {item.name}</Text>
@@ -110,6 +113,7 @@ function InterfaceRecord({ device, network, item }: { device: CliDeviceState; ne
 }
 
 function RouteRecord({ route }: { route: CliDeviceState['routes'][number] }) {
+  const styles = useCanvasThemeStyles(createStyles);
   return <View style={styles.record}>
     <Text variant="label" style={styles.strong}>{route.source === 'static' ? 'STATIC ROUTE' : route.source === 'connected' ? 'CONNECTED ROUTE' : 'DEFAULT ROUTE'}</Text>
     <DetailField label="Destination" value={`${route.prefix}/${route.prefixLength}`} />
@@ -120,6 +124,7 @@ function RouteRecord({ route }: { route: CliDeviceState['routes'][number] }) {
 }
 
 function DeviceInspector({ device, network, cliAvailable, onOpenCli }: { device: CliDeviceState; network: CliNetworkState; cliAvailable: boolean; onOpenCli: () => void }) {
+  const styles = useCanvasThemeStyles(createStyles);
   const connectedRoutes = device.type === 'router' ? deriveConnectedRoutes(device) : [];
   return (
     <View accessibilityLabel={`${device.name} configuration inspector`} style={styles.inspector}>
@@ -155,6 +160,8 @@ export function CliTopologyView({ network, layout, mode, selectedDeviceId, cliDe
   onSelectDevice: (deviceId: string) => void;
   onOpenCli: (deviceId: string) => void;
 }) {
+  const styles = useCanvasThemeStyles(createStyles);
+  const colors = useCanvasColors();
   const positions = layout[mode];
   const { fontScale } = useWindowDimensions();
   const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
@@ -204,7 +211,7 @@ export function CliTopologyView({ network, layout, mode, selectedDeviceId, cliDe
             const from = positions[link.aDeviceId]; const to = positions[link.bDeviceId];
             if (!from || !to) return null;
             const active = isActiveLink(link.aDeviceId, link.bDeviceId);
-            return <Line key={`${link.aDeviceId}-${link.aInterface}-${link.bDeviceId}-${link.bInterface}`} stroke={active ? Palette.accentBright : Palette.accent} strokeLinecap="square" strokeOpacity={active ? 1 : 0.82} strokeWidth={active ? 1.4 : 0.85} x1={from.x} x2={to.x} y1={from.y} y2={to.y} />;
+            return <Line key={`${link.aDeviceId}-${link.aInterface}-${link.bDeviceId}-${link.bInterface}`} stroke={active ? colors.accentBright : colors.accent} strokeLinecap="square" strokeOpacity={active ? 1 : 0.82} strokeWidth={active ? 1.4 : 0.85} x1={from.x} x2={to.x} y1={from.y} y2={to.y} />;
           })}
         </Svg>
         {canvasSize.width > 0 && canvasSize.height > 0 ? network.links.map((link) => {
@@ -255,33 +262,33 @@ export function CliTopologyView({ network, layout, mode, selectedDeviceId, cliDe
 }
 
 const NODE_WIDTH = 104;
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   topologySection: { width: '100%', minWidth: 0, gap: Space.sm },
   viewport: { width: '100%', minWidth: 0, overflow: 'hidden' },
   horizontalScroll: { width: '100%' },
-  panCue: { color: Palette.orange },
-  canvas: { width: '100%', minWidth: 0, position: 'relative', overflow: 'hidden', borderWidth: 1, borderColor: Palette.border, backgroundColor: Palette.surface },
+  panCue: { color: colors.orange },
+  canvas: { width: '100%', minWidth: 0, position: 'relative', overflow: 'hidden', borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface },
   cables: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, pointerEvents: 'none' },
-  node: { position: 'absolute', zIndex: 4, width: NODE_WIDTH, minHeight: 84, marginLeft: -(NODE_WIDTH / 2), marginTop: -42, alignItems: 'center', justifyContent: 'center', padding: 4, borderWidth: 1, borderColor: Palette.border, backgroundColor: Palette.background },
-  nodeSelected: { borderColor: Palette.orange, backgroundColor: Palette.orangeSoft },
-  nodeTrace: { borderColor: Palette.accentBright },
-  nodeFailed: { borderColor: Palette.danger, borderWidth: 2 },
-  nodeName: { color: Palette.text, fontFamily: Fonts.semibold, textAlign: 'center' },
-  inspector: { padding: Space.md, gap: Space.sm, borderWidth: 1, borderColor: Palette.green, backgroundColor: Palette.surface },
+  node: { position: 'absolute', zIndex: 4, width: NODE_WIDTH, minHeight: 84, marginLeft: -(NODE_WIDTH / 2), marginTop: -42, alignItems: 'center', justifyContent: 'center', padding: 4, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.background },
+  nodeSelected: { borderColor: colors.orange, backgroundColor: colors.orangeSoft },
+  nodeTrace: { borderColor: colors.accentBright },
+  nodeFailed: { borderColor: colors.danger, borderWidth: 2 },
+  nodeName: { color: colors.text, fontFamily: Fonts.semibold, textAlign: 'center' },
+  inspector: { padding: Space.md, gap: Space.sm, borderWidth: 1, borderColor: colors.green, backgroundColor: colors.surface },
   inspectorHeading: { minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: Space.sm },
   inspectorHeadingCopy: { flex: 1, minWidth: 0 },
-  inspectorTitle: { color: Palette.text, fontFamily: Fonts.semibold },
+  inspectorTitle: { color: colors.text, fontFamily: Fonts.semibold },
   recordGroup: { gap: Space.xs },
-  record: { minWidth: 0, padding: Space.sm, gap: 2, borderWidth: 1, borderColor: Palette.border, backgroundColor: Palette.background },
-  recordTitle: { color: Palette.green, fontFamily: Fonts.semibold },
-  strong: { color: Palette.text, fontFamily: Fonts.semibold },
+  record: { minWidth: 0, padding: Space.sm, gap: 2, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.background },
+  recordTitle: { color: colors.green, fontFamily: Fonts.semibold },
+  strong: { color: colors.text, fontFamily: Fonts.semibold },
   detailField: { minWidth: 0, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'baseline', gap: Space.sm },
-  detailLabel: { minWidth: 112, flexShrink: 0, color: Palette.textMuted },
-  detailValue: { minWidth: 0, flex: 1, color: Palette.text },
-  muted: { color: Palette.textMuted },
-  orange: { color: Palette.orange, fontFamily: Fonts.medium },
-  green: { color: Palette.green, fontFamily: Fonts.medium },
+  detailLabel: { minWidth: 112, flexShrink: 0, color: colors.textMuted },
+  detailValue: { minWidth: 0, flex: 1, color: colors.text },
+  muted: { color: colors.textMuted },
+  orange: { color: colors.orange, fontFamily: Fonts.medium },
+  green: { color: colors.green, fontFamily: Fonts.medium },
   tracePanel: { padding: Space.sm, gap: Space.xs, borderWidth: 1 },
-  traceSuccess: { borderColor: Palette.green, backgroundColor: Palette.greenSoft },
-  traceWarning: { borderColor: Palette.orange, backgroundColor: Palette.orangeSoft },
+  traceSuccess: { borderColor: colors.green, backgroundColor: colors.greenSoft },
+  traceWarning: { borderColor: colors.orange, backgroundColor: colors.orangeSoft },
 });

@@ -4,7 +4,8 @@ import type { GuidedCliNextAction, GuidedCliObjective, GuidedCliObjectiveState }
 import { AppButton } from '@/shared/components/app-button';
 import { Text } from '@/shared/components/console-text';
 import { StatusRow, type StatusRowState } from '@/shared/components/status-row';
-import { Fonts, Palette, Space } from '@/shared/theme';
+import { Fonts, Space, type ThemeColors } from '@/shared/theme';
+import { useThemeStyles } from '@/shared/theme-context';
 
 const statePresentation: Record<GuidedCliObjectiveState, { rowState: StatusRowState; label: string }> = {
   'not-started': { rowState: 'pending', label: 'NOT STARTED' },
@@ -20,6 +21,7 @@ export function GuidedCliObjectivePanel({ objectives, nextAction, onAction }: {
   nextAction?: GuidedCliNextAction;
   onAction: (action: GuidedCliNextAction) => void;
 }) {
+  const styles = useThemeStyles(createStyles);
   const allComplete = objectives.every(({ state }) => state === 'complete');
   return <View style={styles.wrap}>
     <View style={styles.list}>
@@ -42,15 +44,15 @@ export function GuidedCliObjectivePanel({ objectives, nextAction, onAction }: {
   </View>;
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   wrap: { minWidth: 0, gap: Space.md },
   list: { minWidth: 0, gap: Space.sm },
-  objective: { minWidth: 0, gap: Space.xs, padding: Space.sm, borderLeftWidth: 3, borderLeftColor: Palette.border, backgroundColor: Palette.background },
-  attention: { borderLeftColor: Palette.orange, backgroundColor: Palette.orangeSoft },
-  complete: { borderLeftColor: Palette.green, backgroundColor: Palette.greenSoft },
-  details: { minWidth: 0, marginTop: Space.xs, paddingTop: Space.xs, borderTopWidth: 1, borderTopColor: Palette.border },
-  label: { color: Palette.textMuted, fontFamily: Fonts.semibold },
-  warning: { color: Palette.orange },
-  next: { minWidth: 0, gap: Space.sm, padding: Space.md, borderWidth: 1, borderColor: Palette.orange, backgroundColor: Palette.surfaceRaised },
-  nextTitle: { color: Palette.orange, fontFamily: Fonts.semibold },
+  objective: { minWidth: 0, gap: Space.xs, padding: Space.sm, borderLeftWidth: 3, borderLeftColor: colors.border, backgroundColor: colors.background },
+  attention: { borderLeftColor: colors.orange, backgroundColor: colors.orangeSoft },
+  complete: { borderLeftColor: colors.green, backgroundColor: colors.greenSoft },
+  details: { minWidth: 0, marginTop: Space.xs, paddingTop: Space.xs, borderTopWidth: 1, borderTopColor: colors.border },
+  label: { color: colors.textMuted, fontFamily: Fonts.semibold },
+  warning: { color: colors.orange },
+  next: { minWidth: 0, gap: Space.sm, padding: Space.md, borderWidth: 1, borderColor: colors.orange, backgroundColor: colors.surfaceRaised },
+  nextTitle: { color: colors.orange, fontFamily: Fonts.semibold },
 });
