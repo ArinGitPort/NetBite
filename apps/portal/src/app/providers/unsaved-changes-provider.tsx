@@ -3,6 +3,7 @@ import { useBeforeUnload, useBlocker } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
+import { LoadingButtonContent } from "@/components/ui/loading-content";
 
 export interface UnsavedDraftRegistration {
   dirty: boolean;
@@ -14,7 +15,7 @@ export interface UnsavedDraftRegistration {
 interface UnsavedChangesContextValue {
   notifyRegistrationChanged: () => void;
   register: (id: string, registration: MutableRefObject<UnsavedDraftRegistration>) => () => void;
-  requestTransition: (transition: () => void) => void;
+  requestTransition: (transition: () => void | Promise<void>) => void | Promise<void>;
 }
 
 const UnsavedChangesContext = createContext<UnsavedChangesContextValue | undefined>(undefined);
@@ -22,7 +23,7 @@ const UnsavedChangesContext = createContext<UnsavedChangesContextValue | undefin
 export function UnsavedChangesProvider({ children }: { children: ReactNode }) {
   const registrations = useRef(new Map<string, MutableRefObject<UnsavedDraftRegistration>>());
   const [revision, setRevision] = useState(0);
-  const [pendingTransition, setPendingTransition] = useState<(() => void) | undefined>();
+  const [pendingTransition, setPendingTransition] = useState<(() => void | Promise<void>) | undefined>();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -67,7 +68,7 @@ export function UnsavedChangesProvider({ children }: { children: ReactNode }) {
     setPendingTransition(undefined);
     setError("");
     if (blocker.state === "blocked") blocker.proceed();
-    else transition?.();
+    else void transition?.();
   }, [blocker, pendingTransition]);
 
   const keepEditing = useCallback(() => {
@@ -122,7 +123,7 @@ export function UnsavedChangesProvider({ children }: { children: ReactNode }) {
         <div className="flex flex-col-reverse justify-end gap-3 sm:flex-row">
           <Button disabled={busy} onClick={keepEditing} tone="outline">KEEP EDITING</Button>
           <Button disabled={busy} onClick={discardAndLeave} tone="destructive">DISCARD AND LEAVE</Button>
-          <Button disabled={busy || Boolean(saveBlockedReason)} onClick={() => void saveAndLeave()} tone="primary">{busy ? "SAVING..." : "SAVE AND LEAVE"}</Button>
+          <Button disabled={busy || Boolean(saveBlockedReason)} onClick={() => void saveAndLeave()} tone="primary">{busy ? <LoadingButtonContent label="SAVING..." /> : "SAVE AND LEAVE"}</Button>
         </div>
       </Dialog>
     </UnsavedChangesContext.Provider>
@@ -138,7 +139,7 @@ export function useUnsavedDraft(id: string, registration: UnsavedDraftRegistrati
   useEffect(() => context?.notifyRegistrationChanged(), [context, registration.dirty, registration.saveBlockedReason]);
 }
 
-const immediateTransition = (transition: () => void) => transition();
+const immediateTransition = (transition: () => void | Promise<void>) => transition();
 
 export function useGuardedTransition() {
   const context = useContext(UnsavedChangesContext);

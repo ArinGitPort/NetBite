@@ -200,3 +200,39 @@ const LiquidWaveSpinner = memo(({
 LiquidWaveSpinner.displayName = "LiquidWaveSpinner";
 
 export default LiquidWaveSpinner;
+
+export function InlineWaveSpinner({ label, decorative = false }: { label: string; decorative?: boolean }) {
+  const clipId = useId();
+  return (
+    <motion.svg
+      animate={{ rotate: 360 }}
+      aria-hidden={decorative || undefined}
+      aria-label={decorative ? undefined : label}
+      className="size-4 shrink-0"
+      role={decorative ? undefined : "status"}
+      transition={{ duration: 1.4, ease: "linear", repeat: Infinity }}
+      viewBox="0 0 24 24"
+    >
+      <defs>
+        <clipPath id={clipId}>
+          <circle cx="12" cy="12" r="9" />
+        </clipPath>
+      </defs>
+      <circle
+        className="fill-none stroke-current opacity-35"
+        cx="12"
+        cy="12"
+        r="9"
+        strokeWidth="1.8"
+      />
+      <g clipPath={`url(#${clipId})`}>
+        <motion.path
+          animate={{ x: [0, -12] }}
+          className="fill-current"
+          d="M-12 13 Q-6 9 0 13 T12 13 T24 13 T36 13 V26 H-12 Z"
+          transition={{ duration: 1.1, ease: "linear", repeat: Infinity }}
+        />
+      </g>
+    </motion.svg>
+  );
+}

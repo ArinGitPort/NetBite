@@ -3,6 +3,7 @@ import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { ConfirmationDialog } from "@/components/ui/dialog";
+import { LoadingButtonContent } from "@/components/ui/loading-content";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AssessmentMobilePreview } from "@/features/workshops/assessment-mobile-preview";
 import { AssessmentQuestionEditor } from "@/features/workshops/assessment-question-editor";
@@ -73,8 +74,7 @@ export function AssessmentEditor({
             }}
             tone="primary"
           >
-            <Save aria-hidden="true" />
-            {pendingAction === "save" ? "SAVING..." : "SAVE ASSESSMENT"}
+            {pendingAction === "save" ? <LoadingButtonContent label="SAVING..." /> : <><Save aria-hidden="true" />SAVE ASSESSMENT</>}
           </Button>
         </div>
       </header>
@@ -122,7 +122,8 @@ export function AssessmentEditor({
             <ConfirmationDialog
               confirmLabel="DELETE ASSESSMENT"
               description={`This permanently removes “${row.title || "Untitled assessment"}” from the current draft. Published versions and previously recorded grades are not changed.`}
-              destructive
+              busyLabel="DELETING..."
+              intent="destructive"
               onConfirm={async () => {
                 setPendingAction("delete");
                 try {
@@ -134,8 +135,7 @@ export function AssessmentEditor({
               title="Delete this assessment?"
               trigger={
                 <Button disabled={Boolean(pendingAction)} tone="destructive">
-                  <Trash2 aria-hidden="true" />
-                  {pendingAction === "delete" ? "DELETING..." : "DELETE ASSESSMENT"}
+                  {pendingAction === "delete" ? <LoadingButtonContent label="DELETING..." /> : <><Trash2 aria-hidden="true" />DELETE ASSESSMENT</>}
                 </Button>
               }
             />

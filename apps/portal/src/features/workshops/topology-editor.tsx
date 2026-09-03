@@ -1,14 +1,9 @@
 import { Cable } from "lucide-react";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import type {
-  WorkshopTopology,
-  WorkshopTopologyDevice,
-  WorkshopLinkPurpose,
-} from "@netbite/workshops/contracts";
+import type { WorkshopTopology, WorkshopTopologyDevice } from "@netbite/workshops/contracts";
 import { validateWorkshopTopology } from "@netbite/workshops/contracts";
 import {
   calculateWorkshopTopologyGeometry,
-  deriveWorkshopLinkPurpose,
   getAvailableConnectionInterfaces,
   normalizeWorkshopTopology,
   suggestWorkshopInterfaceName,
@@ -22,6 +17,8 @@ import { TopologyToolbar } from "@/features/workshops/topology-toolbar";
 import { TopologyValidation } from "@/features/workshops/topology-validation";
 import { useTopologyCanvasInteractions } from "@/features/workshops/hooks/use-topology-canvas-interactions";
 import { useTopologyDraft } from "@/features/workshops/hooks/use-topology-draft";
+import { useTopologyActionConfirmation } from "@/features/workshops/hooks/use-topology-action-confirmation";
+import { ConfirmationDialog } from "@/components/ui/dialog";
 export { defaultTopology } from "@/features/workshops/topology-model";
 
 export function TopologyEditor({
@@ -80,6 +77,12 @@ export function TopologyEditor({
   const selectedLink = topology.links.find(
     (link) => link.id === selectedLinkId,
   );
+  const topologyAction = useTopologyActionConfirmation({
+    topology,
+    setTopology,
+    setSelectedDeviceId: setSelectedId,
+    setSelectedLinkId,
+  });
   const issues = validateWorkshopTopology(topology);
   useLayoutEffect(() => {
     const canvas = canvasRef.current;
@@ -282,34 +285,6 @@ export function TopologyEditor({
       interfaceName: networkInterface?.name ?? "Unknown port",
     };
   };
-  const changeLinkPurpose = (purpose: WorkshopLinkPurpose) => {
-    if (
-      !selectedLink ||
-      (deriveWorkshopLinkPurpose(selectedLink, topology) === purpose &&
-        selectedLink.purpose)
-    )
-      return;
-    const incompatible = [
-      purpose !== "basic" && selectedLink.label,
-      purpose !== "routed" && selectedLink.network,
-      purpose !== "access" && selectedLink.accessVlan,
-      purpose !== "trunk" && selectedLink.trunkVlans?.length,
-    ].some(Boolean);
-    if (
-      incompatible &&
-      !window.confirm(
-        "Changing the connection purpose removes fields that do not apply. Continue?",
-      )
-    )
-      return;
-    updateLink({
-      purpose,
-      label: purpose === "basic" ? selectedLink.label : undefined,
-      network: purpose === "routed" ? selectedLink.network : undefined,
-      accessVlan: purpose === "access" ? selectedLink.accessVlan : undefined,
-      trunkVlans: purpose === "trunk" ? selectedLink.trunkVlans : undefined,
-    });
-  };
   const handleConnectionPointerDown = (
     event: React.PointerEvent,
     deviceId: string,
@@ -438,19 +413,9 @@ export function TopologyEditor({
           (link) => (link.fromDeviceId === selected.id && link.fromInterfaceId === interfaceId) ||
             (link.toDeviceId === selected.id && link.toInterfaceId === interfaceId),
         ))}
-        onRemoveInterface={(interfaceId) => selected && updateDevice({
-          interfaces: selected.interfaces.filter((item) => item.id !== interfaceId),
-        })}
+        onRemoveInterface={(interfaceId) => selected && topologyAction.removeInterface(selected, interfaceId)}
         onConnect={() => selected && openConnection(selected.id)}
-        onRemoveDevice={() => {
-          if (!selected) return;
-          setTopology((value) => ({
-            ...value,
-            devices: value.devices.filter((device) => device.id !== selected.id),
-            links: value.links.filter((link) => link.fromDeviceId !== selected.id && link.toDeviceId !== selected.id),
-          }));
-          setSelectedId(undefined);
-        }}
+        onRemoveDevice={() => selected && topologyAction.removeDevice(selected)}
       />      {topology.links.length ? (
         <TopologyConnectionWorkspace
           topology={topology}
@@ -463,14 +428,12 @@ export function TopologyEditor({
             setConnectionKey((value) => value + 1);
             setConnectionOpen(true);
           }}
-          onPurposeChange={changeLinkPurpose}
+          onPurposeChange={(purpose) => topologyAction.changeLinkPurpose(selectedLink, purpose)}
           onUpdate={updateLink}
           onRemove={(link) => {
             const from = connectionEndpoint(link, "from");
             const to = connectionEndpoint(link, "to");
-            if (!window.confirm(`Remove the connection from ${from.deviceName} ${from.interfaceName} to ${to.deviceName} ${to.interfaceName}?`)) return;
-            setTopology((value) => ({ ...value, links: value.links.filter((item) => item.id !== link.id) }));
-            setSelectedLinkId(undefined);
+            topologyAction.removeConnection(link, `${from.deviceName} ${from.interfaceName}`, `${to.deviceName} ${to.interfaceName}`);
           }}
         />
       ) : null}
@@ -493,6 +456,16 @@ export function TopologyEditor({
         startersOpen={startersOpen}
         setStartersOpen={setStartersOpen}
         setCanvasPan={setCanvasPan}
-      />    </div>
+      />
+      <ConfirmationDialog
+        confirmLabel={topologyAction.pending?.confirmLabel ?? "CONTINUE"}
+        description={topologyAction.pending?.description ?? "Confirm this topology change."}
+        intent={topologyAction.pending?.intent ?? "warning"}
+        onConfirm={() => topologyAction.pending?.action()}
+        onOpenChange={(open) => { if (!open) topologyAction.close(); }}
+        open={Boolean(topologyAction.pending)}
+        title={topologyAction.pending?.title ?? "Confirm topology change"}
+      />
+    </div>
   );
 }

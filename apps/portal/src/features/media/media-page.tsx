@@ -1,54 +1,30 @@
-import {
-  Archive,
-  ArrowDown,
-  ArrowLeft,
-  ArrowUp,
-  BookOpen,
-  CheckCircle2,
-  ChevronDown,
-  ChevronRight,
-  ClipboardCheck,
-  FileClock,
-  FileText,
-  Image,
-  Plus,
-  RefreshCw,
-  Rocket,
-  Save,
-  Search,
-  Sparkles,
-  Trash2,
-  Upload,
-  X,
-} from "lucide-react";
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type FormEvent,
-} from "react";
+import { Image, Upload, X } from "lucide-react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import * as curriculumApi from "@/lib/api/curriculum-service";
 import * as mediaApi from "@/lib/api/media-service";
-import type {
-  AssetRow,
-  ChapterRow,
-  FlashcardRow,
-  LessonRow,
-  QuizRow,
-  ReleaseRow,
-  SafeAuditEntry,
-  SourceRow,
-} from "@/lib/api/types";
+import type { AssetRow, LessonRow } from "@/lib/api/types";
 import {
-  ConfirmAction,
   EmptyState as Empty,
   Field,
   PageIntro,
-  StatusBadge as Badge,
 } from "@/components/ui/admin-primitives";
+import {
+  Attachment,
+  AttachmentAction,
+  AttachmentActions,
+  AttachmentContent,
+  AttachmentDescription,
+  AttachmentMedia,
+  AttachmentTitle,
+  AttachmentTrigger,
+} from "@/components/ui/attachment";
 import { Button } from "@/components/ui/button";
+import { ConfirmAction, Dialog } from "@/components/ui/dialog";
+import { InlineWaveSpinner } from "@/components/shadcn-space/spinner/spinner-10";
+import {
+  LoadingButtonContent,
+  LoadingContent,
+} from "@/components/ui/loading-content";
 import { SelectField } from "@/components/ui/select";
 
 export function Assets() {
@@ -59,16 +35,35 @@ export function Assets() {
   const [altText, setAltText] = useState("");
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [filePreview, setFilePreview] = useState<string>();
+  const [filePreviewOpen, setFilePreviewOpen] = useState(false);
+  const [previewAsset, setPreviewAsset] = useState<AssetRow>();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const load = () =>
-    Promise.all([mediaApi.getAssets(), curriculumApi.getCurriculum()]).then(
-      ([nextRows, curriculum]) => {
+    Promise.all([mediaApi.getAssets(), curriculumApi.getCurriculum()])
+      .then(([nextRows, curriculum]) => {
         setRows(nextRows);
         setLessons(curriculum.lessons.filter(({ archived }) => !archived));
-      },
-    );
+      })
+      .finally(() => setLoading(false));
   useEffect(() => {
     void load();
   }, []);
+  useEffect(() => {
+    if (!file) {
+      setFilePreview(undefined);
+      return;
+    }
+    const objectUrl = URL.createObjectURL(file);
+    setFilePreview(objectUrl);
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [file]);
+  const clearFile = () => {
+    setFilePreviewOpen(false);
+    setFile(undefined);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
   const upload = async (event: FormEvent) => {
     event.preventDefault();
     if (!file || altText.trim().length < 5)
@@ -90,7 +85,7 @@ export function Assets() {
         dimensions,
         lessonId || undefined,
       );
-      setFile(undefined);
+      clearFile();
       setAltText("");
       setNotice("Image uploaded to the private draft library.");
       await load();
@@ -139,11 +134,48 @@ export function Assets() {
           >
             <input
               accept="image/png,image/jpeg,image/webp"
+              ref={fileInputRef}
               required
               type="file"
               onChange={(event) => setFile(event.target.files?.[0])}
             />
           </Field>
+          {file ? (
+            <Attachment className="w-full" state={busy ? "uploading" : "idle"}>
+              <AttachmentTrigger
+                aria-label={`Preview ${file.name}`}
+                disabled={busy || !filePreview}
+                onClick={() => setFilePreviewOpen(true)}
+              />
+              <AttachmentMedia variant={busy ? "icon" : "image"}>
+                {busy ? (
+                  <InlineWaveSpinner decorative label={`Uploading ${file.name}`} />
+                ) : filePreview ? (
+                  <img alt="" src={filePreview} />
+                ) : (
+                  <Image />
+                )}
+              </AttachmentMedia>
+              <AttachmentContent>
+                <AttachmentTitle>{file.name}</AttachmentTitle>
+                <AttachmentDescription>
+                  {busy
+                    ? "Uploading"
+                    : `${formatMimeType(file.type)} · ${formatBytes(file.size)}`}
+                </AttachmentDescription>
+              </AttachmentContent>
+              {!busy ? (
+                <AttachmentActions>
+                  <AttachmentAction
+                    aria-label={`Remove ${file.name}`}
+                    onClick={clearFile}
+                  >
+                    <X />
+                  </AttachmentAction>
+                </AttachmentActions>
+              ) : null}
+            </Attachment>
+          ) : null}
           <Field
             label="Alternative text"
             hint="Describe the meaningful visual information, not the filename."
@@ -158,57 +190,68 @@ export function Assets() {
             />
           </Field>
           <Button disabled={busy} tone="primary" type="submit">
-            <Upload />
-            {busy ? "UPLOADING..." : "UPLOAD DRAFT IMAGE"}
+            {busy ? (
+              <LoadingButtonContent label="UPLOADING..." />
+            ) : (
+              <>
+                <Upload />
+                UPLOAD DRAFT IMAGE
+              </>
+            )}
           </Button>
         </form>
         <section className="rounded-panel border border-line bg-surface p-5 shadow-panel">
           <h2 className="text-lg">Media records</h2>
-          <div className="grid gap-3">
-            {rows.map((asset) => (
-              <article
-                className="grid grid-cols-[74px_minmax(0,1fr)_44px] items-center gap-3 rounded-control border border-line bg-canvas p-3 max-sm:grid-cols-[60px_minmax(0,1fr)]"
-                key={asset.id}
-              >
-                <div className="grid size-[70px] place-items-center overflow-hidden rounded-control bg-raised text-muted [&_img]:size-full [&_img]:object-cover">
-                  {asset.preview_url ? (
-                    <img src={asset.preview_url} alt={asset.alt_text} />
-                  ) : (
-                    <Image />
-                  )}
-                </div>
-                <div className="grid min-w-0 gap-1">
-                  <Badge tone={asset.published ? "green" : "orange"}>
-                    {asset.published ? "PUBLISHED" : "DRAFT"}
-                  </Badge>
-                  <strong className="block break-words">
-                    {asset.alt_text}
-                  </strong>
-                  <small className="block text-muted">
-                    {asset.width} × {asset.height} /{" "}
-                    {Math.round(asset.byte_size / 1024)} KB
-                  </small>
-                </div>
-                <ConfirmAction
-                  className="grid size-11 place-items-center rounded-control border border-signal-red/60 bg-signal-red-soft text-signal-red hover:border-signal-red [&_svg]:size-[18px]"
-                  ariaLabel="Delete image"
-                  confirmLabel="DELETE IMAGE"
-                  detail="This permanently removes the unpublished image from draft storage."
-                  disabled={asset.published}
-                  onConfirm={() => mediaApi.deleteAsset(asset).then(load)}
-                  title="Delete this draft image?"
-                  triggerTitle={
-                    asset.published
-                      ? "Published images cannot be changed"
-                      : "Delete draft image"
-                  }
-                >
-                  <X />
-                </ConfirmAction>
-              </article>
-            ))}
-          </div>
-          {!rows.length ? (
+          {loading ? (
+            <LoadingContent label="Loading media records" variant="section" />
+          ) : (
+            <div className="grid gap-3 pt-4">
+              {rows.map((asset) => (
+                <Attachment className="w-full" key={asset.id}>
+                  <AttachmentTrigger
+                    aria-label={`Preview ${asset.alt_text}`}
+                    disabled={!asset.preview_url}
+                    onClick={() => setPreviewAsset(asset)}
+                  />
+                  <AttachmentMedia variant="image">
+                    {asset.preview_url ? (
+                      <img alt="" src={asset.preview_url} />
+                    ) : (
+                      <Image />
+                    )}
+                  </AttachmentMedia>
+                  <AttachmentContent>
+                    <AttachmentTitle>{asset.alt_text}</AttachmentTitle>
+                    <AttachmentDescription>
+                      {asset.published ? "Published" : "Draft"} ·{" "}
+                      {formatMimeType(asset.mime_type)} ·{" "}
+                      {formatBytes(asset.byte_size)} · {asset.width} ×{" "}
+                      {asset.height}
+                    </AttachmentDescription>
+                  </AttachmentContent>
+                  <AttachmentActions>
+                    <ConfirmAction
+                      ariaLabel="Delete image"
+                      className="grid size-8 place-items-center rounded-control border border-transparent text-muted transition-colors hover:border-signal-red/50 hover:bg-signal-red-soft hover:text-signal-red disabled:opacity-50 [&_svg]:size-4"
+                      confirmLabel="DELETE IMAGE"
+                      detail="This permanently removes the unpublished image from draft storage."
+                      disabled={asset.published}
+                      onConfirm={() => mediaApi.deleteAsset(asset).then(load)}
+                      title="Delete this draft image?"
+                      triggerTitle={
+                        asset.published
+                          ? "Published images cannot be changed"
+                          : "Delete draft image"
+                      }
+                    >
+                      <X />
+                    </ConfirmAction>
+                  </AttachmentActions>
+                </Attachment>
+              ))}
+            </div>
+          )}
+          {!loading && !rows.length ? (
             <Empty
               title="No supporting images"
               detail="Upload an accessible image for a lesson draft."
@@ -216,9 +259,67 @@ export function Assets() {
           ) : null}
         </section>
       </div>
+      <Dialog
+        description={
+          previewAsset
+            ? `${formatMimeType(previewAsset.mime_type)} · ${formatBytes(previewAsset.byte_size)} · ${previewAsset.width} × ${previewAsset.height}`
+            : undefined
+        }
+        onOpenChange={(open) => {
+          if (!open) setPreviewAsset(undefined);
+        }}
+        open={Boolean(previewAsset)}
+        title={previewAsset?.alt_text ?? "Image preview"}
+      >
+        {previewAsset?.preview_url ? (
+          <figure className="m-0 grid gap-3">
+            <div className="grid min-h-48 place-items-center overflow-hidden rounded-control border border-line bg-canvas p-2">
+              <img
+                alt={previewAsset.alt_text}
+                className="max-h-[70vh] max-w-full object-contain"
+                src={previewAsset.preview_url}
+              />
+            </div>
+            <figcaption className="text-xs text-muted">
+              {previewAsset.published ? "Published curriculum media" : "Private draft media"}
+            </figcaption>
+          </figure>
+        ) : null}
+      </Dialog>
+      <Dialog
+        description={
+          file
+            ? `${formatMimeType(file.type)} · ${formatBytes(file.size)}`
+            : undefined
+        }
+        onOpenChange={setFilePreviewOpen}
+        open={filePreviewOpen && Boolean(filePreview)}
+        title={file?.name ?? "Selected image preview"}
+      >
+        {filePreview ? (
+          <div className="grid min-h-48 place-items-center overflow-hidden rounded-control border border-line bg-canvas p-2">
+            <img
+              alt={altText.trim() || file?.name || "Selected image"}
+              className="max-h-[70vh] max-w-full object-contain"
+              src={filePreview}
+            />
+          </div>
+        ) : null}
+      </Dialog>
     </>
   );
 }
+
+function formatMimeType(mimeType: string) {
+  return mimeType.split("/").at(-1)?.toUpperCase() || "IMAGE";
+}
+
+function formatBytes(bytes: number) {
+  return bytes >= 1024 * 1024
+    ? `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+    : `${Math.max(1, Math.round(bytes / 1024))} KB`;
+}
+
 function imageDimensions(file: File) {
   return new Promise<{ width: number; height: number }>((resolve, reject) => {
     const image = new window.Image();

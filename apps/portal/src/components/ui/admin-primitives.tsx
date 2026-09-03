@@ -1,18 +1,14 @@
 import { FileText } from "lucide-react";
 import type { ReactNode } from "react";
-import { useCallback, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog } from "@/components/ui/dialog";
-import LiquidWaveSpinner from "@/components/shadcn-space/spinner/spinner-10";
+import { LoadingContent } from "@/components/ui/loading-content";
+import { cn } from "@/lib/class-names";
 
 export function LoadingState({ label = "Loading portal" }: { label?: string }) {
-  return (
-    <div aria-label={label} aria-live="polite" className="flex min-h-60 items-center justify-center text-center" role="status">
-      <LiquidWaveSpinner className="max-w-sm" size="sm" words={[label]} />
-    </div>
-  );
+  return <LoadingContent label={label} />;
 }
 
 export function EmptyState({
@@ -45,6 +41,23 @@ export function StatusBadge({
     <Badge className={className} tone={normalizedTone}>
       {children}
     </Badge>
+  );
+}
+
+export function StatusHeading({
+  status,
+  title,
+  className,
+}: {
+  status: ReactNode;
+  title: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={cn("grid justify-items-start gap-2.5", className)}>
+      {status}
+      <h2 className="break-words leading-tight">{title}</h2>
+    </div>
   );
 }
 
@@ -124,99 +137,5 @@ export function DialogFrame({
       </p>
       {children}
     </Dialog>
-  );
-}
-
-export function ConfirmAction({
-  className,
-  ariaLabel,
-  disabled,
-  triggerTitle,
-  children,
-  eyebrow = "CONFIRM ACTION",
-  title,
-  detail,
-  confirmLabel,
-  tone = "danger",
-  onConfirm,
-}: {
-  className: string;
-  ariaLabel?: string;
-  disabled?: boolean;
-  triggerTitle?: string;
-  children: ReactNode;
-  eyebrow?: string;
-  title: string;
-  detail: string;
-  confirmLabel: string;
-  tone?: "danger" | "warning";
-  onConfirm: () => void | Promise<void>;
-}) {
-  const [open, setOpen] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
-  const close = useCallback(() => {
-    if (!busy) setOpen(false);
-  }, [busy]);
-  const confirm = async () => {
-    if (busy) return;
-    setBusy(true);
-    setError("");
-    try {
-      await onConfirm();
-      setOpen(false);
-    } catch (nextError) {
-      setError(
-        (nextError as Error).message || "The action could not be completed.",
-      );
-    } finally {
-      setBusy(false);
-    }
-  };
-  return (
-    <>
-      <button
-        aria-label={ariaLabel}
-        className={className}
-        disabled={disabled}
-        onClick={() => {
-          setError("");
-          setOpen(true);
-        }}
-        title={triggerTitle}
-        type="button"
-      >
-        {children}
-      </button>
-      {open ? (
-        <DialogFrame
-          detail={detail}
-          eyebrow={eyebrow}
-          onClose={close}
-          title={title}
-        >
-          {error ? (
-            <div
-              className="rounded-control border border-signal-red/60 bg-signal-red-soft p-3 text-sm text-signal-red"
-              role="alert"
-            >
-              {error}
-            </div>
-          ) : null}
-          <div className="mt-5 flex flex-col-reverse justify-end gap-3 sm:flex-row">
-            <Button disabled={busy} onClick={close} tone="outline">
-              Cancel
-            </Button>
-            <Button
-              disabled={busy}
-              onClick={() => void confirm()}
-              tone={tone === "danger" ? "destructive" : "secondary"}
-            >
-              {busy ? "Working..." : confirmLabel}
-            </Button>
-          </div>
-        </DialogFrame>
-      ) : null}
-    </>
   );
 }

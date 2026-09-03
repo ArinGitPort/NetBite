@@ -1,4 +1,3 @@
-import { gsap } from "gsap";
 import {
   type CSSProperties,
   useEffect,
@@ -45,6 +44,9 @@ export function StrokeText({
   const clipId = `stroke-text-${rawId.replace(/[^a-zA-Z0-9_-]/g, "")}`;
   const characters = useMemo(() => Array.from(text), [text]);
   const dashLength = Math.max(fontSize * 8, 240);
+  const reducedMotion =
+    typeof window !== "undefined" &&
+    window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
   const textStyle = useMemo<CSSProperties>(
     () => ({
       fontFamily: "inherit",
@@ -89,39 +91,38 @@ export function StrokeText({
     if (!root || !wipe || !bounds) return;
 
     const strokes = root.querySelectorAll<SVGTSpanElement>("[data-stroke-character]");
-    const context = gsap.context(() => {
-      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-        gsap.set(strokes, { strokeDashoffset: 0 });
-        gsap.set(wipe, { attr: { width: bounds.width } });
-        return;
-      }
+    if (reducedMotion) return;
 
-      gsap.set(strokes, {
-        strokeDasharray: dashLength,
-        strokeDashoffset: dashLength,
-      });
-      gsap.set(wipe, { attr: { width: 0 } });
-      gsap
-        .timeline({ defaults: { overwrite: "auto" } })
-        .to(strokes, {
-          duration: drawDuration,
-          ease: "power2.out",
-          stagger: 0.035,
-          strokeDashoffset: 0,
-        })
-        .to(
-          wipe,
-          {
-            attr: { width: bounds.width },
-            duration: Math.max(0.4, drawDuration * 0.55),
-            ease: "power2.inOut",
-          },
-          drawDuration + fillDelay,
-        );
-    }, root);
+    let cancelled = false;
+    let context: { revert: () => void } | undefined;
+    void import("gsap").then(({ gsap }) => {
+      if (cancelled) return;
+      context = gsap.context(() => {
+        gsap
+          .timeline({ defaults: { overwrite: "auto" } })
+          .to(strokes, {
+            duration: drawDuration,
+            ease: "power2.out",
+            stagger: 0.035,
+            strokeDashoffset: 0,
+          })
+          .to(
+            wipe,
+            {
+              attr: { width: bounds.width },
+              duration: Math.max(0.4, drawDuration * 0.55),
+              ease: "power2.inOut",
+            },
+            drawDuration + fillDelay,
+          );
+      }, root);
+    });
 
-    return () => context.revert();
-  }, [bounds, dashLength, drawDuration, fillDelay]);
+    return () => {
+      cancelled = true;
+      context?.revert();
+    };
+  }, [bounds, drawDuration, fillDelay, reducedMotion]);
 
   const fallbackBounds: TextBounds = {
     x: 0,
@@ -149,7 +150,7 @@ export function StrokeText({
             <rect
               height={viewBounds.height}
               ref={wipeRef}
-              width="0"
+              width={reducedMotion ? viewBounds.width : 0}
               x={viewBounds.x}
               y={viewBounds.y}
             />
@@ -168,7 +169,12 @@ export function StrokeText({
           y="0"
         >
           {characters.map((character, index) => (
-            <tspan data-stroke-character key={`${character}-${index}`}>
+            <tspan
+              data-stroke-character
+              key={`${character}-${index}`}
+              strokeDasharray={dashLength}
+              strokeDashoffset={reducedMotion ? 0 : dashLength}
+            >
               {character}
             </tspan>
           ))}

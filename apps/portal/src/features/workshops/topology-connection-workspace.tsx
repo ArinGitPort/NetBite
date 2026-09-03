@@ -29,7 +29,7 @@ export function TopologyConnectionWorkspace(props: ConnectionWorkspaceProps) {
   const { topology, selectedLink } = props;
   const activePurpose = selectedLink ? selectedLink.purpose ?? deriveWorkshopLinkPurpose(selectedLink, topology) : undefined;
   return (
-    <section className="grid grid-cols-[280px_minmax(0,1fr)] overflow-hidden rounded-panel border border-line max-lg:grid-cols-1">
+    <section className="my-4 grid grid-cols-[280px_minmax(0,1fr)] overflow-hidden rounded-panel border border-line bg-surface max-lg:grid-cols-1">
       <nav aria-label="Topology connections" className="grid content-start gap-2 border-r border-line bg-sidebar p-4 max-lg:border-b max-lg:border-r-0">
         <strong className="mb-1 font-mono text-[0.68rem] tracking-[0.08em] text-copy">CONNECTIONS</strong>
         {topology.links.map((link) => {
@@ -75,7 +75,7 @@ export function TopologyConnectionWorkspace(props: ConnectionWorkspaceProps) {
             <Button onClick={() => props.onRemove(selectedLink)} tone="destructive">Remove connection</Button>
           </section>
         </div>
-      ) : <p className="p-5 text-sm text-muted">Select a connection to add its learner-facing network or VLAN information.</p>}
+      ) : <p className="m-0 p-5 text-sm leading-6 text-muted">Select a connection to add its learner-facing network or VLAN information.</p>}
     </section>
   );
 }

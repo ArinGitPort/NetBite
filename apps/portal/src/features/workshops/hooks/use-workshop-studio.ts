@@ -21,6 +21,7 @@ export function useWorkshopStudio(area: WorkshopArea) {
   const [selectedTopology, setSelectedTopology] = useState<string>();
   const [collectionView, setCollectionView] = useState<"lessons" | "topologies">("lessons");
   const [gradeRows, setGradeRows] = useState<Array<Record<string, unknown>>>([]);
+  const [gradebookLoading, setGradebookLoading] = useState(area === "gradebook");
   const [notice, setNotice] = useState<string>();
   const [error, setError] = useState<string>();
   const [detailsMode, setDetailsMode] = useState<WorkshopDetailsMode>();
@@ -74,8 +75,20 @@ export function useWorkshopStudio(area: WorkshopArea) {
   };
   const selectedClass = classes.find((item) => item.workshop_id === selectedId);
   useEffect(() => {
-    if (area !== "gradebook" || !selectedClass) return;
-    void workshopApi.getWorkshopGradebook(selectedClass.id).then((result) => setGradeRows(result.rows)).catch((reason: Error) => setError(reason.message));
+    if (area !== "gradebook") return;
+    if (!selectedClass) {
+      setGradeRows([]);
+      setGradebookLoading(false);
+      return;
+    }
+    let active = true;
+    setGradeRows([]);
+    setGradebookLoading(true);
+    void workshopApi.getWorkshopGradebook(selectedClass.id)
+      .then((result) => { if (active) setGradeRows(result.rows); })
+      .catch((reason: Error) => { if (active) setError(reason.message); })
+      .finally(() => { if (active) setGradebookLoading(false); });
+    return () => { active = false; };
   }, [area, selectedClass?.id]);
   const updateLesson = (row: WorkshopLessonRow) => setLessons((value) => value.map((item) => item.id === row.id ? row : item));
   const addLesson = async () => {
@@ -126,8 +139,12 @@ export function useWorkshopStudio(area: WorkshopArea) {
       if (selectedTopologyRow.id) await workshopApi.deleteWorkshopTopology(selectedTopologyRow.id);
       const remaining = topologies.filter((row) => row.stable_id !== selectedTopologyRow.stable_id);
       setTopologies(remaining); setSelectedTopology(remaining[0]?.stable_id); setTopologyDetailsOpen(false); setNotice("Topology deleted from the current draft.");
-    } catch (reason) { setError(reason instanceof Error ? reason.message : "The topology could not be deleted."); }
+    } catch (reason) {
+      const error = reason instanceof Error ? reason : new Error("The topology could not be deleted.");
+      setError(error.message);
+      throw error;
+    }
   };
 
-  return { loading, workshops, setWorkshops, selectedId, setSelectedId, lessons, topologies, setTopologies, assessments, setAssessments, classes, versions, selectedLesson, setSelectedLesson, selectedAssessment, setSelectedAssessment, selectedTopology, setSelectedTopology, collectionView, setCollectionView, gradeRows, notice, setNotice, error, setError, detailsMode, setDetailsMode, addingLesson, topologyDetailsOpen, setTopologyDetailsOpen, topologyName, setTopologyName, savingTopologyName, selectedWorkshop, load, create, saveDetails, deleteDraft, updateLesson, addLesson, deleteLesson, updateAssessment, addTopology, selectedTopologyRow, topologyReferenceCount, openTopologyDetails, renameTopology, deleteTopology };
+  return { loading, workshops, setWorkshops, selectedId, setSelectedId, lessons, topologies, setTopologies, assessments, setAssessments, classes, versions, selectedLesson, setSelectedLesson, selectedAssessment, setSelectedAssessment, selectedTopology, setSelectedTopology, collectionView, setCollectionView, gradeRows, gradebookLoading, notice, setNotice, error, setError, detailsMode, setDetailsMode, addingLesson, topologyDetailsOpen, setTopologyDetailsOpen, topologyName, setTopologyName, savingTopologyName, selectedWorkshop, load, create, saveDetails, deleteDraft, updateLesson, addLesson, deleteLesson, updateAssessment, addTopology, selectedTopologyRow, topologyReferenceCount, openTopologyDetails, renameTopology, deleteTopology };
 }

@@ -1,29 +1,38 @@
 import {
+  ArrowDown,
+  ArrowUp,
   BarChart3,
-  CheckCircle2,
-  Clock3,
+  ChevronsUpDown,
   Download,
   FileCheck2,
-  Gauge,
-  Sigma,
   TriangleAlert,
-  UsersRound,
   type LucideIcon,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { StatusBadge } from "@/components/ui/admin-primitives";
 import { Button } from "@/components/ui/button";
+import { DataPagination } from "@/components/ui/data-pagination";
 import { FilterToolbar } from "@/components/ui/filter-toolbar";
+import { LoadingButtonContent, LoadingContent } from "@/components/ui/loading-content";
 import { SelectField } from "@/components/ui/select";
+import { downloadGradebookWorkbook } from "@/features/classes/gradebook-export";
 
 type GradeRow = Record<string, unknown>;
+type GradeSortKey = "student" | "assessment" | "grade" | "attempts" | "status";
+type SortDirection = "ascending" | "descending";
+const PAGE_SIZE = 10;
 
-export function Gradebook({ rows }: { rows: GradeRow[] }) {
+export function Gradebook({ rows, loading = false }: { rows: GradeRow[]; loading?: boolean }) {
   const [query, setQuery] = useState("");
   const [studentFilter, setStudentFilter] = useState("");
   const [assessmentFilter, setAssessmentFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [sortKey, setSortKey] = useState<GradeSortKey>("student");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("ascending");
+  const [page, setPage] = useState(1);
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState("");
   const studentOptions = useMemo(
     () => uniqueOptions(rows, "studentId", "studentName"),
     [rows],
@@ -54,93 +63,75 @@ export function Gradebook({ rows }: { rows: GradeRow[] }) {
       );
     });
   }, [assessmentFilter, query, rows, statusFilter, studentFilter]);
+  const sortedRows = useMemo(
+    () => sortGradeRows(filteredRows, sortKey, sortDirection),
+    [filteredRows, sortDirection, sortKey],
+  );
+  const pageCount = Math.max(1, Math.ceil(sortedRows.length / PAGE_SIZE));
+  const currentPage = Math.min(page, pageCount);
+  const paginatedRows = sortedRows.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
   const metrics = calculateMetrics(filteredRows);
   const filtersActive = Boolean(
     query.trim() || studentFilter || assessmentFilter || statusFilter,
   );
 
-  const exportCsv = () => {
-    const columns = [
-      "Student",
-      "Assessment",
-      "Recorded percentage",
-      "Attempts",
-      "Status",
-    ];
-    const lines = [
-      columns,
-      ...filteredRows.map((row) => [
-        row.studentName,
-        row.assessmentTitle,
-        row.percentage ?? "",
-        row.attempts,
-        row.status,
-      ]),
-    ].map((values) =>
-      values
-        .map((value) => `"${String(value).replaceAll('"', '""')}"`)
-        .join(","),
-    );
-    const blob = new Blob([lines.join("\n")], { type: "text/csv" });
-    const anchor = document.createElement("a");
-    anchor.href = URL.createObjectURL(blob);
-    anchor.download = "netbite-gradebook.csv";
-    anchor.click();
-    URL.revokeObjectURL(anchor.href);
+  useEffect(() => {
+    setPage(1);
+  }, [assessmentFilter, query, sortDirection, sortKey, statusFilter, studentFilter]);
+
+  const exportWorkbook = async () => {
+    if (exporting || !sortedRows.length) return;
+    setExporting(true);
+    setExportError("");
+    try {
+      await downloadGradebookWorkbook(sortedRows.map((row) => ({
+        assessmentTitle: text(row.assessmentTitle),
+        attempts: text(row.attempts),
+        percentage: finiteNumber(row.percentage),
+        status: text(row.status),
+        studentName: text(row.studentName),
+      })));
+    } catch {
+      setExportError("The Excel workbook could not be generated. Please try again.");
+    } finally {
+      setExporting(false);
+    }
   };
+
+  if (loading) {
+    return (
+      <section className="min-w-0" data-testid="recorded-grades">
+        <div className="mb-5 grid gap-1.5">
+          <h2 className="m-0 text-lg">Recorded grades</h2>
+          <p className="m-0 text-sm leading-6 text-muted">Fetching the latest learner submissions from the class.</p>
+        </div>
+        <LoadingContent label="Loading grade records" variant="table" />
+      </section>
+    );
+  }
 
   return (
     <>
-      <section aria-label="Gradebook summary" className="mb-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <GradeMetric
-          icon={UsersRound}
-          label="Enrolled"
-          note="Students represented in these results"
-          value={String(metrics.enrolled)}
-        />
+      <section aria-label="Gradebook summary" className="mb-6 grid gap-3 md:grid-cols-3">
         <GradeMetric
           icon={FileCheck2}
-          label="Submitted"
-          note={`${metrics.missing} awaiting submission`}
-          value={String(metrics.submitted)}
+          label="Completion"
+          note={`${metrics.submitted} of ${filteredRows.length} results submitted`}
+          value={filteredRows.length ? `${((metrics.submitted / filteredRows.length) * 100).toFixed(0)}%` : "—"}
         />
         <GradeMetric
           icon={BarChart3}
           label="Average score"
           note={`${metrics.scores.length} recorded scores`}
-          value={`${metrics.average.toFixed(1)}%`}
+          value={metrics.scores.length ? `${metrics.average.toFixed(1)}%` : "—"}
         />
         <GradeMetric
           accent="orange"
-          icon={Gauge}
-          label="Pass rate"
-          note={metrics.submitted ? `${metrics.passed} of ${metrics.submitted} submissions passed` : "No submissions recorded"}
-          value={metrics.submitted ? `${((metrics.passed / metrics.submitted) * 100).toFixed(0)}%` : "—"}
+          icon={TriangleAlert}
+          label="Needs attention"
+          note={`${metrics.missing} missing · ${metrics.late} late`}
+          value={String(metrics.missing + metrics.late)}
         />
-      </section>
-
-      <section className="mb-7 overflow-hidden rounded-panel border border-line bg-canvas/35">
-        <header className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
-          <div>
-            <p className="m-0 font-mono text-[0.62rem] font-semibold tracking-[0.1em] text-signal-orange">
-              ASSESSMENT HEALTH
-            </p>
-            <h2 className="m-0 mt-1 text-base">Result distribution</h2>
-          </div>
-          <StatusBadge tone={metrics.missing || metrics.late ? "orange" : "green"}>
-            {metrics.missing || metrics.late ? "FOLLOW-UP NEEDED" : "UP TO DATE"}
-          </StatusBadge>
-        </header>
-        <div className="grid border-t border-line sm:grid-cols-2 xl:grid-cols-4">
-          <HealthMetric icon={TriangleAlert} label="Missing" value={String(metrics.missing)} />
-          <HealthMetric icon={Clock3} label="Late" value={String(metrics.late)} />
-          <HealthMetric icon={Sigma} label="Median" value={`${metrics.median.toFixed(1)}%`} />
-          <HealthMetric
-            icon={CheckCircle2}
-            label="Score range"
-            value={metrics.scores.length ? `${metrics.scores[0].toFixed(0)}–${metrics.scores.at(-1)!.toFixed(0)}%` : "—"}
-          />
-        </div>
       </section>
 
       <section className="min-w-0" data-testid="recorded-grades">
@@ -151,10 +142,11 @@ export function Gradebook({ rows }: { rows: GradeRow[] }) {
               Search and narrow the recorded attempt selected by each assessment’s score policy.
             </p>
           </div>
-          <Button disabled={!filteredRows.length} onClick={exportCsv} tone="secondary">
-            <Download /> EXPORT {filteredRows.length} RESULTS
+          <Button disabled={!filteredRows.length || exporting} onClick={() => void exportWorkbook()} tone="secondary">
+            {exporting ? <LoadingButtonContent label="PREPARING EXCEL..." /> : <><Download />EXPORT {filteredRows.length} RESULTS</>}
           </Button>
         </div>
+        {exportError ? <p className="mb-4 mt-0 text-sm text-signal-red" role="alert">{exportError}</p> : null}
 
         <FilterToolbar
           active={filtersActive}
@@ -198,7 +190,27 @@ export function Gradebook({ rows }: { rows: GradeRow[] }) {
           />
         </FilterToolbar>
 
-        <GradeTable rows={filteredRows} />
+        <GradeTable
+          direction={sortDirection}
+          onSort={(key) => {
+            if (sortKey === key) {
+              setSortDirection((current) => current === "ascending" ? "descending" : "ascending");
+              return;
+            }
+            setSortKey(key);
+            setSortDirection(key === "grade" || key === "attempts" ? "descending" : "ascending");
+          }}
+          rows={paginatedRows}
+          sortKey={sortKey}
+        />
+        <DataPagination
+          ariaLabel="Gradebook pagination"
+          count={sortedRows.length}
+          itemLabel="grade records"
+          onPageChange={setPage}
+          page={currentPage}
+          pageSize={PAGE_SIZE}
+        />
       </section>
     </>
   );
@@ -218,70 +230,109 @@ function GradeMetric({
   value: string;
 }) {
   const iconStyle = accent === "orange"
-    ? "border-signal-orange/50 bg-signal-orange-soft text-signal-orange"
-    : "border-signal-green/50 bg-signal-green-soft text-signal-green";
+    ? "text-signal-orange/10 dark:text-signal-orange/20"
+    : "text-signal-green/10 dark:text-signal-green/20";
   return (
-    <article className="relative grid min-h-40 overflow-hidden rounded-panel border border-line bg-surface p-5 shadow-panel transition-colors hover:border-muted">
-      <div className="flex items-start justify-between gap-4">
-        <span className={`grid size-11 place-items-center rounded-control border ${iconStyle}`}>
-          <Icon className="size-5" />
-        </span>
+    <article className="relative grid min-h-32 overflow-hidden rounded-panel border border-line bg-surface p-5 shadow-panel">
+      <Icon aria-hidden="true" className={`pointer-events-none absolute -bottom-4 -right-3 size-28 rotate-[-6deg] ${iconStyle}`} strokeWidth={1.25} />
+      <div className="relative z-10 grid gap-4">
         <span className="font-mono text-[0.6rem] font-semibold uppercase tracking-[0.1em] text-muted">{label}</span>
-      </div>
-      <div className="mt-5 grid gap-1.5">
-        <strong className="text-3xl leading-none tracking-[-0.04em] text-copy">{value}</strong>
-        <small className="text-xs leading-5 text-muted">{note}</small>
+        <div className="grid gap-1.5">
+          <strong className="text-3xl leading-none tracking-[-0.04em] text-copy">{value}</strong>
+          <small className="text-xs leading-5 text-muted">{note}</small>
+        </div>
       </div>
       <span className={`absolute inset-x-0 bottom-0 h-0.5 ${accent === "orange" ? "bg-signal-orange" : "bg-signal-green"}`} />
     </article>
   );
 }
 
-function HealthMetric({ icon: Icon, label, value }: { icon: LucideIcon; label: string; value: string }) {
-  return (
-    <div className="flex min-h-24 items-center gap-3 border-t border-line px-5 py-4 first:border-t-0 sm:border-l sm:border-t-0 sm:first:border-l-0 sm:[&:nth-child(3)]:border-l-0 xl:[&:nth-child(3)]:border-l xl:[&:nth-child(3)]:border-t-0">
-      <Icon className="size-5 shrink-0 text-signal-green" />
-      <div className="grid gap-1">
-        <strong className="text-xl leading-none">{value}</strong>
-        <span className="text-xs text-muted">{label}</span>
-      </div>
-    </div>
-  );
-}
+const gradeColumns: Array<{ key: GradeSortKey; label: string }> = [
+  { key: "student", label: "Student" },
+  { key: "assessment", label: "Assessment" },
+  { key: "grade", label: "Grade" },
+  { key: "attempts", label: "Attempts" },
+  { key: "status", label: "Status" },
+];
 
-function GradeTable({ rows }: { rows: GradeRow[] }) {
+function GradeTable({ rows, sortKey, direction, onSort }: {
+  rows: GradeRow[];
+  sortKey: GradeSortKey;
+  direction: SortDirection;
+  onSort: (key: GradeSortKey) => void;
+}) {
   return (
-    <div className="overflow-x-auto rounded-control border border-line [&>div]:grid [&>div]:min-w-[720px] [&>div]:grid-cols-[1.2fr_1.4fr_.7fr_.6fr_.7fr] [&>div]:gap-3 [&>div]:border-t [&>div]:border-line [&>div]:px-4 [&>div]:py-3 [&>div:first-child]:border-t-0" role="table">
-      <div className="font-semibold text-copy" role="row">
-        <span>Student</span><span>Assessment</span><span>Grade</span><span>Attempts</span><span>Status</span>
+    <div className="overflow-x-auto rounded-control border border-line" role="table">
+      <div className="grid min-w-[720px] grid-cols-[1.2fr_1.4fr_.7fr_.6fr_.7fr] bg-raised/45 text-copy" role="row">
+        {gradeColumns.map((column, index) => {
+          const active = sortKey === column.key;
+          const SortIcon = active ? direction === "ascending" ? ArrowUp : ArrowDown : ChevronsUpDown;
+          return (
+            <span aria-sort={active ? direction : "none"} className={index ? "border-l border-line" : undefined} key={column.key} role="columnheader">
+              <button
+                aria-label={`Sort by ${column.label}`}
+                className="group flex min-h-12 w-full items-center justify-between gap-2 px-4 text-left text-xs font-semibold hover:bg-raised focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-signal-orange"
+                onClick={() => onSort(column.key)}
+                type="button"
+              >
+                {column.label}
+                <SortIcon aria-hidden="true" className={active ? "size-3.5 text-signal-orange" : "size-3.5 text-muted/60 group-hover:text-muted"} />
+              </button>
+            </span>
+          );
+        })}
       </div>
       {rows.map((row) => (
-        <div key={`${text(row.studentId)}-${text(row.assessmentId)}`} role="row">
-          <strong>{text(row.studentName)}</strong>
-          <span>{text(row.assessmentTitle)}</span>
-          <span>{row.percentage == null ? "—" : `${Number(row.percentage).toFixed(1)}%`}</span>
-          <span>{text(row.attempts)}</span>
-          <StatusBadge tone={statusTone(text(row.status))}>{text(row.status).toUpperCase()}</StatusBadge>
+        <div className="grid min-w-[720px] grid-cols-[1.2fr_1.4fr_.7fr_.6fr_.7fr] items-center border-t border-line transition-colors hover:bg-raised/30 [&>*]:px-4 [&>*]:py-3" key={`${text(row.studentId)}-${text(row.assessmentId)}`} role="row">
+          <strong role="cell">{text(row.studentName)}</strong>
+          <span role="cell">{text(row.assessmentTitle)}</span>
+          <span role="cell">{row.percentage == null ? "—" : `${Number(row.percentage).toFixed(1)}%`}</span>
+          <span role="cell">{text(row.attempts)}</span>
+          <span role="cell"><StatusBadge tone={statusTone(text(row.status))}>{text(row.status).toUpperCase()}</StatusBadge></span>
         </div>
       ))}
       {!rows.length ? (
-        <div role="row"><span className="col-span-5 text-sm text-muted">No grade records match these filters.</span></div>
+        <div className="grid min-w-[720px] grid-cols-5 border-t border-line px-4 py-5" role="row"><span className="col-span-5 text-sm text-muted" role="cell">No grade records match these filters.</span></div>
       ) : null}
     </div>
   );
 }
 
+function sortGradeRows(rows: GradeRow[], key: GradeSortKey, direction: SortDirection) {
+  const value = (row: GradeRow): string | number | undefined => {
+    if (key === "student") return text(row.studentName).toLowerCase();
+    if (key === "assessment") return text(row.assessmentTitle).toLowerCase();
+    if (key === "grade") return finiteNumber(row.percentage);
+    if (key === "attempts") return finiteNumber(row.attempts);
+    return text(row.status).toLowerCase();
+  };
+  return [...rows].sort((first, second) => {
+    const left = value(first);
+    const right = value(second);
+    if (left === undefined) return right === undefined ? 0 : 1;
+    if (right === undefined) return -1;
+    const comparison = typeof left === "number" && typeof right === "number"
+      ? left - right
+      : String(left).localeCompare(String(right), undefined, { numeric: true });
+    return direction === "ascending" ? comparison : -comparison;
+  });
+}
+
+function finiteNumber(value: unknown) {
+  if (value == null || value === "") return undefined;
+  const number = Number(value);
+  return Number.isFinite(number) ? number : undefined;
+}
+
 function calculateMetrics(rows: GradeRow[]) {
-  const scores = rows.map((row) => Number(row.percentage)).filter(Number.isFinite).sort((a, b) => a - b);
+  const scores = rows
+    .map((row) => finiteNumber(row.percentage))
+    .filter((score): score is number => score !== undefined);
   const submitted = rows.filter((row) => text(row.status) !== "missing").length;
-  const middle = Math.floor(scores.length / 2);
   return {
     average: scores.length ? scores.reduce((sum, value) => sum + value, 0) / scores.length : 0,
-    enrolled: new Set(rows.map((row) => row.studentId)).size,
     late: rows.filter((row) => text(row.status) === "late").length,
-    median: !scores.length ? 0 : scores.length % 2 ? scores[middle] : (scores[middle - 1] + scores[middle]) / 2,
     missing: rows.filter((row) => text(row.status) === "missing").length,
-    passed: rows.filter((row) => text(row.status) === "passed").length,
     scores,
     submitted,
   };

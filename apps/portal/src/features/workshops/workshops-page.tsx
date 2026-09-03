@@ -4,15 +4,15 @@ import {
   CheckCircle2,
   ClipboardCheck,
   GraduationCap,
-  LoaderCircle,
   Pencil,
   Plus,
   Trash2,
 } from "lucide-react";
 import { Classes, Gradebook } from "@/features/classes";
 import { PageHeader } from "@/components/layout/page-header";
-import { LoadingState } from "@/components/ui/admin-primitives";
+import { LoadingState, StatusHeading } from "@/components/ui/admin-primitives";
 import { Button } from "@/components/ui/button";
+import { ConfirmationDialog } from "@/components/ui/dialog";
 import {
   Tabs,
   TabsContent,
@@ -29,7 +29,7 @@ import type {
   WorkshopRow,
 } from "@/lib/api/types";
 import * as workshopApi from "@/lib/api/workshop-service";
-import { LessonEditor } from "@/features/workshops/lesson-editor";
+import { LessonWorkspace } from "@/features/workshops/lesson-workspace";
 import { TopologyEditor } from "@/features/workshops/topology-editor";
 import { WorkshopDetailsDialog } from "@/features/workshops/workshop-details-dialog";
 import { useWorkshopStudio, type WorkshopArea } from "@/features/workshops/hooks/use-workshop-studio";
@@ -46,7 +46,7 @@ export function WorkshopStudio({ area }: { area: WorkshopArea }) {
     topologies, setTopologies, assessments, setAssessments, classes, versions, selectedLesson,
     setSelectedLesson, selectedAssessment, setSelectedAssessment,
     selectedTopology, setSelectedTopology, collectionView, setCollectionView,
-    gradeRows, notice, setNotice, error, setError, detailsMode, setDetailsMode,
+    gradeRows, gradebookLoading, notice, setNotice, error, setError, detailsMode, setDetailsMode,
     addingLesson, topologyDetailsOpen, setTopologyDetailsOpen, topologyName,
     setTopologyName, savingTopologyName, selectedWorkshop, load, create,
     saveDetails, deleteDraft, updateLesson, addLesson, deleteLesson,
@@ -145,7 +145,7 @@ export function WorkshopStudio({ area }: { area: WorkshopArea }) {
           else setNotice(undefined);
         }}
       />
-      <div className="grid min-h-[680px] min-w-0 grid-cols-[250px_minmax(0,1fr)] overflow-hidden rounded-panel border border-line bg-surface shadow-panel max-lg:grid-cols-1">
+      <div className="grid min-h-[680px] min-w-0 grid-cols-[250px_minmax(0,1fr)] overflow-clip rounded-panel border border-line bg-surface shadow-panel max-lg:grid-cols-1">
         <aside className="themed-scrollbar grid min-w-0 content-start gap-2 overflow-y-auto border-r border-line bg-sidebar p-3 max-lg:border-b max-lg:border-r-0 [&>strong]:px-2 [&>strong]:py-2 [&>strong]:font-mono [&>strong]:text-[0.62rem] [&>strong]:text-muted">
           <strong>YOUR COLLECTIONS</strong>
           {workshops.map((workshop) => (
@@ -168,16 +168,18 @@ export function WorkshopStudio({ area }: { area: WorkshopArea }) {
             <>
               <div className="mb-5 flex min-h-20 flex-wrap items-start justify-between gap-5 border-b border-line pb-5">
                 <div className="min-w-0">
-                  <span className="inline-flex min-h-6 w-fit items-center rounded-full border border-line bg-raised px-2.5 font-mono text-[0.58rem] font-semibold uppercase tracking-[0.045em] text-muted">
-                    {selectedWorkshop.archived
-                      ? "ARCHIVED"
-                      : selectedWorkshop.current_version_id
-                        ? "PUBLISHED COLLECTION"
-                        : "DRAFT COLLECTION"}
-                  </span>
-                  <h2 className="mt-2.5 break-words leading-tight">
-                    {selectedWorkshop.title}
-                  </h2>
+                  <StatusHeading
+                    status={
+                      <span className="inline-flex min-h-6 w-fit items-center rounded-full border border-line bg-raised px-2.5 font-mono text-[0.58rem] font-semibold uppercase tracking-[0.045em] text-muted">
+                        {selectedWorkshop.archived
+                          ? "ARCHIVED"
+                          : selectedWorkshop.current_version_id
+                            ? "PUBLISHED COLLECTION"
+                            : "DRAFT COLLECTION"}
+                      </span>
+                    }
+                    title={selectedWorkshop.title}
+                  />
                   <p className="mb-2 mt-2 max-w-2xl text-sm leading-6 text-muted">
                     {selectedWorkshop.description ||
                       "Add a short description so students know what this collection covers."}
@@ -218,46 +220,65 @@ export function WorkshopStudio({ area }: { area: WorkshopArea }) {
                     <Pencil />
                     EDIT DETAILS
                   </button>
-                  <button
-                    className="inline-flex min-h-10 items-center justify-center gap-2 rounded-control border border-transparent bg-transparent px-3 text-xs font-semibold text-muted hover:border-line hover:bg-raised hover:text-copy disabled:pointer-events-none disabled:opacity-45 [&_svg]:size-4"
-                    onClick={() =>
-                      void workshopApi
-                        .saveWorkshop({
-                          ...selectedWorkshop,
-                          archived: !selectedWorkshop.archived,
-                        })
-                        .then(() => {
-                          setNotice(
-                            selectedWorkshop.archived
-                              ? "Lesson collection restored."
-                              : "Lesson collection archived. Existing classes remain readable.",
-                          );
-                          return load();
-                        })
+                  {selectedWorkshop.archived ? (
+                    <button
+                      className="inline-flex min-h-10 items-center justify-center gap-2 rounded-control border border-transparent bg-transparent px-3 text-xs font-semibold text-muted hover:border-line hover:bg-raised hover:text-copy disabled:pointer-events-none disabled:opacity-45 [&_svg]:size-4"
+                      onClick={() => void workshopApi.saveWorkshop({ ...selectedWorkshop, archived: false }).then(() => {
+                        setNotice("Lesson collection restored.");
+                        return load();
+                      }).catch((reason: Error) => setError(reason.message))}
+                      type="button"
+                    >
+                      RESTORE COLLECTION
+                    </button>
+                  ) : (
+                    <ConfirmationDialog
+                      busyLabel="ARCHIVING..."
+                      confirmLabel="ARCHIVE COLLECTION"
+                      description={`“${selectedWorkshop.title}” will leave the active workspace. Existing classes and published versions remain readable.`}
+                      intent="warning"
+                      onConfirm={async () => {
+                        try {
+                          await workshopApi.saveWorkshop({ ...selectedWorkshop, archived: true });
+                          setNotice("Lesson collection archived. Existing classes remain readable.");
+                          await load();
+                        } catch (reason) {
+                          const message = reason instanceof Error ? reason.message : "The lesson collection could not be archived.";
+                          setError(message);
+                          throw new Error(message);
+                        }
+                      }}
+                      title="Archive this lesson collection?"
+                      trigger={<button className="inline-flex min-h-10 items-center justify-center gap-2 rounded-control border border-transparent bg-transparent px-3 text-xs font-semibold text-muted hover:border-line hover:bg-raised hover:text-copy" type="button">ARCHIVE COLLECTION</button>}
+                    />
+                  )}
+                  <ConfirmationDialog
+                    busyLabel="PUBLISHING..."
+                    confirmLabel="PUBLISH COLLECTION"
+                    description={`Publish the current version of “${selectedWorkshop.title}” so it can be assigned to learners? Later draft edits will not change this release.`}
+                    intent="warning"
+                    onConfirm={async () => {
+                      try {
+                        await workshopApi.publishWorkshop(selectedWorkshop.id);
+                        setNotice("Lesson collection published. You can now assign it to a class.");
+                        await load();
+                      } catch (reason) {
+                        const message = reason instanceof Error ? reason.message : "The lesson collection could not be published.";
+                        setError(message);
+                        throw new Error(message);
+                      }
+                    }}
+                    title="Publish this lesson collection?"
+                    trigger={
+                      <button
+                        className="inline-flex min-h-11 items-center justify-center gap-2 rounded-control border border-copy bg-copy px-4 text-xs font-semibold text-canvas hover:bg-copy/85 hover:text-canvas active:bg-copy/75 disabled:pointer-events-none disabled:border-line/60 disabled:bg-raised/70 disabled:text-muted/75 [&_svg]:size-4"
+                        disabled={!lessons.length || selectedWorkshop.archived}
+                        type="button"
+                      >
+                        <CheckCircle2 /> PUBLISH COLLECTION
+                      </button>
                     }
-                  >
-                    {selectedWorkshop.archived
-                      ? "RESTORE COLLECTION"
-                      : "ARCHIVE COLLECTION"}
-                  </button>
-                  <button
-                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded-control border border-copy bg-copy px-4 text-xs font-semibold text-canvas hover:bg-copy/85 hover:text-canvas active:bg-copy/75 disabled:pointer-events-none disabled:border-line/60 disabled:bg-raised/70 disabled:text-muted/75 [&_svg]:size-4"
-                    disabled={!lessons.length || selectedWorkshop.archived}
-                    onClick={() =>
-                      void workshopApi
-                        .publishWorkshop(selectedWorkshop.id)
-                        .then(() => {
-                          setNotice(
-                            "Lesson collection published. You can now assign it to a class.",
-                          );
-                          return load();
-                        })
-                        .catch((reason) => setError(reason.message))
-                    }
-                  >
-                    <CheckCircle2 />
-                    PUBLISH COLLECTION
-                  </button>
+                  />
                 </div>
               </div>
               <Tabs
@@ -372,59 +393,20 @@ export function WorkshopStudio({ area }: { area: WorkshopArea }) {
                   )}
                 </TabsContent>
                 <TabsContent className="mt-5" value="lessons">
-                  <div className="grid min-h-[620px] grid-cols-[230px_minmax(0,1fr)] overflow-hidden rounded-panel border border-line max-lg:grid-cols-1">
-                    <nav className="themed-scrollbar grid min-w-0 content-start gap-2 overflow-y-auto border-r border-line bg-sidebar p-3 max-lg:max-h-72 max-lg:border-b max-lg:border-r-0 [&>button:not([class*=inline-flex])]:min-h-14 [&>button:not([class*=inline-flex])]:rounded-control [&>button:not([class*=inline-flex])]:border [&>button:not([class*=inline-flex])]:border-transparent [&>button:not([class*=inline-flex])]:px-3 [&>button:not([class*=inline-flex])]:text-left">
-                      <button
-                        className="inline-flex min-h-11 items-center justify-center gap-2 rounded-control border border-signal-orange/60 bg-signal-orange-soft px-4 text-xs font-semibold text-signal-orange hover:border-signal-orange disabled:pointer-events-none disabled:opacity-45 [&_svg]:size-4"
-                        disabled={addingLesson || selectedWorkshop.archived}
-                        onClick={() => requestTransition(() => void addLesson())}
-                      >
-                        {addingLesson ? (
-                          <LoaderCircle className="animate-spin" />
-                        ) : (
-                          <Plus />
-                        )}
-                        {addingLesson ? "ADDING LESSON..." : "ADD LESSON"}
-                      </button>
-                      {lessons.map((lesson, index) => (
-                        <button
-                          className={`grid min-w-0 gap-1 ${
-                            lesson.id === selectedLesson
-                              ? "border-line! bg-raised! text-copy"
-                              : "text-muted hover:bg-raised"
-                          }`}
-                          key={lesson.id}
-                          onClick={() => requestTransition(() => setSelectedLesson(lesson.id))}
-                        >
-                          <small className="block font-mono text-signal-orange">
-                            {String(index + 1).padStart(2, "0")}
-                          </small>
-                          <span className="block break-words font-semibold">
-                            {String(lesson.draft.title ?? "Untitled lesson")}
-                          </span>
-                        </button>
-                      ))}
-                    </nav>
-                    {lessons.find((row) => row.id === selectedLesson) ? (
-                      <LessonEditor
-                        key={selectedLesson}
-                        collectionTitle={selectedWorkshop.title}
-                        lesson={lessons.find(
-                          (row) => row.id === selectedLesson,
-                        )!}
-                        topologies={topologies}
-                        onChange={updateLesson}
-                        onDelete={deleteLesson}
-                        onError={setError}
-                        onSaved={() => setNotice("Lesson saved.")}
-                      />
-                    ) : (
-                      <div className="grid min-h-60 place-items-center content-center gap-3 text-center text-muted [&>p]:m-0 [&>p]:max-w-lg">
-                        <BookOpen />
-                        <p>Add a lesson to begin authoring.</p>
-                      </div>
-                    )}
-                  </div>
+                  <LessonWorkspace
+                    addingLesson={addingLesson}
+                    archived={selectedWorkshop.archived}
+                    collectionTitle={selectedWorkshop.title}
+                    lessons={lessons}
+                    onAddLesson={() => requestTransition(() => void addLesson())}
+                    onChange={updateLesson}
+                    onDelete={deleteLesson}
+                    onError={setError}
+                    onSaved={() => setNotice("Lesson saved.")}
+                    onSelectLesson={(id) => requestTransition(() => setSelectedLesson(id))}
+                    selectedLessonId={selectedLesson}
+                    topologies={topologies}
+                  />
                 </TabsContent>
               </Tabs>
             </>
@@ -450,7 +432,7 @@ export function WorkshopStudio({ area }: { area: WorkshopArea }) {
             />
           ) : null}
           {selectedWorkshop && area === "gradebook" ? (
-            <Gradebook rows={gradeRows} />
+            <Gradebook loading={gradebookLoading} rows={gradeRows} />
           ) : null}
         </section>
       </div>

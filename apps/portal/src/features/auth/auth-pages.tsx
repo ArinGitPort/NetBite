@@ -2,11 +2,12 @@ import { CheckCircle2, Eye, EyeOff, LockKeyhole } from "lucide-react";
 import type { FormEvent } from "react";
 import { useState } from "react";
 
-import netbiteLogo from "@netbite/brand/logo.png";
 import { StatusBadge as Badge } from "@/components/ui/admin-primitives";
+import { BrandLockup, BrandMark } from "@/components/ui/brand-lockup";
 import { Button as UiButton } from "@/components/ui/button";
 import { Feedback as UiFeedback } from "@/components/ui/feedback";
 import { InputField } from "@/components/ui/form-field";
+import { InlineWaveSpinner } from "@/components/shadcn-space/spinner/spinner-10";
 import { StrokeText } from "@/components/ui/stroke-text";
 import { ThemeMenu } from "@/components/ui/theme-menu";
 import { LoginAmbient } from "@/features/auth/login-ambient";
@@ -17,9 +18,7 @@ export function SetupRequired() {
   return (
     <main className="grid min-h-screen lg:grid-cols-[1.2fr_0.8fr]">
       <section className="flex flex-col justify-center bg-[radial-gradient(circle_at_15%_25%,rgb(224_79_86/14%),transparent_35%)] p-10 lg:p-[clamp(40px,8vw,120px)]">
-        <div className="grid size-[58px] place-items-center overflow-hidden border border-signal-red bg-signal-red-soft shadow-[inset_4px_0_var(--color-signal-red)] [&_img]:size-[78%] [&_img]:object-contain">
-          <img alt="" src={netbiteLogo} />
-        </div>
+        <BrandMark className="size-[58px]" />
         <p className="mb-3 mt-7 font-mono text-xs tracking-[0.14em] text-signal-orange">
           NETBITE / INSTRUCTOR SYSTEM
         </p>
@@ -98,17 +97,7 @@ export function Login() {
     <main className="relative isolate min-h-screen overflow-hidden">
       <LoginAmbient />
       <header className="relative z-20 flex min-h-16 items-center border-b border-line bg-canvas/75 px-5 backdrop-blur-xl sm:px-10">
-        <div className="flex items-center gap-2.5" aria-label="NetBite">
-          <span className="relative grid size-9 shrink-0 place-items-center" aria-hidden="true">
-            <span className="absolute inset-1.5 rounded-full bg-signal-red opacity-20 blur-md" />
-            <img
-              alt=""
-              className="relative size-8 object-contain drop-shadow-[0_4px_10px_rgb(224_79_86/18%)]"
-              src={netbiteLogo}
-            />
-          </span>
-          <strong className="text-[0.82rem] tracking-[0.08em]">NETBITE</strong>
-        </div>
+        <BrandLockup />
         <div className="ml-auto flex items-center gap-3">
           <span className="hidden font-mono text-[0.58rem] font-semibold uppercase tracking-[0.12em] text-muted sm:inline">Portal appearance</span>
           <ThemeMenu />
@@ -220,7 +209,10 @@ export function Login() {
           <InputField
             autoComplete="email"
             label="Email address"
-            onChange={(event) => setEmail(event.target.value)}
+            onChange={(event) => {
+              setEmail(event.target.value);
+              if (error) setError("");
+            }}
             placeholder="instructor@netbite.local"
             required
             type="email"
@@ -236,7 +228,10 @@ export function Login() {
                 required
                 type={showPassword ? "text" : "password"}
                 value={password}
-                onChange={(event) => setPassword(event.target.value)}
+                onChange={(event) => {
+                  setPassword(event.target.value);
+                  if (error) setError("");
+                }}
               />
               <button
                 aria-label={showPassword ? "Hide password" : "Show password"}
@@ -261,7 +256,14 @@ export function Login() {
             tone="primary"
             type="submit"
           >
-            {busy ? "Signing in..." : "Sign in"}
+            {busy ? (
+              <>
+                <InlineWaveSpinner label="Signing in" />
+                Signing in...
+              </>
+            ) : (
+              "Sign in"
+            )}
           </UiButton>
           <footer className="mt-1 flex flex-wrap justify-between gap-3 border-t border-line pt-5 text-xs text-muted">
             <span className="inline-flex items-center gap-2">

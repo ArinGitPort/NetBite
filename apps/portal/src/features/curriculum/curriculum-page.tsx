@@ -49,6 +49,7 @@ import {
   StatusBadge as Badge,
 } from "@/components/ui/admin-primitives";
 import { Button } from "@/components/ui/button";
+import { LoadingButtonContent } from "@/components/ui/loading-content";
 import { LessonEditor } from "@/features/curriculum/lesson-editor";
 import { useGuardedTransition } from "@/app/providers/unsaved-changes-provider";
 
@@ -215,7 +216,7 @@ export function Curriculum() {
                 CANCEL
               </Button>
               <Button disabled={busy} tone="primary" type="submit">
-                {busy ? "CREATING..." : "CREATE DRAFT"}
+                {busy ? <LoadingButtonContent label="CREATING..." /> : "CREATE DRAFT"}
               </Button>
             </div>
           </form>

@@ -3,15 +3,19 @@ import { ChevronRight, LogOut, Menu, X } from "lucide-react";
 import { useState } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 
-import netbiteLogo from "@netbite/brand/logo.png";
 import { getNavigationForAccess } from "@/app/navigation";
 import type { AdminAccess } from "@/lib/api/types";
 import { supabase } from "@/lib/supabase";
 import { cn } from "@/lib/class-names";
 import { Button } from "@/components/ui/button";
+import { BrandLockup } from "@/components/ui/brand-lockup";
+import { ConfirmationDialog } from "@/components/ui/dialog";
+import { LoadingButtonContent } from "@/components/ui/loading-content";
 import { ThemeMenu } from "@/components/ui/theme-menu";
+import { useGuardedTransition } from "@/app/providers/unsaved-changes-provider";
 
 function AccountControls({ session, access }: { session: Session; access: AdminAccess }) {
+  const requestTransition = useGuardedTransition();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const signOut = async () => {
@@ -20,8 +24,10 @@ function AccountControls({ session, access }: { session: Session; access: AdminA
     setError("");
     const result = await supabase.auth.signOut();
     if (result.error) {
-      setError("Sign-out could not be completed. Check your connection and try again.");
+      const failure = new Error("Sign-out could not be completed. Check your connection and try again.");
+      setError(failure.message);
       setBusy(false);
+      throw failure;
     }
   };
   return (
@@ -33,7 +39,15 @@ function AccountControls({ session, access }: { session: Session; access: AdminA
           <strong className="truncate text-xs" title={session.user.email}>{session.user.email}</strong>
         </div>
       </div>
-      <Button className="w-full" disabled={busy} onClick={() => void signOut()} tone="neutral"><LogOut />{busy ? "Signing out..." : "Sign out"}</Button>
+      <ConfirmationDialog
+        busyLabel="SIGNING OUT..."
+        confirmLabel="SIGN OUT"
+        description="Your current portal session will end and you will need to sign in again. Any unsaved editor changes will be handled before sign-out."
+        intent="warning"
+        onConfirm={() => requestTransition(signOut)}
+        title="Sign out of NetBite?"
+        trigger={<Button className="w-full" disabled={busy} tone="neutral">{busy ? <LoadingButtonContent label="Signing out..." /> : <><LogOut />Sign out</>}</Button>}
+      />
       {error ? <p className="m-0 text-xs leading-5 text-signal-red" role="alert">{error}</p> : null}
     </div>
   );
@@ -52,8 +66,7 @@ export function PortalShell({ session, access }: { session: Session; access: Adm
         className={cn("fixed inset-y-0 left-0 z-40 flex h-screen w-[280px] flex-col border-r border-line bg-sidebar/98 px-4 py-5 shadow-[22px_0_60px_rgb(0_0_0/45%)] transition-transform lg:sticky lg:top-0 lg:w-auto lg:translate-x-0 lg:shadow-none", mobileNav ? "translate-x-0" : "-translate-x-full")}
       >
         <div className="flex min-h-16 items-center gap-3 border-b border-line px-2 pb-5">
-          <div className="grid size-11 place-items-center overflow-hidden rounded-control border border-line bg-raised"><img alt="" className="size-8 object-contain" src={netbiteLogo} /></div>
-          <div className="grid gap-1"><strong className="text-sm">NETBITE</strong><span className="font-mono text-[0.62rem] uppercase tracking-[0.12em] text-muted">{roleLabel}</span></div>
+          <BrandLockup markClassName="size-11" subtitle={roleLabel} />
           <Button aria-label="Close navigation" className="ml-auto lg:hidden" onClick={() => setMobileNav(false)} size="icon" tone="ghost"><X /></Button>
         </div>
         <nav className="mt-6 grid gap-1" aria-label={`${roleLabel} sections`}>

@@ -58,8 +58,9 @@ export function PaginationButton({
 export function PaginationPrevious({
   children = "Previous",
   className,
+  showLabel = false,
   ...props
-}: ButtonProps) {
+}: ButtonProps & { showLabel?: boolean }) {
   return (
     <Button
       className={cn("px-2", className)}
@@ -69,7 +70,7 @@ export function PaginationPrevious({
       {...props}
     >
       <ChevronLeft aria-hidden="true" />
-      <span className="sr-only">{children}</span>
+      <span className={showLabel ? "" : "sr-only"}>{children}</span>
     </Button>
   );
 }
@@ -77,8 +78,9 @@ export function PaginationPrevious({
 export function PaginationNext({
   children = "Next",
   className,
+  showLabel = false,
   ...props
-}: ButtonProps) {
+}: ButtonProps & { showLabel?: boolean }) {
   return (
     <Button
       className={cn("px-2", className)}
@@ -87,7 +89,7 @@ export function PaginationNext({
       tone="ghost"
       {...props}
     >
-      <span className="sr-only">{children}</span>
+      <span className={showLabel ? "" : "sr-only"}>{children}</span>
       <ChevronRight aria-hidden="true" />
     </Button>
   );

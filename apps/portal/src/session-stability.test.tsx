@@ -5,6 +5,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
@@ -180,9 +181,29 @@ describe("admin session stability", () => {
     const signOut = await screen.findByRole("button", { name: "Sign out" });
     fireEvent.click(signOut);
 
+    expect(authHarness.signOut).not.toHaveBeenCalled();
+    fireEvent.click(within(screen.getByRole("alertdialog", { name: "Sign out of NetBite?" })).getByRole("button", { name: "SIGN OUT" }));
     await waitFor(() => expect(authHarness.signOut).toHaveBeenCalledTimes(1));
     expect(signOut).toBeDisabled();
     expect(signOut).toHaveTextContent("Signing out...");
+  });
+
+  test("guards sign-out when an editor has unsaved changes", async () => {
+    render(<App />);
+
+    fireEvent.click(await screen.findByRole("link", { name: "Curriculum" }));
+    fireEvent.click(await screen.findByRole("button", { name: /What is a computer network/i }));
+    fireEvent.change(screen.getByLabelText("Lesson title"), {
+      target: { value: "An edited network lesson" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Sign out" }));
+    fireEvent.click(within(screen.getByRole("alertdialog", { name: "Sign out of NetBite?" })).getByRole("button", { name: "SIGN OUT" }));
+
+    expect(await screen.findByRole("dialog", { name: "Leave with unsaved changes?" })).toBeInTheDocument();
+    expect(authHarness.signOut).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "KEEP EDITING" }));
+    expect(authHarness.signOut).not.toHaveBeenCalled();
+    expect(screen.getByLabelText("Lesson title")).toHaveValue("An edited network lesson");
   });
 
   test("keeps the login submit action usable and submits trimmed credentials", async () => {

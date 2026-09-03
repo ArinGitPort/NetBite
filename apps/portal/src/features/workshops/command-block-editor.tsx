@@ -114,6 +114,7 @@ export function CommandBlockEditor({
           <ConfirmationDialog
             confirmLabel="REPLACE COMMAND GROUPS"
             description="Generating again replaces all command groups in this block, including manual edits."
+            intent="warning"
             onConfirm={generate}
             title="Generate commands again?"
             trigger={

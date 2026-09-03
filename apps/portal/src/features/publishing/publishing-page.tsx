@@ -2,12 +2,13 @@ import { RefreshCw, Rocket } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import {
-  ConfirmAction,
   Field,
   PageIntro,
   StatusBadge,
 } from "@/components/ui/admin-primitives";
 import { Button } from "@/components/ui/button";
+import { ConfirmAction } from "@/components/ui/dialog";
+import { LoadingButtonContent, LoadingContent } from "@/components/ui/loading-content";
 import { PublishedVersions } from "@/features/publishing/published-versions";
 import * as publishingApi from "@/lib/api/publishing-service";
 import type { ReleaseRow } from "@/lib/api/types";
@@ -20,9 +21,10 @@ export function Releases() {
   const [minimum, setMinimum] = useState("1.0.0");
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
+  const [loading, setLoading] = useState(true);
   const publishRequestIds = useRef(new Map<string, string>());
   const restoreRequestIds = useRef(new Map<string, string>());
-  const load = () => publishingApi.getReleases().then(setRows);
+  const load = () => publishingApi.getReleases().then(setRows).finally(() => setLoading(false));
 
   useEffect(() => {
     void load();
@@ -39,7 +41,7 @@ export function Releases() {
           : `${result.issues.length} ${result.issues.length === 1 ? "issue must" : "issues must"} be corrected.`,
       );
     } catch (error) {
-      setNotice((error as Error).message);
+      setNotice(error instanceof Error ? error.message : "The curriculum draft could not be validated.");
     } finally {
       setBusy(false);
     }
@@ -64,7 +66,9 @@ export function Releases() {
       setValidation(undefined);
       await load();
     } catch (error) {
-      setNotice((error as Error).message);
+      const failure = error instanceof Error ? error : new Error("The curriculum version could not be published.");
+      setNotice(failure.message);
+      throw failure;
     } finally {
       setBusy(false);
     }
@@ -113,7 +117,7 @@ export function Releases() {
             </StatusBadge>
           </div>
           <Button disabled={busy} onClick={() => void validate()} tone="secondary">
-            <RefreshCw /> CHECK CURRENT DRAFT
+            {busy ? <LoadingButtonContent label="CHECKING..." /> : <><RefreshCw />CHECK CURRENT DRAFT</>}
           </Button>
           {validation ? (
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 [&>span]:grid [&>span]:rounded-control [&>span]:border [&>span]:border-line [&>span]:p-3 [&>span]:font-mono [&>span]:text-xs [&>span]:text-muted [&>span_strong]:text-lg [&>span_strong]:text-copy">
@@ -154,7 +158,6 @@ export function Releases() {
             confirmLabel="PUBLISH RELEASE"
             detail="This publishes one complete curriculum version to connected Android devices. Your drafts remain available for future changes."
             disabled={busy || !validation?.valid || changelog.trim().length < 3}
-            eyebrow="PUBLISH CURRICULUM"
             onConfirm={publish}
             title="Publish this curriculum version?"
             tone="warning"
@@ -162,7 +165,9 @@ export function Releases() {
             <Rocket /> PUBLISH VERSION
           </ConfirmAction>
         </section>
-        <PublishedVersions onRestore={restore} rows={rows} />
+        {loading
+          ? <LoadingContent className="rounded-panel border border-line bg-surface shadow-panel" label="Loading published versions" variant="section" />
+          : <PublishedVersions onRestore={restore} rows={rows} />}
       </div>
     </>
   );

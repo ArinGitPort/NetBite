@@ -3,6 +3,7 @@ import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { InputField } from "@/components/ui/form-field";
+import { LoadingButtonContent } from "@/components/ui/loading-content";
 import { Panel } from "@/components/ui/panel";
 import { ClassShareCard } from "@/features/classes/class-share-card";
 import { createWorkshopClass } from "@/lib/api/workshop-service";
@@ -20,10 +21,19 @@ export function Classes({
   onNotice: (value: string) => void;
 }) {
   const [title, setTitle] = useState(`${selected.title} class`);
+  const [creating, setCreating] = useState(false);
   const create = async () => {
-    const result = await createWorkshopClass(selected.id, title);
-    onNotice(`Class created. Join code: ${result.joinCode}`);
-    onCreated();
+    if (creating) return;
+    setCreating(true);
+    try {
+      const result = await createWorkshopClass(selected.id, title);
+      onNotice(`Class created. Join code: ${result.joinCode}`);
+      onCreated();
+    } catch (reason) {
+      onNotice(reason instanceof Error ? reason.message : "The class could not be created.");
+    } finally {
+      setCreating(false);
+    }
   };
   return (
     <div className="grid gap-5">
@@ -43,11 +53,11 @@ export function Classes({
         <div className="grid justify-items-stretch gap-2.5 sm:justify-items-start">
           <Button
             className="w-full sm:w-auto"
-            disabled={!selected.current_version_id}
+            disabled={!selected.current_version_id || creating}
             onClick={() => void create()}
             tone="primary"
           >
-            <Plus /> CREATE PRIVATE CLASS
+            {creating ? <LoadingButtonContent label="CREATING CLASS..." /> : <><Plus />CREATE PRIVATE CLASS</>}
           </Button>
           {!selected.current_version_id ? (
             <p className="m-0 text-sm leading-6 text-muted">

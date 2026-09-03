@@ -1,7 +1,6 @@
-import { ClipboardCheck, Plus } from "lucide-react";
+import { BookOpenCheck, ClipboardCheck, GraduationCap, Plus } from "lucide-react";
 import { Fragment, type ReactNode } from "react";
 
-import { Button } from "@/components/ui/button";
 import { AssessmentEditor } from "@/features/workshops/assessment-editor";
 import { AssessmentQuestionNavigator } from "@/features/workshops/assessment-question-navigator";
 import { useAssessmentQuestionWorkspace } from "@/features/workshops/hooks/use-assessment-question-workspace";
@@ -50,7 +49,9 @@ function SelectedAssessmentWorkspace({ selected, ...props }: WorkspaceProps & {
       props.onSelect(remaining[Math.min(selectedIndex, remaining.length - 1)]?.id ?? "");
       props.onNotice("Assessment deleted from the current draft.");
     } catch (reason) {
-      props.onError(reason instanceof Error ? reason.message : "The assessment could not be deleted.");
+      const error = reason instanceof Error ? reason : new Error("The assessment could not be deleted.");
+      props.onError(error.message);
+      throw error;
     }
   };
 
@@ -86,20 +87,37 @@ function AssessmentList({ children, ...props }: WorkspaceProps & { children?: Re
     void workshopApi.createWorkshopAssessment(props.workshop.id, mode).then((row) => {
       props.onAssessmentsChange((value) => [...value, row]);
       props.onSelect(row.id);
-    });
+    }).catch((reason: unknown) => props.onError(
+      reason instanceof Error ? reason.message : "The assessment could not be created.",
+    ));
 
   return (
     <nav className="themed-scrollbar grid min-w-0 content-start gap-2 overflow-y-auto rounded-panel border border-line bg-sidebar p-3 max-xl:max-h-[520px]">
-      <div className="mb-2 grid gap-2 border-b border-line pb-3">
-        <span className="px-1 font-mono text-[0.62rem] font-semibold uppercase tracking-[0.08em] text-muted">
-          Create assessment
-        </span>
-        <Button className="w-full" onClick={() => create("practice")} tone="secondary">
-          <Plus aria-hidden="true" />NEW PRACTICE
-        </Button>
-        <Button className="w-full" onClick={() => create("graded")} tone="primary">
-          <Plus aria-hidden="true" />NEW GRADED
-        </Button>
+      <div className="mb-2 grid gap-2.5 border-b border-line pb-4">
+        <div className="grid gap-1 px-1">
+          <span className="font-mono text-[0.62rem] font-semibold uppercase tracking-[0.08em] text-copy">Create assessment</span>
+          <small className="text-[0.65rem] leading-4 text-muted">Choose how learner results should behave.</small>
+        </div>
+        <button
+          aria-label="Create practice assessment"
+          className="group grid min-h-[68px] grid-cols-[36px_minmax(0,1fr)_20px] items-center gap-3 rounded-control border border-line bg-canvas px-3 py-2 text-left transition-[border-color,background-color,transform] hover:-translate-y-px hover:border-signal-orange/60 hover:bg-raised focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-signal-orange"
+          onClick={() => create("practice")}
+          type="button"
+        >
+          <span className="grid size-9 place-items-center rounded-control bg-signal-orange-soft text-signal-orange [&_svg]:size-4"><BookOpenCheck aria-hidden="true" /></span>
+          <span className="grid min-w-0 gap-0.5"><strong className="text-xs text-copy">PRACTICE</strong><small className="text-[0.63rem] leading-4 text-muted">Instant feedback</small></span>
+          <Plus aria-hidden="true" className="size-4 text-muted transition-transform group-hover:rotate-90 group-hover:text-signal-orange" />
+        </button>
+        <button
+          aria-label="Create graded assessment"
+          className="group grid min-h-[68px] grid-cols-[36px_minmax(0,1fr)_20px] items-center gap-3 rounded-control border border-line bg-canvas px-3 py-2 text-left transition-[border-color,background-color,transform] hover:-translate-y-px hover:border-signal-green/60 hover:bg-raised focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-signal-green"
+          onClick={() => create("graded")}
+          type="button"
+        >
+          <span className="grid size-9 place-items-center rounded-control bg-signal-green-soft text-signal-green [&_svg]:size-4"><GraduationCap aria-hidden="true" /></span>
+          <span className="grid min-w-0 gap-0.5"><strong className="text-xs text-copy">GRADED</strong><small className="text-[0.63rem] leading-4 text-muted">Recorded score</small></span>
+          <Plus aria-hidden="true" className="size-4 text-muted transition-transform group-hover:rotate-90 group-hover:text-signal-green" />
+        </button>
       </div>
       {props.assessments.map((assessment) => (
         <Fragment key={assessment.id}>

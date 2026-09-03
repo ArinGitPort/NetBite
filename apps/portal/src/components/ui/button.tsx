@@ -1,5 +1,5 @@
 import { cva, type VariantProps } from "class-variance-authority";
-import type { ButtonHTMLAttributes } from "react";
+import { forwardRef, type ButtonHTMLAttributes } from "react";
 
 import { cn } from "@/lib/class-names";
 
@@ -38,23 +38,24 @@ export interface ButtonProps
   tone?: VariantProps<typeof buttonVariants>["tone"] | "default" | "danger";
 }
 
-export function Button({
+export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button({
   children,
   className,
   tone = "neutral",
   size,
   type = "button",
   ...props
-}: ButtonProps) {
+}, ref) {
   const normalizedTone =
     tone === "default" ? "neutral" : tone === "danger" ? "destructive" : tone;
   return (
     <button
       className={cn(buttonVariants({ tone: normalizedTone, size }), className)}
+      ref={ref}
       type={type}
       {...props}
     >
       {children}
     </button>
   );
-}
+});

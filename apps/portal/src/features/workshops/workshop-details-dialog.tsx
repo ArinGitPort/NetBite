@@ -2,8 +2,9 @@ import { Plus, Save, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import { Dialog } from "@/components/ui/dialog";
+import { ConfirmationDialog, Dialog } from "@/components/ui/dialog";
 import { Feedback } from "@/components/ui/feedback";
+import { LoadingButtonContent } from "@/components/ui/loading-content";
 import { InputField, TextareaField } from "@/components/ui/form-field";
 import type { WorkshopRow } from "@/lib/api/types";
 
@@ -46,14 +47,12 @@ export function WorkshopDetailsDialog({
   const workshop = mode.kind === "edit" ? mode.workshop : undefined;
   const [title, setTitle] = useState(workshop?.title ?? "");
   const [description, setDescription] = useState(workshop?.description ?? "");
-  const [confirmDelete, setConfirmDelete] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
 
   useEffect(() => {
     setTitle(workshop?.title ?? "");
     setDescription(workshop?.description ?? "");
-    setConfirmDelete(false);
     setError(undefined);
   }, [workshop?.id]);
 
@@ -81,25 +80,6 @@ export function WorkshopDetailsDialog({
         reason instanceof Error
           ? reason.message
           : "The lesson collection could not be saved.",
-      );
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const remove = async () => {
-    if (!workshop || mode.kind !== "edit" || !mode.canDelete || !confirmDelete)
-      return;
-    setBusy(true);
-    setError(undefined);
-    try {
-      await onDelete(workshop);
-      onClose();
-    } catch (reason) {
-      setError(
-        reason instanceof Error
-          ? reason.message
-          : "The lesson collection could not be deleted.",
       );
     } finally {
       setBusy(false);
@@ -155,7 +135,7 @@ export function WorkshopDetailsDialog({
         </Button>
         <Button disabled={busy} onClick={() => void submit()} tone="primary">
           {workshop ? <Save /> : <Plus />}
-          {busy ? "SAVING..." : workshop ? "SAVE CHANGES" : "CREATE COLLECTION"}
+          {busy ? <LoadingButtonContent label={workshop ? "SAVING..." : "CREATING..."} /> : workshop ? "SAVE CHANGES" : "CREATE COLLECTION"}
         </Button>
       </div>
       {workshop && mode.kind === "edit" ? (
@@ -169,41 +149,22 @@ export function WorkshopDetailsDialog({
             </p>
           </div>
           {mode.canDelete ? (
-            confirmDelete ? (
-              <div className="grid-column-[1/-1] col-span-full rounded-control border border-signal-red/60 bg-signal-red-soft p-4">
-                <p className="mb-3 text-copy">
-                  This cannot be undone. Delete{" "}
-                  <strong>{workshop.title}</strong>?
-                </p>
-                <div className="flex flex-wrap justify-end gap-2.5">
-                  <Button
-                    disabled={busy}
-                    onClick={() => setConfirmDelete(false)}
-                    tone="ghost"
-                  >
-                    KEEP COLLECTION
-                  </Button>
-                  <Button
-                    disabled={busy}
-                    onClick={() => void remove()}
-                    tone="danger"
-                  >
-                    <Trash2 />
-                    DELETE PERMANENTLY
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <Button
-                className="w-full sm:w-auto"
-                disabled={busy}
-                onClick={() => setConfirmDelete(true)}
-                tone="danger"
-              >
-                <Trash2 />
-                DELETE DRAFT
-              </Button>
-            )
+            <ConfirmationDialog
+              busyLabel="DELETING..."
+              confirmLabel="DELETE PERMANENTLY"
+              description={`“${workshop.title}” and all unfinished content in this private draft will be permanently removed. Published versions are not affected.`}
+              intent="destructive"
+              onConfirm={async () => {
+                await onDelete(workshop);
+                onClose();
+              }}
+              title="Delete this lesson collection?"
+              trigger={
+                <Button className="w-full sm:w-auto" disabled={busy} tone="danger">
+                  <Trash2 /> DELETE DRAFT
+                </Button>
+              }
+            />
           ) : null}
         </section>
       ) : null}

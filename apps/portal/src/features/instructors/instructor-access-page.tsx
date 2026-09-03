@@ -103,11 +103,11 @@ export function InstructorApprovals() {
       );
       await load();
     } catch (reason) {
-      setError(
-        reason instanceof Error
-          ? reason.message
-          : "Instructor access could not be updated.",
-      );
+      const error = reason instanceof Error
+        ? reason
+        : new Error("Instructor access could not be updated.");
+      setError(error.message);
+      throw error;
     } finally {
       setReviewingId(undefined);
     }
@@ -254,7 +254,7 @@ function InstructorAccessRow({ busy, onReview, row }: {
           <ConfirmationDialog
             confirmLabel="REVOKE ACCESS"
             description={`${row.display_name} will no longer be able to create or manage instructor content. Existing classes and published materials remain preserved.`}
-            destructive
+            intent="destructive"
             onConfirm={() => onReview("revoked")}
             title="Revoke instructor access?"
             trigger={<Button disabled={busy} tone="destructive"><ShieldX /> REVOKE ACCESS</Button>}
@@ -263,6 +263,7 @@ function InstructorAccessRow({ busy, onReview, row }: {
           <ConfirmationDialog
             confirmLabel={row.status === "pending" ? "APPROVE INSTRUCTOR" : "RESTORE ACCESS"}
             description={`${row.display_name} will be able to create lesson collections, assessments, and private classes. This does not grant administrator access.`}
+            intent="warning"
             onConfirm={() => onReview("approved")}
             title={row.status === "pending" ? "Approve this instructor?" : "Restore instructor access?"}
             trigger={<Button disabled={busy} tone="primary"><CheckCircle2 /> {row.status === "pending" ? "APPROVE INSTRUCTOR" : "RESTORE ACCESS"}</Button>}
@@ -272,7 +273,7 @@ function InstructorAccessRow({ busy, onReview, row }: {
           <ConfirmationDialog
             confirmLabel="DECLINE REQUEST"
             description={`${row.display_name} will not receive instructor access. The request remains in the account history.`}
-            destructive
+            intent="destructive"
             onConfirm={() => onReview("declined")}
             title="Decline this request?"
             trigger={<Button disabled={busy} tone="ghost">DECLINE</Button>}

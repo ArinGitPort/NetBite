@@ -3,7 +3,8 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import * as curriculumApi from "@/lib/api/curriculum-service";
 import type { FlashcardRow, LessonRow, QuizRow } from "@/lib/api/types";
-import { ConfirmAction, Field } from "@/components/ui/admin-primitives";
+import { Field } from "@/components/ui/admin-primitives";
+import { ConfirmAction } from "@/components/ui/dialog";
 import { SelectField } from "@/components/ui/select";
 
 export function QuizEditor({

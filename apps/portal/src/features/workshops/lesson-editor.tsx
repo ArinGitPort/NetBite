@@ -1,21 +1,17 @@
 import {
-  AlignLeft,
+  ChevronDown,
+  ChevronsUpDown,
   Grip,
-  Heading1,
-  Image as ImageIcon,
-  Lightbulb,
-  MessageSquareText,
-  Network,
   Save,
-  TerminalSquare,
   Trash2,
-  type LucideIcon,
+  Undo2,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useUnsavedDraft } from "@/app/providers/unsaved-changes-provider";
 import type { WorkshopLessonBlock } from "@netbite/workshops/contracts";
 import { Button } from "@/components/ui/button";
 import { ConfirmationDialog } from "@/components/ui/dialog";
+import { LoadingButtonContent } from "@/components/ui/loading-content";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Tooltip,
@@ -30,110 +26,53 @@ import type {
 } from "@/lib/api/types";
 import { LessonMobilePreview } from "@/features/workshops/lesson-mobile-preview";
 import { CommandBlockEditor } from "@/features/workshops/command-block-editor";
-
-const blockOptions: Array<{
-  type: WorkshopLessonBlock["type"];
-  label: string;
-  description: string;
-  icon: LucideIcon;
-}> = [
-  {
-    type: "heading",
-    label: "Section title",
-    description: "Start a new lesson section",
-    icon: Heading1,
-  },
-  {
-    type: "paragraph",
-    label: "Body text",
-    description: "Explain a concept in detail",
-    icon: AlignLeft,
-  },
-  {
-    type: "callout",
-    label: "Important note",
-    description: "Emphasize a rule or warning",
-    icon: MessageSquareText,
-  },
-  {
-    type: "example",
-    label: "Worked example",
-    description: "Show how to apply the concept",
-    icon: Lightbulb,
-  },
-  {
-    type: "image",
-    label: "Supporting image",
-    description: "Add an accessible visual",
-    icon: ImageIcon,
-  },
-  {
-    type: "topology",
-    label: "Network diagram",
-    description: "Insert a saved topology",
-    icon: Network,
-  },
-  {
-    type: "commands",
-    label: "Configuration commands",
-    description: "Add read-only commands by device",
-    icon: TerminalSquare,
-  },
-];
-
-const blockFieldCopy: Record<
-  Exclude<WorkshopLessonBlock["type"], "topology" | "commands">,
-  { label: string; placeholder: string }
-> = {
-  heading: {
-    label: "Section title",
-    placeholder: "Example: How a router chooses the next hop",
-  },
-  paragraph: {
-    label: "Body text",
-    placeholder: "Explain the concept in clear, complete sentences.",
-  },
-  callout: {
-    label: "Important note",
-    placeholder: "State the rule or warning students should remember.",
-  },
-  example: {
-    label: "Worked example",
-    placeholder: "Walk through an example using all supplied values.",
-  },
-  image: {
-    label: "Image address",
-    placeholder: "https://example.com/network-diagram.png",
-  },
-};
+import { LessonBlockPicker } from "@/features/workshops/lesson-block-picker";
+import {
+  createLessonBlock,
+  getLessonBlockLabel,
+  getLessonBlockStatus,
+  getLessonBlockSummary,
+  lessonBlockFieldCopy,
+} from "@/features/workshops/lesson-block-definitions";
+import { LessonDetails } from "@/features/workshops/lesson-details";
+import { cn } from "@/lib/class-names";
 
 export function LessonEditor({
+  activeBlockId,
   collectionTitle,
   lesson,
   topologies,
+  onActiveBlockChange,
   onChange,
   onDelete,
   onError,
   onSaved,
 }: {
+  activeBlockId?: string;
   collectionTitle: string;
   lesson: WorkshopLessonRow;
   topologies: WorkshopTopologyRow[];
+  onActiveBlockChange: (id?: string) => void;
   onChange: (row: WorkshopLessonRow) => void;
   onDelete: (row: WorkshopLessonRow) => Promise<void>;
   onError: (message: string) => void;
   onSaved: () => void;
 }) {
-  const [view, setView] = useState<"edit" | "preview">("edit");
-  const [pendingAction, setPendingAction] = useState<"save" | "delete">();
-  const [savedLesson, setSavedLesson] = useState(lesson);
-  const [draggedBlockIndex, setDraggedBlockIndex] = useState<number>();
-  const [dropTargetIndex, setDropTargetIndex] = useState<number>();
   const draft = lesson.draft as {
     title?: string;
     summary?: string;
     blocks?: WorkshopLessonBlock[];
   };
+  const [view, setView] = useState<"edit" | "preview">("edit");
+  const [pendingAction, setPendingAction] = useState<"save" | "delete">();
+  const [savedLesson, setSavedLesson] = useState(lesson);
+  const [draggedBlockIndex, setDraggedBlockIndex] = useState<number>();
+  const [dropTargetIndex, setDropTargetIndex] = useState<number>();
+  const [expandedAll, setExpandedAll] = useState(false);
+  const [removedBlock, setRemovedBlock] = useState<{
+    block: WorkshopLessonBlock;
+    index: number;
+  }>();
   const blocks = draft.blocks ?? [];
   const dirty = JSON.stringify(lesson) !== JSON.stringify(savedLesson);
   const update = (patch: Record<string, unknown>) =>
@@ -158,20 +97,41 @@ export function LessonEditor({
     reordered.splice(toIndex, 0, moved);
     update({ blocks: reordered });
   };
-  const addBlock = (type: WorkshopLessonBlock["type"]) =>
-    update({
-      blocks: [
-        ...blocks,
-        {
-          id: crypto.randomUUID(),
-          type,
-          text: "",
-          ...(type === "commands"
-            ? { title: "Configuration commands", commandGroups: [] }
-            : {}),
-        },
-      ],
-    });
+  const addBlock = (
+    type: WorkshopLessonBlock["type"],
+    afterIndex = blocks.length - 1,
+  ) => {
+    const block = createLessonBlock(type);
+    const nextBlocks = [...blocks];
+    nextBlocks.splice(Math.max(0, afterIndex + 1), 0, block);
+    update({ blocks: nextBlocks });
+    setRemovedBlock(undefined);
+    setExpandedAll(false);
+    onActiveBlockChange(block.id);
+    requestAnimationFrame(() =>
+      document
+        .getElementById(`lesson-block-${block.id}`)
+        ?.scrollIntoView?.({ behavior: "smooth", block: "center" }),
+    );
+  };
+  const removeBlock = (index: number) => {
+    const block = blocks[index];
+    if (!block) return;
+    const nextBlocks = blocks.filter((_, current) => current !== index);
+    setRemovedBlock({ block, index });
+    update({ blocks: nextBlocks });
+    if (activeBlockId === block.id) {
+      onActiveBlockChange(nextBlocks[index]?.id ?? nextBlocks[index - 1]?.id);
+    }
+  };
+  const undoRemove = () => {
+    if (!removedBlock) return;
+    const nextBlocks = [...blocks];
+    nextBlocks.splice(Math.min(removedBlock.index, nextBlocks.length), 0, removedBlock.block);
+    update({ blocks: nextBlocks });
+    onActiveBlockChange(removedBlock.block.id);
+    setRemovedBlock(undefined);
+  };
   const save = async () => {
     if (pendingAction || !dirty) return true;
     setPendingAction("save");
@@ -196,28 +156,58 @@ export function LessonEditor({
     save,
     discard: () => onChange(savedLesson),
   });
+  useEffect(() => {
+    const handleShortcut = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
+        event.preventDefault();
+        void save();
+        return;
+      }
+    };
+    window.addEventListener("keydown", handleShortcut);
+    return () => window.removeEventListener("keydown", handleShortcut);
+  });
   const remove = async () => {
     if (pendingAction) return;
     setPendingAction("delete");
     try {
       await onDelete(lesson);
     } catch (reason) {
-      onError(
-        reason instanceof Error
-          ? reason.message
-          : "The lesson could not be deleted.",
-      );
+      const error = reason instanceof Error ? reason : new Error("The lesson could not be deleted.");
+      onError(error.message);
+      throw error;
+    } finally {
       setPendingAction(undefined);
     }
   };
   return (
     <div className="grid gap-4 bg-surface p-5 text-[0.8rem] max-sm:p-4">
-      <div className="mb-5 flex flex-wrap items-center justify-between gap-3 border-b border-line pb-4">
+      <div className="sticky top-[68px] z-20 -mx-5 -mt-5 flex flex-wrap items-center justify-between gap-3 border-b border-line bg-surface/95 px-5 py-4 shadow-[0_10px_24px_rgb(0_0_0/8%)] backdrop-blur-xl max-sm:-mx-4 max-sm:-mt-4 max-sm:px-4">
         <div className="grid gap-1">
           <strong>LESSON CONTENT</strong>
-          <span className={dirty ? "text-xs text-signal-orange" : "text-xs text-muted"} role="status">{dirty ? "UNSAVED CHANGES" : "ALL CHANGES SAVED"}</span>
+          <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <span className={dirty ? "text-xs text-signal-orange" : "text-xs text-muted"} role="status">
+              {dirty ? "UNSAVED CHANGES" : "ALL CHANGES SAVED"}
+            </span>
+            <small className="font-mono text-[0.6rem] text-muted">
+              {blocks.length} BLOCK{blocks.length === 1 ? "" : "S"}
+            </small>
+          </span>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          {view === "edit" && blocks.length ? (
+            <Button
+              onClick={() => {
+                if (expandedAll) onActiveBlockChange(undefined);
+                setExpandedAll((current) => !current);
+              }}
+              size="compact"
+              tone="ghost"
+            >
+              <ChevronsUpDown />
+              {expandedAll ? "COLLAPSE ALL" : "EXPAND ALL"}
+            </Button>
+          ) : null}
           <Tabs
             value={view}
             onValueChange={(value) => setView(value as "edit" | "preview")}
@@ -235,20 +225,20 @@ export function LessonEditor({
             disabled={Boolean(pendingAction) || !dirty}
             onClick={() => void save()}
             tone="primary"
+            title="Save lesson (Ctrl+S)"
           >
-            <Save />
-            {pendingAction === "save" ? "SAVING..." : "SAVE LESSON"}
+            {pendingAction === "save" ? <LoadingButtonContent label="SAVING..." /> : <><Save />SAVE LESSON</>}
           </Button>
           <ConfirmationDialog
             confirmLabel="DELETE LESSON"
             description={`This permanently removes “${draft.title || "Untitled lesson"}” from the current draft. Existing published versions are not changed.`}
-            destructive
+            busyLabel="DELETING..."
+            intent="destructive"
             onConfirm={remove}
             title="Delete this lesson?"
             trigger={
               <Button disabled={Boolean(pendingAction) || dirty} tone="destructive">
-                <Trash2 />
-                {pendingAction === "delete" ? "DELETING..." : "DELETE LESSON"}
+                {pendingAction === "delete" ? <LoadingButtonContent label="DELETING..." /> : <><Trash2 />DELETE LESSON</>}
               </Button>
             }
           />
@@ -264,205 +254,176 @@ export function LessonEditor({
         />
       ) : (
         <>
-          <label className="grid gap-2 text-[0.7rem] font-semibold text-copy [&>small]:font-normal [&>small]:leading-6 [&>small]:text-muted">
-            <span>Lesson title</span>
-            <input
-              value={draft.title ?? ""}
-              onChange={(event) => update({ title: event.target.value })}
-            />
-          </label>
-          <label className="grid gap-2 text-[0.7rem] font-semibold text-copy [&>small]:font-normal [&>small]:leading-6 [&>small]:text-muted">
-            <span>Short description</span>
-            <textarea
-              rows={2}
-              value={draft.summary ?? ""}
-              onChange={(event) => update({ summary: event.target.value })}
-            />
-          </label>
-          <section
-            className="grid gap-3 border-y border-line py-4"
-            aria-labelledby="add-content-block"
-          >
-            <div className="grid gap-1">
-              <strong className="text-xs" id="add-content-block">
-                ADD A CONTENT BLOCK
-              </strong>
-              <span className="text-xs leading-5 text-muted">
-                Choose what you want to place next in this lesson.
-              </span>
-            </div>
-            <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
-              {blockOptions.map((option) => {
-                const Icon = option.icon;
-                return (
-                  <button
-                    key={option.type}
-                    className="grid min-h-[68px] grid-cols-[34px_minmax(0,1fr)] items-center gap-2 rounded-control border border-line bg-canvas px-3 py-2 text-left transition-colors hover:border-signal-orange/60 hover:bg-raised focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-signal-orange"
-                    onClick={() => addBlock(option.type)}
-                    type="button"
-                  >
-                    <span className="grid size-[34px] place-items-center rounded-control bg-raised text-signal-orange [&_svg]:size-4">
-                      <Icon aria-hidden="true" />
-                    </span>
-                    <span className="grid min-w-0 gap-0.5">
-                      <strong className="text-xs text-copy">
-                        {option.label}
-                      </strong>
-                      <small className="text-[0.65rem] leading-4 text-muted">
-                        {option.description}
-                      </small>
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </section>
+          <LessonDetails
+            onChange={update}
+            summary={draft.summary ?? ""}
+            title={draft.title ?? ""}
+          />
+          <LessonBlockPicker
+            onAdd={(type) => addBlock(type, activeBlockId ? blocks.findIndex((block) => block.id === activeBlockId) : blocks.length - 1)}
+          />
           <div className="grid gap-3">
-            {blocks.map((block, index) => (
-              <section
-                aria-label={`${block.type} content block ${index + 1} of ${blocks.length}`}
-                className={`grid gap-4 rounded-control border bg-canvas p-4 transition-[border-color,opacity,box-shadow] [&>header]:flex [&>header]:items-center [&>header]:justify-between ${
-                  dropTargetIndex === index && draggedBlockIndex !== index
-                    ? "border-signal-orange shadow-[inset_0_3px_0_rgba(222,126,67,0.9)]"
-                    : "border-line"
-                } ${draggedBlockIndex === index ? "opacity-55" : "opacity-100"}`}
-                key={block.id}
-                onDragOver={(event) => {
-                  if (draggedBlockIndex === undefined) return;
-                  event.preventDefault();
-                  event.dataTransfer.dropEffect = "move";
-                  setDropTargetIndex(index);
-                }}
-                onDrop={(event) => {
-                  event.preventDefault();
-                  if (draggedBlockIndex !== undefined)
-                    moveBlock(draggedBlockIndex, index);
-                  setDraggedBlockIndex(undefined);
-                  setDropTargetIndex(undefined);
-                }}
-              >
-                <header>
-                  <strong>{block.type.toUpperCase()}</strong>
-                  <div className="flex items-center gap-2">
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <button
-                          aria-label={`Reorder ${block.type} block, position ${index + 1} of ${blocks.length}`}
-                          className="grid size-11 cursor-grab place-items-center rounded-control border border-line bg-transparent text-muted hover:border-muted hover:bg-raised hover:text-copy active:cursor-grabbing focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-signal-orange [&_svg]:size-[19px]"
-                          draggable
-                          onDragEnd={() => {
-                            setDraggedBlockIndex(undefined);
-                            setDropTargetIndex(undefined);
-                          }}
-                          onDragStart={(event) => {
-                            setDraggedBlockIndex(index);
-                            setDropTargetIndex(index);
-                            event.dataTransfer.effectAllowed = "move";
-                            event.dataTransfer.setData("text/plain", block.id);
-                          }}
-                          onKeyDown={(event) => {
-                            if (event.key === "ArrowUp" && index > 0) {
-                              event.preventDefault();
-                              moveBlock(index, index - 1);
+            {blocks.map((block, index) => {
+              const expanded = expandedAll || activeBlockId === block.id;
+              const status = getLessonBlockStatus(block);
+              return (
+                <section
+                  aria-label={`${block.type} content block ${index + 1} of ${blocks.length}`}
+                  className={cn(
+                    "scroll-mt-40 rounded-control border bg-canvas transition-[border-color,opacity,box-shadow]",
+                    expanded ? "border-line shadow-[0_8px_24px_rgb(0_0_0/6%)]" : "border-line/75",
+                    dropTargetIndex === index && draggedBlockIndex !== index &&
+                      "border-signal-orange shadow-[inset_0_3px_0_rgba(222,126,67,0.9)]",
+                    draggedBlockIndex === index && "opacity-55",
+                  )}
+                  id={`lesson-block-${block.id}`}
+                  key={block.id}
+                  onDragOver={(event) => {
+                    if (draggedBlockIndex === undefined) return;
+                    event.preventDefault();
+                    event.dataTransfer.dropEffect = "move";
+                    setDropTargetIndex(index);
+                  }}
+                  onDrop={(event) => {
+                    event.preventDefault();
+                    if (draggedBlockIndex !== undefined) moveBlock(draggedBlockIndex, index);
+                    setDraggedBlockIndex(undefined);
+                    setDropTargetIndex(undefined);
+                  }}
+                >
+                  <header className="flex min-h-[66px] items-stretch">
+                    <button
+                      aria-expanded={expanded}
+                      className="grid min-w-0 flex-1 grid-cols-[34px_minmax(0,1fr)_auto_18px] items-center gap-3 rounded-l-control px-3 py-2 text-left hover:bg-raised/55 focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-signal-orange"
+                      onClick={() => {
+                        if (expandedAll) {
+                          setExpandedAll(false);
+                          onActiveBlockChange(block.id);
+                        } else {
+                          onActiveBlockChange(expanded ? undefined : block.id);
+                        }
+                      }}
+                      type="button"
+                    >
+                      <span className="font-mono text-[0.65rem] text-signal-orange">{String(index + 1).padStart(2, "0")}</span>
+                      <span className="grid min-w-0 gap-1">
+                        <strong className="text-xs">{block.type.toUpperCase()}</strong>
+                        <small className="truncate text-[0.65rem] text-muted">{getLessonBlockSummary(block)}</small>
+                      </span>
+                      <small className={cn("hidden font-mono text-[0.56rem] sm:block", status.complete ? "text-signal-green" : "text-signal-orange")}>
+                        {status.label}
+                      </small>
+                      <ChevronDown className={cn("size-4 text-muted transition-transform", expanded && "rotate-180")} />
+                    </button>
+                    <div className="flex shrink-0 items-center gap-1 border-l border-line px-2">
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            aria-label={`Reorder ${block.type} block, position ${index + 1} of ${blocks.length}`}
+                            className="grid size-10 cursor-grab place-items-center rounded-control text-muted hover:bg-raised hover:text-copy active:cursor-grabbing focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-signal-orange [&_svg]:size-[18px]"
+                            draggable
+                            onDragEnd={() => {
+                              setDraggedBlockIndex(undefined);
+                              setDropTargetIndex(undefined);
+                            }}
+                            onDragStart={(event) => {
+                              setDraggedBlockIndex(index);
+                              setDropTargetIndex(index);
+                              event.dataTransfer.effectAllowed = "move";
+                              event.dataTransfer.setData("text/plain", block.id);
+                            }}
+                            onKeyDown={(event) => {
+                              if (event.key === "ArrowUp" && index > 0) {
+                                event.preventDefault();
+                                moveBlock(index, index - 1);
+                              }
+                              if (event.key === "ArrowDown" && index < blocks.length - 1) {
+                                event.preventDefault();
+                                moveBlock(index, index + 1);
+                              }
+                            }}
+                            type="button"
+                          >
+                            <Grip aria-hidden="true" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent>Drag to reorder. Use Up or Down Arrow for keyboard reordering.</TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            aria-label={`Remove ${block.type} block`}
+                            className="grid size-10 place-items-center rounded-control text-muted hover:bg-signal-red-soft hover:text-signal-red focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-signal-orange [&_svg]:size-[17px]"
+                            onClick={() => removeBlock(index)}
+                            type="button"
+                          >
+                            <Trash2 aria-hidden="true" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent>Remove this content block</TooltipContent>
+                      </Tooltip>
+                    </div>
+                  </header>
+                  {expanded ? (
+                    <div className="grid gap-4 border-t border-line p-4">
+                      {block.type === "commands" ? (
+                        <CommandBlockEditor block={block} onChange={(patch) => updateBlock(index, patch)} topologies={topologies} />
+                      ) : block.type === "topology" ? (
+                        <label className="grid gap-2 text-[0.7rem] font-semibold text-copy">
+                          <span>Lesson topology</span>
+                          <SelectField
+                            ariaLabel="Lesson topology"
+                            onValueChange={(topologyId) => updateBlock(index, { topologyId })}
+                            options={topologies.map((topology) => ({
+                              value: topology.stable_id,
+                              label: String(topology.definition.title ?? topology.stable_id),
+                            }))}
+                            placeholder="Choose a topology"
+                            value={block.topologyId ?? ""}
+                          />
+                        </label>
+                      ) : (
+                        <label className="grid gap-2 text-[0.7rem] font-semibold text-copy">
+                          <span>{lessonBlockFieldCopy[block.type].label}</span>
+                          <textarea
+                            placeholder={lessonBlockFieldCopy[block.type].placeholder}
+                            rows={block.type === "heading" ? 2 : 4}
+                            value={block.type === "image" ? (block.imageUrl ?? "") : (block.text ?? "")}
+                            onChange={(event) =>
+                              updateBlock(
+                                index,
+                                block.type === "image"
+                                  ? { imageUrl: event.target.value }
+                                  : { text: event.target.value },
+                              )
                             }
-                            if (
-                              event.key === "ArrowDown" &&
-                              index < blocks.length - 1
-                            ) {
-                              event.preventDefault();
-                              moveBlock(index, index + 1);
-                            }
-                          }}
-                          type="button"
-                        >
-                          <Grip aria-hidden="true" />
-                        </button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        Drag to reorder. Use Up or Down Arrow for keyboard reordering.
-                      </TooltipContent>
-                    </Tooltip>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <button
-                          className="grid size-11 place-items-center rounded-control border border-line bg-raised text-copy hover:border-muted hover:bg-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-signal-orange [&_svg]:size-[18px]"
-                          aria-label={`Remove ${block.type} block`}
-                          onClick={() =>
-                            update({
-                              blocks: blocks.filter(
-                                (_, current) => current !== index,
-                              ),
-                            })
-                          }
-                          type="button"
-                        >
-                          <Trash2 aria-hidden="true" />
-                        </button>
-                      </TooltipTrigger>
-                      <TooltipContent>Remove this content block</TooltipContent>
-                    </Tooltip>
-                  </div>
-                </header>
-                {block.type === "commands" ? (
-                  <CommandBlockEditor
-                    block={block}
-                    onChange={(patch) => updateBlock(index, patch)}
-                    topologies={topologies}
-                  />
-                ) : block.type === "topology" ? (
-                  <label className="grid gap-2 text-[0.7rem] font-semibold text-copy [&>small]:font-normal [&>small]:leading-6 [&>small]:text-muted">
-                    <span>Lesson topology</span>
-                    <SelectField
-                      ariaLabel="Lesson topology"
-                      onValueChange={(topologyId) =>
-                        updateBlock(index, { topologyId })
-                      }
-                      options={topologies.map((topology) => ({
-                        value: topology.stable_id,
-                        label: String(
-                          topology.definition.title ?? topology.stable_id,
-                        ),
-                      }))}
-                      placeholder="Choose a topology"
-                      value={block.topologyId ?? ""}
-                    />
-                  </label>
-                ) : (
-                  <label className="grid gap-2 text-[0.7rem] font-semibold text-copy [&>small]:font-normal [&>small]:leading-6 [&>small]:text-muted">
-                    <span>{blockFieldCopy[block.type].label}</span>
-                    <textarea
-                      placeholder={blockFieldCopy[block.type].placeholder}
-                      rows={block.type === "heading" ? 2 : 4}
-                      value={
-                        block.type === "image"
-                          ? (block.imageUrl ?? "")
-                          : (block.text ?? "")
-                      }
-                      onChange={(event) =>
-                        updateBlock(
-                          index,
-                          block.type === "image"
-                            ? { imageUrl: event.target.value }
-                            : { text: event.target.value },
-                        )
-                      }
-                    />
-                  </label>
-                )}
-                {block.type === "image" ? (
-                  <label className="grid gap-2 text-[0.7rem] font-semibold text-copy [&>small]:font-normal [&>small]:leading-6 [&>small]:text-muted">
-                    <span>Alternative text</span>
-                    <input
-                      placeholder="Describe what the image shows for students using a screen reader."
-                      value={block.altText ?? ""}
-                      onChange={(event) =>
-                        updateBlock(index, { altText: event.target.value })
-                      }
-                    />
-                  </label>
-                ) : null}
-              </section>
-            ))}
+                          />
+                        </label>
+                      )}
+                      {block.type === "image" ? (
+                        <label className="grid gap-2 text-[0.7rem] font-semibold text-copy">
+                          <span>Alternative text</span>
+                          <input
+                            placeholder="Describe what the image shows for students using a screen reader."
+                            value={block.altText ?? ""}
+                            onChange={(event) => updateBlock(index, { altText: event.target.value })}
+                          />
+                        </label>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </section>
+              );
+            })}
+            {removedBlock ? (
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-control border border-signal-orange/45 bg-signal-orange-soft px-4 py-3" role="status">
+                <span className="text-xs">{getLessonBlockLabel(removedBlock.block.type)} removed.</span>
+                <Button onClick={undoRemove} size="compact" tone="ghost">
+                  <Undo2 />
+                  UNDO
+                </Button>
+              </div>
+            ) : null}
           </div>
         </>
       )}

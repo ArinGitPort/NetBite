@@ -2,6 +2,7 @@ import { Cable, Monitor, Network, Plus, RotateCcw, Router, Save, Server, Sparkle
 
 import type { WorkshopTopologyDevice } from "@netbite/workshops/contracts";
 import { Button } from "@/components/ui/button";
+import { LoadingButtonContent } from "@/components/ui/loading-content";
 
 const devices: Array<{ type: WorkshopTopologyDevice["type"]; label: string }> = [
   { type: "pc", label: "PC" }, { type: "switch", label: "SWITCH" },
@@ -22,7 +23,7 @@ export function TopologyToolbar({ count, dirty, saving, connectionMode, canReset
     <div className="grid gap-3 border-b border-line p-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="grid min-w-[150px] gap-1"><strong>READ-ONLY TOPOLOGY</strong><span className={dirty ? "text-[0.65rem] text-signal-orange" : "text-[0.65rem] text-muted"} role="status">{dirty ? "UNSAVED CHANGES" : "ALL CHANGES SAVED"} / {count} OF 12 DEVICES</span></div>
-        <Button disabled={saving || !dirty} onClick={onSave} tone="primary"><Save />{saving ? "SAVING..." : "SAVE TOPOLOGY"}</Button>
+        <Button disabled={saving || !dirty} onClick={onSave} tone="primary">{saving ? <LoadingButtonContent label="SAVING..." /> : <><Save />SAVE TOPOLOGY</>}</Button>
       </div>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div aria-label="Add a device" className="flex flex-wrap items-center gap-1.5 rounded-control border border-line bg-canvas p-1.5" role="group">

@@ -3,7 +3,6 @@ import {
   Copy,
   Download,
   Link2,
-  LoaderCircle,
   QrCode,
   Search,
   ShieldCheck,
@@ -14,6 +13,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { ConfirmationDialog } from "@/components/ui/dialog";
+import { LoadingContent } from "@/components/ui/loading-content";
 import {
   Tooltip,
   TooltipContent,
@@ -84,15 +84,21 @@ export function ClassShareCard({
   }, [query, roster]);
   const copy = (value: string, message: string) =>
     void navigator.clipboard.writeText(value).then(() => onNotice(message));
-  const changeEnrollment = () =>
-    void setWorkshopClassEnrollment(row.id, !row.join_enabled).then(() => {
+  const changeEnrollment = async () => {
+    try {
+      await setWorkshopClassEnrollment(row.id, !row.join_enabled);
       onNotice(
         row.join_enabled
           ? "Class enrollment closed. Existing students retain access."
           : "Class enrollment reopened.",
       );
       onChanged();
-    });
+    } catch (reason) {
+      const error = reason instanceof Error ? reason : new Error("Class enrollment could not be updated.");
+      onNotice(error.message);
+      throw error;
+    }
+  };
 
   return (
     <article className="overflow-hidden [&+article]:mt-6 [&+article]:border-t [&+article]:border-line [&+article]:pt-6">
@@ -209,13 +215,13 @@ export function ClassShareCard({
           <ConfirmationDialog
             confirmLabel="CLOSE ENROLLMENT"
             description={`New students will no longer be able to join “${row.title}” using its code, link, or QR code. Existing students keep access.`}
-            destructive
+            intent="destructive"
             onConfirm={changeEnrollment}
             title="Close class enrollment?"
             trigger={<Button tone="destructive">CLOSE ENROLLMENT</Button>}
           />
         ) : (
-          <Button onClick={changeEnrollment} tone="secondary">REOPEN ENROLLMENT</Button>
+          <Button onClick={() => void changeEnrollment().catch(() => undefined)} tone="secondary">REOPEN ENROLLMENT</Button>
         )}
       </footer>
     </article>
@@ -254,9 +260,7 @@ function ClassRoster({
         </label>
       ) : null}
       {loading ? (
-        <div className="flex min-h-20 items-center justify-center gap-2 text-sm text-muted">
-          <LoaderCircle className="size-4 animate-spin" /> Loading students
-        </div>
+        <LoadingContent label="Loading students" variant="inline" />
       ) : error ? (
         <div className="flex flex-wrap items-center justify-between gap-3 py-3 text-sm text-signal-red">
           <span>{error}</span>

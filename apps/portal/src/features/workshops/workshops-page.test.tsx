@@ -115,16 +115,10 @@ describe("instructor workshop portal", () => {
     expect(screen.getByRole("button", { name: "NEW COLLECTION" })).toBeTruthy();
     expect(screen.getByText("1 published version")).toBeTruthy();
     expect(screen.getByRole("tab", { name: "Lessons, 1 item" })).toBeTruthy();
-    expect(
-      screen.getByRole("tab", { name: "Topologies, 0 items" }),
-    ).toBeTruthy();
+    expect(screen.getByRole("tab", { name: "Topologies, 0 items" })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: /Body text/ }));
     expect(screen.getByText("PARAGRAPH")).toBeTruthy();
-    expect(
-      screen.getByPlaceholderText(
-        "Explain the concept in clear, complete sentences.",
-      ),
-    ).toBeTruthy();
+    expect(screen.getByPlaceholderText("Explain the concept in clear, complete sentences.")).toBeTruthy();
     fireEvent.change(
       screen.getByPlaceholderText(
         "Explain the concept in clear, complete sentences.",
@@ -145,23 +139,38 @@ describe("instructor workshop portal", () => {
         "A router forwards traffic between networks.",
       ),
     ).toBeTruthy();
-    expect(
-      within(lessonPreview).getByText(/CURRENT UNSAVED DRAFT/),
-    ).toBeTruthy();
+    expect(within(lessonPreview).getByText(/CURRENT UNSAVED DRAFT/)).toBeTruthy();
     fireEvent.click(screen.getByRole("tab", { name: "EDIT" }));
-    expect(
-      screen.getByDisplayValue("A router forwards traffic between networks."),
-    ).toBeTruthy();
+    expect(screen.getByDisplayValue("A router forwards traffic between networks.")).toBeTruthy();
     fireEvent.click(screen.getByRole("tab", { name: "Topologies, 0 items" }));
-    fireEvent.click(
-      screen.getByRole("button", { name: "CREATE FIRST TOPOLOGY" }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: "CREATE FIRST TOPOLOGY" }));
     expect(screen.getByRole("group", { name: "Add a device" })).toBeTruthy();
-    fireEvent.click(
-      await screen.findByRole("button", { name: "Add PC to topology" }),
-    );
+    fireEvent.click(await screen.findByRole("button", { name: "Add PC to topology" }));
     expect(screen.getByDisplayValue("PC1")).toBeTruthy();
     expect(screen.getByText("SAVE TOPOLOGY")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Remove device" }));
+    const removal = screen.getByRole("alertdialog");
+    expect(within(removal).getByText(/PC1 and 0 connected cables/i)).toBeInTheDocument();
+    fireEvent.click(within(removal).getByRole("button", { name: "CANCEL" }));
+    expect(screen.getByDisplayValue("PC1")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Remove device" }));
+    fireEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "REMOVE DEVICE" }));
+    expect(screen.queryByDisplayValue("PC1")).not.toBeInTheDocument();
+  });
+
+  test("confirms collection archive and publishing before changing learner-facing state", async () => {
+    vi.mocked(api.saveWorkshop).mockImplementation(async (row) => row);
+    vi.mocked(api.publishWorkshop).mockResolvedValue({} as never);
+    renderPortal(<WorkshopStudio area="workshops" />);
+    await screen.findByText("Static routes");
+    fireEvent.click(screen.getByRole("button", { name: "ARCHIVE COLLECTION" }));
+    expect(api.saveWorkshop).not.toHaveBeenCalled();
+    fireEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "ARCHIVE COLLECTION" }));
+    await waitFor(() => expect(api.saveWorkshop).toHaveBeenCalledWith(expect.objectContaining({ archived: true })));
+    fireEvent.click(screen.getByRole("button", { name: "PUBLISH COLLECTION" }));
+    expect(api.publishWorkshop).not.toHaveBeenCalled();
+    fireEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "PUBLISH COLLECTION" }));
+    await waitFor(() => expect(api.publishWorkshop).toHaveBeenCalledWith(workshop.id));
   });
 
   test("renames and deletes a topology from the selector controls", async () => {

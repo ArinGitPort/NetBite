@@ -2,10 +2,10 @@ import { CalendarDays, ChevronDown, History, Smartphone } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import {
-  ConfirmAction,
   EmptyState,
   StatusBadge,
 } from "@/components/ui/admin-primitives";
+import { ConfirmAction } from "@/components/ui/dialog";
 import { FilterToolbar } from "@/components/ui/filter-toolbar";
 import { SelectField } from "@/components/ui/select";
 import type { ReleaseRow } from "@/lib/api/types";
@@ -178,7 +178,6 @@ function PublishedVersion({
               className="inline-flex min-h-10 items-center justify-center gap-2 rounded-control border border-line bg-transparent px-3 text-xs font-semibold text-copy hover:border-muted hover:bg-raised disabled:pointer-events-none disabled:opacity-45 [&_svg]:size-4"
               confirmLabel="RESTORE VERSION"
               detail={`Version ${row.release_version} will be copied into a new published version. Existing releases and audit records remain unchanged.`}
-              eyebrow="RESTORE PREVIOUS VERSION"
               onConfirm={onRestore}
               title={`Restore version ${row.release_version}?`}
               tone="warning"

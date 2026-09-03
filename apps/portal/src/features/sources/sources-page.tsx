@@ -42,13 +42,14 @@ import type {
   SourceRow,
 } from "@/lib/api/types";
 import {
-  ConfirmAction,
   EmptyState as Empty,
   Field,
   PageIntro,
   StatusBadge as Badge,
 } from "@/components/ui/admin-primitives";
 import { Button } from "@/components/ui/button";
+import { ConfirmAction } from "@/components/ui/dialog";
+import { LoadingButtonContent, LoadingContent } from "@/components/ui/loading-content";
 import { SelectField } from "@/components/ui/select";
 
 export function Sources() {
@@ -60,18 +61,22 @@ export function Sources() {
     notes: "",
   });
   const [notice, setNotice] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
   const load = () =>
     Promise.all([sourceApi.getSources(), curriculumApi.getCurriculum()]).then(
       ([nextRows, curriculum]) => {
         setRows(nextRows);
         setLessons(curriculum.lessons.filter(({ archived }) => !archived));
       },
-    );
+    ).finally(() => setLoading(false));
   useEffect(() => {
     void load();
   }, []);
   const submit = async (event: FormEvent) => {
     event.preventDefault();
+    if (busy) return;
+    setBusy(true);
     try {
       await sourceApi.saveSource(form);
       setForm({ label: "", url: "https://", notes: "" });
@@ -79,6 +84,8 @@ export function Sources() {
       await load();
     } catch (error) {
       setNotice((error as Error).message);
+    } finally {
+      setBusy(false);
     }
   };
   return (
@@ -147,14 +154,13 @@ export function Sources() {
               }
             />
           </Field>
-          <Button tone="primary" type="submit">
-            <Save />
-            SAVE SOURCE
+          <Button disabled={busy} tone="primary" type="submit">
+            {busy ? <LoadingButtonContent label="SAVING SOURCE..." /> : <><Save />SAVE SOURCE</>}
           </Button>
         </form>
         <section className="rounded-panel border border-line bg-surface p-5 shadow-panel">
           <h2 className="text-lg">Reference library</h2>
-          {rows.map((row) => (
+          {loading ? <LoadingContent label="Loading source references" variant="section" /> : rows.map((row) => (
             <article
               className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 border-t border-line py-4 max-sm:grid-cols-1 [&>div:first-child]:grid [&>div:first-child]:gap-1 [&_a]:break-all [&_a]:font-mono [&_a]:text-xs [&_a]:text-signal-blue [&_p]:m-0 [&_p]:text-sm"
               key={row.id}
@@ -187,7 +193,7 @@ export function Sources() {
               </div>
             </article>
           ))}
-          {!rows.length ? (
+          {!loading && !rows.length ? (
             <Empty
               title="No source records"
               detail="Add the official references used to verify a lesson."

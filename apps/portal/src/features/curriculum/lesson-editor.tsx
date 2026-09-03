@@ -13,11 +13,12 @@ import { useUnsavedDraft } from "@/app/providers/unsaved-changes-provider";
 import * as curriculumApi from "@/lib/api/curriculum-service";
 import type { LessonRow } from "@/lib/api/types";
 import {
-  ConfirmAction,
   DialogFrame,
   Field,
   StatusBadge as Badge,
 } from "@/components/ui/admin-primitives";
+import { ConfirmAction } from "@/components/ui/dialog";
+import { LoadingButtonContent } from "@/components/ui/loading-content";
 
 export function LessonEditor({
   row,
@@ -222,8 +223,7 @@ export function LessonEditor({
               disabled={busy || !dirty}
               onClick={() => void save()}
             >
-              <Save />
-              {busy ? "SAVING..." : "SAVE DRAFT"}
+              {busy ? <LoadingButtonContent label="SAVING..." /> : <><Save />SAVE DRAFT</>}
             </button>
             <div className="flex flex-wrap items-center justify-end gap-2">
               <button
@@ -241,24 +241,30 @@ export function LessonEditor({
                 <ArrowDown /> MOVE LATER
               </button>
             </div>
-            <ConfirmAction
-              ariaLabel={row.archived ? "Restore lesson" : "Archive lesson"}
-              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-control border border-signal-red/60 bg-transparent px-4 text-xs font-semibold text-signal-red hover:bg-signal-red-soft disabled:pointer-events-none disabled:opacity-45 [&_svg]:size-4"
-              confirmLabel={row.archived ? "RESTORE LESSON" : "ARCHIVE LESSON"}
-              detail={
-                row.archived
-                  ? "The draft will return to the active lesson list. Existing published versions are unchanged."
-                  : "The draft will leave the active lesson list. Existing published versions remain unchanged."
-              }
-              disabled={busy || dirty}
-              eyebrow={row.archived ? "RESTORE DRAFT" : "ARCHIVE DRAFT"}
-              onConfirm={archive}
-              title={`${row.archived ? "Restore" : "Archive"} ${draft.title}?`}
-              tone="warning"
-            >
-              <Archive />
-              {row.archived ? "RESTORE LESSON" : "ARCHIVE LESSON"}
-            </ConfirmAction>
+            {row.archived ? (
+              <button
+                aria-label="Restore lesson"
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-control border border-line bg-transparent px-4 text-xs font-semibold text-copy hover:bg-raised disabled:pointer-events-none disabled:opacity-45 [&_svg]:size-4"
+                disabled={busy || dirty}
+                onClick={() => void archive()}
+                type="button"
+              >
+                <Archive /> RESTORE LESSON
+              </button>
+            ) : (
+              <ConfirmAction
+                ariaLabel="Archive lesson"
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-control border border-signal-orange/60 bg-transparent px-4 text-xs font-semibold text-signal-orange hover:bg-signal-orange-soft disabled:pointer-events-none disabled:opacity-45 [&_svg]:size-4"
+                confirmLabel="ARCHIVE LESSON"
+                detail="The draft will leave the active lesson list. Existing published versions remain unchanged."
+                disabled={busy || dirty}
+                onConfirm={archive}
+                title={`Archive ${draft.title}?`}
+                tone="warning"
+              >
+                <Archive /> ARCHIVE LESSON
+              </ConfirmAction>
+            )}
           </div>
         </div>
       )}
