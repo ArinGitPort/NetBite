@@ -375,6 +375,7 @@ export interface GradebookStudentRow {
   studentId: string;
   studentName: string;
   assessmentId: string;
+  assessmentTitle?: string;
   recordedScore?: number;
   total: number;
   percentage?: number;

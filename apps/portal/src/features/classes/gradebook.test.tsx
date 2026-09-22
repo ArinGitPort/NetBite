@@ -11,27 +11,33 @@ const rows = [
     assessmentTitle: "Routing quiz",
     attempts: 1,
     percentage: undefined,
+    score: undefined,
     status: "missing",
     studentId: "student-3",
     studentName: "Charlie",
+    total: 10,
   },
   {
     assessmentId: "assessment-1",
     assessmentTitle: "Routing quiz",
     attempts: 2,
     percentage: 76,
+    score: 7.6,
     status: "passed",
     studentId: "student-1",
     studentName: "Alice",
+    total: 10,
   },
   {
     assessmentId: "assessment-1",
     assessmentTitle: "Routing quiz",
     attempts: 1,
     percentage: 92,
+    score: 9.2,
     status: "passed",
     studentId: "student-2",
     studentName: "Bob",
+    total: 10,
   },
 ];
 
@@ -47,21 +53,39 @@ describe("Gradebook table", () => {
     render(<Gradebook rows={rows} />);
 
     const table = screen.getByRole("table");
+    expect(within(table).getByText("7.6 / 10")).toBeInTheDocument();
     expect(studentNames(table)).toEqual(["Alice", "Bob", "Charlie"]);
     expect(within(table).getByRole("columnheader", { name: /student/i })).toHaveAttribute(
       "aria-sort",
       "ascending",
     );
 
-    fireEvent.click(within(table).getByRole("button", { name: "Sort by Grade" }));
+    fireEvent.click(within(table).getByRole("button", { name: "Sort by Score" }));
     expect(studentNames(table)).toEqual(["Bob", "Alice", "Charlie"]);
-    expect(within(table).getByRole("columnheader", { name: /grade/i })).toHaveAttribute(
+    expect(within(table).getByRole("columnheader", { name: /score/i })).toHaveAttribute(
       "aria-sort",
       "descending",
     );
 
-    fireEvent.click(within(table).getByRole("button", { name: "Sort by Grade" }));
+    fireEvent.click(within(table).getByRole("button", { name: "Sort by Score" }));
     expect(studentNames(table)).toEqual(["Alice", "Bob", "Charlie"]);
+  });
+
+  test("shows scores returned by the previously deployed gradebook service", () => {
+    render(
+      <Gradebook
+        rows={[
+          {
+            ...rows[1],
+            recordedScore: 8,
+            score: undefined,
+            total: 10,
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByText("8 / 10")).toBeInTheDocument();
   });
 
   test("visually separates adjacent column headers", () => {
@@ -80,9 +104,11 @@ describe("Gradebook table", () => {
       assessmentTitle: "Routing quiz",
       attempts: 1,
       percentage: index + 1,
+      score: (index + 1) / 10,
       status: "passed",
       studentId: `student-${index + 1}`,
       studentName: `Student ${index + 1}`,
+      total: 10,
     }));
     render(<Gradebook rows={manyRows} />);
 
@@ -94,13 +120,14 @@ describe("Gradebook table", () => {
     expect(studentNames(table)).toEqual(["Student 11", "Student 12"]);
     expect(screen.getByText("Showing 11–12 of 12 grade records")).toBeInTheDocument();
 
-    fireEvent.click(within(table).getByRole("button", { name: "Sort by Grade" }));
+    fireEvent.click(within(table).getByRole("button", { name: "Sort by Score" }));
     expect(studentNames(table)).toHaveLength(10);
     expect(screen.getByRole("button", { name: "Page 1" })).toHaveAttribute(
       "aria-current",
       "page",
     );
   });
+
 });
 
 function studentNames(table: HTMLElement) {

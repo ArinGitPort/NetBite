@@ -9,9 +9,10 @@ describe("gradebook Excel export", () => {
       {
         assessmentTitle: "Router on a Stick Quiz",
         attempts: 2,
-        percentage: 87.5,
+        score: 7,
         status: "passed",
         studentName: "Aisha Rahman",
+        total: 8,
       },
       {
         assessmentTitle: "Router on a Stick Quiz",
@@ -23,20 +24,22 @@ describe("gradebook Excel export", () => {
 
     expect(sheet).toHaveLength(6);
     expect(sheet[0]?.[0]).toMatchObject({
-      columnSpan: 5,
+      columnSpan: 6,
       fontWeight: "bold",
       value: "NETBITE GRADEBOOK",
     });
     expect(sheet[3]?.map((cell) => (cell as CellObject).value)).toEqual([
       "Student",
       "Assessment",
-      "Grade",
+      "Score",
+      "Out of",
       "Attempts",
       "Status",
     ]);
-    expect(sheet[4]?.[2]).toMatchObject({ format: "0.0%", type: Number, value: 0.875 });
-    expect(sheet[4]?.[4]).toMatchObject({ backgroundColor: "#DDEFE8", value: "PASSED" });
+    expect(sheet[4]?.[2]).toMatchObject({ format: "0.00", type: Number, value: 7 });
+    expect(sheet[4]?.[3]).toMatchObject({ format: "0.00", type: Number, value: 8 });
+    expect(sheet[4]?.[5]).toMatchObject({ backgroundColor: "#DDEFE8", value: "PASSED" });
     expect(sheet[5]?.[2]).toMatchObject({ value: "—" });
-    expect(sheet[5]?.[4]).toMatchObject({ backgroundColor: "#F8E9D9", value: "MISSING" });
+    expect(sheet[5]?.[5]).toMatchObject({ backgroundColor: "#F8E9D9", value: "MISSING" });
   });
 });

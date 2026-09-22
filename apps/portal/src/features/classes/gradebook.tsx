@@ -87,9 +87,10 @@ export function Gradebook({ rows, loading = false }: { rows: GradeRow[]; loading
       await downloadGradebookWorkbook(sortedRows.map((row) => ({
         assessmentTitle: text(row.assessmentTitle),
         attempts: text(row.attempts),
-        percentage: finiteNumber(row.percentage),
+        score: gradeScore(row),
         status: text(row.status),
         studentName: text(row.studentName),
+        total: finiteNumber(row.total),
       })));
     } catch {
       setExportError("The Excel workbook could not be generated. Please try again.");
@@ -121,7 +122,7 @@ export function Gradebook({ rows, loading = false }: { rows: GradeRow[]; loading
         />
         <GradeMetric
           icon={BarChart3}
-          label="Average score"
+          label="Average performance"
           note={`${metrics.scores.length} recorded scores`}
           value={metrics.scores.length ? `${metrics.average.toFixed(1)}%` : "—"}
         />
@@ -139,7 +140,7 @@ export function Gradebook({ rows, loading = false }: { rows: GradeRow[]; loading
           <div className="grid min-w-0 gap-1.5">
             <h2 className="m-0 text-lg">Recorded grades</h2>
             <p className="m-0 max-w-3xl text-sm leading-6 text-muted">
-              Search and narrow the recorded attempt selected by each assessment’s score policy.
+              Review earned points from the attempt selected by each assessment’s score policy. Pass status follows its percentage threshold.
             </p>
           </div>
           <Button disabled={!filteredRows.length || exporting} onClick={() => void exportWorkbook()} tone="secondary">
@@ -250,7 +251,7 @@ function GradeMetric({
 const gradeColumns: Array<{ key: GradeSortKey; label: string }> = [
   { key: "student", label: "Student" },
   { key: "assessment", label: "Assessment" },
-  { key: "grade", label: "Grade" },
+  { key: "grade", label: "Score" },
   { key: "attempts", label: "Attempts" },
   { key: "status", label: "Status" },
 ];
@@ -286,7 +287,13 @@ function GradeTable({ rows, sortKey, direction, onSort }: {
         <div className="grid min-w-[720px] grid-cols-[1.2fr_1.4fr_.7fr_.6fr_.7fr] items-center border-t border-line transition-colors hover:bg-raised/30 [&>*]:px-4 [&>*]:py-3" key={`${text(row.studentId)}-${text(row.assessmentId)}`} role="row">
           <strong role="cell">{text(row.studentName)}</strong>
           <span role="cell">{text(row.assessmentTitle)}</span>
-          <span role="cell">{row.percentage == null ? "—" : `${Number(row.percentage).toFixed(1)}%`}</span>
+          <span role="cell">
+            {gradeScore(row) == null ? (
+              "—"
+            ) : (
+              `${formatScore(gradeScore(row))} / ${formatScore(row.total)}`
+            )}
+          </span>
           <span role="cell">{text(row.attempts)}</span>
           <span role="cell"><StatusBadge tone={statusTone(text(row.status))}>{text(row.status).toUpperCase()}</StatusBadge></span>
         </div>
@@ -322,6 +329,16 @@ function finiteNumber(value: unknown) {
   if (value == null || value === "") return undefined;
   const number = Number(value);
   return Number.isFinite(number) ? number : undefined;
+}
+
+function formatScore(value: unknown) {
+  const score = finiteNumber(value);
+  if (score == null) return "0";
+  return Number.isInteger(score) ? String(score) : score.toFixed(2).replace(/0+$/, "");
+}
+
+function gradeScore(row: GradeRow) {
+  return finiteNumber(row.score) ?? finiteNumber(row.recordedScore);
 }
 
 function calculateMetrics(rows: GradeRow[]) {
