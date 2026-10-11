@@ -1,4 +1,4 @@
-import type { CliDeviceState, CliLabDefinition as PublicCliLabDefinition, CliNetworkState } from '@/core/network/cli-simulator';
+import type { CliDeviceState,CliNetworkState,CliLabDefinition as PublicCliLabDefinition } from '@/core/network/cli-simulator';
 import type { TopologyCaptionAnchor } from '@/shared/components/topology-link-labels';
 
 export interface CliPredictionChoice { id: string; label: string; feedback: string }

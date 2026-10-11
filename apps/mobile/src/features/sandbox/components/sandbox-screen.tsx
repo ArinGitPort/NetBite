@@ -1,72 +1,52 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { useEffect,useMemo,useRef,useState } from 'react';
+import { ScrollView,TextInput,View } from 'react-native';
 
 import {
-  addSandboxDevice,
-  applyBeginnerLanSetup,
-  clearSandboxLearnedState,
-  configureSandboxDevice,
-  connectSandboxInterfaces,
-  createGuidedSandboxWorkspace,
-  createInterVlanSandboxWorkspace,
-  createReadyRoutedSandboxWorkspace,
-  createRouterSubinterface,
-  moveSandboxDevice,
-  getSandboxPingReadiness,
-  previewBeginnerLanSetup,
-  processSandboxFrame,
-  removeSandboxDevice,
-  removeSandboxLink,
-  removeRouterSubinterface,
-  simulateSandboxPing,
-  validateSandboxTopology,
-  type SandboxDevicePatch,
-  type SandboxDeviceType,
-  type SandboxTraceResult,
+addSandboxDevice,
+applyBeginnerLanSetup,
+clearSandboxLearnedState,
+configureSandboxDevice,
+connectSandboxInterfaces,
+createGuidedSandboxWorkspace,
+createInterVlanSandboxWorkspace,
+createReadyRoutedSandboxWorkspace,
+createRouterSubinterface,
+getSandboxPingReadiness,
+moveSandboxDevice,
+previewBeginnerLanSetup,
+processSandboxFrame,
+removeRouterSubinterface,
+removeSandboxDevice,
+removeSandboxLink,
+simulateSandboxPing,
+validateSandboxTopology,
+type SandboxDevicePatch,
+type SandboxDeviceType,
+type SandboxTraceResult,
 } from '@/core/network/sandbox';
 import { SandboxCanvas } from '@/features/sandbox/components/sandbox-canvas';
 import { SandboxCli } from '@/features/sandbox/components/sandbox-cli';
 import { SandboxInspector } from '@/features/sandbox/components/sandbox-inspector';
 import { AppButton } from '@/shared/components/app-button';
+import { Text } from '@/shared/components/console-text';
 import { DisclosureSection } from '@/shared/components/disclosure-section';
 import { FeedbackModal } from '@/shared/components/feedback-modal';
 import { PageHeader } from '@/shared/components/page-header';
-import { SemanticIcon, type SemanticIconName } from '@/shared/components/semantic-icon';
+import { Screen } from '@/shared/components/screen';
 import { StatusRow } from '@/shared/components/status-row';
 import { WhyExplanation } from '@/shared/components/why-explanation';
-import { Text } from '@/shared/components/console-text';
-import { Screen } from '@/shared/components/screen';
-import { selectionHaptic, successHaptic, warningHaptic } from '@/shared/haptics';
-import { Fonts, Space, Typography, type ThemeColors } from '@/shared/theme';
-import { useTheme, useThemeStyles } from '@/shared/theme-context';
-import { useSandboxStore } from '@/store/use-sandbox-store';
-import { navigateOnce, returnToMenu } from '@/shared/navigation';
-import { AppRoutes } from '@/shared/routes';
+import { selectionHaptic,successHaptic,warningHaptic } from '@/shared/haptics';
 import { getSimulatorBoundaryCopy } from '@/shared/learner-facing-copy';
+import { navigateOnce,returnToMenu } from '@/shared/navigation';
+import { AppRoutes } from '@/shared/routes';
+import { useTheme,useThemeStyles } from '@/shared/theme-context';
 import { useResearchStore } from '@/store/use-research-store';
+import { useSandboxStore } from '@/store/use-sandbox-store';
+import { Option,ToolButton } from './sandbox-screen-controls';
+import { createStyles } from './sandbox-screen-styles';
 
 type Confirmation = 'new' | 'clear' | 'preset' | 'inter-vlan-preset' | 'beginner-lan' | 'remove-device' | 'remove-link';
 type SandboxTool = 'add' | 'connect' | 'configure' | 'test' | 'workspace';
-
-function Option({ label, selected, onPress }: { label: string; selected?: boolean; onPress: () => void }) {
-  const styles = useThemeStyles(createStyles);
-  return (
-    <Pressable accessibilityRole="button" accessibilityState={{ selected: Boolean(selected) }} onPress={onPress} style={[styles.option, selected && styles.optionActive]}>
-      <Text variant="technical" style={[styles.optionText, selected && styles.optionTextActive]}>{label}</Text>
-    </Pressable>
-  );
-}
-
-function ToolButton({ label, icon, selected, onPress }: { label: string; icon: SemanticIconName; selected: boolean; onPress: () => void }) {
-  const styles = useThemeStyles(createStyles);
-  const { colors } = useTheme();
-  return (
-    <Pressable accessibilityHint={`Shows ${label.toLowerCase()} controls`} accessibilityRole="button" accessibilityState={{ selected }} onPress={onPress} style={[styles.toolButton, selected && styles.toolButtonActive]}>
-      <SemanticIcon color={selected ? colors.accentBright : colors.textMuted} name={icon} size={20} />
-      <Text variant="label" style={[styles.toolButtonText, selected && styles.toolButtonTextActive]}>{label}</Text>
-    </Pressable>
-  );
-}
 
 export function SandboxScreen() {
   const styles = useThemeStyles(createStyles);
@@ -517,66 +497,3 @@ export function SandboxScreen() {
     </Screen>
   );
 }
-
-const createStyles = (colors: ThemeColors) => StyleSheet.create({
-  header: { minHeight: 44, flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-start', alignItems: 'center', gap: Space.sm, marginBottom: Space.lg },
-  eyebrow: { color: colors.orange },
-  title: { color: colors.text, fontFamily: Fonts.semibold, marginTop: Space.xs },
-  subtitle: { color: colors.textMuted, marginTop: Space.sm, marginBottom: Space.lg },
-  guideBanner: { borderWidth: 1, borderColor: colors.green, backgroundColor: colors.greenSoft, padding: Space.lg, gap: Space.sm, marginBottom: Space.lg },
-  guideTitle: { color: colors.green },
-  guideCopy: { color: colors.text },
-  presetGuide: { borderWidth: 1, borderColor: colors.green, backgroundColor: colors.greenSoft, padding: Space.lg, gap: Space.md, marginBottom: Space.lg },
-  presetGuideTitle: { color: colors.green },
-  presetGuideCopy: { color: colors.text },
-  guideStep: { flexDirection: 'row', alignItems: 'flex-start', gap: Space.md, borderTopWidth: 1, borderTopColor: colors.border, paddingTop: Space.md },
-  guideStepNumber: { color: colors.orange, minWidth: 28 },
-  guideStepCopy: { color: colors.text, flex: 1, minWidth: 0 },
-  guideActions: { flexDirection: 'row', flexWrap: 'wrap', gap: Space.sm },
-  toolDock: { flexDirection: 'row', flexWrap: 'wrap', gap: Space.sm, marginBottom: Space.sm },
-  toolButton: { minWidth: 140, minHeight: 56, flexBasis: 0, flexGrow: 1, flexDirection: 'row', gap: Space.sm, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center', padding: Space.sm },
-  toolButtonActive: { borderColor: colors.accentBright, backgroundColor: colors.accentSoft },
-  toolButtonText: { color: colors.text },
-  toolButtonTextActive: { color: colors.accentBright },
-  notice: { color: colors.orange, minHeight: 44, paddingVertical: Space.sm },
-  selectionBar: { minHeight: 60, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: Space.md, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, padding: Space.md, marginBottom: Space.lg },
-  selectionCopy: { flex: 1, minWidth: 180 },
-  selectionTitle: { color: colors.accentBright },
-  selectionDetail: { color: colors.textMuted, marginTop: Space.xs },
-  actionPanel: { borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, padding: Space.lg, gap: Space.md, marginBottom: Space.lg },
-  actionEyebrow: { color: colors.orange },
-  actionCopy: { color: colors.text },
-  controlGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Space.sm },
-  testPanel: { borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, padding: Space.lg, gap: Space.md, marginBottom: Space.lg },
-  testEyebrow: { color: colors.orange },
-  testTitle: { color: colors.text, fontFamily: Fonts.semibold },
-  testDetail: { color: colors.textMuted },
-  testChoice: { borderTopWidth: 1, borderTopColor: colors.border, paddingTop: Space.md, gap: Space.md },
-  testChoiceTitle: { color: colors.green },
-  setupPanel: { borderWidth: 1, borderColor: colors.green, backgroundColor: colors.greenSoft, padding: Space.md, gap: Space.sm },
-  setupTitle: { color: colors.green },
-  setupCopy: { color: colors.text },
-  setupChange: { color: colors.text },
-  readinessPanel: { borderWidth: 1, borderColor: colors.border, backgroundColor: colors.background, padding: Space.md, gap: Space.sm },
-  readinessTitle: { color: colors.textMuted },
-  noTarget: { color: colors.orange },
-  pickerLabel: { color: colors.textMuted },
-  optionRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Space.sm },
-  option: { minWidth: 100, minHeight: 44, flexGrow: 1, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center', padding: Space.sm },
-  optionActive: { borderColor: colors.orange, backgroundColor: colors.orangeSoft },
-  optionText: { color: colors.textMuted },
-  optionTextActive: { color: colors.orange },
-  pingInput: { minHeight: 48, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.background, color: colors.text, paddingHorizontal: Space.md, fontFamily: Fonts.mono, ...Typography.bodySmall },
-  pingInputInvalid: { borderColor: colors.orange },
-  tracePanel: { borderWidth: 1, padding: Space.lg, gap: Space.sm },
-  traceSuccess: { borderColor: colors.green, backgroundColor: colors.greenSoft },
-  traceWarning: { borderColor: colors.orange, backgroundColor: colors.orangeSoft },
-  traceSuccessText: { color: colors.green },
-  traceWarningText: { color: colors.orange },
-  traceTitle: { color: colors.text, fontFamily: Fonts.semibold },
-  traceDetail: { color: colors.text },
-  traceConclusion: { color: colors.textMuted },
-  traceSuggestion: { color: colors.orange },
-  traceActions: { flexDirection: 'row', flexWrap: 'wrap', gap: Space.sm, marginTop: Space.sm },
-  footer: { color: colors.textMuted },
-});

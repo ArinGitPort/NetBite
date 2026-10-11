@@ -1,121 +1,29 @@
 import { Image } from 'expo-image';
-import { memo, useCallback, useEffect, useRef, useState } from 'react';
-import { Platform, Pressable, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Animated, {
-  cancelAnimation,
-  useAnimatedStyle,
-  useSharedValue,
-  withSequence,
-  withTiming,
+import { useCallback,useEffect,useRef,useState } from 'react';
+import { Platform,Pressable,StyleSheet,View,type LayoutChangeEvent } from 'react-native';
+import Animated,{
+cancelAnimation,
+useAnimatedStyle,
+useSharedValue,
+withSequence,
+withTiming,
 } from 'react-native-reanimated';
-import Svg, { G, Line } from 'react-native-svg';
+import Svg,{ G,Line } from 'react-native-svg';
 
-import { findPacketDemoPath, type DeviceNode, type DeviceType, type Position } from '@/core/network/models';
+import { findPacketDemoPath,type DeviceNode,type DeviceType,type Position } from '@/core/network/models';
 import { DeviceGlyph } from '@/features/devices/components/device-glyph';
 import { AppButton } from '@/shared/components/app-button';
 import { Text } from '@/shared/components/console-text';
 import { FeedbackModal } from '@/shared/components/feedback-modal';
 import { GridBackground } from '@/shared/components/grid-background';
-import { selectionHaptic, successHaptic, warningHaptic } from '@/shared/haptics';
+import { selectionHaptic,successHaptic,warningHaptic } from '@/shared/haptics';
+import { useCanvasColors,useCanvasThemeStyles } from '@/shared/theme-context';
 import { useAppReducedMotion } from '@/shared/use-app-reduced-motion';
-import { Fonts, Radius, Space, type ThemeColors } from '@/shared/theme';
-import { useCanvasColors, useCanvasThemeStyles } from '@/shared/theme-context';
 import { useGameStore } from '@/store/use-game-store';
 
-const NODE_SIZE = 88;
-const CANVAS_HEIGHT = 350;
-const PACKET_SIZE = 48;
-const PACKET_LEG_DURATION = 850;
-const PACKET_DESTINATION_DWELL = 700;
-const MAX_DEVICES = 12;
-
-interface DraggableDeviceProps {
-  device: DeviceNode;
-  canvasWidth: number;
-  connectionMode: boolean;
-  selected: boolean;
-  onConnect: (deviceId: string) => void;
-  onDrag: (deviceId: string, position: Position) => void;
-  onDragEnd: (deviceId: string) => void;
-  onSelect: (deviceId: string) => void;
-}
-
-function clampPosition(position: Position, canvasWidth: number): Position {
-  return {
-    x: Math.max(0, Math.min(canvasWidth - NODE_SIZE, position.x)),
-    y: Math.max(0, Math.min(CANVAS_HEIGHT - NODE_SIZE, position.y)),
-  };
-}
-
-const DraggableDevice = memo(function DraggableDevice({
-  device,
-  canvasWidth,
-  connectionMode,
-  selected,
-  onConnect,
-  onDrag,
-  onDragEnd,
-  onSelect,
-}: DraggableDeviceProps) {
-  const styles = useCanvasThemeStyles(createStyles);
-  const moveDevice = useGameStore((state) => state.moveDevice);
-  const selectedConnectionId = useGameStore((state) => state.selectedConnectionStartId);
-  const x = useSharedValue(device.position.x);
-  const y = useSharedValue(device.position.y);
-  const originX = useSharedValue(device.position.x);
-  const originY = useSharedValue(device.position.y);
-
-  const pan = Gesture.Pan()
-    .minDistance(5)
-    .runOnJS(true)
-    .onBegin(() => {
-      originX.value = x.value;
-      originY.value = y.value;
-    })
-    .onUpdate((event) => {
-      const next = clampPosition(
-        { x: originX.value + event.translationX, y: originY.value + event.translationY },
-        canvasWidth,
-      );
-      x.value = next.x;
-      y.value = next.y;
-      onDrag(device.id, next);
-    })
-    .onEnd((_event, success) => {
-      if (success) moveDevice(device.id, { x: x.value, y: y.value });
-    })
-    .onFinalize((_event, success) => {
-      if (!success) {
-        x.value = device.position.x;
-        y.value = device.position.y;
-      }
-      onDragEnd(device.id);
-    });
-
-  const animatedPosition = useAnimatedStyle(() => ({
-    transform: [{ translateX: x.value }, { translateY: y.value }],
-  }));
-
-  return (
-    <GestureDetector gesture={pan}>
-      <Animated.View style={[styles.nodePosition, animatedPosition]}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`${device.name}${connectionMode ? ', tap to connect' : ', drag to move or tap for device actions'}`}
-          onPress={() => connectionMode ? onConnect(device.id) : onSelect(device.id)}
-          style={[
-            styles.node,
-            selectedConnectionId === device.id && styles.selectedConnectionNode,
-            selected && styles.selectedNode,
-          ]}>
-          <DeviceGlyph type={device.type} size={64} />
-          <Text variant="label" numberOfLines={1} style={styles.nodeLabel}>{device.name}</Text>
-        </Pressable>
-      </Animated.View>
-    </GestureDetector>
-  );
-});
+import { DraggableDevice,clampPosition } from './topology-canvas-device';
+import { MAX_DEVICES,NODE_SIZE,PACKET_DESTINATION_DWELL,PACKET_LEG_DURATION,PACKET_SIZE } from './topology-canvas-layout';
+import { createStyles } from './topology-canvas-styles';
 
 interface TopologyCanvasProps {
   connectionMode: boolean;
@@ -558,56 +466,3 @@ export function TopologyCanvas({ connectionMode }: TopologyCanvasProps) {
     </View>
   );
 }
-
-const createStyles = (colors: ThemeColors) => StyleSheet.create({
-  canvas: { height: CANVAS_HEIGHT, backgroundColor: colors.background, borderRadius: Radius.lg, borderWidth: 1, borderColor: colors.border, overflow: 'hidden' },
-  cableLayer: { pointerEvents: 'box-none' },
-  nodePosition: { position: 'absolute', left: 0, top: 0, width: NODE_SIZE, height: NODE_SIZE },
-  node: { flex: 1, borderRadius: Radius.md, backgroundColor: colors.surfaceRaised, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center', gap: Space.sm },
-  selectedConnectionNode: { borderWidth: 2, borderColor: colors.orange, backgroundColor: colors.orangeSoft },
-  selectedNode: { borderWidth: 2, borderColor: colors.accent, backgroundColor: colors.accentSoft },
-  packet: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    width: PACKET_SIZE,
-    height: PACKET_SIZE,
-    zIndex: 20,
-    elevation: 8,
-    padding: 3,
-    backgroundColor: colors.background,
-    borderWidth: 1,
-    borderColor: colors.orange,
-  },
-  packetReady: { borderStyle: 'dashed' },
-  noPointerEvents: { pointerEvents: 'none' },
-  packetImage: { width: '100%', height: '100%' },
-  nodeLabel: { width: '100%', textAlign: 'center', color: colors.text, fontFamily: Fonts.medium, textTransform: 'uppercase', paddingHorizontal: Space.xs },
-  canvasHint: { color: colors.textMuted, textTransform: 'uppercase', marginTop: Space.sm },
-  connectionNotice: { color: colors.orange, marginTop: Space.sm },
-  selectionActions: { gap: Space.sm, marginTop: Space.md, padding: Space.md, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.accent },
-  selectionLabel: { color: colors.accentBright, fontFamily: Fonts.medium },
-  selectionDescription: { color: colors.text },
-  packetDemo: { gap: Space.sm, marginTop: Space.lg, padding: Space.md, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
-  packetDemoHeading: { minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: Space.sm },
-  packetDemoHeadingCopy: { minWidth: 0, flex: 1 },
-  packetPreview: { width: 44, height: 44 },
-  packetDemoLabel: { color: colors.orange, fontFamily: Fonts.medium },
-  packetDemoNote: { color: colors.textMuted },
-  packetDemoCopy: { color: colors.textMuted, textTransform: 'uppercase' },
-  packetStageActive: { color: colors.orange },
-  packetRoutePicker: { gap: Space.sm, paddingVertical: Space.xs },
-  packetRouteRow: { flexDirection: 'row', alignItems: 'flex-start', gap: Space.sm },
-  packetRouteLabel: { width: 44, paddingTop: 13, color: colors.textMuted, fontFamily: Fonts.medium },
-  packetRouteOptions: { flex: 1, flexDirection: 'row', flexWrap: 'wrap', gap: Space.xs },
-  packetRouteOption: { minHeight: 44, justifyContent: 'center', paddingHorizontal: Space.sm, backgroundColor: colors.background, borderWidth: 1, borderColor: colors.border },
-  packetRouteOptionSelected: { backgroundColor: colors.orangeSoft, borderColor: colors.orange },
-  packetRouteOptionText: { color: colors.textMuted, fontFamily: Fonts.medium, textTransform: 'uppercase' },
-  packetRouteOptionTextSelected: { color: colors.orange },
-  trayLabel: { color: colors.textMuted, fontFamily: Fonts.medium, marginTop: Space.lg, marginBottom: Space.sm },
-  tray: { flexDirection: 'row', gap: Space.sm },
-  trayItem: { flex: 1, minHeight: 72, flexDirection: 'row', flexWrap: 'wrap', gap: Space.sm, padding: Space.xs, borderRadius: Radius.md, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
-  trayText: { color: colors.text, fontFamily: Fonts.medium, textTransform: 'uppercase' },
-  pressed: { opacity: 0.7 },
-  disabled: { opacity: 0.45 },
-});

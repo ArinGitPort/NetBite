@@ -129,6 +129,7 @@ export default function MainMenuScreen() {
           testID="primary-learning-action"
           footer={<AppButton accessibilityHint="Opens the course library" label="Browse courses" variant="utility" onPress={() => navigateOnce(AppRoutes.courses)} />}
         />
+        <ActionCard detail="Find lessons, flashcards, class material, and saved commands offline." icon="lesson" priority="utility" status="LEARNING REFERENCE" title="SEARCH LEARNING" onPress={() => navigateOnce(AppRoutes.search)} />
         <Text variant="label" style={styles.groupLabel}>BUILD & TEST</Text>
         <ActionCard
           accessibilityHint={hasContentAccess ? 'Opens the autosaved network workspace' : 'Explains how to unlock Network Sandbox access'}

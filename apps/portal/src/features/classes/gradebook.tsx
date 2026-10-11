@@ -17,13 +17,14 @@ import { FilterToolbar } from "@/components/ui/filter-toolbar";
 import { LoadingButtonContent, LoadingContent } from "@/components/ui/loading-content";
 import { SelectField } from "@/components/ui/select";
 import { downloadGradebookWorkbook } from "@/features/classes/gradebook-export";
+import { AssessmentInsights, AttemptDetailDialog } from "@/features/classes/assessment-insights";
 
 type GradeRow = Record<string, unknown>;
 type GradeSortKey = "student" | "assessment" | "grade" | "attempts" | "status";
 type SortDirection = "ascending" | "descending";
 const PAGE_SIZE = 10;
 
-export function Gradebook({ rows, loading = false }: { rows: GradeRow[]; loading?: boolean }) {
+export function Gradebook({ rows, loading = false, classId }: { rows: GradeRow[]; loading?: boolean; classId?: string }) {
   const [query, setQuery] = useState("");
   const [studentFilter, setStudentFilter] = useState("");
   const [assessmentFilter, setAssessmentFilter] = useState("");
@@ -33,6 +34,7 @@ export function Gradebook({ rows, loading = false }: { rows: GradeRow[]; loading
   const [page, setPage] = useState(1);
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState("");
+  const [detailRow, setDetailRow] = useState<GradeRow>();
   const studentOptions = useMemo(
     () => uniqueOptions(rows, "studentId", "studentName"),
     [rows],
@@ -203,6 +205,7 @@ export function Gradebook({ rows, loading = false }: { rows: GradeRow[]; loading
           }}
           rows={paginatedRows}
           sortKey={sortKey}
+          onInspect={classId ? setDetailRow : undefined}
         />
         <DataPagination
           ariaLabel="Gradebook pagination"
@@ -212,6 +215,8 @@ export function Gradebook({ rows, loading = false }: { rows: GradeRow[]; loading
           page={currentPage}
           pageSize={PAGE_SIZE}
         />
+        <AssessmentInsights classId={classId} rows={rows} />
+        <AttemptDetailDialog classId={classId} onClose={() => setDetailRow(undefined)} row={detailRow} />
       </section>
     </>
   );
@@ -256,11 +261,12 @@ const gradeColumns: Array<{ key: GradeSortKey; label: string }> = [
   { key: "status", label: "Status" },
 ];
 
-function GradeTable({ rows, sortKey, direction, onSort }: {
+function GradeTable({ rows, sortKey, direction, onSort, onInspect }: {
   rows: GradeRow[];
   sortKey: GradeSortKey;
   direction: SortDirection;
   onSort: (key: GradeSortKey) => void;
+  onInspect?: (row: GradeRow) => void;
 }) {
   return (
     <div className="overflow-x-auto rounded-control border border-line" role="table">
@@ -285,7 +291,7 @@ function GradeTable({ rows, sortKey, direction, onSort }: {
       </div>
       {rows.map((row) => (
         <div className="grid min-w-[720px] grid-cols-[1.2fr_1.4fr_.7fr_.6fr_.7fr] items-center border-t border-line transition-colors hover:bg-raised/30 [&>*]:px-4 [&>*]:py-3" key={`${text(row.studentId)}-${text(row.assessmentId)}`} role="row">
-          <strong role="cell">{text(row.studentName)}</strong>
+          <strong role="cell">{onInspect && finiteNumber(row.attempts) ? <button aria-label={`View attempts for ${text(row.studentName)} in ${text(row.assessmentTitle)}`} className="text-left underline decoration-transparent underline-offset-4 hover:decoration-current focus-visible:outline-2 focus-visible:outline-signal-orange" onClick={() => onInspect(row)} type="button">{text(row.studentName)}</button> : text(row.studentName)}</strong>
           <span role="cell">{text(row.assessmentTitle)}</span>
           <span role="cell">
             {gradeScore(row) == null ? (

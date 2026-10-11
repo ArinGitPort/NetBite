@@ -1,10 +1,10 @@
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet,View } from 'react-native';
 
-import type { GuidedCliNextAction, GuidedCliObjective, GuidedCliObjectiveState } from '@/features/cli/guided-cli-objectives';
+import type { GuidedCliNextAction,GuidedCliObjective,GuidedCliObjectiveState } from '@/features/cli/guided-cli-objectives';
 import { AppButton } from '@/shared/components/app-button';
 import { Text } from '@/shared/components/console-text';
-import { StatusRow, type StatusRowState } from '@/shared/components/status-row';
-import { Fonts, Space, type ThemeColors } from '@/shared/theme';
+import { StatusRow,type StatusRowState } from '@/shared/components/status-row';
+import { Fonts,Space,type ThemeColors } from '@/shared/theme';
 import { useThemeStyles } from '@/shared/theme-context';
 
 const statePresentation: Record<GuidedCliObjectiveState, { rowState: StatusRowState; label: string }> = {

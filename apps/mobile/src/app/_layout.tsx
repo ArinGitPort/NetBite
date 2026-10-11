@@ -9,6 +9,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import * as Sentry from '@sentry/react-native';
 
 import { AuthProvider, useAuth } from '@/features/account/auth-context';
 import { ContentProvider, useContentDelivery } from '@/features/content-delivery/content-context';
@@ -35,7 +36,10 @@ import { useProtocolLabStore } from '@/store/use-protocol-lab-store';
 import { useStandardsStore } from '@/store/use-standards-store';
 import { useWorkshopStore } from '@/store/use-workshop-store';
 import { useThemeStore } from '@/store/use-theme-store';
+import { configureErrorReporting } from '@/shared/error-reporting';
+import { WorkshopNotificationObserver } from '@/core/workshops/workshop-notification-observer';
 
+configureErrorReporting();
 SplashScreen.preventAutoHideAsync();
 if (!isRunningInExpoGo()) SplashScreen.setOptions({ duration: 450, fade: true });
 
@@ -50,6 +54,7 @@ function ResolvedApplication() {
       <StatusBar style={resolvedTheme === 'dark' ? 'light' : 'dark'} />
       <PresentationBanner />
       <ResearchBanner />
+      {status === 'authenticated' ? <WorkshopNotificationObserver /> : null}
       <View style={styles.stack}><Stack key={`${runtimeKey}-${resolvedTheme}`} screenOptions={{ headerShown: false, animation: 'slide_from_right', contentStyle: { backgroundColor: colors.background } }} /></View>
       <ProgressMergeModal />
     </View>
@@ -108,9 +113,11 @@ function RootLayoutContent() {
   );
 }
 
-export default function RootLayout() {
+function RootLayout() {
   return <ThemeProvider><RootLayoutContent /></ThemeProvider>;
 }
+
+export default Sentry.wrap(RootLayout);
 
 async function preserveRecoveryCopy() {
   const recovery = {

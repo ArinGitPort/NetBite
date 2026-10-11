@@ -12,6 +12,7 @@ import type { AssessmentDraft } from "@/features/workshops/assessment-types";
 import type { AssessmentQuestionWorkspace } from "@/features/workshops/hooks/use-assessment-question-workspace";
 import * as workshopApi from "@/lib/api/workshop-service";
 import type { WorkshopAssessmentRow } from "@/lib/api/types";
+import { QuestionBankPanel } from "@/features/workshops/question-bank-panel";
 
 type AssessmentView = "questions" | "settings" | "preview";
 
@@ -81,6 +82,7 @@ export function AssessmentEditor({
 
       {view === "questions" ? (
         <div className="grid min-h-[460px] min-w-0 content-start overflow-hidden rounded-panel border border-line">
+          <QuestionBankPanel onInsert={questionWorkspace.insertQuestion} selected={navigation.selectedQuestion} />
           {navigation.selectedQuestion ? (
             <AssessmentQuestionEditor
               autoFocusPrompt={navigation.focusQuestionId === navigation.selectedQuestion.id}

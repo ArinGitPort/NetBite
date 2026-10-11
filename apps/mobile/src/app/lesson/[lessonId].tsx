@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { AccessibilityInfo, BackHandler, Image, Linking, Platform, StyleSheet, ToastAndroid, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { AccessibilityInfo, BackHandler, Image, Linking, Platform, ScrollView, StyleSheet, ToastAndroid, View } from 'react-native';
 
 import { chapters, getLesson } from '@/content/chapters';
 import { canAccessChapter } from '@/core/account/access';
@@ -34,7 +34,8 @@ export default function LessonScreen() {
   const { hasContentAccess, presentationActive, testProEnabled } = useAuth();
   const accessBypass = presentationActive || testProEnabled;
   const progress = useGameStore();
-  const { lessonId, fromLabId } = useLocalSearchParams<{ lessonId: string; fromLabId?: string }>();
+  const { lessonId, fromLabId, searchSection } = useLocalSearchParams<{ lessonId: string; fromLabId?: string; searchSection?: string }>();
+  const scrollRef = useRef<ScrollView>(null);
   const completeLesson = useGameStore((state) => state.completeLesson);
   const completedLessonIds = useGameStore((state) => state.completedLessonIds);
   const removeLearningItem = useGameStore((state) => state.removeLearningItem);
@@ -134,7 +135,7 @@ export default function LessonScreen() {
   };
 
   return (
-    <Screen header={<PageHeader
+    <Screen scrollRef={scrollRef} header={<PageHeader
       leading={{ accessibilityLabel: originatingLabId ? 'Back to the originating lab' : 'Close lessons and return to chapter', icon: originatingLabId ? 'arrow-left' : 'close', label: originatingLabId ? 'BACK / LAB' : 'CLOSE', onPress: closeLesson }}
       trailingContent={<View accessibilityLabel="Lesson save actions" style={styles.headerSaveActions}>
         <IconButton accessibilityHint={lessonIsSaved ? 'Removes the complete lesson from Saved.' : 'Saves the complete lesson for later.'} accessibilityLabel={lessonIsSaved ? 'Unsave lesson' : 'Save lesson'} iconSize={22} label="LESSON" onPress={toggleLessonSaved} selected={lessonIsSaved} semanticIcon={lessonIsSaved ? 'saved' : 'bookmark'} />
@@ -148,8 +149,10 @@ export default function LessonScreen() {
       <Text variant="screenTitle" style={styles.title}>{lesson.title}</Text>
       {!exampleOwnsIllustration ? <LessonIllustration type={lesson.illustration} /> : null}
       <Text variant="body" style={styles.body}>{lesson.body}</Text>
-      {lesson.sections?.map((section) => (
-        <View key={section.heading} style={styles.section}>
+      {lesson.sections?.map((section, sectionIndex) => (
+        <View key={section.heading} onLayout={(event) => {
+          if (searchSection === String(sectionIndex)) scrollRef.current?.scrollTo({ y: Math.max(0, event.nativeEvent.layout.y - Space.md), animated: false });
+        }} style={styles.section}>
           <Text variant="sectionHeading" style={styles.sectionHeading}>{section.heading}</Text>
           <Text variant="body" style={styles.sectionBody}>{section.body}</Text>
         </View>

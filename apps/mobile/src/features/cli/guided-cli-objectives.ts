@@ -1,5 +1,5 @@
 import type { CliNetworkState } from '@/core/network/cli-simulator';
-import { requiredStaticRoutes, type CliLabDefinition } from '@/features/cli/cli-lab-definitions';
+import { requiredStaticRoutes,type CliLabDefinition } from '@/features/cli/cli-lab-definitions';
 
 export type GuidedCliObjectiveState = 'not-started' | 'in-progress' | 'ready' | 'attention' | 'complete' | 'blocked';
 

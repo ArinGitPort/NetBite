@@ -1,7 +1,7 @@
-import { deriveCliLinkContext, prefixToSubnetMask, type CliNetworkState } from '@/core/network/cli-simulator';
-import { requiredStaticRoutes, type CliLabDefinition } from '@/features/cli/cli-lab-definitions';
+import { deriveCliLinkContext,prefixToSubnetMask,type CliNetworkState } from '@/core/network/cli-simulator';
+import { requiredStaticRoutes,type CliLabDefinition } from '@/features/cli/cli-lab-definitions';
 import type { GuidedCliObjective } from '@/features/cli/guided-cli-objectives';
-import type { CliConsoleNetworkReference, CliConsoleTaskContext, CliConsoleTaskFact } from '@/shared/components/cli-console-shell';
+import type { CliConsoleNetworkReference,CliConsoleTaskContext,CliConsoleTaskFact } from '@/shared/components/cli-console-shell';
 
 function deviceName(network: CliNetworkState, deviceId: string) {
   return network.devices.find(({ id }) => id === deviceId)?.name ?? deviceId.toUpperCase();

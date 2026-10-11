@@ -5,6 +5,8 @@ vi.mock("qrcode", () => ({
   default: { toDataURL: vi.fn().mockResolvedValue("data:image/png;base64,qr") },
 }));
 vi.mock("@/lib/api/workshop-service", () => ({
+  getWorkshopAnnouncements: vi.fn().mockResolvedValue([]),
+  postWorkshopAnnouncement: vi.fn().mockResolvedValue(undefined),
   getWorkshopClassRoster: vi.fn().mockResolvedValue({
     students: [
       { displayName: "Alex Student", joinedAt: "2026-08-30T08:00:00.000Z" },

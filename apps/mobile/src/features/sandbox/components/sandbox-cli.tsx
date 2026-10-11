@@ -1,9 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect,useRef,useState } from 'react';
 import { ScrollView } from 'react-native';
 
-import { getCliPrompt, getCliSuggestions, type CliNetworkState, type CliOutputLine } from '@/core/network/cli-simulator';
-import { createSandboxCliState, executeSandboxCliCommand, type SandboxWorkspace } from '@/core/network/sandbox';
 import { resolveCanonicalCliCommand } from '@/core/network/cli-command-catalog';
+import { getCliPrompt,getCliSuggestions,type CliNetworkState,type CliOutputLine } from '@/core/network/cli-simulator';
+import { createSandboxCliState,executeSandboxCliCommand,type SandboxWorkspace } from '@/core/network/sandbox';
 import { AppButton } from '@/shared/components/app-button';
 import { CliConsoleShell } from '@/shared/components/cli-console-shell';
 import { getSimulatorBoundaryCopy } from '@/shared/learner-facing-copy';

@@ -53,6 +53,32 @@ export function parseWorkshopLibrary(value: unknown): WorkshopLibraryEntry[] {
   });
 }
 
+export interface WorkshopInboxItem {
+  id: string;
+  classId: string;
+  title: string;
+  body: string;
+  createdAt: string;
+  readAt?: string;
+}
+
+export async function fetchWorkshopInbox(): Promise<WorkshopInboxItem[]> {
+  const { data, error } = await withTimeout(Promise.resolve(requireCloud().from('workshop_inbox_items')
+    .select('id,class_id,read_at,created_at,workshop_announcements(title,body)')
+    .order('created_at', { ascending: false }).limit(100)));
+  if (error) throw new WorkshopServiceError('INBOX_UNAVAILABLE', 'Your class messages could not be refreshed.');
+  return (data ?? []).map((row) => {
+    const announcement = row.workshop_announcements as unknown as { title?: string; body?: string } | null;
+    return { id: row.id, classId: row.class_id, title: announcement?.title ?? 'Class announcement', body: announcement?.body ?? '', createdAt: row.created_at, readAt: row.read_at ?? undefined };
+  });
+}
+
+export async function markWorkshopInboxRead(id: string): Promise<void> {
+  const { error } = await withTimeout(Promise.resolve(requireCloud().from('workshop_inbox_items')
+    .update({ read_at: new Date().toISOString() }).eq('id', id)));
+  if (error) throw new WorkshopServiceError('INBOX_UNAVAILABLE', 'This message could not be marked as read.');
+}
+
 export async function fetchMobileAccountRole(): Promise<MobileAccountRole> {
   if (!supabase) return 'student';
   try {

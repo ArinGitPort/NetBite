@@ -1,49 +1,49 @@
-import { useMemo, useRef, useState } from 'react';
+import { useMemo,useRef,useState } from 'react';
 import {
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  View,
+KeyboardAvoidingView,
+Modal,
+Platform,
+Pressable,
+ScrollView,
+StyleSheet,
+View,
 } from 'react-native';
 
 import {
-  cloneCliNetwork,
-  deriveVlanReachability,
-  executeCliCommand,
-  getCliPrompt,
-  getCliSuggestions,
-  parseCliCommand,
-  simulatePing,
-  type CliNetworkState,
-  type CliOutputLine,
+cloneCliNetwork,
+deriveVlanReachability,
+executeCliCommand,
+getCliPrompt,
+getCliSuggestions,
+parseCliCommand,
+simulatePing,
+type CliNetworkState,
+type CliOutputLine,
 } from '@/core/network/cli-simulator';
+import { deriveCliConsoleTaskContext,shouldPreserveCliDraft } from '@/features/cli/cli-console-context';
 import {
-  requiredStaticRoutes,
-  type CliLabDefinition,
-  type CliPredictionChoice,
+requiredStaticRoutes,
+type CliLabDefinition,
+type CliPredictionChoice,
 } from '@/features/cli/cli-lab-definitions';
-import { CliTopologyView, createCliVisualTrace, type CliVisualTrace } from '@/features/cli/components/cli-topology-view';
+import { CliTopologyView,createCliVisualTrace,type CliVisualTrace } from '@/features/cli/components/cli-topology-view';
 import { GuidedCliObjectivePanel } from '@/features/cli/components/guided-cli-objective-panel';
-import { deriveCliConsoleTaskContext, shouldPreserveCliDraft } from '@/features/cli/cli-console-context';
-import { deriveCliLabObjectives, deriveNextCliLabAction, deriveStaticRouteProgress, type GuidedCliNextAction } from '@/features/cli/guided-cli-objectives';
+import { deriveCliLabObjectives,deriveNextCliLabAction,deriveStaticRouteProgress,type GuidedCliNextAction } from '@/features/cli/guided-cli-objectives';
 import { LabSetupSupport } from '@/features/practice/components/foundation-lab-support';
 import { AppButton } from '@/shared/components/app-button';
-import { CliConsoleShell, type CliConsoleLine } from '@/shared/components/cli-console-shell';
+import { CliConsoleShell,type CliConsoleLine } from '@/shared/components/cli-console-shell';
 import { Text } from '@/shared/components/console-text';
 import { FeedbackModal } from '@/shared/components/feedback-modal';
 import { HintHistoryPanel } from '@/shared/components/hint-history-panel';
 import { PageHeader } from '@/shared/components/page-header';
-import { useMeasuredResponsiveLayout } from '@/shared/responsive-layout';
 import { Screen } from '@/shared/components/screen';
-import { selectionHaptic, successHaptic, warningHaptic } from '@/shared/haptics';
-import { DarkPalette, Fonts, Space, type ThemeColors } from '@/shared/theme';
+import { selectionHaptic,successHaptic,warningHaptic } from '@/shared/haptics';
+import { getSimulatorBoundaryCopy } from '@/shared/learner-facing-copy';
+import { returnToOwningChapter } from '@/shared/navigation';
+import { useMeasuredResponsiveLayout } from '@/shared/responsive-layout';
+import { DarkPalette,Fonts,Space,type ThemeColors } from '@/shared/theme';
 import { useThemeStyles } from '@/shared/theme-context';
 import { useGameStore } from '@/store/use-game-store';
-import { returnToOwningChapter } from '@/shared/navigation';
-import { getSimulatorBoundaryCopy } from '@/shared/learner-facing-copy';
 
 interface TranscriptEntry { id: number; prompt?: string; lines: CliOutputLine[] }
 

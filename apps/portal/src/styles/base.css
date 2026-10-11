@@ -43,8 +43,6 @@
     background-color: var(--color-canvas);
     color: var(--color-copy);
     font-family: var(--font-sans);
-    background-image: var(--nb-grid);
-    background-size: 32px 32px;
   }
 
   button,

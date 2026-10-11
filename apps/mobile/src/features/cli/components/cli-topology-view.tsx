@@ -1,26 +1,26 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
-import Svg, { Line } from 'react-native-svg';
+import { useEffect,useMemo,useRef,useState } from 'react';
+import { Pressable,ScrollView,StyleSheet,useWindowDimensions,View } from 'react-native';
+import Svg,{ Line } from 'react-native-svg';
 
-import {
-  deriveConnectedRoutes,
-  deriveCliLinkContext,
-  prefixToSubnetMask,
-  type CliDeviceState,
-  type CliNetworkState,
-  type PingSimulation,
-} from '@/core/network/cli-simulator';
 import { calculateSubnetRange } from '@/core/network/advanced-networking';
+import {
+deriveCliLinkContext,
+deriveConnectedRoutes,
+prefixToSubnetMask,
+type CliDeviceState,
+type CliNetworkState,
+type PingSimulation,
+} from '@/core/network/cli-simulator';
 import type { CliTopologyLayout } from '@/features/cli/cli-lab-definitions';
 import { DeviceGlyph } from '@/features/devices/components/device-glyph';
 import { AppButton } from '@/shared/components/app-button';
 import { Text } from '@/shared/components/console-text';
 import { DisclosureSection } from '@/shared/components/disclosure-section';
 import { LinkConnectionRecord } from '@/shared/components/link-connection-record';
-import { calculateTopologyLabelLayout, TopologyLinkLabels } from '@/shared/components/topology-link-labels';
+import { calculateTopologyLabelLayout,TopologyLinkLabels } from '@/shared/components/topology-link-labels';
 import type { ResponsiveMode } from '@/shared/responsive-layout';
-import { Fonts, Space, type ThemeColors } from '@/shared/theme';
-import { useCanvasColors, useCanvasThemeStyles } from '@/shared/theme-context';
+import { Fonts,Space,type ThemeColors } from '@/shared/theme';
+import { useCanvasColors,useCanvasThemeStyles } from '@/shared/theme-context';
 
 export interface CliVisualTrace {
   destination: string;

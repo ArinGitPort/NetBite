@@ -18,3 +18,6 @@ verify_jwt = true
 
 [functions.workshop-service]
 verify_jwt = true
+
+[functions.workshop-push]
+verify_jwt = false

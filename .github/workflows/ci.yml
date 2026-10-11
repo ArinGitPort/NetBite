@@ -1,0 +1,31 @@
+name: Verify NetBite
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: windows-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.13.1
+          cache: npm
+      - name: Install workspace dependencies
+        run: npm ci
+      - name: Check packages, apps, tests, build, and assets
+        run: npm run check
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Check Supabase Edge Functions
+        run: deno check supabase/functions/workshop-service/index.ts supabase/functions/workshop-push/index.ts
+      - name: Test workshop Edge Function contracts
+        run: deno test supabase/functions/workshop-service/contract.test.ts
+      - name: Export Android production bundle
+        working-directory: apps/mobile
+        run: npx expo export --platform android

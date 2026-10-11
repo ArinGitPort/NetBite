@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
 
+import { usePortalPageHeading } from "@/components/layout/portal-page-heading";
+
 export function PageHeader({
   label,
   title,
@@ -11,6 +13,9 @@ export function PageHeader({
   description: string;
   actions?: ReactNode;
 }) {
+  const inPortal = usePortalPageHeading({ label, title, description });
+  if (inPortal) return actions ? <div className="mb-5 flex flex-wrap justify-end gap-3">{actions}</div> : null;
+
   return (
     <header className="mb-7 flex flex-col items-stretch justify-between gap-4 sm:flex-row sm:items-center">
       <div className="max-w-[780px]">

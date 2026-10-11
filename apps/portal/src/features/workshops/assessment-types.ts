@@ -1,10 +1,5 @@
-export interface AssessmentQuestion {
-  id: string;
-  prompt: string;
-  choices: Array<{ id: string; label: string }>;
-  correctChoiceId: string;
-  explanation?: string;
-}
+import type { AssessmentQuestion } from '@/lib/api/types';
+export type { AssessmentQuestion } from '@/lib/api/types';
 
 export type AssessmentDraft = {
   instructions?: string;

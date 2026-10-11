@@ -15,6 +15,7 @@ import { usePresentationStore } from '@/store/use-presentation-store';
 import { useResearchStore } from '@/store/use-research-store';
 import type { MobileAccountRole } from '@/core/workshops/types';
 import { fetchMobileAccountRole } from '@/core/workshops/workshop-service';
+import { disableWorkshopPush, workshopPushEnabledLocally } from '@/core/workshops/workshop-push';
 
 type AuthStatus = 'loading' | 'guest' | 'authenticated';
 interface MergeRequest { local: CloudProgressSnapshot; cloud: CloudProgressSnapshot; userId: string }
@@ -360,6 +361,13 @@ export function AuthProvider({ children }: PropsWithChildren) {
     } catch (nextError) { return operationMessage(nextError, 'Password update is temporarily unavailable.'); }
   };
   const signOut = async () => {
+    if (workshopPushEnabledLocally()) {
+      try { await withTimeout(disableWorkshopPush()); }
+      catch {
+        setError('Connect to the internet to turn off class notifications before signing out of this device.');
+        throw new Error('Class notifications could not be disabled.');
+      }
+    }
     if (session) await syncNow();
     try { if (supabase) await withTimeout(supabase.auth.signOut()); }
     catch { setError('Online sign-out took too long. This device has returned to guest mode.'); }

@@ -182,7 +182,7 @@ export function LessonEditor({
   };
   return (
     <div className="grid gap-4 bg-surface p-5 text-[0.8rem] max-sm:p-4">
-      <div className="sticky top-[68px] z-20 -mx-5 -mt-5 flex flex-wrap items-center justify-between gap-3 border-b border-line bg-surface/95 px-5 py-4 shadow-[0_10px_24px_rgb(0_0_0/8%)] backdrop-blur-xl max-sm:-mx-4 max-sm:-mt-4 max-sm:px-4">
+      <div className="sticky top-[68px] z-20 -mx-5 -mt-5 flex flex-wrap items-center justify-between gap-3 border-b border-line bg-surface px-5 py-4 shadow-[0_10px_24px_rgb(0_0_0/8%)] max-sm:-mx-4 max-sm:-mt-4 max-sm:px-4">
         <div className="grid gap-1">
           <strong>LESSON CONTENT</strong>
           <span className="flex flex-wrap items-center gap-x-2 gap-y-1">

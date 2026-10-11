@@ -1,10 +1,12 @@
 import { BookOpenCheck, ClipboardCheck, GraduationCap, Plus } from "lucide-react";
-import { Fragment, type ReactNode } from "react";
+import { Fragment, useEffect, useRef, useState, type ReactNode } from "react";
 
 import { AssessmentEditor } from "@/features/workshops/assessment-editor";
 import { AssessmentQuestionNavigator } from "@/features/workshops/assessment-question-navigator";
 import { useAssessmentQuestionWorkspace } from "@/features/workshops/hooks/use-assessment-question-workspace";
 import * as workshopApi from "@/lib/api/workshop-service";
+import { assessmentStarterDraft, type AssessmentStarter } from "@/features/workshops/starter-templates";
+import { StarterTemplatePicker } from "@/features/workshops/starter-template-picker";
 import type { WorkshopAssessmentRow, WorkshopRow } from "@/lib/api/types";
 
 interface WorkspaceProps {
@@ -19,19 +21,27 @@ interface WorkspaceProps {
   onError: (message: string) => void;
 }
 
+type TemplateFeedback = { message: string; tone: "success" | "error" } | undefined;
+type TemplateFeedbackProps = {
+  templateFeedback: TemplateFeedback;
+  onTemplateFeedbackChange: (feedback: TemplateFeedback) => void;
+};
+
 export function WorkshopAssessmentsWorkspace(props: WorkspaceProps) {
+  const [templateFeedback, setTemplateFeedback] = useState<TemplateFeedback>();
+  useEffect(() => setTemplateFeedback(undefined), [props.workshop.id]);
   const selected = props.assessments.find((row) => row.id === props.selectedId);
   return selected ? (
-    <SelectedAssessmentWorkspace {...props} selected={selected} />
+    <SelectedAssessmentWorkspace {...props} selected={selected} templateFeedback={templateFeedback} onTemplateFeedbackChange={setTemplateFeedback} />
   ) : (
     <div className="grid min-w-0 gap-5 xl:grid-cols-[250px_minmax(0,1fr)]">
-      <AssessmentList {...props} />
+      <AssessmentList {...props} templateFeedback={templateFeedback} onTemplateFeedbackChange={setTemplateFeedback} />
       <AssessmentEmptyState />
     </div>
   );
 }
 
-function SelectedAssessmentWorkspace({ selected, ...props }: WorkspaceProps & {
+function SelectedAssessmentWorkspace({ selected, ...props }: WorkspaceProps & TemplateFeedbackProps & {
   selected: WorkshopAssessmentRow;
 }) {
   const changeSelected = (row: WorkshopAssessmentRow) =>
@@ -82,15 +92,36 @@ function SelectedAssessmentWorkspace({ selected, ...props }: WorkspaceProps & {
   );
 }
 
-function AssessmentList({ children, ...props }: WorkspaceProps & { children?: ReactNode }) {
-  const create = (mode: "practice" | "graded") =>
-    void workshopApi.createWorkshopAssessment(props.workshop.id, mode).then((row) => {
+function AssessmentList({ children, ...props }: WorkspaceProps & TemplateFeedbackProps & { children?: ReactNode }) {
+  const [creating, setCreating] = useState(false);
+  const createPending = useRef(false);
+  const create = async (mode: "practice" | "graded", starter?: AssessmentStarter) => {
+    if (createPending.current) return;
+    createPending.current = true;
+    setCreating(true);
+    props.onTemplateFeedbackChange(undefined);
+    props.onError("");
+    try {
+      const row = await workshopApi.createWorkshopAssessment(props.workshop.id, mode, starter ? assessmentStarterDraft(starter) : undefined);
       props.onAssessmentsChange((value) => [...value, row]);
       props.onSelect(row.id);
-    }).catch((reason: unknown) => props.onError(
-      reason instanceof Error ? reason.message : "The assessment could not be created.",
-    ));
-
+      if (starter) {
+        const title = starter === "knowledge-check" ? "Knowledge check" : "Configuration review";
+        const message = `${title} template created and opened. Replace the sample question, then save.`;
+        props.onTemplateFeedbackChange({ message, tone: "success" });
+        props.onNotice(message);
+      } else {
+        props.onNotice(`${mode === "practice" ? "Practice" : "Graded"} assessment created and opened.`);
+      }
+    } catch (reason) {
+      const message = reason instanceof Error ? reason.message : "The assessment could not be created.";
+      if (starter) props.onTemplateFeedbackChange({ message, tone: "error" });
+      props.onError(message);
+    } finally {
+      createPending.current = false;
+      setCreating(false);
+    }
+  };
   return (
     <nav className="themed-scrollbar grid min-w-0 content-start gap-2 overflow-y-auto rounded-panel border border-line bg-sidebar p-3 max-xl:max-h-[520px]">
       <div className="mb-2 grid gap-2.5 border-b border-line pb-4">
@@ -101,7 +132,8 @@ function AssessmentList({ children, ...props }: WorkspaceProps & { children?: Re
         <button
           aria-label="Create practice assessment"
           className="group grid min-h-[68px] grid-cols-[36px_minmax(0,1fr)_20px] items-center gap-3 rounded-control border border-line bg-canvas px-3 py-2 text-left transition-[border-color,background-color,transform] hover:-translate-y-px hover:border-signal-orange/60 hover:bg-raised focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-signal-orange"
-          onClick={() => create("practice")}
+          disabled={creating}
+          onClick={() => void create("practice")}
           type="button"
         >
           <span className="grid size-9 place-items-center rounded-control bg-signal-orange-soft text-signal-orange [&_svg]:size-4"><BookOpenCheck aria-hidden="true" /></span>
@@ -111,7 +143,8 @@ function AssessmentList({ children, ...props }: WorkspaceProps & { children?: Re
         <button
           aria-label="Create graded assessment"
           className="group grid min-h-[68px] grid-cols-[36px_minmax(0,1fr)_20px] items-center gap-3 rounded-control border border-line bg-canvas px-3 py-2 text-left transition-[border-color,background-color,transform] hover:-translate-y-px hover:border-signal-green/60 hover:bg-raised focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-signal-green"
-          onClick={() => create("graded")}
+          disabled={creating}
+          onClick={() => void create("graded")}
           type="button"
         >
           <span className="grid size-9 place-items-center rounded-control bg-signal-green-soft text-signal-green [&_svg]:size-4"><GraduationCap aria-hidden="true" /></span>
@@ -119,6 +152,17 @@ function AssessmentList({ children, ...props }: WorkspaceProps & { children?: Re
           <Plus aria-hidden="true" className="size-4 text-muted transition-transform group-hover:rotate-90 group-hover:text-signal-green" />
         </button>
       </div>
+      {!props.workshop.archived ? (
+        <StarterTemplatePicker
+          busy={creating}
+          feedback={props.templateFeedback}
+          onChoose={(starter) => void create(starter === "knowledge-check" ? "practice" : "graded", starter)}
+          options={[
+            { id: "knowledge-check", title: "Knowledge check", description: "Practice · one sample question" },
+            { id: "configuration-review", title: "Configuration review", description: "Graded · one sample question" },
+          ]}
+        />
+      ) : null}
       {props.assessments.map((assessment) => (
         <Fragment key={assessment.id}>
           <button

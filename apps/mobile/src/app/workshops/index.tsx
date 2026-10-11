@@ -13,6 +13,7 @@ import { PageHeader } from "@/shared/components/page-header";
 import { Screen } from "@/shared/components/screen";
 import {
   AppRoutes,
+  workshopAssessmentRoute,
   workshopLessonRoute,
   workshopRoute,
 } from "@/shared/routes";
@@ -28,6 +29,7 @@ export default function MyClassesScreen() {
   const replaceLibrary = useWorkshopStore((state) => state.replaceLibrary);
   const [refreshing, setRefreshing] = useState(false);
   const [message, setMessage] = useState<string>();
+  const [openedAt] = useState(Date.now);
 
   const refresh = useCallback(async () => {
     if (status !== "authenticated") return;
@@ -64,6 +66,11 @@ export default function MyClassesScreen() {
       })),
     )
     .filter((item) => item.lesson);
+  const upcoming = library.flatMap((entry) => entry.manifest.assessments
+    .filter((assessment) => assessment.mode === 'graded' && assessment.settings?.dueAt)
+    .map((assessment) => ({ entry, assessment, dueAt: Date.parse(assessment.settings!.dueAt!) })))
+    .filter((item) => Number.isFinite(item.dueAt) && item.dueAt > openedAt)
+    .sort((first, second) => first.dueAt - second.dueAt).slice(0, 5);
 
   return (
     <Screen
@@ -134,6 +141,7 @@ export default function MyClassesScreen() {
           {message}
         </Text>
       ) : null}
+      {status === 'authenticated' ? <ActionCard detail="Read announcements from your enrolled classes." icon="learn" onPress={() => router.push(AppRoutes.workshopInbox)} priority="utility" status="CLASS COMMUNICATION" title="INBOX" /> : null}
       {accountRole === "instructor" ? (
         <ActionCard
           detail="Preview workshops and share class codes from this device."
@@ -171,6 +179,17 @@ export default function MyClassesScreen() {
           />
         ))}
       </View>
+      {upcoming.length ? <>
+        <Text variant="label" style={styles.section}>UPCOMING ASSESSMENTS</Text>
+        <View style={styles.list}>{upcoming.map(({ entry, assessment, dueAt }) => <ActionCard
+          detail={`${entry.manifest.title} / Due ${new Date(dueAt).toLocaleString()}`}
+          icon="learn"
+          key={`${entry.classId}:${assessment.id}`}
+          onPress={() => router.push(workshopAssessmentRoute(entry.classId, assessment.id))}
+          status="GRADED / CLASS ACTIVITY"
+          title={assessment.title}
+        />)}</View>
+      </> : null}
       {!library.length && status === "authenticated" ? (
         <View style={styles.empty}>
           <Text variant="sectionHeading">NO CLASSES YET</Text>

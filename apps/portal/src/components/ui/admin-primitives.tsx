@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog } from "@/components/ui/dialog";
 import { LoadingContent } from "@/components/ui/loading-content";
 import { cn } from "@/lib/class-names";
+import { usePortalPageHeading } from "@/components/layout/portal-page-heading";
 
 export function LoadingState({ label = "Loading portal" }: { label?: string }) {
   return <LoadingContent label={label} />;
@@ -92,6 +93,9 @@ export function PageIntro({
   detail: string;
   action?: ReactNode;
 }) {
+  const inPortal = usePortalPageHeading({ label: eyebrow, title, description: detail });
+  if (inPortal) return action ? <div className="mb-5 flex justify-end">{action}</div> : null;
+
   return (
     <div className="mb-7 flex flex-col items-stretch justify-between gap-4 sm:flex-row sm:items-center">
       <div className="max-w-[780px]">

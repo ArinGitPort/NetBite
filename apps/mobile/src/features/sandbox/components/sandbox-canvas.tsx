@@ -1,14 +1,14 @@
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Svg, { Line } from 'react-native-svg';
+import { Pressable,ScrollView,StyleSheet,useWindowDimensions,View } from 'react-native';
+import { Gesture,GestureDetector } from 'react-native-gesture-handler';
+import Svg,{ Line } from 'react-native-svg';
 
-import type { SandboxPosition, SandboxTraceEvent, SandboxWorkspace } from '@/core/network/sandbox';
+import type { SandboxPosition,SandboxTraceEvent,SandboxWorkspace } from '@/core/network/sandbox';
 import { DeviceGlyph } from '@/features/devices/components/device-glyph';
 import { Text } from '@/shared/components/console-text';
 import { TopologyLinkLabels } from '@/shared/components/topology-link-labels';
-import { Fonts, Space, type ThemeColors } from '@/shared/theme';
-import { useCanvasColors, useCanvasThemeStyles } from '@/shared/theme-context';
+import { Fonts,Space,type ThemeColors } from '@/shared/theme';
+import { useCanvasColors,useCanvasThemeStyles } from '@/shared/theme-context';
 
 const LOGICAL_WIDTH = 720;
 const LOGICAL_HEIGHT = 420;

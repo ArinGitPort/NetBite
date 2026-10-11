@@ -46,7 +46,7 @@ export function WorkshopStudio({ area }: { area: WorkshopArea }) {
     topologies, setTopologies, assessments, setAssessments, classes, versions, selectedLesson,
     setSelectedLesson, selectedAssessment, setSelectedAssessment,
     selectedTopology, setSelectedTopology, collectionView, setCollectionView,
-    gradeRows, gradebookLoading, notice, setNotice, error, setError, detailsMode, setDetailsMode,
+    gradeRows, gradebookLoading, gradeClasses, selectedClass, setSelectedGradeClassId, notice, setNotice, error, setError, detailsMode, setDetailsMode,
     addingLesson, topologyDetailsOpen, setTopologyDetailsOpen, topologyName,
     setTopologyName, savingTopologyName, selectedWorkshop, load, create,
     saveDetails, deleteDraft, updateLesson, addLesson, deleteLesson,
@@ -399,12 +399,14 @@ export function WorkshopStudio({ area }: { area: WorkshopArea }) {
                     collectionTitle={selectedWorkshop.title}
                     lessons={lessons}
                     onAddLesson={() => requestTransition(() => void addLesson())}
+                    onAddStarter={(starter) => requestTransition(() => void addLesson(starter))}
                     onChange={updateLesson}
                     onDelete={deleteLesson}
                     onError={setError}
                     onSaved={() => setNotice("Lesson saved.")}
                     onSelectLesson={(id) => requestTransition(() => setSelectedLesson(id))}
                     selectedLessonId={selectedLesson}
+                    templateNotice={notice?.includes("template created and opened") ? notice : undefined}
                     topologies={topologies}
                   />
                 </TabsContent>
@@ -432,7 +434,10 @@ export function WorkshopStudio({ area }: { area: WorkshopArea }) {
             />
           ) : null}
           {selectedWorkshop && area === "gradebook" ? (
-            <Gradebook loading={gradebookLoading} rows={gradeRows} />
+            <div className="grid gap-5">
+              {gradeClasses.length > 1 ? <div className="max-w-sm"><SelectField ariaLabel="Choose gradebook class" options={gradeClasses.map((row) => ({ value: row.id, label: row.title }))} onValueChange={setSelectedGradeClassId} value={selectedClass?.id ?? ""} /></div> : null}
+              <Gradebook classId={selectedClass?.id} loading={gradebookLoading} rows={gradeRows} />
+            </div>
           ) : null}
         </section>
       </div>

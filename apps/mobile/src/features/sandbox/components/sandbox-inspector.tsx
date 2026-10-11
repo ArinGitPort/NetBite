@@ -1,12 +1,12 @@
-import { useMemo, useState } from 'react';
-import { Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { useMemo,useState } from 'react';
+import { Pressable,StyleSheet,TextInput,View } from 'react-native';
 
-import { calculateSubnetRange, parseIPv4Address, type RouteEntry } from '@/core/network/advanced-networking';
-import type { SandboxDevice, SandboxDevicePatch, SandboxValidationIssue } from '@/core/network/sandbox';
+import { calculateSubnetRange,parseIPv4Address,type RouteEntry } from '@/core/network/advanced-networking';
+import type { SandboxDevice,SandboxDevicePatch,SandboxValidationIssue } from '@/core/network/sandbox';
 import { AppButton } from '@/shared/components/app-button';
 import { Text } from '@/shared/components/console-text';
-import { Fonts, Space, Typography, type ThemeColors } from '@/shared/theme';
-import { useTheme, useThemeStyles } from '@/shared/theme-context';
+import { Fonts,Space,Typography,type ThemeColors } from '@/shared/theme';
+import { useTheme,useThemeStyles } from '@/shared/theme-context';
 
 function Field({ label, value, placeholder, keyboardType, onChangeText }: { label: string; value: string; placeholder: string; keyboardType?: 'default' | 'numeric'; onChangeText: (value: string) => void }) {
   const styles = useThemeStyles(createStyles);

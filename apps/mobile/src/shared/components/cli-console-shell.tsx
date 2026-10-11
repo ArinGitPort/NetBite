@@ -1,13 +1,13 @@
-import { useState, type ReactNode, type RefObject } from 'react';
-import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StatusBar, StyleSheet, TextInput, View } from 'react-native';
+import { useState,type ReactNode,type RefObject } from 'react';
+import { KeyboardAvoidingView,Modal,Platform,Pressable,ScrollView,StatusBar,StyleSheet,TextInput,View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppButton } from '@/shared/components/app-button';
-import { LinkConnectionRecord, type ConnectionEndpoint } from '@/shared/components/link-connection-record';
+import { Text } from '@/shared/components/console-text';
+import { LinkConnectionRecord,type ConnectionEndpoint } from '@/shared/components/link-connection-record';
 import { PageHeader } from '@/shared/components/page-header';
 import { SegmentedControl } from '@/shared/components/segmented-control';
-import { Text } from '@/shared/components/console-text';
-import { Fonts, Palette, Space, Typography } from '@/shared/theme';
+import { Fonts,Palette,Space,Typography } from '@/shared/theme';
 import { FixedThemeProvider } from '@/shared/theme-context';
 
 export interface CliConsoleLine {

@@ -11,6 +11,7 @@
       "icon": "./assets/expo.icon"
     },
     "android": {
+      "package": "com.netbite.mobile",
       "adaptiveIcon": {
         "backgroundColor": "#151216",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -47,12 +48,14 @@
       ],
       "expo-sharing",
       "expo-image",
+      "expo-notifications",
       [
         "expo-camera",
         {
           "cameraPermission": "Allow NetBite to scan class invitation QR codes."
         }
-      ]
+      ],
+      "@sentry/react-native"
     ],
     "experiments": {
       "typedRoutes": true,

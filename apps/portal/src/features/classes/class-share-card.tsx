@@ -27,6 +27,8 @@ import type {
   WorkshopClassRosterEntry,
   WorkshopClassRow,
 } from "@/lib/api/types";
+import { AnnouncementComposer } from "@/features/classes/announcement-composer";
+import { RosterImport } from "@/features/classes/roster-import";
 
 export function ClassShareCard({
   row,
@@ -199,6 +201,8 @@ export function ClassShareCard({
         ) : null}
       </div>
 
+      <RosterImport classId={row.id} onImported={(count) => { onNotice(`${count} student${count === 1 ? '' : 's'} enrolled from the CSV.`); void loadRoster(); }} />
+      <AnnouncementComposer classId={row.id} onNotice={onNotice} />
       <footer className="flex flex-wrap items-center justify-between gap-4 border-t border-line pt-4">
         <div className="flex min-w-0 items-start gap-3">
           <ShieldCheck className="mt-0.5 size-4 shrink-0 text-muted" />

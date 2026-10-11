@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import * as workshopApi from "@/lib/api/workshop-service";
 import type { WorkshopAssessmentRow, WorkshopClassRow, WorkshopLessonRow, WorkshopRow, WorkshopTopologyRow, WorkshopVersionRow } from "@/lib/api/types";
 import { defaultTopology } from "@/features/workshops/topology-editor";
+import { lessonStarterDraft, type LessonStarter } from "@/features/workshops/starter-templates";
 import type { WorkshopDetailsMode } from "@/features/workshops/workshop-details-dialog";
 
 export type WorkshopArea = "workshops" | "classes" | "workshop-assessments" | "gradebook";
@@ -21,6 +22,7 @@ export function useWorkshopStudio(area: WorkshopArea) {
   const [selectedTopology, setSelectedTopology] = useState<string>();
   const [collectionView, setCollectionView] = useState<"lessons" | "topologies">("lessons");
   const [gradeRows, setGradeRows] = useState<Array<Record<string, unknown>>>([]);
+  const [selectedGradeClassId, setSelectedGradeClassId] = useState<string>();
   const [gradebookLoading, setGradebookLoading] = useState(area === "gradebook");
   const [notice, setNotice] = useState<string>();
   const [error, setError] = useState<string>();
@@ -73,7 +75,8 @@ export function useWorkshopStudio(area: WorkshopArea) {
     setSelectedId(undefined); setLessons([]); setTopologies([]); setAssessments([]); setVersions([]);
     await load(); setNotice("Private lesson collection deleted.");
   };
-  const selectedClass = classes.find((item) => item.workshop_id === selectedId);
+  const gradeClasses = classes.filter((item) => item.workshop_id === selectedId);
+  const selectedClass = gradeClasses.find((item) => item.id === selectedGradeClassId) ?? gradeClasses[0];
   useEffect(() => {
     if (area !== "gradebook") return;
     if (!selectedClass) {
@@ -91,13 +94,16 @@ export function useWorkshopStudio(area: WorkshopArea) {
     return () => { active = false; };
   }, [area, selectedClass?.id]);
   const updateLesson = (row: WorkshopLessonRow) => setLessons((value) => value.map((item) => item.id === row.id ? row : item));
-  const addLesson = async () => {
+  const addLesson = async (starter?: LessonStarter) => {
     if (!selectedWorkshop || addingLesson) return;
     setAddingLesson(true); setError(undefined);
     try {
       const nextPosition = lessons.reduce((highest, lesson) => Math.max(highest, lesson.position), 0) + 1;
-      const row = await workshopApi.createWorkshopLesson(selectedWorkshop.id, nextPosition);
-      setLessons((value) => [...value, row]); setSelectedLesson(row.id); setNotice("Lesson added. Add its title and content, then save it.");
+      const row = await workshopApi.createWorkshopLesson(selectedWorkshop.id, nextPosition, starter ? lessonStarterDraft(starter) : undefined);
+      setLessons((value) => [...value, row]); setSelectedLesson(row.id);
+      setNotice(starter
+        ? `${starter === "concept" ? "Concept explanation" : "Guided configuration"} template created and opened. Customize it, then save the lesson.`
+        : "Lesson added. Add its title and content, then save it.");
     } catch (reason) { setError(reason instanceof Error ? reason.message : "The lesson could not be added."); }
     finally { setAddingLesson(false); }
   };
@@ -146,5 +152,5 @@ export function useWorkshopStudio(area: WorkshopArea) {
     }
   };
 
-  return { loading, workshops, setWorkshops, selectedId, setSelectedId, lessons, topologies, setTopologies, assessments, setAssessments, classes, versions, selectedLesson, setSelectedLesson, selectedAssessment, setSelectedAssessment, selectedTopology, setSelectedTopology, collectionView, setCollectionView, gradeRows, gradebookLoading, notice, setNotice, error, setError, detailsMode, setDetailsMode, addingLesson, topologyDetailsOpen, setTopologyDetailsOpen, topologyName, setTopologyName, savingTopologyName, selectedWorkshop, load, create, saveDetails, deleteDraft, updateLesson, addLesson, deleteLesson, updateAssessment, addTopology, selectedTopologyRow, topologyReferenceCount, openTopologyDetails, renameTopology, deleteTopology };
+  return { loading, workshops, setWorkshops, selectedId, setSelectedId, lessons, topologies, setTopologies, assessments, setAssessments, classes, versions, selectedLesson, setSelectedLesson, selectedAssessment, setSelectedAssessment, selectedTopology, setSelectedTopology, collectionView, setCollectionView, gradeRows, gradebookLoading, gradeClasses, selectedClass, setSelectedGradeClassId, notice, setNotice, error, setError, detailsMode, setDetailsMode, addingLesson, topologyDetailsOpen, setTopologyDetailsOpen, topologyName, setTopologyName, savingTopologyName, selectedWorkshop, load, create, saveDetails, deleteDraft, updateLesson, addLesson, deleteLesson, updateAssessment, addTopology, selectedTopologyRow, topologyReferenceCount, openTopologyDetails, renameTopology, deleteTopology };
 }

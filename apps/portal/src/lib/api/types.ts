@@ -32,6 +32,13 @@ export interface WorkshopAssessmentRow {
   mode: "practice" | "graded"; draft: Record<string, unknown>;
   settings: Record<string, unknown>; archived: boolean;
 }
+export interface AssessmentQuestion {
+  id: string;
+  prompt: string;
+  choices: Array<{ id: string; label: string }>;
+  correctChoiceId: string;
+  explanation?: string;
+}
 export interface WorkshopClassRow {
   id: string; workshop_id: string; version_id: string; title: string;
   join_code: string; archived: boolean; join_enabled: boolean; created_at: string;

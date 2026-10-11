@@ -22,6 +22,11 @@ export function useAssessmentQuestionWorkspace(
     setQuestions(nextQuestions);
     navigation.follow(question.id, nextQuestions.length - 1, true);
   };
+  const insertQuestion = (question: AssessmentQuestion) => {
+    const nextQuestions = [...questions, question];
+    setQuestions(nextQuestions);
+    navigation.follow(question.id, nextQuestions.length - 1, true);
+  };
 
   const updateQuestion = (index: number, patch: Partial<AssessmentQuestion>) =>
     setQuestions(
@@ -59,6 +64,7 @@ export function useAssessmentQuestionWorkspace(
 
   return {
     addQuestion,
+    insertQuestion,
     changePage,
     moveQuestion,
     navigation,

@@ -4,8 +4,26 @@ import type {
   WorkshopAssessmentRow, WorkshopClassRow, WorkshopLessonRow, WorkshopRow,
   WorkshopTopologyRow, WorkshopVersionRow,
 } from "@/lib/api/types";
+import type { AssessmentQuestion } from "@/lib/api/types";
 
 const client = getPortalClient;
+
+export interface BankQuestion { id: string; title: string; question: AssessmentQuestion; updated_at: string }
+export async function getQuestionBank(): Promise<BankQuestion[]> {
+  const { data, error } = await client().from("workshop_question_bank").select("id,title,question,updated_at").order("updated_at", { ascending: false }).limit(100);
+  throwIfServiceError(error, "Your question bank could not be loaded.");
+  return (data ?? []) as BankQuestion[];
+}
+export async function saveQuestionToBank(question: AssessmentQuestion): Promise<void> {
+  const title = question.prompt.trim().slice(0, 120);
+  if (title.length < 2 || question.choices.length < 2 || !question.choices.some((choice) => choice.id === question.correctChoiceId)) throw new Error("Finish the question and choose a correct answer before saving it to the bank.");
+  const { error } = await client().from("workshop_question_bank").insert({ title, question: structuredClone(question) });
+  throwIfServiceError(error, "The question could not be saved to your private bank.");
+}
+export async function deleteQuestionFromBank(id: string): Promise<void> {
+  const { error } = await client().from("workshop_question_bank").delete().eq("id", id);
+  throwIfServiceError(error, "The question could not be removed from your bank.");
+}
 
 export async function getWorkshops(): Promise<WorkshopRow[]> {
   const { data, error } = await client().from("workshops")
@@ -13,6 +31,32 @@ export async function getWorkshops(): Promise<WorkshopRow[]> {
     .order("updated_at", { ascending: false });
   throwIfServiceError(error, "Workshops could not be loaded.");
   return (data ?? []) as WorkshopRow[];
+}
+export interface WorkshopAnnouncement {
+  id: string;
+  title: string;
+  body: string;
+  created_at: string;
+}
+export async function getWorkshopAnnouncements(classId: string): Promise<WorkshopAnnouncement[]> {
+  const { data, error } = await client().from("workshop_announcements")
+    .select("id,title,body,created_at").eq("class_id", classId)
+    .order("created_at", { ascending: false }).limit(20);
+  throwIfServiceError(error, "Class announcements could not be loaded.");
+  return (data ?? []) as WorkshopAnnouncement[];
+}
+export async function postWorkshopAnnouncement(classId: string, title: string, body: string): Promise<void> {
+  const { error } = await client().rpc("post_workshop_announcement", {
+    p_class_id: classId, p_title: title.trim(), p_body: body.trim(),
+  });
+  throwIfServiceError(error, "The announcement could not be sent. Nothing was posted.");
+}
+export interface RosterImportRow { row: number; email: string; status: 'invalid' | 'duplicate' | 'unmatched' | 'already-enrolled' | 'ready' | 'enrolled' }
+export async function processWorkshopRoster(classId: string, rows: Array<{ email: string }>, commit = false): Promise<RosterImportRow[]> {
+  const { data, error } = await client().rpc('process_workshop_roster', { p_class_id: classId, p_rows: rows, p_commit: commit });
+  throwIfServiceError(error, commit ? 'The roster was not imported.' : 'The roster preview could not be checked.');
+  if (!Array.isArray(data)) throw new Error('The roster response could not be verified.');
+  return data as RosterImportRow[];
 }
 export async function createWorkshop(title: string, description: string): Promise<WorkshopRow> {
   const { data, error } = await client().from("workshops")
@@ -52,12 +96,20 @@ export async function getWorkshopContent(workshopId: string) {
   throwIfServiceError(lessons.error ?? topologies.error ?? assessments.error ?? flashcards.error, "Workshop content could not be loaded.");
   return { lessons: (lessons.data ?? []) as WorkshopLessonRow[], topologies: (topologies.data ?? []) as WorkshopTopologyRow[], assessments: (assessments.data ?? []) as WorkshopAssessmentRow[], flashcards: flashcards.data ?? [] };
 }
-export async function createWorkshopLesson(workshopId: string, position: number): Promise<WorkshopLessonRow> {
+export async function createWorkshopLesson(workshopId: string, position: number, starter?: Record<string, unknown>): Promise<WorkshopLessonRow> {
   const stableId = `lesson-${crypto.randomUUID()}`;
   const { data, error } = await client().from("workshop_lessons")
-    .insert({ workshop_id: workshopId, stable_id: stableId, position, draft: { id: stableId, title: "New lesson", summary: "", blocks: [] } })
+    .insert({ workshop_id: workshopId, stable_id: stableId, position, draft: { id: stableId, title: "New lesson", summary: "", blocks: [], ...starter } })
     .select("id,workshop_id,stable_id,position,draft,archived").single();
   throwIfServiceError(error, "The lesson could not be added.");
+  return data as WorkshopLessonRow;
+}
+export async function copyWorkshopLesson(source: WorkshopLessonRow, draft: Record<string, unknown>, position: number): Promise<WorkshopLessonRow> {
+  const stableId = String(draft.id);
+  const { data, error } = await client().from("workshop_lessons")
+    .insert({ workshop_id: source.workshop_id, stable_id: stableId, position, draft, archived: false })
+    .select("id,workshop_id,stable_id,position,draft,archived").single();
+  throwIfServiceError(error, "The lesson could not be duplicated.");
   return data as WorkshopLessonRow;
 }
 export async function saveWorkshopLesson(row: WorkshopLessonRow): Promise<void> {
@@ -84,13 +136,21 @@ export async function deleteWorkshopTopology(topologyId: string): Promise<string
   if (!data?.id) throw new Error("The topology deletion could not be confirmed.");
   return data.id as string;
 }
-export async function createWorkshopAssessment(workshopId: string, mode: "practice" | "graded"): Promise<WorkshopAssessmentRow> {
+export async function createWorkshopAssessment(workshopId: string, mode: "practice" | "graded", starter?: { title: string; draft: Record<string, unknown> }): Promise<WorkshopAssessmentRow> {
   const stableId = `assessment-${crypto.randomUUID()}`;
   const settings = mode === "graded" ? { maximumAttempts: 1, gradePolicy: "highest", passingPercentage: 80, feedbackRelease: "final-attempt", shuffleQuestions: false, shuffleAnswers: false } : {};
   const { data, error } = await client().from("workshop_assessments")
-    .insert({ workshop_id: workshopId, stable_id: stableId, title: "New assessment", mode, draft: { instructions: "Answer every question.", questions: [] }, settings })
+    .insert({ workshop_id: workshopId, stable_id: stableId, title: starter?.title ?? "New assessment", mode, draft: starter?.draft ?? { instructions: "Answer every question.", questions: [] }, settings })
     .select("id,workshop_id,stable_id,title,mode,draft,settings,archived").single();
   throwIfServiceError(error, "The assessment could not be added.");
+  return data as WorkshopAssessmentRow;
+}
+export async function copyWorkshopAssessment(source: WorkshopAssessmentRow, draft: Record<string, unknown>): Promise<WorkshopAssessmentRow> {
+  const stableId = `assessment-${crypto.randomUUID()}`;
+  const { data, error } = await client().from("workshop_assessments")
+    .insert({ workshop_id: source.workshop_id, stable_id: stableId, title: `${source.title} (copy)`, mode: source.mode, draft, settings: structuredClone(source.settings), archived: false })
+    .select("id,workshop_id,stable_id,title,mode,draft,settings,archived").single();
+  throwIfServiceError(error, "The assessment could not be duplicated.");
   return data as WorkshopAssessmentRow;
 }
 export async function saveWorkshopAssessment(row: WorkshopAssessmentRow): Promise<void> {
@@ -139,3 +199,27 @@ export const getWorkshopClassRoster = (classId: string) =>
     students: import("@/lib/api/types").WorkshopClassRosterEntry[];
   }>;
 export const getWorkshopGradebook = (classId: string) => workshopAction({ action: "gradebook", classId }) as Promise<{ rows: Array<Record<string, unknown>> }>;
+export interface QuestionOutcomeCount { correct: number; incorrect: number }
+export interface AssessmentAnalytics {
+  assessmentId: string;
+  assessmentTitle: string;
+  allAttempts: number;
+  recordedAttempts: number;
+  questions: Array<{ questionId: string; prompt: string; all: QuestionOutcomeCount; recorded: QuestionOutcomeCount }>;
+}
+export interface AttemptDetail {
+  assessmentTitle: string;
+  attempts: Array<{
+    attemptId: string;
+    attemptNumber: number;
+    submittedAt: string;
+    score: number;
+    total: number;
+    percentage: number;
+    late: boolean;
+    recorded: boolean;
+    answers: Array<{ questionId: string; prompt: string; selectedChoice: string; correctChoice: string; correct: boolean }>;
+  }>;
+}
+export const getAssessmentAnalytics = (classId: string, assessmentId: string) => workshopAction({ action: "assessment-analytics", classId, assessmentId }) as Promise<AssessmentAnalytics>;
+export const getAttemptDetail = (classId: string, assessmentId: string, studentId: string) => workshopAction({ action: "attempt-detail", classId, assessmentId, studentId }) as Promise<AttemptDetail>;

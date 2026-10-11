@@ -1,6 +1,6 @@
 import type { Session } from "@supabase/supabase-js";
 import { ChevronRight, LogOut, Menu, X } from "lucide-react";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 
 import { getNavigationForAccess } from "@/app/navigation";
@@ -13,6 +13,7 @@ import { ConfirmationDialog } from "@/components/ui/dialog";
 import { LoadingButtonContent } from "@/components/ui/loading-content";
 import { ThemeMenu } from "@/components/ui/theme-menu";
 import { useGuardedTransition } from "@/app/providers/unsaved-changes-provider";
+import { PortalPageHeadingContext, type PortalPageHeading } from "@/components/layout/portal-page-heading";
 
 function AccountControls({ session, access }: { session: Session; access: AdminAccess }) {
   const requestTransition = useGuardedTransition();
@@ -55,15 +56,22 @@ function AccountControls({ session, access }: { session: Session; access: AdminA
 
 export function PortalShell({ session, access }: { session: Session; access: AdminAccess }) {
   const [mobileNav, setMobileNav] = useState(false);
+  const [pageHeading, setPageHeading] = useState<PortalPageHeading & { path: string }>();
   const location = useLocation();
   const navigation = getNavigationForAccess(access.accessLevel);
   const current = navigation.find((item) => location.pathname.startsWith(item.path));
-  const roleLabel = access.accessLevel === "administrator" ? "Administration" : "Instructor workspace";
+  const roleLabel = access.accessLevel === "administrator" ? "Administrator portal" : "Instructor portal";
+  const activeHeading = pageHeading?.path === location.pathname ? pageHeading : undefined;
+  const registerPageHeading = useCallback((heading: PortalPageHeading) => {
+    const path = location.pathname;
+    setPageHeading({ ...heading, path });
+    return () => setPageHeading((value) => value?.path === path && value.title === heading.title ? undefined : value);
+  }, [location.pathname]);
   return (
     <div className="grid min-h-screen grid-cols-1 lg:grid-cols-[260px_minmax(0,1fr)]">
       <aside
         aria-label={`${roleLabel} navigation`}
-        className={cn("fixed inset-y-0 left-0 z-40 flex h-screen w-[280px] flex-col border-r border-line bg-sidebar/98 px-4 py-5 shadow-[22px_0_60px_rgb(0_0_0/45%)] transition-transform lg:sticky lg:top-0 lg:w-auto lg:translate-x-0 lg:shadow-none", mobileNav ? "translate-x-0" : "-translate-x-full")}
+        className={cn("fixed inset-y-0 left-0 z-40 flex h-screen w-[280px] flex-col border-r border-line bg-sidebar px-4 py-5 shadow-[22px_0_60px_rgb(0_0_0/45%)] transition-transform lg:sticky lg:top-0 lg:w-auto lg:translate-x-0 lg:shadow-none", mobileNav ? "translate-x-0" : "-translate-x-full")}
       >
         <div className="flex min-h-16 items-center gap-3 border-b border-line px-2 pb-5">
           <BrandLockup markClassName="size-11" subtitle={roleLabel} />
@@ -94,12 +102,16 @@ export function PortalShell({ session, access }: { session: Session; access: Adm
       </aside>
       {mobileNav ? <button aria-label="Close navigation" className="fixed inset-0 z-30 border-0 bg-black/70 backdrop-blur-[2px] lg:hidden" onClick={() => setMobileNav(false)} /> : null}
       <div className="min-w-0">
-        <header className="sticky top-0 z-20 flex min-h-[68px] items-center gap-3 border-b border-line bg-canvas/95 px-4 backdrop-blur-xl sm:px-8">
+        <header className="sticky top-0 z-20 flex min-h-[68px] items-center gap-3 border-b border-line bg-canvas px-4 py-2 sm:px-8">
           <Button aria-label="Open navigation" className="lg:hidden" onClick={() => setMobileNav(true)} size="icon" tone="ghost"><Menu /></Button>
-          <div className="grid gap-1"><small className="font-mono text-[0.63rem] uppercase tracking-[0.1em] text-signal-orange">{roleLabel}</small><strong className="text-sm">{current?.label ?? roleLabel}</strong></div>
+          <div className="grid min-w-0 flex-1 gap-0.5">
+            <small className="truncate font-mono text-[0.6rem] font-semibold uppercase tracking-[0.1em] text-signal-orange">{activeHeading?.label ?? current?.label ?? roleLabel}</small>
+            <h1 className="m-0 truncate text-base font-semibold leading-5 text-copy">{activeHeading?.title ?? current?.label ?? roleLabel}</h1>
+            {activeHeading?.description ? <p className="m-0 truncate text-[0.68rem] leading-4 text-muted" title={activeHeading.description}>{activeHeading.description}</p> : null}
+          </div>
           <div className="ml-auto"><ThemeMenu /></div>
         </header>
-        <main className="mx-auto w-full max-w-[1460px] px-3.5 py-7 sm:px-7 sm:py-8 lg:px-10 lg:py-9 lg:pb-[72px]"><Outlet /></main>
+        <main className="mx-auto w-full max-w-[1460px] px-3.5 py-7 sm:px-7 sm:py-8 lg:px-10 lg:py-9 lg:pb-[72px]"><PortalPageHeadingContext.Provider value={{ register: registerPageHeading }}><Outlet /></PortalPageHeadingContext.Provider></main>
       </div>
     </div>
   );

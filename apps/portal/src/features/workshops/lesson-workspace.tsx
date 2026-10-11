@@ -7,6 +7,8 @@ import { LessonEditorOutline } from "@/features/workshops/lesson-editor-outline"
 import type { WorkshopLessonRow, WorkshopTopologyRow } from "@/lib/api/types";
 import { cn } from "@/lib/class-names";
 import { LoadingButtonContent } from "@/components/ui/loading-content";
+import type { LessonStarter } from "@/features/workshops/starter-templates";
+import { StarterTemplatePicker } from "@/features/workshops/starter-template-picker";
 
 export function LessonWorkspace({
   addingLesson,
@@ -14,12 +16,14 @@ export function LessonWorkspace({
   collectionTitle,
   lessons,
   onAddLesson,
+  onAddStarter,
   onChange,
   onDelete,
   onError,
   onSaved,
   onSelectLesson,
   selectedLessonId,
+  templateNotice,
   topologies,
 }: {
   addingLesson: boolean;
@@ -27,12 +31,14 @@ export function LessonWorkspace({
   collectionTitle: string;
   lessons: WorkshopLessonRow[];
   onAddLesson: () => void;
+  onAddStarter?: (starter: LessonStarter) => void;
   onChange: (row: WorkshopLessonRow) => void;
   onDelete: (row: WorkshopLessonRow) => Promise<void>;
   onError: (message: string) => void;
   onSaved: () => void;
   onSelectLesson: (id: string) => void;
   selectedLessonId?: string;
+  templateNotice?: string;
   topologies: WorkshopTopologyRow[];
 }) {
   const [railView, setRailView] = useState<"lessons" | "outline">("lessons");
@@ -92,6 +98,17 @@ export function LessonWorkspace({
               >
                 {addingLesson ? <LoadingButtonContent label="ADDING LESSON..." /> : <><Plus />ADD LESSON</>}
               </button>
+              {onAddStarter && !archived ? (
+                <StarterTemplatePicker
+                  busy={addingLesson}
+                  feedback={templateNotice ? { message: templateNotice, tone: "success" } : undefined}
+                  onChoose={onAddStarter}
+                  options={[
+                    { id: "concept", title: "Concept explanation", description: "Heading, explanation, and key point" },
+                    { id: "guided-configuration", title: "Guided configuration", description: "Goal, commands, and verification" },
+                  ]}
+                />
+              ) : null}
               {lessons.map((lesson, index) => (
                 <button
                   className={cn(
