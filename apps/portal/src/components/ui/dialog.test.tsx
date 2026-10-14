@@ -7,6 +7,22 @@ import { ConfirmationDialog } from "@/components/ui/dialog";
 afterEach(cleanup);
 
 describe("ConfirmationDialog", () => {
+  test("clips decorative horizontal overflow while allowing long content to scroll vertically", async () => {
+    render(
+      <ConfirmationDialog
+        confirmLabel="SIGN OUT"
+        description="Your current portal session will end."
+        intent="warning"
+        onConfirm={vi.fn()}
+        title="Sign out of NetBite?"
+        trigger={<Button>OPEN CONFIRMATION</Button>}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "OPEN CONFIRMATION" }));
+    expect(await screen.findByRole("alertdialog")).toHaveClass("overflow-x-hidden", "overflow-y-auto");
+  });
+
   test("opens with cancel focused and restores focus when cancelled", async () => {
     render(
       <ConfirmationDialog

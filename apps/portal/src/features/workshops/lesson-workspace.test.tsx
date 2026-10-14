@@ -124,4 +124,25 @@ describe("lesson workspace scalability", () => {
     fireEvent.keyDown(window, { ctrlKey: true, key: "s" });
     await waitFor(() => expect(api.saveWorkshopLesson).toHaveBeenCalled());
   });
+
+  test("drags a block preview and shows the insertion point", async () => {
+    render(
+      <LessonWorkspaceHarness
+        blocks={[
+          { id: "heading-1", type: "heading", text: "Routing plan" },
+          { id: "paragraph-1", type: "paragraph", text: "Configure the router." },
+        ]}
+      />,
+    );
+    const source = await screen.findByRole("button", { name: "Reorder heading block, position 1 of 2" });
+    const target = screen.getByRole("region", { name: "paragraph content block 2 of 2" });
+    const dataTransfer = { dropEffect: "move", effectAllowed: "move", setData: vi.fn(), setDragImage: vi.fn() };
+
+    fireEvent.dragStart(source, { dataTransfer });
+    expect(dataTransfer.setDragImage).toHaveBeenCalledWith(source.closest("header"), 0, 0);
+    fireEvent.dragOver(target, { dataTransfer });
+    expect(target).toHaveClass("after:bg-signal-orange");
+    fireEvent.drop(target, { dataTransfer });
+    expect(screen.getByRole("button", { name: "Reorder heading block, position 2 of 2" })).toBeInTheDocument();
+  });
 });

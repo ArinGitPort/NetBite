@@ -1,53 +1,94 @@
-import { BookOpenCheck, ClipboardCheck, GraduationCap, Plus } from "lucide-react";
-import { Fragment, useEffect, useRef, useState, type ReactNode } from "react";
+import { ClipboardCheck, Plus } from "lucide-react";
+import { useRef, useState } from "react";
 
+import { Button } from "@/components/ui/button";
+import { AssessmentCreateDialog } from "@/features/workshops/assessment-create-dialog";
 import { AssessmentEditor } from "@/features/workshops/assessment-editor";
 import { AssessmentQuestionNavigator } from "@/features/workshops/assessment-question-navigator";
 import { useAssessmentQuestionWorkspace } from "@/features/workshops/hooks/use-assessment-question-workspace";
-import * as workshopApi from "@/lib/api/workshop-service";
 import { assessmentStarterDraft, type AssessmentStarter } from "@/features/workshops/starter-templates";
-import { StarterTemplatePicker } from "@/features/workshops/starter-template-picker";
+import * as workshopApi from "@/lib/api/workshop-service";
 import type { WorkshopAssessmentRow, WorkshopRow } from "@/lib/api/types";
 
 interface WorkspaceProps {
   workshop: WorkshopRow;
   assessments: WorkshopAssessmentRow[];
   selectedId?: string;
-  onAssessmentsChange: (
-    updater: (rows: WorkshopAssessmentRow[]) => WorkshopAssessmentRow[],
-  ) => void;
+  onAssessmentsChange: (updater: (rows: WorkshopAssessmentRow[]) => WorkshopAssessmentRow[]) => void;
   onSelect: (id: string) => void;
   onNotice: (message: string) => void;
   onError: (message: string) => void;
 }
 
-type TemplateFeedback = { message: string; tone: "success" | "error" } | undefined;
-type TemplateFeedbackProps = {
-  templateFeedback: TemplateFeedback;
-  onTemplateFeedbackChange: (feedback: TemplateFeedback) => void;
-};
-
 export function WorkshopAssessmentsWorkspace(props: WorkspaceProps) {
-  const [templateFeedback, setTemplateFeedback] = useState<TemplateFeedback>();
-  useEffect(() => setTemplateFeedback(undefined), [props.workshop.id]);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState<string>();
+  const createPending = useRef(false);
   const selected = props.assessments.find((row) => row.id === props.selectedId);
-  return selected ? (
-    <SelectedAssessmentWorkspace {...props} selected={selected} templateFeedback={templateFeedback} onTemplateFeedbackChange={setTemplateFeedback} />
-  ) : (
-    <div className="grid min-w-0 gap-5 xl:grid-cols-[250px_minmax(0,1fr)]">
-      <AssessmentList {...props} templateFeedback={templateFeedback} onTemplateFeedbackChange={setTemplateFeedback} />
-      <AssessmentEmptyState />
+
+  const create = async (mode: "practice" | "graded", starter?: AssessmentStarter) => {
+    if (createPending.current || props.workshop.archived) return;
+    createPending.current = true;
+    setCreating(true);
+    setCreateError(undefined);
+    props.onError("");
+    try {
+      const row = await workshopApi.createWorkshopAssessment(
+        props.workshop.id, mode, starter ? assessmentStarterDraft(starter) : undefined,
+      );
+      props.onAssessmentsChange((value) => [...value, row]);
+      props.onSelect(row.id);
+      setCreateOpen(false);
+      if (starter) {
+        const title = starter === "knowledge-check" ? "Knowledge check" : "Configuration review";
+        props.onNotice(`${title} template created and opened. Replace the sample question, then save.`);
+      } else {
+        props.onNotice(`${mode === "practice" ? "Practice" : "Graded"} assessment created and opened.`);
+      }
+    } catch (reason) {
+      const message = reason instanceof Error ? reason.message : "The assessment could not be created.";
+      setCreateError(message);
+      props.onError(message);
+    } finally {
+      createPending.current = false;
+      setCreating(false);
+    }
+  };
+
+  return (
+    <div className="grid min-w-0 gap-5">
+      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-line pb-4">
+        <div className="grid gap-1">
+          <h2 className="m-0 text-lg font-bold">{selected?.title ?? "Assessments"}</h2>
+          <p className="m-0 text-sm text-muted">
+            {selected ? "Edit this assessment, or choose another from the collection list." : "Choose an assessment from the collection list or create one."}
+          </p>
+        </div>
+        <Button disabled={props.workshop.archived} onClick={() => setCreateOpen(true)} tone="secondary">
+          <Plus /> NEW ASSESSMENT
+        </Button>
+      </header>
+      {selected ? <SelectedAssessmentWorkspace {...props} selected={selected} /> : (
+        <div className="grid min-h-60 place-items-center content-center gap-3 text-center text-muted [&>p]:m-0 [&>p]:max-w-lg">
+          <ClipboardCheck aria-hidden="true" />
+          <p>Add a practice or graded assessment.</p>
+        </div>
+      )}
+      <AssessmentCreateDialog
+        busy={creating}
+        error={createError}
+        onCreate={(mode, starter) => void create(mode, starter)}
+        onOpenChange={(open) => { setCreateOpen(open); if (open) setCreateError(undefined); }}
+        open={createOpen}
+      />
     </div>
   );
 }
 
-function SelectedAssessmentWorkspace({ selected, ...props }: WorkspaceProps & TemplateFeedbackProps & {
-  selected: WorkshopAssessmentRow;
-}) {
+function SelectedAssessmentWorkspace({ selected, ...props }: WorkspaceProps & { selected: WorkshopAssessmentRow }) {
   const changeSelected = (row: WorkshopAssessmentRow) =>
-    props.onAssessmentsChange((value) =>
-      value.map((item) => (item.id === row.id ? row : item)),
-    );
+    props.onAssessmentsChange((value) => value.map((item) => item.id === row.id ? row : item));
   const questionWorkspace = useAssessmentQuestionWorkspace(selected, changeSelected);
   const { navigation } = questionWorkspace;
   const deleteSelected = async () => {
@@ -66,8 +107,8 @@ function SelectedAssessmentWorkspace({ selected, ...props }: WorkspaceProps & Te
   };
 
   return (
-    <div className="grid min-w-0 gap-5 xl:grid-cols-[250px_minmax(0,1fr)]">
-      <AssessmentList {...props} selectedId={selected.id}>
+    <div className="grid min-w-0 gap-5 xl:grid-cols-[220px_minmax(0,1fr)]">
+      <nav aria-label="Questions in selected assessment" className="min-w-0 self-start border-b border-line pb-4 xl:border-b-0 xl:border-r xl:pr-4">
         <AssessmentQuestionNavigator
           onMove={questionWorkspace.moveQuestion}
           onPageChange={questionWorkspace.changePage}
@@ -79,7 +120,7 @@ function SelectedAssessmentWorkspace({ selected, ...props }: WorkspaceProps & Te
           selectedId={navigation.selectedQuestion?.id}
           total={questionWorkspace.questions.length}
         />
-      </AssessmentList>
+      </nav>
       <AssessmentEditor
         key={selected.id}
         onChange={changeSelected}
@@ -88,110 +129,6 @@ function SelectedAssessmentWorkspace({ selected, ...props }: WorkspaceProps & Te
         questionWorkspace={questionWorkspace}
         row={selected}
       />
-    </div>
-  );
-}
-
-function AssessmentList({ children, ...props }: WorkspaceProps & TemplateFeedbackProps & { children?: ReactNode }) {
-  const [creating, setCreating] = useState(false);
-  const createPending = useRef(false);
-  const create = async (mode: "practice" | "graded", starter?: AssessmentStarter) => {
-    if (createPending.current) return;
-    createPending.current = true;
-    setCreating(true);
-    props.onTemplateFeedbackChange(undefined);
-    props.onError("");
-    try {
-      const row = await workshopApi.createWorkshopAssessment(props.workshop.id, mode, starter ? assessmentStarterDraft(starter) : undefined);
-      props.onAssessmentsChange((value) => [...value, row]);
-      props.onSelect(row.id);
-      if (starter) {
-        const title = starter === "knowledge-check" ? "Knowledge check" : "Configuration review";
-        const message = `${title} template created and opened. Replace the sample question, then save.`;
-        props.onTemplateFeedbackChange({ message, tone: "success" });
-        props.onNotice(message);
-      } else {
-        props.onNotice(`${mode === "practice" ? "Practice" : "Graded"} assessment created and opened.`);
-      }
-    } catch (reason) {
-      const message = reason instanceof Error ? reason.message : "The assessment could not be created.";
-      if (starter) props.onTemplateFeedbackChange({ message, tone: "error" });
-      props.onError(message);
-    } finally {
-      createPending.current = false;
-      setCreating(false);
-    }
-  };
-  return (
-    <nav className="themed-scrollbar grid min-w-0 content-start gap-2 overflow-y-auto rounded-panel border border-line bg-sidebar p-3 max-xl:max-h-[520px]">
-      <div className="mb-2 grid gap-2.5 border-b border-line pb-4">
-        <div className="grid gap-1 px-1">
-          <span className="font-mono text-[0.62rem] font-semibold uppercase tracking-[0.08em] text-copy">Create assessment</span>
-          <small className="text-[0.65rem] leading-4 text-muted">Choose how learner results should behave.</small>
-        </div>
-        <button
-          aria-label="Create practice assessment"
-          className="group grid min-h-[68px] grid-cols-[36px_minmax(0,1fr)_20px] items-center gap-3 rounded-control border border-line bg-canvas px-3 py-2 text-left transition-[border-color,background-color,transform] hover:-translate-y-px hover:border-signal-orange/60 hover:bg-raised focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-signal-orange"
-          disabled={creating}
-          onClick={() => void create("practice")}
-          type="button"
-        >
-          <span className="grid size-9 place-items-center rounded-control bg-signal-orange-soft text-signal-orange [&_svg]:size-4"><BookOpenCheck aria-hidden="true" /></span>
-          <span className="grid min-w-0 gap-0.5"><strong className="text-xs text-copy">PRACTICE</strong><small className="text-[0.63rem] leading-4 text-muted">Instant feedback</small></span>
-          <Plus aria-hidden="true" className="size-4 text-muted transition-transform group-hover:rotate-90 group-hover:text-signal-orange" />
-        </button>
-        <button
-          aria-label="Create graded assessment"
-          className="group grid min-h-[68px] grid-cols-[36px_minmax(0,1fr)_20px] items-center gap-3 rounded-control border border-line bg-canvas px-3 py-2 text-left transition-[border-color,background-color,transform] hover:-translate-y-px hover:border-signal-green/60 hover:bg-raised focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-signal-green"
-          disabled={creating}
-          onClick={() => void create("graded")}
-          type="button"
-        >
-          <span className="grid size-9 place-items-center rounded-control bg-signal-green-soft text-signal-green [&_svg]:size-4"><GraduationCap aria-hidden="true" /></span>
-          <span className="grid min-w-0 gap-0.5"><strong className="text-xs text-copy">GRADED</strong><small className="text-[0.63rem] leading-4 text-muted">Recorded score</small></span>
-          <Plus aria-hidden="true" className="size-4 text-muted transition-transform group-hover:rotate-90 group-hover:text-signal-green" />
-        </button>
-      </div>
-      {!props.workshop.archived ? (
-        <StarterTemplatePicker
-          busy={creating}
-          feedback={props.templateFeedback}
-          onChoose={(starter) => void create(starter === "knowledge-check" ? "practice" : "graded", starter)}
-          options={[
-            { id: "knowledge-check", title: "Knowledge check", description: "Practice · one sample question" },
-            { id: "configuration-review", title: "Configuration review", description: "Graded · one sample question" },
-          ]}
-        />
-      ) : null}
-      {props.assessments.map((assessment) => (
-        <Fragment key={assessment.id}>
-          <button
-            className={`grid min-h-14 min-w-0 grid-cols-[36px_minmax(0,1fr)] items-center gap-3 rounded-control border px-3 text-left ${assessment.id === props.selectedId ? "border-line bg-raised text-copy" : "border-transparent text-muted hover:bg-raised"}`}
-            onClick={() => props.onSelect(assessment.id)}
-            type="button"
-          >
-            <span className="grid size-9 place-items-center rounded-control border border-line bg-canvas text-muted [&_svg]:size-4">
-              <ClipboardCheck aria-hidden="true" />
-            </span>
-            <span className="grid min-w-0 gap-1">
-              <span className="block break-words font-semibold">{assessment.title}</span>
-              <small className="block leading-5 text-muted">
-                {assessment.mode === "graded" ? "Recorded in gradebook" : "Practice only"}
-              </small>
-            </span>
-          </button>
-          {assessment.id === props.selectedId ? children : null}
-        </Fragment>
-      ))}
-    </nav>
-  );
-}
-
-function AssessmentEmptyState() {
-  return (
-    <div className="grid min-h-60 place-items-center content-center gap-3 text-center text-muted [&>p]:m-0 [&>p]:max-w-lg">
-      <ClipboardCheck aria-hidden="true" />
-      <p>Add a practice or graded assessment.</p>
     </div>
   );
 }

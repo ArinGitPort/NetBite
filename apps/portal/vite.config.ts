@@ -10,6 +10,7 @@ export default defineConfig({
   plugins: [react(), tailwindcss(), ...(uploadSourceMaps
     ? [sentryVitePlugin({ org: process.env.SENTRY_ORG, project: process.env.SENTRY_PROJECT, authToken: process.env.SENTRY_AUTH_TOKEN, release: { name: process.env.VITE_RELEASE || 'netbite-portal@1.0.0' }, sourcemaps: { filesToDeleteAfterUpload: ['dist/**/*.map'] } })]
     : [])],
+  publicDir: fileURLToPath(new URL('../../packages/brand/assets', import.meta.url)),
   resolve: {
     alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
   },

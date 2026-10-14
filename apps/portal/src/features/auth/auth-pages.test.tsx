@@ -22,7 +22,7 @@ describe("Login", () => {
     expect(screen.getByRole("button", { name: /Appearance:/ })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: /Publish accurate networking lessons/ })).toBeInTheDocument();
     expect(container.querySelectorAll("svg").length).toBeGreaterThan(2);
-    expect(screen.getByText("CURRICULUM CONTROL PLANE")).toBeInTheDocument();
+    expect(screen.queryByText("CURRICULUM CONTROL PLANE")).not.toBeInTheDocument();
   });
 
   test("clears failed sign-in feedback when the learner edits a credential", async () => {

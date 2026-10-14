@@ -39,7 +39,6 @@ function renderNavigator(count: number, page = 1) {
       <AssessmentQuestionNavigator {...props} />
     </TooltipProvider>,
   );
-  fireEvent.click(screen.getByRole("button", { name: "Question selector" }));
   return props;
 }
 
@@ -67,15 +66,10 @@ describe("assessment question navigator", () => {
     expect(props.onPageChange).toHaveBeenCalledWith(2);
   });
 
-  test("closes the question menu with Escape and returns focus", () => {
+  test("keeps the question list visible without an extra disclosure control", () => {
     renderNavigator(2);
-    const trigger = screen.getByRole("button", { name: "Question selector" });
     expect(screen.getByRole("list", { name: "Question list" })).toBeInTheDocument();
-
-    fireEvent.keyDown(document, { key: "Escape" });
-
-    expect(screen.queryByRole("list", { name: "Question list" })).not.toBeInTheDocument();
-    expect(trigger).toHaveFocus();
+    expect(screen.queryByRole("button", { name: "Question selector" })).not.toBeInTheDocument();
   });
 
   test("supports keyboard reordering from the drag handle", () => {
@@ -99,10 +93,13 @@ describe("assessment question navigator", () => {
       dropEffect: "move",
       effectAllowed: "move",
       setData: vi.fn(),
+      setDragImage: vi.fn(),
     };
 
     fireEvent.dragStart(source, { dataTransfer });
+    expect(dataTransfer.setDragImage).toHaveBeenCalledWith(source.closest('[role="listitem"]'), 0, 0);
     fireEvent.dragOver(target!, { dataTransfer });
+    expect(target).toHaveClass("after:bg-signal-orange");
     fireEvent.drop(target!, { dataTransfer });
 
     expect(props.onMove).toHaveBeenCalledWith(0, 2);

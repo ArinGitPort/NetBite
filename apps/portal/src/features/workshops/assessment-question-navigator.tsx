@@ -1,7 +1,6 @@
-import { ChevronDown, GripVertical } from "lucide-react";
+import { GripVertical } from "lucide-react";
+import { motion, useReducedMotion } from "motion/react";
 import {
-  useEffect,
-  useRef,
   useState,
   type DragEvent,
   type KeyboardEvent,
@@ -20,6 +19,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import type { AssessmentQuestion } from "@/features/workshops/assessment-types";
 import { ASSESSMENT_QUESTIONS_PER_PAGE } from "@/features/workshops/hooks/use-assessment-question-navigation";
 import { cn } from "@/lib/class-names";
+import { setReorderDragPreview } from "@/features/workshops/reorder-drag-preview";
 
 interface AssessmentQuestionNavigatorProps {
   page: number;
@@ -44,83 +44,28 @@ export function AssessmentQuestionNavigator({
   onPageChange,
   onSelect,
 }: AssessmentQuestionNavigatorProps) {
-  const [open, setOpen] = useState(false);
-  const rootRef = useRef<HTMLElement>(null);
-  const triggerRef = useRef<HTMLButtonElement>(null);
   const [draggedIndex, setDraggedIndex] = useState<number>();
   const [dropIndex, setDropIndex] = useState<number>();
-  const selectedQuestion = pageQuestions.find((question) => question.id === selectedId);
-  const selectedIndex = selectedQuestion
-    ? pageStart + pageQuestions.indexOf(selectedQuestion)
-    : undefined;
-  const selectedStatus = selectedQuestion ? getQuestionStatus(selectedQuestion) : undefined;
-
-  useEffect(() => {
-    if (!open) return;
-    const closeWhenOutside = (event: PointerEvent) => {
-      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
-    };
-    const closeWithEscape = (event: globalThis.KeyboardEvent) => {
-      if (event.key !== "Escape") return;
-      setOpen(false);
-      triggerRef.current?.focus();
-    };
-    document.addEventListener("pointerdown", closeWhenOutside);
-    document.addEventListener("keydown", closeWithEscape);
-    return () => {
-      document.removeEventListener("pointerdown", closeWhenOutside);
-      document.removeEventListener("keydown", closeWithEscape);
-    };
-  }, [open]);
+  const reducedMotion = useReducedMotion();
 
   return (
     <section
       aria-label="Assessment questions"
-      className="relative z-20 grid gap-2"
-      ref={rootRef}
+      className="grid min-w-0 gap-3"
     >
-      <header className="grid gap-2">
-        <div className="flex items-center justify-between gap-3 px-1">
+      <header>
+        <div className="flex items-center justify-between gap-3 px-1 pb-2">
           <strong className="font-mono text-[0.62rem] font-semibold tracking-[0.08em] text-muted">
             QUESTIONS
           </strong>
           <span className="text-[0.65rem] text-muted">{total} added</span>
         </div>
-        <button
-          aria-label="Question selector"
-          aria-controls="assessment-question-list"
-          aria-expanded={open}
-          className="flex min-h-12 min-w-0 items-center justify-between gap-3 rounded-control border border-line bg-canvas px-3 py-2 text-left text-copy hover:border-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-signal-orange"
-          onClick={() => setOpen((current) => !current)}
-          ref={triggerRef}
-          type="button"
-        >
-          <span className="grid min-w-0 gap-1">
-            <span className="flex min-w-0 items-center gap-2">
-              {selectedIndex !== undefined ? (
-                <span className="shrink-0 font-mono text-[0.62rem] text-signal-orange">
-                  Q{String(selectedIndex + 1).padStart(2, "0")}
-                </span>
-              ) : null}
-              <strong className="truncate text-xs">
-                {selectedQuestion?.prompt.trim() || (selectedQuestion ? "UNTITLED QUESTION" : "NO QUESTIONS YET")}
-              </strong>
-            </span>
-            <small className={cn("text-[0.6rem]", selectedStatus?.tone ?? "text-muted")}>
-              {selectedStatus?.label ?? "Add a question to begin"}
-            </small>
-          </span>
-          <ChevronDown
-            aria-hidden="true"
-            className={cn("size-4 shrink-0 text-muted transition-transform", open && "rotate-180")}
-          />
-        </button>
       </header>
 
-      {open ? <div className="absolute left-0 right-0 top-full z-50 mt-2 overflow-hidden rounded-control border border-line bg-canvas shadow-[0_16px_40px_rgba(0,0,0,0.45)]">
+      <div className="min-w-0">
         <div
           aria-label="Question list"
-          className="themed-scrollbar grid max-h-[320px] content-start gap-1 overflow-y-auto p-2"
+          className="themed-scrollbar grid max-h-[520px] content-start gap-1 overflow-y-auto"
           id="assessment-question-list"
           role="list"
         >
@@ -128,17 +73,22 @@ export function AssessmentQuestionNavigator({
           const index = pageStart + localIndex;
           const status = getQuestionStatus(question);
           return (
-            <div
+            <motion.div
               className={cn(
-                "grid min-w-0 grid-cols-[minmax(0,1fr)_44px] items-stretch rounded-control border transition-colors",
+                "relative grid min-w-0 grid-cols-[minmax(0,1fr)_36px] items-stretch border-l-2 bg-surface transition-[background-color,border-color,opacity]",
                 question.id === selectedId
-                  ? "border-line bg-raised"
-                  : "border-transparent hover:bg-raised/70",
-                dropIndex === index && draggedIndex !== index && "border-signal-orange",
-                draggedIndex === index && "opacity-55",
+                  ? "border-signal-orange text-copy"
+                  : "border-transparent text-muted hover:text-copy",
+                dropIndex === index && draggedIndex !== index && draggedIndex !== undefined &&
+                  (draggedIndex < index
+                    ? "after:absolute after:inset-x-0 after:-bottom-0.5 after:z-10 after:h-0.5 after:bg-signal-orange"
+                    : "before:absolute before:inset-x-0 before:-top-0.5 before:z-10 before:h-0.5 before:bg-signal-orange"),
+                draggedIndex === index && "bg-raised opacity-45",
               )}
               key={question.id}
+              layout="position"
               role="listitem"
+              transition={{ layout: { duration: reducedMotion ? 0 : 0.2 } }}
               onDragOver={(event) => handleDragOver(event, draggedIndex, index, setDropIndex)}
               onDrop={(event) => {
                 event.preventDefault();
@@ -148,18 +98,15 @@ export function AssessmentQuestionNavigator({
               }}
             >
               <button
-                className="grid min-w-0 gap-1 rounded-l-control border-0 bg-transparent px-3 py-2.5 text-left text-copy"
-                onClick={() => {
-                  onSelect(question.id);
-                  setOpen(false);
-                }}
+                className="grid min-w-0 gap-1 border-0 bg-transparent px-2 py-3 text-left text-inherit"
+                onClick={() => onSelect(question.id)}
                 type="button"
               >
                 <span className="flex min-w-0 items-center gap-2">
                   <span className="font-mono text-[0.62rem] text-signal-orange">
                     Q{String(index + 1).padStart(2, "0")}
                   </span>
-                  <strong className="truncate text-xs">
+                  <strong className="min-w-0 break-words text-xs leading-5">
                     {question.prompt.trim() || "UNTITLED QUESTION"}
                   </strong>
                 </span>
@@ -169,13 +116,14 @@ export function AssessmentQuestionNavigator({
                 <TooltipTrigger asChild>
                   <button
                     aria-label={`Reorder question ${index + 1}, position ${index + 1} of ${total}`}
-                    className="grid size-11 cursor-grab place-items-center self-center rounded-control border-0 bg-transparent text-muted hover:bg-canvas hover:text-copy active:cursor-grabbing focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-signal-orange [&_svg]:size-[18px]"
+                    className="grid size-9 cursor-grab place-items-center self-center border-0 bg-transparent text-muted hover:text-copy active:cursor-grabbing focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-signal-orange [&_svg]:size-[18px]"
                     draggable
                     onDragEnd={() => {
                       setDraggedIndex(undefined);
                       setDropIndex(undefined);
                     }}
                     onDragStart={(event) => {
+                      setReorderDragPreview(event, event.currentTarget.closest('[role="listitem"]'));
                       setDraggedIndex(index);
                       setDropIndex(index);
                       event.dataTransfer.effectAllowed = "move";
@@ -189,7 +137,7 @@ export function AssessmentQuestionNavigator({
                 </TooltipTrigger>
                 <TooltipContent>Drag to reorder. Use Up or Down Arrow with the keyboard.</TooltipContent>
               </Tooltip>
-            </div>
+            </motion.div>
           );
           })}
           {!total ? (
@@ -201,7 +149,7 @@ export function AssessmentQuestionNavigator({
         {pageCount > 1 ? (
           <QuestionPagination page={page} pageCount={pageCount} onChange={onPageChange} />
         ) : null}
-      </div> : null}
+      </div>
     </section>
   );
 }

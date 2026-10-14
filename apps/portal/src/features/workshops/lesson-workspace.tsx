@@ -21,7 +21,6 @@ export function LessonWorkspace({
   onDelete,
   onError,
   onSaved,
-  onSelectLesson,
   selectedLessonId,
   templateNotice,
   topologies,
@@ -36,7 +35,7 @@ export function LessonWorkspace({
   onDelete: (row: WorkshopLessonRow) => Promise<void>;
   onError: (message: string) => void;
   onSaved: () => void;
-  onSelectLesson: (id: string) => void;
+  onSelectLesson?: (id: string) => void;
   selectedLessonId?: string;
   templateNotice?: string;
   topologies: WorkshopTopologyRow[];
@@ -73,7 +72,7 @@ export function LessonWorkspace({
               type="button"
             >
               <BookOpen aria-hidden="true" className="mr-1.5 inline size-3.5" />
-              LESSONS
+              CREATE
             </button>
             <button
               aria-selected={railView === "outline"}
@@ -109,22 +108,6 @@ export function LessonWorkspace({
                   ]}
                 />
               ) : null}
-              {lessons.map((lesson, index) => (
-                <button
-                  className={cn(
-                    "grid min-h-14 min-w-0 gap-1 rounded-control border border-transparent px-3 text-left",
-                    lesson.id === selectedLessonId
-                      ? "border-line bg-raised text-copy"
-                      : "text-muted hover:bg-raised",
-                  )}
-                  key={lesson.id}
-                  onClick={() => onSelectLesson(lesson.id)}
-                  type="button"
-                >
-                  <small className="block font-mono text-signal-orange">{String(index + 1).padStart(2, "0")}</small>
-                  <span className="block break-words font-semibold">{String(lesson.draft.title ?? "Untitled lesson")}</span>
-                </button>
-              ))}
             </>
           ) : (
             <LessonEditorOutline activeId={activeBlockId} blocks={blocks} onSelect={selectBlock} />

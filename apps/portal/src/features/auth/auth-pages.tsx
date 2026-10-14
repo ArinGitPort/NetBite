@@ -1,4 +1,4 @@
-import { CheckCircle2, Eye, EyeOff, LockKeyhole } from "lucide-react";
+import { CheckCircle2, Eye, EyeOff } from "lucide-react";
 import type { FormEvent } from "react";
 import { useState } from "react";
 
@@ -106,10 +106,6 @@ export function Login() {
 
       <div className="relative z-10 mx-auto grid min-h-[calc(100vh-64px)] w-[min(1070px,calc(100%-48px))] items-center gap-12 py-12 lg:grid-cols-[1.1fr_0.9fr]">
         <section className="flex flex-col justify-center">
-          <div className="mb-5 flex flex-wrap items-center gap-3">
-            <Badge tone="green">CURRICULUM CONTROL PLANE</Badge>
-            <span className="font-mono text-[0.6rem] uppercase tracking-[0.1em] text-muted">ANDROID DELIVERY / OFFLINE READY</span>
-          </div>
           <h1 className="max-w-[650px] text-[clamp(2.35rem,4.15vw,4.15rem)] font-bold leading-[1.04] tracking-[-0.045em]">
             <span className="block">Publish accurate</span>
             <StrokeText
@@ -195,9 +191,6 @@ export function Login() {
           onSubmit={submit}
         >
           <span aria-hidden="true" className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-signal-red to-transparent" />
-          <Badge>
-            <LockKeyhole aria-hidden="true" size={13} /> Authorized staff only
-          </Badge>
           <div>
             <h2 className="mb-2 mt-1 text-2xl font-bold">
               Sign in to the console

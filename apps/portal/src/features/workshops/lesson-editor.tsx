@@ -7,6 +7,7 @@ import {
   Undo2,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { motion, useReducedMotion } from "motion/react";
 import { useUnsavedDraft } from "@/app/providers/unsaved-changes-provider";
 import type { WorkshopLessonBlock } from "@netbite/workshops/contracts";
 import { Button } from "@/components/ui/button";
@@ -35,6 +36,7 @@ import {
   lessonBlockFieldCopy,
 } from "@/features/workshops/lesson-block-definitions";
 import { LessonDetails } from "@/features/workshops/lesson-details";
+import { setReorderDragPreview } from "@/features/workshops/reorder-drag-preview";
 import { cn } from "@/lib/class-names";
 
 export function LessonEditor({
@@ -68,6 +70,7 @@ export function LessonEditor({
   const [savedLesson, setSavedLesson] = useState(lesson);
   const [draggedBlockIndex, setDraggedBlockIndex] = useState<number>();
   const [dropTargetIndex, setDropTargetIndex] = useState<number>();
+  const reducedMotion = useReducedMotion();
   const [expandedAll, setExpandedAll] = useState(false);
   const [removedBlock, setRemovedBlock] = useState<{
     block: WorkshopLessonBlock;
@@ -267,17 +270,21 @@ export function LessonEditor({
               const expanded = expandedAll || activeBlockId === block.id;
               const status = getLessonBlockStatus(block);
               return (
-                <section
+                <motion.section
                   aria-label={`${block.type} content block ${index + 1} of ${blocks.length}`}
                   className={cn(
-                    "scroll-mt-40 rounded-control border bg-canvas transition-[border-color,opacity,box-shadow]",
+                    "relative scroll-mt-40 rounded-control border bg-canvas transition-[border-color,opacity,box-shadow]",
                     expanded ? "border-line shadow-[0_8px_24px_rgb(0_0_0/6%)]" : "border-line/75",
-                    dropTargetIndex === index && draggedBlockIndex !== index &&
-                      "border-signal-orange shadow-[inset_0_3px_0_rgba(222,126,67,0.9)]",
-                    draggedBlockIndex === index && "opacity-55",
+                    dropTargetIndex === index && draggedBlockIndex !== index && draggedBlockIndex !== undefined &&
+                      (draggedBlockIndex < index
+                        ? "after:absolute after:inset-x-0 after:-bottom-2 after:z-10 after:h-0.5 after:bg-signal-orange"
+                        : "before:absolute before:inset-x-0 before:-top-2 before:z-10 before:h-0.5 before:bg-signal-orange"),
+                    draggedBlockIndex === index && "opacity-45 shadow-panel",
                   )}
                   id={`lesson-block-${block.id}`}
                   key={block.id}
+                  layout="position"
+                  transition={{ layout: { duration: reducedMotion ? 0 : 0.2 } }}
                   onDragOver={(event) => {
                     if (draggedBlockIndex === undefined) return;
                     event.preventDefault();
@@ -327,6 +334,7 @@ export function LessonEditor({
                               setDropTargetIndex(undefined);
                             }}
                             onDragStart={(event) => {
+                              setReorderDragPreview(event, event.currentTarget.closest("header"));
                               setDraggedBlockIndex(index);
                               setDropTargetIndex(index);
                               event.dataTransfer.effectAllowed = "move";
@@ -412,7 +420,7 @@ export function LessonEditor({
                       ) : null}
                     </div>
                   ) : null}
-                </section>
+                </motion.section>
               );
             })}
             {removedBlock ? (

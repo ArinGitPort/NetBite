@@ -66,6 +66,7 @@ export function ConfirmationDialog({
   onOpenChange,
   title,
   description,
+  details,
   confirmLabel,
   busyLabel = "WORKING...",
   intent = "standard",
@@ -76,6 +77,7 @@ export function ConfirmationDialog({
   onOpenChange?: (open: boolean) => void;
   title: string;
   description: string;
+  details?: ReactNode;
   confirmLabel: string;
   busyLabel?: string;
   intent?: "standard" | "warning" | "destructive";
@@ -126,7 +128,7 @@ export function ConfirmationDialog({
         <AlertDialogPrimitive.Content
           className={cn(
             content,
-            "isolate w-[min(512px,calc(100%-32px))] gap-6 overflow-hidden p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95",
+            "isolate w-[min(512px,calc(100%-32px))] gap-6 overflow-x-hidden overflow-y-auto p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95",
           )}
           onEscapeKeyDown={(event) => { if (busy) event.preventDefault(); }}
           onOpenAutoFocus={(event) => {
@@ -163,6 +165,7 @@ export function ConfirmationDialog({
               {description}
             </AlertDialogPrimitive.Description>
           </div>
+          {details}
           {error ? (
             <p className="m-0 rounded-control border border-signal-red/50 bg-signal-red-soft p-3 text-sm leading-6 text-signal-red" role="alert">
               {error}

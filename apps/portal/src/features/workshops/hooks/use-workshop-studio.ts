@@ -17,6 +17,7 @@ export function useWorkshopStudio(area: WorkshopArea) {
   const [assessments, setAssessments] = useState<WorkshopAssessmentRow[]>([]);
   const [classes, setClasses] = useState<WorkshopClassRow[]>([]);
   const [versions, setVersions] = useState<WorkshopVersionRow[]>([]);
+  const [contentWorkshopId, setContentWorkshopId] = useState<string>();
   const [selectedLesson, setSelectedLesson] = useState<string>();
   const [selectedAssessment, setSelectedAssessment] = useState<string>();
   const [selectedTopology, setSelectedTopology] = useState<string>();
@@ -52,13 +53,18 @@ export function useWorkshopStudio(area: WorkshopArea) {
   }, [notice]);
   useEffect(() => {
     if (!selectedId) return;
+    let active = true;
+    setContentWorkshopId(undefined);
     void Promise.all([workshopApi.getWorkshopContent(selectedId), workshopApi.getWorkshopVersions(selectedId)])
       .then(([content, versionRows]) => {
+        if (!active) return;
         setLessons(content.lessons); setTopologies(content.topologies); setAssessments(content.assessments); setVersions(versionRows);
+        setContentWorkshopId(selectedId);
         setSelectedLesson((current) => current && content.lessons.some((row) => row.id === current) ? current : content.lessons[0]?.id);
         setSelectedAssessment((current) => current && content.assessments.some((row) => row.id === current) ? current : content.assessments[0]?.id);
         setSelectedTopology((current) => current && content.topologies.some((row) => row.stable_id === current) ? current : content.topologies[0]?.stable_id);
-      }).catch((reason: Error) => setError(reason.message));
+      }).catch((reason: Error) => { if (active) setError(reason.message); });
+    return () => { active = false; };
   }, [selectedId]);
 
   const create = async (title: string, description: string) => {
@@ -152,5 +158,5 @@ export function useWorkshopStudio(area: WorkshopArea) {
     }
   };
 
-  return { loading, workshops, setWorkshops, selectedId, setSelectedId, lessons, topologies, setTopologies, assessments, setAssessments, classes, versions, selectedLesson, setSelectedLesson, selectedAssessment, setSelectedAssessment, selectedTopology, setSelectedTopology, collectionView, setCollectionView, gradeRows, gradebookLoading, gradeClasses, selectedClass, setSelectedGradeClassId, notice, setNotice, error, setError, detailsMode, setDetailsMode, addingLesson, topologyDetailsOpen, setTopologyDetailsOpen, topologyName, setTopologyName, savingTopologyName, selectedWorkshop, load, create, saveDetails, deleteDraft, updateLesson, addLesson, deleteLesson, updateAssessment, addTopology, selectedTopologyRow, topologyReferenceCount, openTopologyDetails, renameTopology, deleteTopology };
+  return { loading, workshops, setWorkshops, selectedId, setSelectedId, lessons, topologies, setTopologies, assessments, setAssessments, classes, versions, contentWorkshopId, selectedLesson, setSelectedLesson, selectedAssessment, setSelectedAssessment, selectedTopology, setSelectedTopology, collectionView, setCollectionView, gradeRows, gradebookLoading, gradeClasses, selectedClass, setSelectedGradeClassId, notice, setNotice, error, setError, detailsMode, setDetailsMode, addingLesson, topologyDetailsOpen, setTopologyDetailsOpen, topologyName, setTopologyName, savingTopologyName, selectedWorkshop, load, create, saveDetails, deleteDraft, updateLesson, addLesson, deleteLesson, updateAssessment, addTopology, selectedTopologyRow, topologyReferenceCount, openTopologyDetails, renameTopology, deleteTopology };
 }

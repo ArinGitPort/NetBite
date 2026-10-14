@@ -60,7 +60,7 @@ describe("workshop starter templates", () => {
       .toHaveTextContent("Concept explanation template created and opened");
   });
 
-  test("shows assessment starter success and failure beside the action", async () => {
+  test("shows assessment starter progress, success, and retryable failure in the create flow", async () => {
     let finishCreation!: () => void;
     const pendingCreation = new Promise<void>((resolve) => { finishCreation = resolve; });
     vi.mocked(api.createWorkshopAssessment).mockImplementationOnce(async () => {
@@ -71,24 +71,29 @@ describe("workshop starter templates", () => {
       };
     }).mockRejectedValueOnce(new Error("Template creation failed."));
     render(<TooltipProvider><WorkshopStudio area="workshop-assessments" /></TooltipProvider>);
-    await screen.findByRole("button", { name: /Route check Recorded in gradebook/ });
+    await screen.findByRole("button", { name: "Route check" });
     expect(screen.queryByRole("button", { name: "DUPLICATE ASSESSMENT" })).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByText("START FROM TEMPLATE"));
-    fireEvent.click(screen.getByRole("button", { name: /Knowledge check Practice/ }));
-    expect(within(screen.getByRole("navigation")).getByRole("status"))
+    fireEvent.click(screen.getByRole("button", { name: "NEW ASSESSMENT" }));
+    let dialog = screen.getByRole("dialog", { name: "Create assessment" });
+    fireEvent.click(within(dialog).getByText("START FROM TEMPLATE"));
+    fireEvent.click(within(dialog).getByRole("button", { name: /Knowledge check Practice/ }));
+    expect(within(dialog).getByRole("status"))
       .toHaveTextContent("Creating draft");
-    expect(screen.getByRole("button", { name: /Knowledge check Practice/ })).toBeDisabled();
+    expect(within(dialog).getByRole("button", { name: /Knowledge check Practice/ })).toBeDisabled();
     finishCreation();
     await waitFor(() => expect(api.createWorkshopAssessment).toHaveBeenCalledWith(
       workshop.id, "practice", expect.objectContaining({ title: "Knowledge check" }),
     ));
-    expect(await within(screen.getByRole("navigation")).findByRole("status"))
+    expect(await screen.findByRole("status"))
       .toHaveTextContent("Knowledge check template created and opened");
 
-    fireEvent.click(screen.getByRole("button", { name: /Configuration review Graded/ }));
-    expect(await within(screen.getByRole("navigation")).findByRole("alert"))
+    fireEvent.click(screen.getByRole("button", { name: "NEW ASSESSMENT" }));
+    dialog = screen.getByRole("dialog", { name: "Create assessment" });
+    fireEvent.click(within(dialog).getByText("START FROM TEMPLATE"));
+    fireEvent.click(within(dialog).getByRole("button", { name: /Configuration review Graded/ }));
+    expect(await within(dialog).findByRole("alert"))
       .toHaveTextContent("Template creation failed.");
-    expect(screen.getByRole("button", { name: /Configuration review Graded/ })).toBeEnabled();
+    expect(within(dialog).getByRole("button", { name: /Configuration review Graded/ })).toBeEnabled();
   });
 });

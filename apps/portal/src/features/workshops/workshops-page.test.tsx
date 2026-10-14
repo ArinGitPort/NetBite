@@ -396,11 +396,9 @@ describe("instructor workshop portal", () => {
 
     const addQuestion = screen.getByRole("button", { name: "Add question" });
     fireEvent.click(addQuestion);
-    fireEvent.click(screen.getByRole("button", { name: "Question selector" }));
     let questionList = await screen.findByRole("list", { name: "Question list" });
     fireEvent.click(within(questionList).getByRole("button", { name: /Q01 .*NEEDS QUESTION/ }));
     fireEvent.click(screen.getByRole("button", { name: "Add question" }));
-    fireEvent.click(screen.getByRole("button", { name: "Question selector" }));
     questionList = await screen.findByRole("list", { name: "Question list" });
     fireEvent.click(within(questionList).getByRole("button", { name: /Q02 .*NEEDS QUESTION/ }));
 
