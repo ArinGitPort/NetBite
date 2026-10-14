@@ -15,8 +15,8 @@ packages/
 supabase/        Database migrations and Edge Functions
 docs/            Architecture, product, standards, runbooks, and references
 tooling/         Repository-wide automation and validation
-schoolwork/      Coursework sources and generation scripts
-deliverables/    Generated submission artifacts
+schoolwork/      Ignored coursework documents, PDFs, and PDF builder
+deliverables/    Other generated submission artifacts
 ```
 
 Application UI is intentionally not shared: React Native components remain in `apps/mobile`, while React DOM components remain in `apps/portal`.
