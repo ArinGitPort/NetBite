@@ -87,6 +87,8 @@ npm run portal:dev
 
 Open `http://localhost:4174` and sign in with an approved administrator account.
 
+Instructors can select **Create an account** on the sign-in page. In Supabase Auth, enable email sign-ups and add `http://localhost:4174/` (and the deployed portal URL) to the allowed redirect URLs so confirmation links return to the portal. After email confirmation and sign-in, NetBite submits an instructor-access request; an administrator must approve it under **Instructor access** before teaching tools become available. Email confirmation requires working email delivery in the Supabase project.
+
 ## Publishing workflow
 
 1. Prepare lesson, assessment, reference, or supporting-image drafts.

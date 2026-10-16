@@ -97,7 +97,7 @@ export function Login() {
     <main className="relative isolate min-h-screen overflow-hidden">
       <LoginAmbient />
       <header className="relative z-20 flex min-h-16 items-center border-b border-line bg-canvas/75 px-5 backdrop-blur-xl sm:px-10">
-        <BrandLockup />
+        <BrandLockup href="#/login" />
         <div className="ml-auto flex items-center gap-3">
           <span className="hidden font-mono text-[0.58rem] font-semibold uppercase tracking-[0.12em] text-muted sm:inline">Portal appearance</span>
           <ThemeMenu />
@@ -259,43 +259,10 @@ export function Login() {
             )}
           </UiButton>
           <footer className="mt-1 flex flex-wrap justify-between gap-3 border-t border-line pt-5 text-xs text-muted">
-            <span className="inline-flex items-center gap-2">
-              <i
-                aria-hidden="true"
-                className="size-1.5 rounded-full bg-signal-green"
-              />{" "}
-              Protected portal session
-            </span>
-            <span>Access verified after sign-in</span>
+            <span>New instructor?</span>
+            <a className="font-semibold text-signal-orange underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-signal-orange" href="#/register">Create an account</a>
           </footer>
         </form>
-      </div>
-    </main>
-  );
-}
-
-export function Unauthorized({
-  email,
-  onLogout,
-}: {
-  email: string;
-  onLogout: () => void;
-}) {
-  return (
-    <main className="grid min-h-screen place-items-center p-5">
-      <div className="grid w-full max-w-md gap-4 rounded-panel border border-line bg-surface p-8 shadow-panel">
-        <Badge tone="red">ACCESS NOT ASSIGNED</Badge>
-        <h2 className="text-2xl font-bold">
-          This account does not have portal access
-        </h2>
-        <p className="m-0 text-muted">{email}</p>
-        <p className="leading-7 text-muted">
-          A NetBite administrator must approve instructor access, or the project
-          owner must assign administrator access.
-        </p>
-        <UiButton onClick={onLogout} tone="secondary">
-          SIGN OUT
-        </UiButton>
       </div>
     </main>
   );

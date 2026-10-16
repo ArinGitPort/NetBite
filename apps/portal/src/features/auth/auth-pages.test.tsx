@@ -23,6 +23,7 @@ describe("Login", () => {
     expect(screen.getByRole("heading", { name: /Publish accurate networking lessons/ })).toBeInTheDocument();
     expect(container.querySelectorAll("svg").length).toBeGreaterThan(2);
     expect(screen.queryByText("CURRICULUM CONTROL PLANE")).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Create an account" })).toHaveAttribute("href", "#/register");
   });
 
   test("clears failed sign-in feedback when the learner edits a credential", async () => {

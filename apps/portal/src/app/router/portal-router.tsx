@@ -2,8 +2,9 @@ import { lazy, Suspense } from "react";
 import { createHashRouter, Navigate, Route, RouterProvider, Routes } from "react-router-dom";
 
 import { LoadingState } from "@/components/ui/admin-primitives";
-import { Login, SetupRequired } from "@/features/auth";
+import { Login, PendingInstructorAccess, Register, SetupRequired } from "@/features/auth";
 import { configured } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase";
 import { defaultPathForAccess, normalizeLegacyHash } from "@/app/navigation";
 import { AuthProvider, usePortalAuth } from "@/app/providers/auth-provider";
 import { UnsavedChangesProvider } from "@/app/providers/unsaved-changes-provider";
@@ -25,13 +26,18 @@ const WorkshopGradebookPage = lazy(() => import("@/features/workshops").then((mo
 
 function PortalRoutes() {
   const { session, access, loading } = usePortalAuth();
-  const fallback = access?.authorized ? defaultPathForAccess(access.accessLevel) : "/login";
+  const fallback = access?.authorized
+    ? defaultPathForAccess(access.accessLevel)
+    : session ? "/account/pending" : "/login";
   if (!configured) return <SetupRequired />;
+  if (loading) return <LoadingState />;
 
   return (
     <Suspense fallback={<LoadingState />}>
       <Routes>
-        <Route path="/login" element={loading ? <LoadingState /> : session ? <Navigate replace to={fallback} /> : <Login />} />
+        <Route path="/login" element={session ? <Navigate replace to={fallback} /> : <Login />} />
+        <Route path="/register" element={session ? <Navigate replace to={fallback} /> : <Register />} />
+        <Route path="/account/pending" element={!session ? <Navigate replace to="/login" /> : access?.authorized ? <Navigate replace to={fallback} /> : <PendingInstructorAccess session={session} onLogout={() => void supabase?.auth.signOut()} />} />
         <Route element={<WorkspaceGuard />}>
           <Route element={<RoleGuard role="administrator" />}>
             <Route path="/admin/overview" element={<Dashboard />} />

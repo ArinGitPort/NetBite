@@ -30,27 +30,40 @@ export function BrandMark({
 
 export function BrandLockup({
   className,
+  href,
   markClassName,
   subtitle,
 }: {
   className?: string;
+  href?: string;
   markClassName?: string;
   subtitle?: ReactNode;
 }) {
-  return (
-    <div
-      aria-label="NetBite"
-      className={cn("flex items-center gap-2.5", className)}
-    >
+  const content = (
+    <>
       <BrandMark className={markClassName} />
       <span className="grid gap-1">
-        <strong className="text-[0.82rem] tracking-[0.08em]">NETBITE</strong>
+        <strong className="text-[0.82rem] tracking-[0.02em]">NetBite</strong>
         {subtitle ? (
           <span className="font-mono text-[0.6rem] uppercase tracking-[0.1em] text-muted">
             {subtitle}
           </span>
         ) : null}
       </span>
-    </div>
+    </>
   );
+
+  if (href) {
+    return (
+      <a
+        aria-label="NetBite — go to sign in"
+        className={cn("inline-flex min-h-11 items-center gap-2.5 rounded-control text-copy transition-colors hover:text-signal-orange focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-signal-orange", className)}
+        href={href}
+      >
+        {content}
+      </a>
+    );
+  }
+
+  return <div className={cn("flex items-center gap-2.5", className)}>{content}</div>;
 }
